@@ -21,6 +21,8 @@ import { Loader2, AlertCircle } from "lucide-react"
 
 type PresetTipo = "semana" | "mes" | "personalizado"
 
+const MSG_ERROR = "No se pudieron cargar las órdenes. Verifica tu conexión."
+
 function tituloReporte(desde: Date, hasta: Date): string {
   const opt: Intl.DateTimeFormatOptions = { day: "numeric", month: "long", year: "numeric" }
   const loc = "es-MX"
@@ -43,21 +45,29 @@ export default function ReporteView() {
   const [agruparPor, setAgruparPor] = useState<CriterioAgrupacion>("proveedor")
   const [moneda, setMoneda] = useState("MXN")
 
+  // Recarga manual (botón "Reintentar"): aquí sí marcamos cargando de inmediato.
   const cargar = useCallback(async () => {
     setCargando(true)
     setError(null)
     try {
       setOrdenes(await listarOrdenes())
     } catch {
-      setError("No se pudieron cargar las órdenes. Verifica tu conexión.")
+      setError(MSG_ERROR)
     } finally {
       setCargando(false)
     }
   }, [])
 
+  // Carga inicial: el estado arranca en `cargando = true`, así que sólo
+  // actualizamos estado después del await para no disparar renders en cascada.
   useEffect(() => {
-    cargar()
-  }, [cargar])
+    let activo = true
+    listarOrdenes()
+      .then((data) => { if (activo) setOrdenes(data) })
+      .catch(() => { if (activo) setError(MSG_ERROR) })
+      .finally(() => { if (activo) setCargando(false) })
+    return () => { activo = false }
+  }, [])
 
   function handlePreset(tipo: "semana" | "mes") {
     setPresetTipo(tipo)
