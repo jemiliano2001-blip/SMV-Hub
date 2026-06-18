@@ -9,7 +9,7 @@ export const ItemFacturaSchema = z.object({
   total: z.number().nullable(),
 })
 
-// ── Lo que Claude extrae de la imagen de la factura ──────────────────────────
+// ── Lo que la IA (Claude) extrae de la imagen de la factura ──────────────────
 
 export const ExtraccionInvoiceSchema = z.object({
   proveedor: z.string(),
@@ -31,6 +31,8 @@ export const CamposManualSchema = z.object({
   requisitor: z.string().min(1, "El requisitor es obligatorio"),
   ordenTrabajo: z.string().min(1, "La orden de trabajo es obligatoria"),
   empresa: z.string().min(1, "La empresa es obligatoria"),
+  cuentaCargo: z.string().optional().default(""),
+  destino: z.string().optional().default(""),
 })
 
 export type CamposManual = z.infer<typeof CamposManualSchema>
