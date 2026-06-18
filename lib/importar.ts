@@ -1,5 +1,5 @@
-import type { EstadoOrden, ItemFactura } from "@/lib/schemas"
-import { crearOrden, type NuevaOrdenPayload } from "@/lib/ordenes"
+import type { EstadoOrden, ItemFactura, ExtraccionInvoice } from "@/lib/schemas"
+import { crearOrdenesLote, type NuevaOrdenPayload } from "@/lib/ordenes"
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -35,9 +35,30 @@ const ALIAS: Record<string, string> = {
   "requisitor": "requisitor",
   "orden de trabajo": "ordenTrabajo",
   "empresa": "empresa",
+  "cuenta cargo": "cuentaCargo",
+  "cuenta de cargo": "cuentaCargo",
+  "destino": "destino",
 }
 
 const COLUMNAS_REQUERIDAS = ["proveedor", "requisitor", "ordenTrabajo", "empresa"]
+
+// ── Validación de campos obligatorios (compartida por CSV y capturas) ─────────
+
+// Recalcula los errores bloqueantes de una fila a partir de sus campos obligatorios.
+// Usado por mapearFila, mapearExtraccion y la edición en vivo del preview.
+export function erroresRequeridos(datos: {
+  proveedor: string
+  requisitor: string
+  ordenTrabajo: string
+  empresa: string
+}): string[] {
+  const errores: string[] = []
+  if (!datos.proveedor.trim()) errores.push("Proveedor vacío")
+  if (!datos.requisitor.trim()) errores.push("Requisitor vacío")
+  if (!datos.ordenTrabajo.trim()) errores.push("Orden de trabajo vacía")
+  if (!datos.empresa.trim()) errores.push("Empresa vacía")
+  return errores
+}
 
 // ── parsearCSVTexto ───────────────────────────────────────────────────────────
 
@@ -122,7 +143,6 @@ export function mapearFila(
   const get = (campo: string) =>
     colIdx[campo] !== undefined ? (celdas[colIdx[campo]] ?? "").trim() : ""
 
-  const errores: string[] = []
   const advertencias: string[] = []
 
   const proveedor = get("proveedor")
@@ -130,10 +150,7 @@ export function mapearFila(
   const ordenTrabajo = get("ordenTrabajo")
   const empresa = get("empresa")
 
-  if (!proveedor) errores.push("Proveedor vacío")
-  if (!requisitor) errores.push("Requisitor vacío")
-  if (!ordenTrabajo) errores.push("Orden de trabajo vacía")
-  if (!empresa) errores.push("Empresa vacía")
+  const errores = erroresRequeridos({ proveedor, requisitor, ordenTrabajo, empresa })
 
   const estadoRaw = get("estado").toLowerCase()
   let estado: EstadoOrden = "pendiente"
@@ -180,6 +197,8 @@ export function mapearFila(
       requisitor,
       ordenTrabajo,
       empresa,
+      cuentaCargo: get("cuentaCargo"),
+      destino: get("destino"),
       linkProveedor: sanitizarUrl(get("linkProveedor")),
       fechaEntrega: get("fechaEntrega") || null,
       estado,
@@ -187,6 +206,46 @@ export function mapearFila(
     errores,
     advertencias,
     seleccionada: true,
+  }
+}
+
+// ── mapearExtraccion (capturas) ───────────────────────────────────────────────
+
+// Convierte una extracción de IA en una FilaParseada lista para el preview.
+// Los campos manuales (requisitor, ordenTrabajo, empresa) no salen de una factura,
+// por eso quedan vacíos y generan errores bloqueantes hasta que el usuario los
+// complete (típicamente con "aplicar a todas").
+export function mapearExtraccion(
+  extraccion: ExtraccionInvoice,
+  indice: number
+): FilaParseada {
+  const datos = {
+    proveedor: extraccion.proveedor,
+    numeroFactura: extraccion.numeroFactura,
+    fechaFactura: extraccion.fechaFactura,
+    moneda: extraccion.moneda,
+    subtotal: extraccion.subtotal,
+    impuestos: extraccion.impuestos,
+    total: extraccion.total,
+    items: extraccion.items,
+    requisitor: "",
+    ordenTrabajo: "",
+    empresa: "",
+    cuentaCargo: "",
+    destino: "",
+    linkProveedor: null,
+    fechaEntrega: null,
+    estado: "pendiente" as EstadoOrden,
+  }
+
+  const errores = erroresRequeridos(datos)
+
+  return {
+    indice,
+    datos,
+    errores,
+    advertencias: [],
+    seleccionada: errores.length === 0,
   }
 }
 
@@ -219,15 +278,9 @@ export async function importarOrdenes(
   onProgreso?: (completadas: number, total: number) => void
 ): Promise<{ importadas: number }> {
   const validas = filas.filter(f => f.seleccionada && f.errores.length === 0)
-  const LOTE = 10
-  let importadas = 0
-
-  for (let i = 0; i < validas.length; i += LOTE) {
-    const lote = validas.slice(i, i + LOTE)
-    await Promise.all(lote.map(f => crearOrden(f.datos)))
-    importadas += lote.length
-    onProgreso?.(importadas, validas.length)
-  }
-
+  const importadas = await crearOrdenesLote(
+    validas.map(f => f.datos),
+    onProgreso
+  )
   return { importadas }
 }
