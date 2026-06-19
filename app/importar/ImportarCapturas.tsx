@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   UploadCloud,
   AlertCircle,
@@ -20,6 +20,14 @@ const cls = {
 export default function ImportarCapturas() {
   const [archivos, setArchivos] = useState<File[]>([])
   const [objectUrls, setObjectUrls] = useState<string[]>([])
+
+  // Revoca todas las object URLs al desmontar el componente para evitar memory leaks
+  useEffect(() => {
+    return () => {
+      objectUrls.forEach(u => { if (u) URL.revokeObjectURL(u) })
+    }
+  }, [objectUrls])
+
   const [filas, setFilas] = useState<FilaParseada[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [dragActive, setDragActive] = useState(false)

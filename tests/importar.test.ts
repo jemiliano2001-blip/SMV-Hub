@@ -429,6 +429,8 @@ function makeFilaValida(indice: number) {
       requisitor: "Juan",
       ordenTrabajo: "OT-100",
       empresa: "SMV Norte",
+      cuentaCargo: '',
+      destino: '',
       linkProveedor: null,
       fechaEntrega: null,
       estado: "pendiente" as const,

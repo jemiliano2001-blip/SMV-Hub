@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import {
   AlertCircle,
@@ -53,16 +53,13 @@ export default function PreviewImportacion({
   const [status, setStatus] = useState<'preview' | 'confirmando-dedup' | 'importing' | 'completed'>('preview')
   const [progreso, setProgreso] = useState({ completadas: 0, total: 0 })
   const [error, setError] = useState<string | null>(null)
-  const [aplicar, setAplicar] = useState({ requisitor: '', ordenTrabajo: '', empresa: '' })
+  const [aplicar, setAplicar] = useState(() => ({
+    requisitor: typeof window !== 'undefined' ? localStorage.getItem('smv:requisitor') ?? '' : '',
+    ordenTrabajo: typeof window !== 'undefined' ? localStorage.getItem('smv:ordenTrabajo') ?? '' : '',
+    empresa: '',
+  }))
   const [duplicados, setDuplicados] = useState<Array<{ indice: number; motivo: string }>>([])
 
-  // Carga el requisitor y ordenTrabajo guardados en la importación anterior
-  useEffect(() => {
-    const guardadoReq = localStorage.getItem('smv:requisitor')
-    if (guardadoReq) setAplicar(a => ({ ...a, requisitor: guardadoReq }))
-    const guardadoOT = localStorage.getItem('smv:ordenTrabajo')
-    if (guardadoOT) setAplicar(a => ({ ...a, ordenTrabajo: guardadoOT }))
-  }, [])
 
   const toggleRow = (indice: number) => {
     setFilas(prev =>
