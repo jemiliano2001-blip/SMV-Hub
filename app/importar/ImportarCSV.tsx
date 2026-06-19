@@ -93,7 +93,6 @@ export default function ImportarCSV() {
       <PreviewImportacion
         filasIniciales={filas}
         onReiniciar={reiniciar}
-        // @ts-expect-error - prop added in Task 5
         columnasDetectadas={columnasDetectadas ?? undefined}
       />
     )
