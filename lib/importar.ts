@@ -14,6 +14,7 @@ export interface FilaParseada {
 export interface ResultadoCSV {
   filas: FilaParseada[]
   error: string | null
+  columnasDetectadas: string[]
 }
 
 // ── Alias de columnas → nombre de campo ──────────────────────────────────────
@@ -32,6 +33,11 @@ const ALIAS: Record<string, string> = {
   "fecha de entrega": "fechaEntrega",
   "guia": "fechaEntrega",
   "guía": "fechaEntrega",
+  "entrega": "fechaEntrega",
+  "orden_trabajo": "ordenTrabajo",
+  "precio_unitario": "precioUnitario",
+  "total": "totalLinea",
+  "moneda": "moneda",
   "requisitor": "requisitor",
   "orden de trabajo": "ordenTrabajo",
   "empresa": "empresa",
@@ -133,6 +139,22 @@ function sanitizarUrl(raw: string): string | null {
   }
 }
 
+// Infiere la empresa a partir del nombre del proveedor cuando el CSV no la trae.
+// McMaster no tiene regla fija (se compra para varias empresas).
+function inferirEmpresa(proveedor: string): string {
+  const p = proveedor.toLowerCase()
+  if (/digi.?key|mouser/.test(p)) return 'SilTech'
+  return ''
+}
+
+// DD/MM/YYYY (formato Gemini) → YYYY-MM-DD (formato app)
+function normalizarFecha(f: string): string | null {
+  if (!f) return null
+  const m = f.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`
+  return f || null
+}
+
 // ── mapearFila ────────────────────────────────────────────────────────────────
 
 export function mapearFila(
@@ -148,7 +170,7 @@ export function mapearFila(
   const proveedor = get("proveedor")
   const requisitor = get("requisitor")
   const ordenTrabajo = get("ordenTrabajo")
-  const empresa = get("empresa")
+  const empresa = get("empresa") || inferirEmpresa(proveedor)
 
   const errores = erroresRequeridos({ proveedor, requisitor, ordenTrabajo, empresa })
 
@@ -174,12 +196,23 @@ export function mapearFila(
     }
   }
 
+  const parsearMonto = (campo: string): number | null => {
+    const v = get(campo)
+    if (!v) return null
+    const n = Number(v)
+    return isNaN(n) ? null : n
+  }
+
+  const precioUnitario = parsearMonto("precioUnitario")
+  const totalLinea = parsearMonto("totalLinea")
+  const moneda = get("moneda") || "USD"
+
   const items: ItemFactura[] = [
     {
       descripcion: get("descripcion"),
       cantidad,
-      precioUnitario: null,
-      total: null,
+      precioUnitario,
+      total: totalLinea,
     },
   ]
 
@@ -188,11 +221,11 @@ export function mapearFila(
     datos: {
       proveedor,
       numeroFactura: null,
-      fechaFactura: get("fechaFactura") || null,
-      moneda: "USD",
-      subtotal: null,
+      fechaFactura: normalizarFecha(get("fechaFactura")),
+      moneda,
+      subtotal: totalLinea,
       impuestos: null,
-      total: null,
+      total: totalLinea,
       items,
       requisitor,
       ordenTrabajo,
@@ -254,7 +287,7 @@ export function mapearExtraccion(
 export function procesarCSV(texto: string): ResultadoCSV {
   const matriz = parsearCSVTexto(texto)
   if (matriz.length < 2) {
-    return { filas: [], error: "El CSV no tiene datos (se necesita al menos una fila de encabezado y una de datos)" }
+    return { filas: [], error: "El CSV no tiene datos (se necesita al menos una fila de encabezado y una de datos)", columnasDetectadas: [] }
   }
 
   const [headers, ...filas] = matriz
@@ -262,13 +295,38 @@ export function procesarCSV(texto: string): ResultadoCSV {
 
   const faltantes = COLUMNAS_REQUERIDAS.filter(c => colIdx[c] === undefined)
   if (faltantes.length > 0) {
-    return { filas: [], error: `Columnas requeridas no encontradas: ${faltantes.join(", ")}` }
+    return { filas: [], error: `Columnas requeridas no encontradas: ${faltantes.join(", ")}`, columnasDetectadas: [] }
   }
 
   return {
     filas: filas.map((celdas, i) => mapearFila(celdas, colIdx, i)),
     error: null,
+    columnasDetectadas: Object.keys(colIdx),
   }
+}
+
+// ── verificarDuplicados ───────────────────────────────────────────────────────
+
+export function verificarDuplicados(
+  filas: FilaParseada[],
+  existentes: Array<{ numeroFactura: string | null; proveedor: string }>
+): Array<{ indice: number; motivo: string }> {
+  const set = new Set(
+    existentes
+      .filter(e => e.numeroFactura !== null)
+      .map(e => `${e.numeroFactura!.toLowerCase()}|${e.proveedor.toLowerCase()}`)
+  )
+  return filas
+    .filter(f => f.datos.numeroFactura !== null)
+    .filter(f =>
+      set.has(
+        `${f.datos.numeroFactura!.toLowerCase()}|${f.datos.proveedor.toLowerCase()}`
+      )
+    )
+    .map(f => ({
+      indice: f.indice,
+      motivo: `${f.datos.proveedor} / factura ${f.datos.numeroFactura}`,
+    }))
 }
 
 // ── importarOrdenes ───────────────────────────────────────────────────────────
