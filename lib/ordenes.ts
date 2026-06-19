@@ -7,8 +7,10 @@ import {
   updateDoc,
   deleteDoc,
   query,
+  where,
   orderBy,
   Timestamp,
+  writeBatch,
   FirestoreDataConverter,
   QueryDocumentSnapshot,
 } from "firebase/firestore"
@@ -50,14 +52,44 @@ export type NuevaOrdenPayload = NuevaCompraForm & {
 
 export async function crearOrden(payload: NuevaOrdenPayload): Promise<string> {
   const ahora = new Date()
+  // El converter (toFirestore) descarta `id`; el id real es ref.id.
   const ref = await addDoc(ordenesRef(), {
     ...payload,
-    id: "",
     estado: payload.estado ?? ("pendiente" as const),
     creadoEn: ahora,
     actualizadoEn: ahora,
-  })
+  } as OrdenCompra)
   return ref.id
+}
+
+// Inserta muchas órdenes con writeBatch (atómico por lote, ≤500 escrituras).
+// Reutilizado por la importación masiva (CSV y capturas).
+export async function crearOrdenesLote(
+  payloads: NuevaOrdenPayload[],
+  onProgreso?: (completadas: number, total: number) => void
+): Promise<number> {
+  const LOTE = 400 // margen bajo el límite de 500 de writeBatch
+  let creadas = 0
+
+  for (let i = 0; i < payloads.length; i += LOTE) {
+    const grupo = payloads.slice(i, i + LOTE)
+    const batch = writeBatch(db)
+    const ahora = new Date()
+    for (const payload of grupo) {
+      const ref = doc(ordenesRef()) // id autogenerado + converter heredado
+      batch.set(ref, {
+        ...payload,
+        estado: payload.estado ?? ("pendiente" as const),
+        creadoEn: ahora,
+        actualizadoEn: ahora,
+      } as OrdenCompra)
+    }
+    await batch.commit()
+    creadas += grupo.length
+    onProgreso?.(creadas, payloads.length)
+  }
+
+  return creadas
 }
 
 export async function listarOrdenes(): Promise<OrdenCompra[]> {
@@ -88,4 +120,31 @@ export async function actualizarOrden(
 
 export async function eliminarOrden(id: string): Promise<void> {
   await deleteDoc(doc(db, "ordenes", id))
+}
+
+// Busca órdenes existentes por combinación numeroFactura+proveedor para deduplicación.
+// Solo evalúa facturas con numeroFactura no nulo. Divide en chunks de 30 (límite Firestore `in`).
+export async function buscarPorFacturaYProveedor(
+  pares: Array<{ numeroFactura: string; proveedor: string }>
+): Promise<Array<{ numeroFactura: string | null; proveedor: string }>> {
+  if (pares.length === 0) return []
+
+  const CHUNK = 30
+  const resultados: Array<{ numeroFactura: string | null; proveedor: string }> = []
+
+  for (let i = 0; i < pares.length; i += CHUNK) {
+    const facturas = pares.slice(i, i + CHUNK).map(p => p.numeroFactura)
+    const snap = await getDocs(
+      query(collection(db, "ordenes"), where("numeroFactura", "in", facturas))
+    )
+    snap.docs.forEach(d => {
+      const data = d.data() as { numeroFactura?: string | null; proveedor?: string }
+      resultados.push({
+        numeroFactura: data.numeroFactura ?? null,
+        proveedor: data.proveedor ?? "",
+      })
+    })
+  }
+
+  return resultados
 }
