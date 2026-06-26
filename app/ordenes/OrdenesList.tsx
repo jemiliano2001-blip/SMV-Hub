@@ -1,58 +1,146 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { listarOrdenes, eliminarOrden } from '@/lib/ordenes'
-import type { OrdenCompra } from '@/lib/schemas'
+import { useState, useMemo } from 'react'
+import { listarOrdenes, eliminarOrden, actualizarOrden, eliminarOrdenesLote } from '@/lib/ordenes'
+import type { OrdenCompra, EstadoOrden } from '@/lib/schemas'
+import { formatPrecio } from '@/lib/format'
 import { 
   Loader2, 
   Trash2, 
   Eye, 
   AlertCircle, 
   ExternalLink, 
-  Calendar, 
-  X, 
+  Calendar,
+  X,
   Clock, 
-  CheckCircle2, 
-  XCircle 
+  XCircle,
+  CheckCircle2,
+  Plus,
+  Edit2,
+  Search
 } from 'lucide-react'
+import OrdenFormModal from './OrdenFormModal'
+import { useOrdenes } from '@/lib/hooks/useOrdenes'
+
+function normalizar(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
 
 export default function OrdenesList() {
-  const [ordenes, setOrdenes] = useState<OrdenCompra[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const {
+    ordenes,
+    loading,
+    error,
+    fetchOrdenes,
+    handleEliminar,
+    handleCambiarEstado,
+    handleEliminarLote,
+    addOrUpdateOrden
+  } = useOrdenes()
+
   const [selectedOrden, setSelectedOrden] = useState<OrdenCompra | null>(null)
+  
+  // States para búsqueda y filtrado
+  const [query, setQuery] = useState('')
+  const [estadoFiltro, setEstadoFiltro] = useState<EstadoOrden | 'todos'>('todos')
 
-  useEffect(() => {
-    fetchOrdenes()
-  }, [])
+  // States para bulk actions y forms
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [isDeletingBulk, setIsDeletingBulk] = useState(false)
+  const [isAddingMode, setIsAddingMode] = useState(false)
+  const [ordenToEdit, setOrdenToEdit] = useState<OrdenCompra | null>(null)
 
-  async function fetchOrdenes() {
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await listarOrdenes()
-      setOrdenes(data)
-    } catch (err) {
-      console.error('Error fetching ordenes:', err)
-      setError('No se pudieron cargar las órdenes de compra. Por favor, intenta de nuevo.')
-    } finally {
-      setLoading(false)
+  const ordenesFiltradas = useMemo(() => {
+    let resultado = ordenes
+
+    if (estadoFiltro !== 'todos') {
+      resultado = resultado.filter(o => o.estado === estadoFiltro)
     }
+
+    const q = normalizar(query.trim())
+    if (q) {
+      resultado = resultado.filter(o =>
+        [o.proveedor, o.requisitor, o.empresa, o.ordenTrabajo, o.numeroFactura, o.fechaFactura]
+          .some(campo => normalizar(campo ?? '').includes(q))
+      )
+    }
+
+    return resultado
+  }, [ordenes, query, estadoFiltro])
+
+  const hayFiltrosActivos = query.trim() !== '' || estadoFiltro !== 'todos'
+
+  const limpiarFiltros = () => {
+    setQuery('')
+    setEstadoFiltro('todos')
   }
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const onDeleteClick = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     if (window.confirm('¿Estás seguro de que deseas eliminar esta orden de compra?')) {
-      try {
-        await eliminarOrden(id)
-        setOrdenes((prev) => prev.filter((o) => o.id !== id))
+      const success = await handleEliminar(id)
+      if (success) {
         if (selectedOrden?.id === id) {
           setSelectedOrden(null)
         }
-      } catch (err) {
-        console.error('Error deleting orden:', err)
+      } else {
         alert('No se pudo eliminar la orden. Por favor, intenta de nuevo.')
       }
+    }
+  }
+
+  const onChangeEstadoClick = async (id: string, estado: EstadoOrden) => {
+    const success = await handleCambiarEstado(id, estado)
+    if (success) {
+      setSelectedOrden((prev) => (prev && prev.id === id ? { ...prev, estado } : prev))
+    } else {
+      alert('No se pudo actualizar el estado. Por favor, intenta de nuevo.')
+    }
+  }
+
+  // Bulk Actions
+  const toggleSelection = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const newSelected = new Set(selectedIds)
+    if (newSelected.has(id)) newSelected.delete(id)
+    else newSelected.add(id)
+    setSelectedIds(newSelected)
+  }
+
+  const toggleAllSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedIds(new Set(ordenesFiltradas.map(o => o.id)))
+    } else {
+      setSelectedIds(new Set())
+    }
+  }
+
+  const handleDeleteMultiple = async () => {
+    if (selectedIds.size === 0) return
+    if (window.confirm(`¿Estás seguro de que deseas eliminar ${selectedIds.size} órdenes seleccionadas?`)) {
+      setIsDeletingBulk(true)
+      const success = await handleEliminarLote(Array.from(selectedIds))
+      if (success) {
+        if (selectedOrden && selectedIds.has(selectedOrden.id)) {
+          setSelectedOrden(null)
+        }
+        setSelectedIds(new Set())
+      } else {
+        alert('No se pudieron eliminar las órdenes. Por favor, intenta de nuevo.')
+      }
+      setIsDeletingBulk(false)
+    }
+  }
+
+  const handleFormSaved = (ordenGuardada: OrdenCompra) => {
+    addOrUpdateOrden(ordenGuardada)
+    setIsAddingMode(false)
+    setOrdenToEdit(null)
+    if (selectedOrden && selectedOrden.id === ordenGuardada.id) {
+      setSelectedOrden(ordenGuardada)
     }
   }
 
@@ -83,18 +171,6 @@ export default function OrdenesList() {
       month: '2-digit',
       year: 'numeric',
     })
-  }
-
-  const formatPrice = (amount: number | null | undefined, currency: string = 'USD') => {
-    if (amount === null || amount === undefined) return '-'
-    try {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency,
-      }).format(amount)
-    } catch {
-      return `${currency} ${amount.toFixed(2)}`
-    }
   }
 
   // Status Badge Helper
@@ -171,11 +247,143 @@ export default function OrdenesList() {
 
   return (
     <>
+      {/* Barra de búsqueda y filtros */}
+      <div className="flex flex-col gap-3 mb-4">
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Input de texto */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Buscar por proveedor, requisitor, fecha..."
+              className="w-full pl-9 pr-9 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Limpiar búsqueda"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Pills de estado */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => setEstadoFiltro('todos')}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                estadoFiltro === 'todos'
+                  ? 'bg-gray-900 text-white border-gray-900'
+                  : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              Todos
+            </button>
+            <button
+              onClick={() => setEstadoFiltro('pendiente')}
+              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                estadoFiltro === 'pendiente'
+                  ? 'bg-yellow-100 text-yellow-800 border-yellow-400'
+                  : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <Clock className="h-3 w-3" />
+              Pendiente
+            </button>
+            <button
+              onClick={() => setEstadoFiltro('aprobada')}
+              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                estadoFiltro === 'aprobada'
+                  ? 'bg-green-100 text-green-700 border-green-400'
+                  : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <CheckCircle2 className="h-3 w-3" />
+              Aprobada
+            </button>
+            <button
+              onClick={() => setEstadoFiltro('rechazada')}
+              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                estadoFiltro === 'rechazada'
+                  ? 'bg-red-100 text-red-700 border-red-400'
+                  : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <XCircle className="h-3 w-3" />
+              Rechazada
+            </button>
+          </div>
+        </div>
+
+        {/* Contador + Bulk delete */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            {hayFiltrosActivos && (
+              <p className="text-xs text-gray-500">
+                Mostrando <span className="font-semibold text-gray-700">{ordenesFiltradas.length}</span> de{' '}
+                <span className="font-semibold text-gray-700">{ordenes.length}</span> órdenes
+              </p>
+            )}
+            {selectedIds.size > 0 && (
+              <button
+                onClick={handleDeleteMultiple}
+                disabled={isDeletingBulk}
+                className="inline-flex items-center gap-2 rounded-lg bg-red-50 text-red-600 px-4 py-2 text-sm font-semibold hover:bg-red-100 transition-colors border border-red-200 disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" />
+                {isDeletingBulk ? 'Eliminando...' : `Eliminar ${selectedIds.size} seleccionadas`}
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => setIsAddingMode(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"
+          >
+            <Plus className="h-4 w-4" />
+            Añadir Orden
+          </button>
+        </div>
+      </div>
+
+      {/* Empty state por filtro activo */}
+      {ordenesFiltradas.length === 0 && hayFiltrosActivos && (
+        <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-xs">
+          <div className="mx-auto w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-4 text-gray-400">
+            <Search className="h-5 w-5" />
+          </div>
+          <h3 className="text-sm font-semibold text-gray-900">Sin resultados</h3>
+          {query && (
+            <p className="text-sm text-gray-500 mt-1">
+              No se encontraron órdenes para <span className="font-medium">&quot;{query}&quot;</span>
+            </p>
+          )}
+          <button
+            onClick={limpiarFiltros}
+            className="mt-4 text-sm font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2"
+          >
+            Limpiar filtros
+          </button>
+        </div>
+      )}
+
+      {ordenesFiltradas.length > 0 && (
       <div className="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left text-gray-500">
             <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
               <tr>
+                <th className="px-4 py-4 w-12 text-center">
+                  <input
+                    type="checkbox"
+                    checked={ordenesFiltradas.length > 0 && selectedIds.size === ordenesFiltradas.length}
+                    onChange={toggleAllSelection}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                </th>
                 <th className="px-6 py-4 font-semibold">ID</th>
                 <th className="px-6 py-4 font-semibold">Proveedor</th>
                 <th className="px-6 py-4 font-semibold">Requisitor</th>
@@ -188,12 +396,20 @@ export default function OrdenesList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {ordenes.map((orden) => (
+              {ordenesFiltradas.map((orden) => (
                 <tr 
                   key={orden.id} 
                   onClick={() => setSelectedOrden(orden)}
                   className="hover:bg-gray-50 cursor-pointer transition-colors"
                 >
+                  <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(orden.id)}
+                      onChange={(e) => toggleSelection(orden.id, e as unknown as React.MouseEvent)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                  </td>
                   <td className="px-6 py-4 font-mono text-xs text-gray-900 max-w-[120px] truncate" title={orden.id}>
                     {orden.id}
                   </td>
@@ -210,7 +426,7 @@ export default function OrdenesList() {
                     {orden.empresa}
                   </td>
                   <td className="px-6 py-4 font-semibold text-gray-900 text-right whitespace-nowrap">
-                    {formatPrice(orden.total, orden.moneda)}
+                    {formatPrecio(orden.total, orden.moneda)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {formatDate(orden.creadoEn)}
@@ -231,7 +447,7 @@ export default function OrdenesList() {
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={(e) => handleDelete(orden.id, e)}
+                        onClick={(e) => onDeleteClick(orden.id, e)}
                         className="p-1 text-gray-500 hover:text-red-600 rounded-md hover:bg-gray-100 transition-colors"
                         title="Eliminar"
                       >
@@ -245,6 +461,7 @@ export default function OrdenesList() {
           </table>
         </div>
       </div>
+      )}
 
       {/* Details Modal */}
       {selectedOrden && (
@@ -256,12 +473,22 @@ export default function OrdenesList() {
                 <h2 className="text-lg font-bold text-gray-900">Detalles de la Orden</h2>
                 <p className="text-xs text-gray-400 font-mono mt-0.5">ID: {selectedOrden.id}</p>
               </div>
-              <button
-                onClick={() => setSelectedOrden(null)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setOrdenToEdit(selectedOrden)}
+                  className="p-1.5 text-blue-600 hover:text-blue-800 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1.5 text-sm font-semibold"
+                >
+                  <Edit2 className="h-4 w-4" />
+                  Editar
+                </button>
+                <div className="w-px h-4 bg-gray-200 mx-1"></div>
+                <button
+                  onClick={() => setSelectedOrden(null)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
 
             {/* Scrollable Content */}
@@ -281,7 +508,7 @@ export default function OrdenesList() {
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                   <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Orden y Pago</span>
                   <div className="mt-1 text-sm font-semibold text-gray-900">Orden de Trabajo: <span className="font-normal text-gray-600">{selectedOrden.ordenTrabajo}</span></div>
-                  <div className="mt-1 text-sm font-semibold text-gray-900">Total: <span className="text-blue-600 font-semibold">{formatPrice(selectedOrden.total, selectedOrden.moneda)}</span></div>
+                  <div className="mt-1 text-sm font-semibold text-gray-900">Total: <span className="text-blue-600 font-semibold">{formatPrecio(selectedOrden.total, selectedOrden.moneda)}</span></div>
                 </div>
               </div>
 
@@ -297,13 +524,20 @@ export default function OrdenesList() {
                     <span className="text-gray-900">{selectedOrden.fechaFactura || '-'}</span>
 
                     <span className="text-gray-400">Subtotal:</span>
-                    <span className="text-gray-900">{formatPrice(selectedOrden.subtotal, selectedOrden.moneda)}</span>
+                    <span className="text-gray-900">{formatPrecio(selectedOrden.subtotal, selectedOrden.moneda)}</span>
+
+                    {selectedOrden.envio != null && selectedOrden.envio !== 0 && (
+                      <>
+                        <span className="text-gray-400">Envío:</span>
+                        <span className="text-gray-900">{formatPrecio(selectedOrden.envio, selectedOrden.moneda)}</span>
+                      </>
+                    )}
 
                     <span className="text-gray-400">Impuestos (Tax):</span>
-                    <span className="text-gray-900">{formatPrice(selectedOrden.impuestos, selectedOrden.moneda)}</span>
+                    <span className="text-gray-900">{formatPrecio(selectedOrden.impuestos, selectedOrden.moneda)}</span>
 
                     <span className="text-gray-400">Total:</span>
-                    <span className="text-gray-900 font-semibold">{formatPrice(selectedOrden.total, selectedOrden.moneda)}</span>
+                    <span className="text-gray-900 font-semibold">{formatPrecio(selectedOrden.total, selectedOrden.moneda)}</span>
                   </div>
                 </div>
 
@@ -348,6 +582,9 @@ export default function OrdenesList() {
                       <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
                         <tr>
                           <th className="px-4 py-3 font-semibold">Descripción</th>
+                          <th className="px-4 py-3 font-semibold">Empresa</th>
+                          <th className="px-4 py-3 font-semibold">Cuenta cargo</th>
+                          <th className="px-4 py-3 font-semibold">Requisitor</th>
                           <th className="px-4 py-3 font-semibold text-center w-20">Cant.</th>
                           <th className="px-4 py-3 font-semibold text-right w-32">P. Unitario</th>
                           <th className="px-4 py-3 font-semibold text-right w-32">Total</th>
@@ -357,9 +594,12 @@ export default function OrdenesList() {
                         {selectedOrden.items.map((item, index) => (
                           <tr key={index} className="hover:bg-gray-50">
                             <td className="px-4 py-3 text-gray-900 font-medium">{item.descripcion}</td>
+                            <td className="px-4 py-3 text-gray-600">{item.empresa || selectedOrden.empresa || '—'}</td>
+                            <td className="px-4 py-3 text-gray-600">{item.cuentaCargo || selectedOrden.cuentaCargo || '—'}</td>
+                            <td className="px-4 py-3 text-gray-600">{item.requisitor || selectedOrden.requisitor || '—'}</td>
                             <td className="px-4 py-3 text-center">{item.cantidad ?? '-'}</td>
-                            <td className="px-4 py-3 text-right">{formatPrice(item.precioUnitario, selectedOrden.moneda)}</td>
-                            <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatPrice(item.total, selectedOrden.moneda)}</td>
+                            <td className="px-4 py-3 text-right">{formatPrecio(item.precioUnitario, selectedOrden.moneda)}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatPrecio(item.total, selectedOrden.moneda)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -393,22 +633,52 @@ export default function OrdenesList() {
             </div>
 
             {/* Footer */}
-            <div className="flex justify-between border-t border-gray-200 px-6 py-4 bg-gray-50 rounded-b-xl shrink-0">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-200 px-6 py-4 bg-gray-50 rounded-b-xl shrink-0">
               <button
-                onClick={(e) => handleDelete(selectedOrden.id, e)}
+                onClick={(e) => onDeleteClick(selectedOrden.id, e)}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 shadow-sm hover:bg-red-50 hover:text-red-800 transition-colors"
               >
                 <Trash2 className="h-4 w-4" /> Eliminar orden
               </button>
-              <button
-                onClick={() => setSelectedOrden(null)}
-                className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors"
-              >
-                Cerrar
-              </button>
+              <div className="flex items-center gap-2">
+                {selectedOrden.estado !== 'aprobada' && (
+                  <button
+                    onClick={() => onChangeEstadoClick(selectedOrden.id, 'aprobada')}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-white px-4 py-2 text-sm font-semibold text-green-700 shadow-sm hover:bg-green-50 hover:text-green-800 transition-colors"
+                  >
+                    <CheckCircle2 className="h-4 w-4" /> Aprobar
+                  </button>
+                )}
+                {selectedOrden.estado !== 'rechazada' && (
+                  <button
+                    onClick={() => onChangeEstadoClick(selectedOrden.id, 'rechazada')}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 shadow-sm hover:bg-red-50 hover:text-red-800 transition-colors"
+                  >
+                    <XCircle className="h-4 w-4" /> Rechazar
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedOrden(null)}
+                  className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Formularios para Añadir / Editar */}
+      {(isAddingMode || ordenToEdit) && (
+        <OrdenFormModal
+          ordenBase={ordenToEdit || undefined}
+          onClose={() => {
+            setIsAddingMode(false)
+            setOrdenToEdit(null)
+          }}
+          onSaved={handleFormSaved}
+        />
       )}
     </>
   )
