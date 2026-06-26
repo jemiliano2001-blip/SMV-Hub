@@ -1,0 +1,25 @@
+﻿D:\proyectos_code\SMV\compras-americanas\.agents\worker_importar_page_1\handoff.md
+D:\proyectos_code\SMV\compras-americanas\.agents\worker_importar_page_1\ORIGINAL_REQUEST.md
+D:\proyectos_code\SMV\compras-americanas\.agents\worker_importar_page_1\progress.md
+D:\proyectos_code\SMV\compras-americanas\.agents\worker_lint_fixes_1\BRIEFING.md
+D:\proyectos_code\SMV\compras-americanas\.agents\worker_lint_fixes_1\handoff.md
+D:\proyectos_code\SMV\compras-americanas\.agents\worker_lint_fixes_1\ORIGINAL_REQUEST.md
+D:\proyectos_code\SMV\compras-americanas\.agents\worker_lint_fixes_1\progress.md
+D:\proyectos_code\SMV\compras-americanas\.agents\worker_ordenes_page_1\BRIEFING.md
+D:\proyectos_code\SMV\compras-americanas\.agents\worker_ordenes_page_1\handoff.md
+D:\proyectos_code\SMV\compras-americanas\.agents\worker_ordenes_page_1\ORIGINAL_REQUEST.md
+D:\proyectos_code\SMV\compras-americanas\.agents\worker_ordenes_page_1\progress.md
+D:\proyectos_code\SMV\compras-americanas\.agents\worker_tests_1\BRIEFING.md
+D:\proyectos_code\SMV\compras-americanas\.agents\worker_tests_1\handoff.md
+D:\proyectos_code\SMV\compras-americanas\.agents\worker_tests_1\ORIGINAL_REQUEST.md
+D:\proyectos_code\SMV\compras-americanas\.agents\worker_tests_1\progress.md
+D:\proyectos_code\SMV\compras-americanas\.claude\agents\security-reviewer.md
+D:\proyectos_code\SMV\compras-americanas\.claude\skills\firebase-seed\SKILL.md
+D:\proyectos_code\SMV\compras-americanas\.claude\skills\gen-test\SKILL.md
+D:\proyectos_code\SMV\compras-americanas\docs\superpowers\plans\2026-06-16-importar-csv.md
+D:\proyectos_code\SMV\compras-americanas\docs\superpowers\plans\2026-06-18-importar-mejoras-ux.md
+D:\proyectos_code\SMV\compras-americanas\docs\superpowers\plans\2026-06-18-reportes-compras.md
+D:\proyectos_code\SMV\compras-americanas\docs\superpowers\specs\2026-06-16-importar-csv-design.md
+D:\proyectos_code\SMV\compras-americanas\docs\superpowers\specs\2026-06-18-importar-mejoras-ux-design.md
+D:\proyectos_code\SMV\compras-americanas\docs\superpowers\specs\2026-06-18-reportes-compras-design.md
+D:\proyectos_code\SMV\compras-americanas\SMV MAQUINADOS LOGO_Mesa de trabajo 1 copia 10.jpg

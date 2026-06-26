@@ -1,0 +1,37 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Exige sesión con correo verificado. Para cerrar el acceso a correos
+    // específicos, replica aquí la lista blanca de firestore.rules.
+    function correosAutorizados() {
+      return [
+        'ordenes@smv.com',
+        'lorena@smv.com',
+        'jemiliano2001@gmail.com',
+      ];
+    }
+
+    function esUsuarioAutorizado() {
+      return request.auth != null && request.auth.token.email_verified == true &&
+             request.auth.token.email in correosAutorizados();
+    }
+
+    // Imágenes de órdenes: solo usuarios autorizados.
+    match /ordenes/{imagen=**} {
+      allow read: if esUsuarioAutorizado();
+
+      // En subidas se valida tamaño (<10 MB) y tipo (imagen o PDF de factura).
+      allow write: if esUsuarioAutorizado()
+                   && request.resource.size < 10 * 1024 * 1024
+                   && (request.resource.contentType.matches('image/.*')
+                       || request.resource.contentType == 'application/pdf');
+    }
+
+    // Todo lo demás: denegado por defecto.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

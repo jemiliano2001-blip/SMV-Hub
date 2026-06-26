@@ -1,0 +1,106 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers de autenticación / autorización ──────────────────────────────
+
+    // Exige sesión con correo verificado (las cuentas de Google lo están).
+    function estaAutenticado() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    // Lista blanca de correos autorizados del equipo SMV.
+    // IMPORTANTE: mientras esté vacía, se permite a CUALQUIER cuenta con correo
+    // verificado. Rellénala con los correos del equipo para cerrar el acceso.
+    function correosAutorizados() {
+      return [
+        'ordenes@smv.com',
+        'lorena@smv.com',
+        'jemiliano2001@gmail.com',
+      ];
+    }
+
+    function esUsuarioAutorizado() {
+      return estaAutenticado() &&
+        (correosAutorizados().size() == 0 ||
+         request.auth.token.email in correosAutorizados());
+    }
+
+    // ── Validación de datos (frontera real del lado servidor) ────────────────
+
+    // Monto financiero: nulo o número no negativo. Bloquea negativos y tipos
+    // erróneos que romperían los cálculos de presupuesto/inventario.
+    function montoValido(v) {
+      return v == null || (v is number && v >= 0);
+    }
+
+    function ordenValida(d) {
+      return d.proveedor is string &&
+             d.requisitor is string &&
+             d.ordenTrabajo is string &&
+             d.empresa is string &&
+             d.moneda is string &&
+             d.estado in ['pendiente', 'aprobada', 'rechazada'] &&
+             montoValido(d.subtotal) &&
+             montoValido(d.impuestos) &&
+             montoValido(d.total) &&
+             d.creadoEn is timestamp &&
+             d.actualizadoEn is timestamp;
+    }
+
+    function cotizacionValida(d) {
+      return d.proveedor is string &&
+             d.descripcion is string &&
+             d.moneda in ['USD', 'MXN'] &&
+             d.estatus in ['cotizado', 'cancelado', 'revisar'] &&
+             d.ubicacion in ['MX', 'USA'] &&
+             montoValido(d.precioUnitario) &&
+             montoValido(d.total) &&
+             d.creadoEn is timestamp &&
+             d.actualizadoEn is timestamp;
+    }
+
+    // ── Órdenes de compra ────────────────────────────────────────────────────
+
+    match /ordenes/{ordenId} {
+      allow read: if esUsuarioAutorizado();
+
+      allow create: if esUsuarioAutorizado()
+                    && ordenValida(request.resource.data);
+
+      // En la actualización, el audit trail es inmutable: la fecha de creación
+      // no puede alterarse y la marca de actualización debe avanzar.
+      allow update: if esUsuarioAutorizado()
+                    && ordenValida(request.resource.data)
+                    && request.resource.data.creadoEn == resource.data.creadoEn
+                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+
+      allow delete: if esUsuarioAutorizado();
+    }
+
+    // ── Cotizaciones (base de datos histórica buscable) ──────────────────────
+
+    match /cotizaciones/{cotizacionId} {
+      allow read: if esUsuarioAutorizado();
+
+      allow create: if esUsuarioAutorizado()
+                    && cotizacionValida(request.resource.data);
+
+      // El audit trail es inmutable: la fecha de creación no cambia y la marca
+      // de actualización debe avanzar.
+      allow update: if esUsuarioAutorizado()
+                    && cotizacionValida(request.resource.data)
+                    && request.resource.data.creadoEn == resource.data.creadoEn
+                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+
+      allow delete: if esUsuarioAutorizado();
+    }
+
+    // ── Todo lo demás: denegado por defecto ──────────────────────────────────
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

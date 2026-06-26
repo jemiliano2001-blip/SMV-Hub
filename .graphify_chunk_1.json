@@ -1,0 +1,18 @@
+﻿{
+  "nodes": [
+    {"id": "app_page_home", "label": "Home Page", "file_type": "code", "source_file": "app/page.tsx", "source_location": null},
+    {"id": "app_layout_root", "label": "Root Layout", "file_type": "code", "source_file": "app/layout.tsx", "source_location": null},
+    {"id": "lib_schemas", "label": "Zod Schemas for Data Types", "file_type": "code", "source_file": "lib/schemas.ts", "source_location": null},
+    {"id": "lib_firebase", "label": "Firebase Initialization", "file_type": "code", "source_file": "lib/firebase.ts", "source_location": null},
+    {"id": "lib_cotizaciones", "label": "Quotations Business Logic", "file_type": "code", "source_file": "lib/cotizaciones.ts", "source_location": null},
+    {"id": "app_cotizaciones_page", "label": "Quotations Page", "file_type": "code", "source_file": "app/cotizaciones/page.tsx", "source_location": null},
+    {"id": "doc_claude_md", "label": "Claude Code Instructions", "file_type": "document", "source_file": "CLAUDE.md", "source_location": null}
+  ],
+  "edges": [
+    {"source": "app_page_home", "target": "lib_schemas", "relation": "references", "confidence": "INFERRED", "confidence_score": 0.85, "source_file": "app/page.tsx", "weight": 1.0},
+    {"source": "lib_cotizaciones", "target": "lib_firebase", "relation": "calls", "confidence": "INFERRED", "confidence_score": 0.85, "source_file": "lib/cotizaciones.ts", "weight": 1.0}
+  ],
+  "hyperedges": [],
+  "input_tokens": 33271,
+  "output_tokens": 0
+}
