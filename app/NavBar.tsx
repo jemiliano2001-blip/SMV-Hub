@@ -66,6 +66,9 @@ export default function NavBar() {
     setAbierto(null)
   }, [pathname])
 
+  // Exacta o hija: evita que /ordenes se marque activa al visitar /ordenes-servicio.
+  const esActiva = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
+
   if (pathname === '/login') return null
 
   return (
@@ -79,7 +82,7 @@ export default function NavBar() {
           </Link>
           <nav className="flex items-center gap-1 text-sm font-medium">
             {GRUPOS.map((g) => {
-              const activo = g.links.some((l) => pathname.startsWith(l.href))
+              const activo = g.links.some((l) => esActiva(l.href))
               const desplegado = abierto === g.nombre
               return (
                 <div key={g.nombre} className="relative">
@@ -101,7 +104,7 @@ export default function NavBar() {
                           key={l.href}
                           href={l.href}
                           className={`block px-4 py-2 text-sm transition-colors ${
-                            pathname.startsWith(l.href)
+                            esActiva(l.href)
                               ? 'bg-blue-50 text-[#0369A1] font-semibold'
                               : 'text-gray-700 hover:bg-gray-50'
                           }`}
