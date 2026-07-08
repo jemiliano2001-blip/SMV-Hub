@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation'
 import { ChevronDown } from 'lucide-react'
 import LogoSMV from '@/app/LogoSMV'
 import BotonSesion from '@/app/BotonSesion'
+import { useUsuario } from '@/lib/auth'
+import { obtenerRol, tienePermiso } from '@/lib/roles'
 
 type GrupoNav = { nombre: string; links: { href: string; label: string }[] }
 
@@ -16,6 +18,7 @@ const GRUPOS: GrupoNav[] = [
       { href: '/nueva-compra', label: 'Nueva compra' },
       { href: '/ordenes', label: 'Órdenes' },
       { href: '/importar', label: 'Importar' },
+      { href: '/claves-sat', label: 'Claves SAT' },
       { href: '/cotizaciones', label: 'Cotizaciones' },
       { href: '/requisiciones', label: 'Requisiciones' },
       { href: '/reportes', label: 'Reportes' },
@@ -40,6 +43,8 @@ const GRUPOS: GrupoNav[] = [
 
 export default function NavBar() {
   const pathname = usePathname()
+  const { usuario } = useUsuario()
+  const rol = obtenerRol(usuario?.email)
   const [abierto, setAbierto] = useState<string | null>(null)
   const navRef = useRef<HTMLElement>(null)
 
@@ -78,12 +83,25 @@ export default function NavBar() {
           <Link href="/" className="flex items-center gap-2.5">
             <LogoSMV />
             <span className="text-gray-300 font-light">|</span>
-            <span className="text-sm font-semibold text-[#0F172A]">Compras Americanas</span>
+            <span className="text-sm font-semibold text-[#0F172A]">SMV Hub</span>
           </Link>
           <nav className="flex items-center gap-1 text-sm font-medium">
-            {GRUPOS.map((g) => {
-              const activo = g.links.some((l) => esActiva(l.href))
-              const desplegado = abierto === g.nombre
+            {(() => {
+              const gruposFiltrados = GRUPOS.map(g => ({
+                ...g,
+                links: g.links.filter(l => tienePermiso(rol, l.href))
+              })).filter(g => g.links.length > 0)
+
+              if (rol === 'admin') {
+                gruposFiltrados.push({
+                  nombre: 'Administración',
+                  links: [{ href: '/auditoria', label: 'Auditoría' }]
+                })
+              }
+
+              return gruposFiltrados.map((g) => {
+                const activo = g.links.some((l) => esActiva(l.href))
+                const desplegado = abierto === g.nombre
               return (
                 <div key={g.nombre} className="relative">
                   <button
@@ -116,7 +134,7 @@ export default function NavBar() {
                   )}
                 </div>
               )
-            })}
+            })})()}
             <div className="ml-4">
               <BotonSesion />
             </div>

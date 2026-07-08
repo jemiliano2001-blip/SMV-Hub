@@ -4,41 +4,19 @@ import {
   addDoc,
   getDoc,
   getDocs,
-  updateDoc,
   deleteDoc,
   query,
   where,
   orderBy,
-  Timestamp,
-  writeBatch,
-  FirestoreDataConverter,
-  QueryDocumentSnapshot,
 } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import type { OrdenCompra, NuevaCompraForm, EstadoOrden } from "@/lib/schemas"
+import type { OrdenCompra, NuevaCompraForm, EstadoOrden, ItemFactura } from "@/lib/schemas"
+import { makeDateConverter, crearLote, eliminarLote, actualizarDocumento, actualizarLote } from "@/lib/firestore-helpers"
+import { getClienteAuth } from "@/lib/firebase"
+import { registrarAuditoria } from "@/lib/auditoria"
 
-// ── Converter Date ↔ Timestamp ────────────────────────────────────────────────
-
-const ordenConverter: FirestoreDataConverter<OrdenCompra> = {
-  toFirestore(orden) {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, creadoEn, actualizadoEn, ...rest } = orden as OrdenCompra
-    return {
-      ...rest,
-      creadoEn: Timestamp.fromDate(creadoEn),
-      actualizadoEn: Timestamp.fromDate(actualizadoEn),
-    }
-  },
-  fromFirestore(snap: QueryDocumentSnapshot) {
-    const d = snap.data()
-    const creadoEn = d.creadoEn instanceof Timestamp ? d.creadoEn.toDate() : new Date()
-    const actualizadoEn = d.actualizadoEn instanceof Timestamp ? d.actualizadoEn.toDate() : new Date()
-    return { ...d, id: snap.id, creadoEn, actualizadoEn } as OrdenCompra
-  },
-}
-
-const ordenesRef = () =>
-  collection(db, "ordenes").withConverter(ordenConverter)
+const ordenConverter = makeDateConverter<OrdenCompra>()
+const ordenesRef = () => collection(db, "ordenes").withConverter(ordenConverter)
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
 
@@ -52,13 +30,16 @@ export type NuevaOrdenPayload = NuevaCompraForm & {
 
 export async function crearOrden(payload: NuevaOrdenPayload): Promise<string> {
   const ahora = new Date()
-  // El converter (toFirestore) descarta `id`; el id real es ref.id.
   const ref = await addDoc(ordenesRef(), {
     ...payload,
     estado: payload.estado ?? ("pendiente" as const),
     creadoEn: ahora,
     actualizadoEn: ahora,
   } as OrdenCompra)
+  
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, 'CREAR', 'ordenes', ref.id, `Creó orden para proveedor ${payload.proveedor}`)
+  
   return ref.id
 }
 
@@ -68,41 +49,25 @@ export async function crearOrdenesLote(
   payloads: NuevaOrdenPayload[],
   onProgreso?: (completadas: number, total: number) => void
 ): Promise<number> {
-  const LOTE = 400 // margen bajo el límite de 500 de writeBatch
-  let creadas = 0
-
-  for (let i = 0; i < payloads.length; i += LOTE) {
-    const grupo = payloads.slice(i, i + LOTE)
-    const batch = writeBatch(db)
-    const ahora = new Date()
-    for (const payload of grupo) {
-      const ref = doc(ordenesRef()) // id autogenerado + converter heredado
-      batch.set(ref, {
-        ...payload,
-        estado: payload.estado ?? ("pendiente" as const),
-        creadoEn: ahora,
-        actualizadoEn: ahora,
-      } as OrdenCompra)
-    }
-    await batch.commit()
-    creadas += grupo.length
-    onProgreso?.(creadas, payloads.length)
-  }
-
-  return creadas
+  const listos = payloads.map((p) => ({
+    ...p,
+    estado: p.estado ?? ("pendiente" as const),
+  }))
+  const result = await crearLote(ordenesRef, listos as Record<string, unknown>[], onProgreso)
+  
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, 'CREAR', 'ordenes', 'LOTE', `Creó ${payloads.length} órdenes en lote`)
+  
+  return result
 }
 
 export async function listarOrdenes(): Promise<OrdenCompra[]> {
-  const snap = await getDocs(
-    query(ordenesRef(), orderBy("creadoEn", "desc"))
-  )
+  const snap = await getDocs(query(ordenesRef(), orderBy("creadoEn", "desc")))
   return snap.docs.map((d) => d.data())
 }
 
 export async function obtenerOrden(id: string): Promise<OrdenCompra | null> {
-  const snap = await getDoc(
-    doc(db, "ordenes", id).withConverter(ordenConverter)
-  )
+  const snap = await getDoc(doc(db, "ordenes", id).withConverter(ordenConverter))
   return snap.exists() ? snap.data() : null
 }
 
@@ -110,16 +75,34 @@ export async function actualizarOrden(
   id: string,
   cambios: Partial<Omit<OrdenCompra, "id" | "creadoEn">>
 ): Promise<void> {
-  const ref = doc(db, "ordenes", id)
-  // updateDoc no necesita converter; cast explícito para satisfacer UpdateData<DocumentData>
-  await updateDoc(ref, {
-    ...(cambios as Record<string, unknown>),
-    actualizadoEn: Timestamp.fromDate(new Date()),
-  })
+  await actualizarDocumento("ordenes", id, cambios as Record<string, unknown>)
+  
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, 'EDITAR', 'ordenes', id, `Actualizó campos: ${Object.keys(cambios).join(', ')}`)
 }
 
 export async function eliminarOrden(id: string): Promise<void> {
   await deleteDoc(doc(db, "ordenes", id))
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, 'BORRAR', 'ordenes', id, `Eliminó orden`)
+}
+
+export async function eliminarOrdenesLote(ids: string[]): Promise<number> {
+  const result = await eliminarLote("ordenes", ids)
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, 'BORRAR', 'ordenes', 'LOTE', `Eliminó ${ids.length} órdenes en lote`)
+  return result
+}
+
+export async function actualizarOrdenesEstadoLote(
+  ids: string[],
+  estado: EstadoOrden
+): Promise<number> {
+  if (ids.length === 0) return 0
+  return actualizarLote(
+    "ordenes",
+    ids.map((id) => ({ id, cambios: { estado } }))
+  )
 }
 
 // Busca órdenes existentes por combinación numeroFactura+proveedor para deduplicación.
@@ -133,11 +116,11 @@ export async function buscarPorFacturaYProveedor(
   const resultados: Array<{ numeroFactura: string | null; proveedor: string }> = []
 
   for (let i = 0; i < pares.length; i += CHUNK) {
-    const facturas = pares.slice(i, i + CHUNK).map(p => p.numeroFactura)
+    const facturas = pares.slice(i, i + CHUNK).map((p) => p.numeroFactura)
     const snap = await getDocs(
       query(collection(db, "ordenes"), where("numeroFactura", "in", facturas))
     )
-    snap.docs.forEach(d => {
+    snap.docs.forEach((d) => {
       const data = d.data() as { numeroFactura?: string | null; proveedor?: string }
       resultados.push({
         numeroFactura: data.numeroFactura ?? null,
@@ -147,4 +130,20 @@ export async function buscarPorFacturaYProveedor(
   }
 
   return resultados
+}
+
+export type ActualizacionClavesSat = {
+  ordenId: string
+  items: ItemFactura[]
+}
+
+export async function actualizarClavesSatLote(
+  actualizaciones: ActualizacionClavesSat[],
+  onProgreso?: (completadas: number, total: number) => void
+): Promise<number> {
+  const payloads = actualizaciones.map(({ ordenId, items }) => ({
+    id: ordenId,
+    cambios: { items } as Record<string, unknown>,
+  }))
+  return actualizarLote("ordenes", payloads, onProgreso)
 }

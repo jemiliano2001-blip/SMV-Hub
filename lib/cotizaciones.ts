@@ -11,6 +11,8 @@ import {
 import { db } from "@/lib/firebase"
 import type { Cotizacion } from "@/lib/schemas"
 import { makeDateConverter, crearLote, eliminarLote, actualizarDocumento } from "@/lib/firestore-helpers"
+import { getClienteAuth } from "@/lib/firebase"
+import { registrarAuditoria } from "@/lib/auditoria"
 
 const cotizacionConverter = makeDateConverter<Cotizacion>()
 const cotizacionesRef = () =>
@@ -29,6 +31,10 @@ export async function crearCotizacion(payload: NuevaCotizacionPayload): Promise<
     creadoEn: ahora,
     actualizadoEn: ahora,
   } as Cotizacion)
+  
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, 'CREAR', 'cotizaciones', ref.id, `Creó cotización de ${payload.proveedor}`)
+  
   return ref.id
 }
 
@@ -38,7 +44,10 @@ export async function crearCotizacionesLote(
   payloads: NuevaCotizacionPayload[],
   onProgreso?: (completadas: number, total: number) => void
 ): Promise<number> {
-  return crearLote(cotizacionesRef, payloads as Record<string, unknown>[], onProgreso)
+  const result = await crearLote(cotizacionesRef, payloads as Record<string, unknown>[], onProgreso)
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, 'CREAR', 'cotizaciones', 'LOTE', `Creó ${payloads.length} cotizaciones`)
+  return result
 }
 
 // Ordena por fecha de cotización descendente; las que no tienen fecha caen al
@@ -60,14 +69,21 @@ export async function actualizarCotizacion(
   cambios: Partial<Omit<Cotizacion, "id" | "creadoEn">>
 ): Promise<void> {
   await actualizarDocumento("cotizaciones", id, cambios as Record<string, unknown>)
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, 'EDITAR', 'cotizaciones', id, `Actualizó cotización: ${Object.keys(cambios).join(', ')}`)
 }
 
 export async function eliminarCotizacion(id: string): Promise<void> {
   await deleteDoc(doc(db, "cotizaciones", id))
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, 'BORRAR', 'cotizaciones', id, `Eliminó cotización`)
 }
 
 export async function eliminarCotizacionesLote(ids: string[]): Promise<number> {
-  return eliminarLote("cotizaciones", ids)
+  const result = await eliminarLote("cotizaciones", ids)
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, 'BORRAR', 'cotizaciones', 'LOTE', `Eliminó ${ids.length} cotizaciones`)
+  return result
 }
 
 // Clave de deduplicación para re-importaciones del Sheet: una cotización se

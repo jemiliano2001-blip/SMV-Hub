@@ -18,11 +18,19 @@ service cloud.firestore {
         'ordenes@smv.com',
         'lorena@smv.com',
         'jemiliano2001@gmail.com',
+        'diseno@smv.com',
+        'almacen@smv.com',
       ];
+    }
+
+    // App Check: el cliente web debe enviar token válido (reCAPTCHA v3 + debug en dev).
+    function appCheckValido() {
+      return request.app != null;
     }
 
     function esUsuarioAutorizado() {
       return estaAutenticado() &&
+        appCheckValido() &&
         (correosAutorizados().size() == 0 ||
          request.auth.token.email in correosAutorizados());
     }
@@ -61,6 +69,24 @@ service cloud.firestore {
              d.actualizadoEn is timestamp;
     }
 
+    function requisicionValida(d) {
+      return d.tipo in ['general', 'automatizacion'] &&
+             d.solicitante is string &&
+             d.estado in ['no_comprado', 'en_proceso', 'comprado', 'parcial', 'recibido'] &&
+             d.fechaPedido is string &&
+             d.descripcion is string &&
+             d.creadoEn is timestamp &&
+             d.actualizadoEn is timestamp;
+    }
+
+    function ordenServicioValida(d) {
+      return d.estatus in ['pendiente', 'en_proceso', 'detenida', 'entregada', 'recibido', 'cancelado'] &&
+             d.requisitor is string &&
+             d.descripcion is string &&
+             d.creadoEn is timestamp &&
+             d.actualizadoEn is timestamp;
+    }
+
     // ── Órdenes de compra ────────────────────────────────────────────────────
 
     match /ordenes/{ordenId} {
@@ -95,6 +121,187 @@ service cloud.firestore {
                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
 
       allow delete: if esUsuarioAutorizado();
+    }
+
+    // ── Requisiciones (seguimiento de pedidos por solicitante) ───────────────
+
+    match /requisiciones/{requisicionId} {
+      allow read: if esUsuarioAutorizado();
+
+      allow create: if esUsuarioAutorizado()
+                    && requisicionValida(request.resource.data);
+
+      // El audit trail es inmutable: la fecha de creación no cambia y la marca
+      // de actualización debe avanzar.
+      allow update: if esUsuarioAutorizado()
+                    && requisicionValida(request.resource.data)
+                    && request.resource.data.creadoEn == resource.data.creadoEn
+                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+
+      allow delete: if esUsuarioAutorizado();
+    }
+
+    // ── Órdenes de servicio (seguimiento de OTs con proveedores externos) ────
+
+    match /ordenes-servicio/{ordenServicioId} {
+      allow read: if esUsuarioAutorizado();
+
+      allow create: if esUsuarioAutorizado()
+                    && ordenServicioValida(request.resource.data);
+
+      allow update: if esUsuarioAutorizado()
+                    && ordenServicioValida(request.resource.data)
+                    && request.resource.data.creadoEn == resource.data.creadoEn
+                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+
+      allow delete: if esUsuarioAutorizado();
+    }
+
+    // ── Catálogo de operadores ────────────────────────────────────────────────
+
+    function operadorValido(d) {
+      return d.nombre is string &&
+             d.area in ['taller', 'diseno', 'automatizacion', 'cnc', 'limpieza', 'administracion'] &&
+             d.activo is bool &&
+             d.creadoEn is timestamp &&
+             d.actualizadoEn is timestamp;
+    }
+
+    match /operadores/{operadorId} {
+      allow read: if esUsuarioAutorizado();
+
+      allow create: if esUsuarioAutorizado()
+                    && operadorValido(request.resource.data);
+
+      allow update: if esUsuarioAutorizado()
+                    && operadorValido(request.resource.data)
+                    && request.resource.data.creadoEn == resource.data.creadoEn
+                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+
+      allow delete: if esUsuarioAutorizado();
+    }
+
+    // ── Almacén (Entradas y Salidas) ─────────────────────────────────────────
+
+    function entradaAlmacenValida(d) {
+      return d.fecha is string &&
+             d.descripcion is string &&
+             d.cantidad is string &&
+             d.cargoA is string &&
+             d.recibio is string &&
+             d.estatus in ['pendiente', 'entregado', 'devuelto'] &&
+             d.creadoEn is timestamp &&
+             d.actualizadoEn is timestamp;
+    }
+
+    match /almacen-entradas/{entradaId} {
+      allow read: if esUsuarioAutorizado();
+
+      allow create: if esUsuarioAutorizado()
+                    && entradaAlmacenValida(request.resource.data);
+
+      allow update: if esUsuarioAutorizado()
+                    && entradaAlmacenValida(request.resource.data)
+                    && request.resource.data.creadoEn == resource.data.creadoEn
+                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+
+      allow delete: if esUsuarioAutorizado();
+    }
+
+    function salidaAlmacenValida(d) {
+      return d.fecha is string &&
+             d.herramienta is string &&
+             d.cantidad is number &&
+             d.operador is string &&
+             d.creadoEn is timestamp &&
+             d.actualizadoEn is timestamp;
+    }
+
+    match /almacen-salidas/{salidaId} {
+      allow read: if esUsuarioAutorizado();
+
+      allow create: if esUsuarioAutorizado()
+                    && salidaAlmacenValida(request.resource.data);
+
+      allow update: if esUsuarioAutorizado()
+                    && salidaAlmacenValida(request.resource.data)
+                    && request.resource.data.creadoEn == resource.data.creadoEn
+                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+
+      allow delete: if esUsuarioAutorizado();
+    }
+
+    // ── Control de Baños ─────────────────────────────────────────────────────
+
+    function registroBanoValido(d) {
+      return d.operador is string &&
+             d.bano in ['Baño #1', 'Baño #2', 'CNC', 'Automatizacion'] &&
+             d.horaEntrada is string &&
+             d.fecha is string &&
+             d.creadoEn is timestamp &&
+             d.actualizadoEn is timestamp;
+    }
+
+    match /registros-bano/{banoId} {
+      allow read: if esUsuarioAutorizado();
+
+      allow create: if esUsuarioAutorizado()
+                    && registroBanoValido(request.resource.data);
+
+      allow update: if esUsuarioAutorizado()
+                    && registroBanoValido(request.resource.data)
+                    && request.resource.data.creadoEn == resource.data.creadoEn
+                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+
+      allow delete: if esUsuarioAutorizado();
+    }
+
+    // ── Horas Extra ──────────────────────────────────────────────────────────
+
+    function horasExtraValido(d) {
+      return d.empleado is string &&
+             d.departamento in ['diseno', 'automatizacion', 'taller', 'cnc'] &&
+             d.semanaInicio is string &&
+             d.creadoEn is timestamp &&
+             d.actualizadoEn is timestamp;
+    }
+
+    match /horas-extra/{horaId} {
+      allow read: if esUsuarioAutorizado();
+
+      allow create: if esUsuarioAutorizado()
+                    && horasExtraValido(request.resource.data);
+
+      allow update: if esUsuarioAutorizado()
+                    && horasExtraValido(request.resource.data)
+                    && request.resource.data.creadoEn == resource.data.creadoEn
+                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+
+      allow delete: if esUsuarioAutorizado();
+    }
+
+    // ── Mapeos SAT validados por el equipo ───────────────────────────────────
+
+    match /sat_asignaciones/{asignacionId} {
+      allow read: if esUsuarioAutorizado();
+
+      allow create, update: if esUsuarioAutorizado()
+        && request.resource.data.claveProdServ is string
+        && request.resource.data.claveProdServ.matches('^\\d{8}$')
+        && request.resource.data.tokensNormalizados is list
+        && request.resource.data.descripcionEjemplo is string;
+
+      allow delete: if esUsuarioAutorizado();
+    }
+
+    // ── Auditoría (Registro de acciones) ─────────────────────────────────────
+    
+    match /auditoria/{auditId} {
+      // Solo el admin puede leer el registro de auditoría
+      allow read: if esUsuarioAutorizado() && request.auth.token.email == 'jemiliano2001@gmail.com';
+      // Cualquier usuario del equipo puede generar un registro, pero no modificarlo ni borrarlo
+      allow create: if esUsuarioAutorizado();
+      allow update, delete: if false;
     }
 
     // ── Todo lo demás: denegado por defecto ──────────────────────────────────
