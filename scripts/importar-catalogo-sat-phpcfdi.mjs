@@ -68,8 +68,6 @@ function inferHierarchy(clave) {
   }
 
   const divisionCode = clave.slice(0, 2)
-  const grupoCode = clave.slice(2, 4)
-  const claseCode = clave.slice(4, 6)
 
   return {
     tipo: divisionCode.startsWith("8") || divisionCode.startsWith("9") ? "Servicios" : "Productos",
@@ -144,6 +142,7 @@ async function main() {
     if (!mapped) continue
     if (!isVigente(mapped.vigenciaDesde, mapped.vigenciaHasta, today)) continue
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { vigenciaDesde: _d, vigenciaHasta: _h, ...entry } = mapped
     entries.push(entry)
   }

@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase'
 import AuthGuard from '@/app/AuthGuard'
 
 export default function AuditoriaPage() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [logs, setLogs] = useState<any[]>([])
   const [cargando, setCargando] = useState(true)
 
