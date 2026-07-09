@@ -127,7 +127,7 @@ jobs:
       - name: Deploy to Firebase (hosting, functions, rules, storage)
         uses: w9jds/firebase-action@master
         with:
-          args: deploy --only hosting,functions,firestore:rules,storage
+          args: deploy --only hosting,functions:autoPurchase,functions:recommendProvider,functions:exportToGoogleSheets,functions:importFromGoogleSheets,functions:exportToExcel,firestore:rules,storage
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
           PROJECT_ID: smv-brain

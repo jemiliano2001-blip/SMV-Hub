@@ -70,7 +70,7 @@ const requestSchema = zod_1.z.object({
  * based on price, lead time, and historical rating.
  */
 exports.recommendProvider = functions.https.onCall(async (data, context) => {
-    (0, auth_1.assertAuthorizedCallable)(context);
+    await (0, auth_1.assertAuthorizedCallable)(context);
     const parseResult = requestSchema.safeParse(data);
     if (!parseResult.success) {
         throw new functions.https.HttpsError('invalid-argument', 'Invalid request payload', parseResult.error.format());

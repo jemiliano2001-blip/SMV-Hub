@@ -54,7 +54,7 @@ const exportSchema = zod_1.z.object({
  * Callable function to export the current products list to a Google Sheet.
  */
 exports.exportToGoogleSheets = functions.https.onCall(async (data, context) => {
-    (0, auth_1.assertAuthorizedCallable)(context);
+    await (0, auth_1.assertAuthorizedCallable)(context);
     const parseResult = exportSchema.safeParse(data);
     if (!parseResult.success) {
         throw new functions.https.HttpsError('invalid-argument', 'Invalid spreadsheet config', parseResult.error.format());
@@ -105,7 +105,7 @@ const importSchema = zod_1.z.object({
  * Expects columns: ID | SKU | Name | Stock | Price | Preferred Supplier
  */
 exports.importFromGoogleSheets = functions.https.onCall(async (data, context) => {
-    (0, auth_1.assertAuthorizedCallable)(context);
+    await (0, auth_1.assertAuthorizedCallable)(context);
     const parseResult = importSchema.safeParse(data);
     if (!parseResult.success) {
         throw new functions.https.HttpsError('invalid-argument', 'Invalid spreadsheet config', parseResult.error.format());

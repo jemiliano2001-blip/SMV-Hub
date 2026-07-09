@@ -72,7 +72,7 @@ const exportSchema = zod_1.z.object({
  * Callable function to export products to Microsoft Excel Online via MS Graph API.
  */
 exports.exportToExcel = functions.https.onCall(async (data, context) => {
-    (0, auth_1.assertAuthorizedCallable)(context);
+    await (0, auth_1.assertAuthorizedCallable)(context);
     const parseResult = exportSchema.safeParse(data);
     if (!parseResult.success) {
         throw new functions.https.HttpsError('invalid-argument', 'Invalid Excel config', parseResult.error.format());
