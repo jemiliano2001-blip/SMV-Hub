@@ -128,6 +128,8 @@ describe("crearUsuarioAdmin", () => {
         activo: true,
         proveedor: "password",
         creadoPor: "jemiliano2001@gmail.com",
+        creadoEn: expect.any(Date),
+        actualizadoEn: expect.any(Date),
       })
     )
     expect(resultado.uid).toBe("uid-nuevo")
@@ -201,5 +203,43 @@ describe("listarUsuariosAdmin", () => {
     const usuarios = await listarUsuariosAdmin()
     expect(usuarios).toHaveLength(1)
     expect(usuarios[0]).toMatchObject({ id: "uid-1", email: "compras@ejemplo.com", rol: "compras" })
+    expect(usuarios[0].creadoEn).toEqual(ahora)
+    expect(usuarios[0].actualizadoEn).toEqual(ahora)
+  })
+
+  it("omite documentos con un rol inválido o corrupto", async () => {
+    const ahora = new Date("2026-07-08T12:00:00Z")
+    mockCollectionGet.mockResolvedValue({
+      docs: [
+        {
+          id: "uid-valido",
+          data: () => ({
+            email: "compras@ejemplo.com",
+            rol: "compras",
+            activo: true,
+            proveedor: "password",
+            creadoPor: "jemiliano2001@gmail.com",
+            creadoEn: { toDate: () => ahora },
+            actualizadoEn: { toDate: () => ahora },
+          }),
+        },
+        {
+          id: "uid-corrupto",
+          data: () => ({
+            email: "raro@ejemplo.com",
+            rol: "gerente",
+            activo: true,
+            proveedor: "password",
+            creadoPor: "jemiliano2001@gmail.com",
+            creadoEn: { toDate: () => ahora },
+            actualizadoEn: { toDate: () => ahora },
+          }),
+        },
+      ],
+    })
+
+    const usuarios = await listarUsuariosAdmin()
+    expect(usuarios).toHaveLength(1)
+    expect(usuarios[0].id).toBe("uid-valido")
   })
 })

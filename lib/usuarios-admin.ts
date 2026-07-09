@@ -109,19 +109,29 @@ export async function resetearPasswordAdmin(uid: string): Promise<string> {
   return tempPassword
 }
 
+/** Lista los usuarios administrados. Documentos con un `rol` inválido o
+ * corrupto se omiten (mismo criterio defensivo que obtenerUsuarioAdmin) en
+ * vez de romper la pantalla de admin completa. */
 export async function listarUsuariosAdmin(): Promise<Usuario[]> {
   const snap = await adminDb.collection(COLECCION).orderBy("email", "asc").get()
-  return snap.docs.map((d) => {
+  const usuarios: Usuario[] = []
+
+  for (const d of snap.docs) {
     const data = d.data()
-    return {
+    const rolParseado = RolSchema.safeParse(data.rol)
+    if (!rolParseado.success) continue
+
+    usuarios.push({
       id: d.id,
       email: data.email,
-      rol: data.rol,
-      activo: data.activo,
+      rol: rolParseado.data,
+      activo: data.activo === true,
       proveedor: data.proveedor,
       creadoPor: data.creadoPor,
       creadoEn: data.creadoEn?.toDate?.() ?? new Date(),
       actualizadoEn: data.actualizadoEn?.toDate?.() ?? new Date(),
-    } as Usuario
-  })
+    })
+  }
+
+  return usuarios
 }
