@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import {
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithEmailAndPassword,
   signOut as fbSignOut,
   onAuthStateChanged,
   type User,
@@ -42,6 +43,14 @@ const USUARIO_DEBUG = {
 export async function iniciarSesionConGoogle(): Promise<User> {
   if (authBypassActivo()) return USUARIO_DEBUG
   const result = await signInWithPopup(getClienteAuth(), proveedorGoogle)
+  return result.user
+}
+
+export async function iniciarSesionConEmailYPassword(
+  email: string,
+  password: string
+): Promise<User> {
+  const result = await signInWithEmailAndPassword(getClienteAuth(), email, password)
   return result.user
 }
 
