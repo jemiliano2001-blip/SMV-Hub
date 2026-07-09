@@ -101,6 +101,7 @@ describe("lib/ordenes CRUD operations", () => {
     fechaFactura: "2026-06-16",
     moneda: "USD",
     subtotal: 500,
+    envio: null,
     impuestos: 80,
     total: 580,
     items: [

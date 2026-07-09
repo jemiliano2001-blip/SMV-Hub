@@ -19,6 +19,7 @@ function makeOrden(overrides: Partial<OrdenCompra> = {}): OrdenCompra {
     fechaFactura: "2026-06-10",
     moneda: "USD",
     subtotal: 100,
+    envio: null,
     impuestos: 16,
     total: 116,
     items: [
