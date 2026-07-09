@@ -33,6 +33,9 @@ yarn-error.log*
 firebase-debug.log
 functions/firebase-debug.log
 
+# firebase build
+.firebase/
+
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
