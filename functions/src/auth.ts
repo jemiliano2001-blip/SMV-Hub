@@ -1,23 +1,11 @@
 import * as functions from 'firebase-functions';
+import * as admin from 'firebase-admin';
 
-const ALLOWED_EMAILS = new Set([
-  'ordenes@smv.com',
-  'lorena@smv.com',
-  'jemiliano2001@gmail.com',
-]);
-
-function parseExtraEmails(raw: string | undefined): string[] {
-  if (!raw?.trim()) return [];
-  return raw
-    .split(',')
-    .map((correo) => correo.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function conjuntoCorreosAutorizados(): Set<string> {
-  const extras = parseExtraEmails(process.env.AUTHORIZED_EMAILS_EXTRA);
-  return new Set([...ALLOWED_EMAILS, ...extras]);
-}
+/**
+ * Correo con acceso garantizado, fijo como red de seguridad — debe coincidir
+ * con CORREO_ADMIN_BREAK_GLASS en lib/authorized-emails.ts (app Next.js).
+ */
+const CORREO_ADMIN_BREAK_GLASS = 'jemiliano2001@gmail.com';
 
 /** Verifica App Check en callables. Activar enforcement en Firebase Console → App Check. */
 export function assertAppCheckCallable(context: functions.https.CallableContext): void {
@@ -30,17 +18,26 @@ export function assertAppCheckCallable(context: functions.https.CallableContext)
   }
 }
 
-export function assertAuthorizedCallable(context: functions.https.CallableContext): string {
+async function usuarioActivo(uid: string, email: string): Promise<boolean> {
+  if (email === CORREO_ADMIN_BREAK_GLASS) return true;
+  const snap = await admin.firestore().collection('usuarios').doc(uid).get();
+  return snap.exists && snap.data()?.activo === true;
+}
+
+export async function assertAuthorizedCallable(
+  context: functions.https.CallableContext
+): Promise<string> {
   assertAppCheckCallable(context);
 
   const email = context.auth?.token.email?.toLowerCase();
   const emailVerified = context.auth?.token.email_verified === true;
+  const uid = context.auth?.uid;
 
-  if (!email || !emailVerified) {
+  if (!email || !emailVerified || !uid) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated with a verified email.');
   }
 
-  if (!conjuntoCorreosAutorizados().has(email)) {
+  if (!(await usuarioActivo(uid, email))) {
     throw new functions.https.HttpsError('permission-denied', 'User is not authorized for this operation.');
   }
 

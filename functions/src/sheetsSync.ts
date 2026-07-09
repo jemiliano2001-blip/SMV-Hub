@@ -23,7 +23,7 @@ const exportSchema = z.object({
  * Callable function to export the current products list to a Google Sheet.
  */
 export const exportToGoogleSheets = functions.https.onCall(async (data, context) => {
-  assertAuthorizedCallable(context);
+  await assertAuthorizedCallable(context);
 
   const parseResult = exportSchema.safeParse(data);
   if (!parseResult.success) {
@@ -83,7 +83,7 @@ const importSchema = z.object({
  * Expects columns: ID | SKU | Name | Stock | Price | Preferred Supplier
  */
 export const importFromGoogleSheets = functions.https.onCall(async (data, context) => {
-  assertAuthorizedCallable(context);
+  await assertAuthorizedCallable(context);
 
   const parseResult = importSchema.safeParse(data);
   if (!parseResult.success) {

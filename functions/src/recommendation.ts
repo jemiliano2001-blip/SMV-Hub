@@ -39,7 +39,7 @@ const requestSchema = z.object({
  * based on price, lead time, and historical rating.
  */
 export const recommendProvider = functions.https.onCall(async (data, context) => {
-  assertAuthorizedCallable(context);
+  await assertAuthorizedCallable(context);
 
   const parseResult = requestSchema.safeParse(data);
   if (!parseResult.success) {

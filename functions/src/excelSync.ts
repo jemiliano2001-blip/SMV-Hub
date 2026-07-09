@@ -44,7 +44,7 @@ const exportSchema = z.object({
  * Callable function to export products to Microsoft Excel Online via MS Graph API.
  */
 export const exportToExcel = functions.https.onCall(async (data, context) => {
-  assertAuthorizedCallable(context);
+  await assertAuthorizedCallable(context);
 
   const parseResult = exportSchema.safeParse(data);
   if (!parseResult.success) {
