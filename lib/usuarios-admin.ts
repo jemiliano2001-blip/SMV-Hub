@@ -1,0 +1,44 @@
+import { randomInt } from "node:crypto"
+import { adminAuth, adminDb } from "@/lib/firebase-admin"
+import { RolSchema, type Rol } from "@/lib/schemas"
+import { CORREO_ADMIN_BREAK_GLASS } from "@/lib/authorized-emails"
+
+const COLECCION = "usuarios"
+const ALFABETO_PASSWORD =
+  "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%"
+
+/** Genera una contraseña temporal aleatoria criptográficamente segura. */
+export function generarPasswordTemporal(longitud = 16): string {
+  let password = ""
+  for (let i = 0; i < longitud; i++) {
+    password += ALFABETO_PASSWORD[randomInt(ALFABETO_PASSWORD.length)]
+  }
+  return password
+}
+
+export interface InfoUsuarioAdmin {
+  rol: Rol
+  activo: boolean
+}
+
+/**
+ * Resuelve rol + estado de acceso de un usuario. El correo break-glass
+ * siempre resuelve a admin activo sin tocar Firestore (red de seguridad).
+ */
+export async function obtenerUsuarioAdmin(
+  uid: string,
+  email: string | null | undefined
+): Promise<InfoUsuarioAdmin | null> {
+  if (email && email.trim().toLowerCase() === CORREO_ADMIN_BREAK_GLASS) {
+    return { rol: "admin", activo: true }
+  }
+
+  const snap = await adminDb.collection(COLECCION).doc(uid).get()
+  if (!snap.exists) return null
+
+  const data = snap.data()
+  const rolParseado = RolSchema.safeParse(data?.rol)
+  if (!rolParseado.success) return null
+
+  return { rol: rolParseado.data, activo: data?.activo === true }
+}

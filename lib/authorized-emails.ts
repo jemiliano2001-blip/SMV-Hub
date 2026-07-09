@@ -1,34 +1,13 @@
-/** Lista blanca del equipo SMV. Mantener sincronizada con `firestore.rules`. */
-export const CORREOS_AUTORIZADOS = [
-  "ordenes@smv.com",
-  "lorena@smv.com",
-  "jemiliano2001@gmail.com",
-  "diseno@smv.com",
-  "almacen@smv.com",
-] as const
+/**
+ * Correo con acceso admin garantizado, fijo en código como red de seguridad:
+ * si el documento de Firestore correspondiente en `usuarios` se borra o se
+ * corrompe, este correo nunca pierde acceso a /usuarios. Todos los demás
+ * roles y correos autorizados viven en Firestore, administrados desde la
+ * pantalla /usuarios.
+ */
+export const CORREO_ADMIN_BREAK_GLASS = "jemiliano2001@gmail.com"
 
-function parseCorreosExtra(raw: string | undefined): string[] {
-  if (!raw?.trim()) return []
-  return raw
-    .split(",")
-    .map((correo) => correo.trim().toLowerCase())
-    .filter(Boolean)
-}
-
-function correosDesdeEnv(): string[] {
-  const extras = [
-    ...parseCorreosExtra(process.env.AUTHORIZED_EMAILS_EXTRA),
-    ...parseCorreosExtra(process.env.NEXT_PUBLIC_AUTHORIZED_EMAILS_EXTRA),
-  ]
-  return extras
-}
-
-export function conjuntoCorreosAutorizados(): Set<string> {
-  const base = CORREOS_AUTORIZADOS.map((correo) => correo.toLowerCase())
-  return new Set([...base, ...correosDesdeEnv()])
-}
-
-export function esCorreoAutorizado(email: string | null | undefined): boolean {
+export function esCorreoBreakGlass(email: string | null | undefined): boolean {
   if (!email) return false
-  return conjuntoCorreosAutorizados().has(email.trim().toLowerCase())
+  return email.trim().toLowerCase() === CORREO_ADMIN_BREAK_GLASS
 }

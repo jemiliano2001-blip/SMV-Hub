@@ -1,7 +1,5 @@
 import { adminAuth } from "@/lib/firebase-admin"
-import { esCorreoAutorizado } from "@/lib/authorized-emails"
-
-export { CORREOS_AUTORIZADOS } from "@/lib/authorized-emails"
+import { obtenerUsuarioAdmin } from "@/lib/usuarios-admin"
 
 type ResultadoAuth =
   | {
@@ -55,7 +53,8 @@ export async function verificarUsuarioAutorizado(request: Request): Promise<Resu
       }
     }
 
-    if (!esCorreoAutorizado(email)) {
+    const info = await obtenerUsuarioAdmin(decodedToken.uid, email)
+    if (!info || !info.activo) {
       return {
         ok: false,
         response: respuestaError(
@@ -76,4 +75,20 @@ export async function verificarUsuarioAutorizado(request: Request): Promise<Resu
       response: respuestaError(401, "Token inválido o expirado"),
     }
   }
+}
+
+/** Igual que verificarUsuarioAutorizado, pero además exige rol admin. */
+export async function verificarAdmin(request: Request): Promise<ResultadoAuth> {
+  const base = await verificarUsuarioAutorizado(request)
+  if (!base.ok) return base
+
+  const info = await obtenerUsuarioAdmin(base.uid, base.email)
+  if (!info || info.rol !== "admin") {
+    return {
+      ok: false,
+      response: respuestaError(403, "Se requiere rol de administrador"),
+    }
+  }
+
+  return base
 }
