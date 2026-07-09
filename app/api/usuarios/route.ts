@@ -12,14 +12,19 @@ export async function GET(request: Request) {
   const auth = await verificarAdmin(request)
   if (!auth.ok) return auth.response
 
-  const usuarios = await listarUsuariosAdmin()
-  return Response.json({
-    usuarios: usuarios.map((u) => ({
-      ...u,
-      creadoEn: u.creadoEn.toISOString(),
-      actualizadoEn: u.actualizadoEn.toISOString(),
-    })),
-  })
+  try {
+    const usuarios = await listarUsuariosAdmin()
+    return Response.json({
+      usuarios: usuarios.map((u) => ({
+        ...u,
+        creadoEn: u.creadoEn.toISOString(),
+        actualizadoEn: u.actualizadoEn.toISOString(),
+      })),
+    })
+  } catch (error: unknown) {
+    console.error("Error listando usuarios:", error instanceof Error ? error.message : "error desconocido")
+    return Response.json({ error: "No se pudo cargar la lista de usuarios" }, { status: 500 })
+  }
 }
 
 export async function POST(request: Request) {

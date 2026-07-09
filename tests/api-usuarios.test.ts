@@ -55,6 +55,15 @@ describe("GET /api/usuarios", () => {
     expect(body.usuarios).toHaveLength(1)
     expect(body.usuarios[0].email).toBe("compras@ejemplo.com")
   })
+
+  it("retorna 500 con mensaje claro si listarUsuariosAdmin falla", async () => {
+    mockVerificarAdmin.mockResolvedValue({ ok: true, uid: "u1", email: "jemiliano2001@gmail.com" })
+    mockListar.mockRejectedValue(new Error("Firestore no disponible"))
+    const res = await GET(makeRequest("GET"))
+    expect(res.status).toBe(500)
+    const body = await res.json()
+    expect(body.error).toMatch(/no se pudo cargar/i)
+  })
 })
 
 describe("POST /api/usuarios", () => {
