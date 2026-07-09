@@ -10,29 +10,41 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email_verified == true;
     }
 
-    // Lista blanca de correos autorizados del equipo SMV.
-    // IMPORTANTE: mientras esté vacía, se permite a CUALQUIER cuenta con correo
-    // verificado. Rellénala con los correos del equipo para cerrar el acceso.
-    function correosAutorizados() {
-      return [
-        'ordenes@smv.com',
-        'lorena@smv.com',
-        'jemiliano2001@gmail.com',
-        'diseno@smv.com',
-        'almacen@smv.com',
-      ];
-    }
-
     // App Check: el cliente web debe enviar token válido (reCAPTCHA v3 + debug en dev).
     function appCheckValido() {
       return request.app != null;
     }
 
+    // Correo con acceso admin garantizado, fijo como red de seguridad — debe
+    // coincidir con CORREO_ADMIN_BREAK_GLASS en lib/authorized-emails.ts.
+    function esCorreoBreakGlass() {
+      return request.auth.token.email == 'jemiliano2001@gmail.com';
+    }
+
+    // Autorización real vive en la colección `usuarios` (administrada desde
+    // /usuarios): el documento con id = uid debe existir y tener activo == true.
     function esUsuarioAutorizado() {
       return estaAutenticado() &&
         appCheckValido() &&
-        (correosAutorizados().size() == 0 ||
-         request.auth.token.email in correosAutorizados());
+        (
+          esCorreoBreakGlass() ||
+          (
+            exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
+            get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.activo == true
+          )
+        );
+    }
+
+    // ── Usuarios (roles y acceso, administrados desde /usuarios) ─────────────
+
+    match /usuarios/{uid} {
+      // Cada quien puede leer su propio documento — AuthGuard/NavBar lo usan
+      // para calcular su rol. El listado completo para /usuarios se sirve vía
+      // Route Handler con Admin SDK, no lectura directa de colección.
+      allow read: if estaAutenticado() && appCheckValido() && request.auth.uid == uid;
+      // Todas las escrituras pasan por app/api/usuarios/* (Admin SDK, que
+      // ignora estas reglas) — nunca directo desde el navegador.
+      allow write: if false;
     }
 
     // ── Validación de datos (frontera real del lado servidor) ────────────────
