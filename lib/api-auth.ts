@@ -82,13 +82,20 @@ export async function verificarAdmin(request: Request): Promise<ResultadoAuth> {
   const base = await verificarUsuarioAutorizado(request)
   if (!base.ok) return base
 
-  const info = await obtenerUsuarioAdmin(base.uid, base.email)
-  if (!info || info.rol !== "admin") {
+  try {
+    const info = await obtenerUsuarioAdmin(base.uid, base.email)
+    if (!info || info.rol !== "admin") {
+      return {
+        ok: false,
+        response: respuestaError(403, "Se requiere rol de administrador"),
+      }
+    }
+
+    return base
+  } catch {
     return {
       ok: false,
-      response: respuestaError(403, "Se requiere rol de administrador"),
+      response: respuestaError(500, "No se pudo verificar el acceso, intenta de nuevo"),
     }
   }
-
-  return base
 }

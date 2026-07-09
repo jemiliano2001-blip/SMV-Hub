@@ -85,4 +85,14 @@ describe("verificarAdmin", () => {
     const res = await verificarAdmin(makeRequest("Bearer token"))
     expect(res).toEqual({ ok: true, uid: "u1", email: "a@b.com" })
   })
+
+  it("retorna 500 en vez de lanzar si Firestore falla en el segundo chequeo de rol", async () => {
+    mockVerifyIdToken.mockResolvedValue({ email: "a@b.com", email_verified: true, uid: "u1" })
+    mockObtenerUsuarioAdmin
+      .mockResolvedValueOnce({ rol: "admin", activo: true }) // dentro de verificarUsuarioAutorizado
+      .mockRejectedValueOnce(new Error("Firestore no disponible")) // chequeo propio de verificarAdmin
+    const res = await verificarAdmin(makeRequest("Bearer token"))
+    expect(res.ok).toBe(false)
+    if (!res.ok) expect(res.response.status).toBe(500)
+  })
 })
