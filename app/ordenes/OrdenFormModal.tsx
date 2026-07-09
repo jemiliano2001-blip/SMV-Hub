@@ -8,6 +8,8 @@ import type { NuevaOrdenPayload } from '@/lib/ordenes'
 import { crearOrden, actualizarOrden } from '@/lib/ordenes'
 import { getClienteAuth } from '@/lib/firebase'
 
+import { normalizarClaveProdServ } from '@/lib/sat/normalizar'
+
 type ItemForm = {
   descripcion: string
   cantidad: string
@@ -17,6 +19,7 @@ type ItemForm = {
   cuentaCargo: string
   requisitor: string
   ordenTrabajo: string
+  claveProdServ: string
   url: string
 }
 
@@ -30,6 +33,7 @@ function itemVacio(): ItemForm {
     cuentaCargo: '',
     requisitor: '',
     ordenTrabajo: '',
+    claveProdServ: '',
     url: '',
   }
 }
@@ -51,6 +55,7 @@ function itemsDesdeOrden(orden?: OrdenCompra): ItemForm[] {
       cuentaCargo: i.cuentaCargo?.trim() || orden.cuentaCargo?.trim() || '',
       requisitor: i.requisitor?.trim() || orden.requisitor?.trim() || '',
       ordenTrabajo: i.ordenTrabajo?.trim() || orden.ordenTrabajo?.trim() || '',
+      claveProdServ: i.claveProdServ ?? '',
       url: '',
     }))
   }
@@ -139,16 +144,21 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
 
     try {
       // Parse numbers
-      const parsedItems: ItemFactura[] = formData.items.map(i => ({
-        descripcion: i.descripcion,
-        cantidad: i.cantidad ? Number(i.cantidad) : null,
-        precioUnitario: i.precioUnitario ? Number(i.precioUnitario) : null,
-        total: i.total ? Number(i.total) : null,
-        empresa: i.empresa,
-        cuentaCargo: i.cuentaCargo,
-        requisitor: i.requisitor,
-        ordenTrabajo: i.ordenTrabajo,
-      }))
+      const parsedItems: ItemFactura[] = formData.items.map(i => {
+        const claveProdServ = normalizarClaveProdServ(i.claveProdServ)
+        return {
+          descripcion: i.descripcion,
+          cantidad: i.cantidad ? Number(i.cantidad) : null,
+          precioUnitario: i.precioUnitario ? Number(i.precioUnitario) : null,
+          total: i.total ? Number(i.total) : null,
+          claveProdServ,
+          satPendiente: claveProdServ === null,
+          empresa: i.empresa,
+          cuentaCargo: i.cuentaCargo,
+          requisitor: i.requisitor,
+          ordenTrabajo: i.ordenTrabajo,
+        }
+      })
 
       const subtotal = formData.subtotal ? Number(formData.subtotal) : null
       const envio = formData.envio ? Number(formData.envio) : null
@@ -295,9 +305,10 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
                       <input placeholder="OT" value={item.ordenTrabajo} onChange={e => handleItemChange(index, 'ordenTrabajo', e.target.value)} className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none bg-white" />
                     </div>
                     <div className="flex gap-2">
-                      <input type="number" step="any" placeholder="Cant." value={item.cantidad} onChange={e => handleItemChange(index, 'cantidad', e.target.value)} className="w-1/3 rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none bg-white" />
-                      <input type="number" step="any" placeholder="P.Unit." value={item.precioUnitario} onChange={e => handleItemChange(index, 'precioUnitario', e.target.value)} className="w-1/3 rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none bg-white" />
-                      <input type="number" step="any" placeholder="Total" value={item.total} onChange={e => handleItemChange(index, 'total', e.target.value)} className="w-1/3 rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none bg-white" />
+                      <input type="number" step="any" placeholder="Cant." value={item.cantidad} onChange={e => handleItemChange(index, 'cantidad', e.target.value)} className="w-1/4 rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none bg-white" />
+                      <input type="number" step="any" placeholder="P.Unit." value={item.precioUnitario} onChange={e => handleItemChange(index, 'precioUnitario', e.target.value)} className="w-1/4 rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none bg-white" />
+                      <input type="number" step="any" placeholder="Total" value={item.total} onChange={e => handleItemChange(index, 'total', e.target.value)} className="w-1/4 rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none bg-white" />
+                      <input placeholder="Clave SAT (8 díg.)" value={item.claveProdServ} onChange={e => handleItemChange(index, 'claveProdServ', e.target.value)} className="w-1/4 rounded-lg border border-gray-300 px-2 py-1.5 text-sm font-mono focus:border-blue-400 focus:outline-none bg-white" />
                     </div>
                   </div>
                   {formData.items.length > 1 && (

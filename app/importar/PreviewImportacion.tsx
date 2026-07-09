@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
   AlertCircle,
@@ -13,9 +13,13 @@ import {
   importarOrdenes,
   erroresRequeridos,
   verificarDuplicados,
+  verificarDuplicadosEnLote,
+  combinarDuplicados,
   type FilaParseada,
 } from '@/lib/importar'
+import { sincronizarCamposLegacyOrden } from '@/lib/schemas'
 import { buscarPorFacturaYProveedor } from '@/lib/ordenes'
+import { normalizarClaveProdServ } from '@/lib/sat/normalizar'
 
 type CampoManual = 'requisitor' | 'ordenTrabajo' | 'empresa'
 
@@ -59,7 +63,53 @@ export default function PreviewImportacion({
     empresa: '',
   }))
   const [duplicados, setDuplicados] = useState<Array<{ indice: number; motivo: string }>>([])
+  const [duplicadosPreview, setDuplicadosPreview] = useState<Map<number, string>>(new Map())
+  const [verificandoDuplicados, setVerificandoDuplicados] = useState(true)
 
+  // Al cargar el preview: marca duplicados (BD + mismo lote) y deselecciona por defecto.
+  useEffect(() => {
+    let cancelado = false
+
+    async function verificarAlCargar() {
+      setVerificandoDuplicados(true)
+      const enLote = verificarDuplicadosEnLote(filasIniciales)
+      let contraBd: Array<{ indice: number; motivo: string }> = []
+
+      const conFactura = filasIniciales.filter(
+        (f) => f.datos.numeroFactura !== null && f.datos.numeroFactura.trim() !== ""
+      )
+      if (conFactura.length > 0) {
+        try {
+          const pares = conFactura.map((f) => ({
+            numeroFactura: f.datos.numeroFactura!,
+            proveedor: f.datos.proveedor,
+          }))
+          const existentes = await buscarPorFacturaYProveedor(pares)
+          contraBd = verificarDuplicados(filasIniciales, existentes)
+        } catch (err) {
+          console.error('Error verificando duplicados al cargar preview:', err)
+        }
+      }
+
+      if (cancelado) return
+
+      const todos = combinarDuplicados(enLote, contraBd)
+      const mapa = new Map(todos.map((d) => [d.indice, d.motivo]))
+      setDuplicadosPreview(mapa)
+      setFilas((prev) =>
+        prev.map((f) => ({
+          ...f,
+          seleccionada: f.errores.length === 0 && !mapa.has(f.indice),
+        }))
+      )
+      setVerificandoDuplicados(false)
+    }
+
+    verificarAlCargar()
+    return () => {
+      cancelado = true
+    }
+  }, [filasIniciales])
 
   const toggleRow = (indice: number) => {
     setFilas(prev =>
@@ -81,11 +131,32 @@ export default function PreviewImportacion({
 
   const editarCampo = (indice: number, campo: 'proveedor' | CampoManual, valor: string) => {
     setFilas(prev =>
-      prev.map(f =>
-        f.indice === indice
-          ? refrescarFila({ ...f, datos: { ...f.datos, [campo]: valor } })
-          : f
-      )
+      prev.map(f => {
+        if (f.indice !== indice) return f
+        if (campo === 'proveedor') {
+          return refrescarFila({ ...f, datos: { ...f.datos, proveedor: valor } })
+        }
+        const items = f.datos.items.map((item) => ({ ...item, [campo]: valor }))
+        const datos = sincronizarCamposLegacyOrden({ ...f.datos, items })
+        return refrescarFila({ ...f, datos })
+      })
+    )
+  }
+
+  const editarClaveSat = (indice: number, valor: string) => {
+    setFilas(prev =>
+      prev.map(f => {
+        if (f.indice !== indice) return f
+        if (f.datos.items.length !== 1) return f
+        const claveProdServ = normalizarClaveProdServ(valor)
+        const items = f.datos.items.map((item) => ({
+          ...item,
+          claveProdServ,
+          satPendiente: claveProdServ === null,
+        }))
+        const datos = sincronizarCamposLegacyOrden({ ...f.datos, items })
+        return refrescarFila({ ...f, datos })
+      })
     )
   }
 
@@ -93,18 +164,18 @@ export default function PreviewImportacion({
     const req = aplicar.requisitor.trim()
     const ot = aplicar.ordenTrabajo.trim()
     const emp = aplicar.empresa.trim()
-    // Guarda el requisitor y ordenTrabajo para la próxima importación
     if (req) localStorage.setItem('smv:requisitor', req)
     if (ot) localStorage.setItem('smv:ordenTrabajo', ot)
     setFilas(prev =>
       prev.map(f => {
-        const datos = { ...f.datos }
-        // Requisitor: siempre se aplica (nunca viene de la factura ni de la IA)
-        if (req) datos.requisitor = req
-        // Orden de trabajo y empresa: solo rellena las que siguen vacías
-        // para no pisar los valores que ya extrajo Gemini de las capturas
-        if (ot && !datos.ordenTrabajo.trim()) datos.ordenTrabajo = ot
-        if (emp && !datos.empresa.trim()) datos.empresa = emp
+        const items = f.datos.items.map((item) => {
+          const next = { ...item }
+          if (req) next.requisitor = req
+          if (ot && !next.ordenTrabajo.trim()) next.ordenTrabajo = ot
+          if (emp && !next.empresa.trim()) next.empresa = emp
+          return next
+        })
+        const datos = sincronizarCamposLegacyOrden({ ...f.datos, items })
         return refrescarFila({ ...f, datos })
       })
     )
@@ -132,15 +203,20 @@ export default function PreviewImportacion({
     if (validAndSelected.length === 0) return
     setError(null)
 
-    const conFactura = validAndSelected.filter(f => f.datos.numeroFactura !== null)
+    const conFactura = validAndSelected.filter(
+      (f) => f.datos.numeroFactura !== null && f.datos.numeroFactura.trim() !== ""
+    )
     if (conFactura.length > 0) {
       try {
-        const pares = conFactura.map(f => ({
+        const pares = conFactura.map((f) => ({
           numeroFactura: f.datos.numeroFactura!,
           proveedor: f.datos.proveedor,
         }))
         const existentes = await buscarPorFacturaYProveedor(pares)
-        const dups = verificarDuplicados(validAndSelected, existentes)
+        const dups = combinarDuplicados(
+          verificarDuplicados(validAndSelected, existentes),
+          verificarDuplicadosEnLote(validAndSelected)
+        )
         if (dups.length > 0) {
           setDuplicados(dups)
           setStatus('confirmando-dedup')
@@ -160,6 +236,7 @@ export default function PreviewImportacion({
   const listosParaImportar = filas.filter(f => f.seleccionada && f.errores.length === 0).length
   const filasConErrores = filas.filter(f => f.errores.length > 0).length
   const filasConAdvertencias = filas.filter(f => f.advertencias.length > 0 && f.errores.length === 0).length
+  const filasDuplicadas = duplicadosPreview.size
   const selectableRows = filas.filter(f => f.errores.length === 0)
   const allSelectableChecked = selectableRows.length > 0 && selectableRows.every(f => f.seleccionada)
 
@@ -295,8 +372,11 @@ export default function PreviewImportacion({
           <h3 className="text-sm font-semibold text-gray-900">Completar campos obligatorios</h3>
         </div>
         <p className="text-xs text-gray-500 mb-3">
-          Empresa se sugiere automáticamente según el proveedor (McMaster → SMV Maquinados, Digi-Key/Mouser → Siltek).
-          El requisitor se recuerda entre importaciones. <strong>Orden de trabajo y empresa</strong> solo rellenan celdas vacías.
+          Los campos obligatorios van por ítem. El requisitor se recuerda entre importaciones.
+          Orden de trabajo y empresa solo rellenan celdas vacías (no pisan lo que extrajo la IA en McMaster).
+        </p>
+        <p className="text-xs text-blue-700 mb-3">
+          La clave SAT es opcional en esta pantalla, pero si el renglón tiene un solo ítem puedes capturarla aquí antes de importar.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <input
@@ -345,6 +425,18 @@ export default function PreviewImportacion({
                 {filasConAdvertencias} con advertencias (se usarán defaults)
               </span>
             )}
+            {filasDuplicadas > 0 && (
+              <span className="text-yellow-700 font-medium flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-yellow-500" />
+                {filasDuplicadas} duplicada{filasDuplicadas !== 1 ? 's' : ''} (deseleccionadas)
+              </span>
+            )}
+            {verificandoDuplicados && (
+              <span className="text-gray-500 flex items-center gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Verificando duplicados…
+              </span>
+            )}
           </div>
         </div>
         <div className="flex gap-3">
@@ -385,6 +477,7 @@ export default function PreviewImportacion({
                 <th className="px-4 py-3.5 font-semibold">Empresa</th>
                 <th className="px-4 py-3.5 font-semibold text-center w-16">Cant.</th>
                 <th className="px-4 py-3.5 font-semibold">Descripción</th>
+                <th className="px-4 py-3.5 font-semibold">Clave SAT</th>
                 <th className="px-4 py-3.5 font-semibold">Fecha</th>
                 <th className="px-4 py-3.5 font-semibold">Estado</th>
                 <th className="px-4 py-3.5 font-semibold text-right">Total</th>
@@ -395,7 +488,10 @@ export default function PreviewImportacion({
             <tbody className="divide-y divide-gray-200">
               {filas.map((fila) => {
                 const tieneErrores = fila.errores.length > 0
-                const tieneAdvertencias = fila.advertencias.length > 0 && !tieneErrores
+                const motivoDuplicado = duplicadosPreview.get(fila.indice)
+                const esDuplicada = Boolean(motivoDuplicado)
+                const tieneAdvertencias =
+                  (fila.advertencias.length > 0 || esDuplicada) && !tieneErrores
                 let rowStyle = 'hover:bg-gray-50/50'
                 if (tieneErrores) {
                   rowStyle = 'bg-red-50 hover:bg-red-50/80 border-l-4 border-l-red-500'
@@ -457,6 +553,20 @@ export default function PreviewImportacion({
                     <td className="px-4 py-3.5 max-w-[200px] truncate" title={fila.datos.items[0]?.descripcion}>
                       {fila.datos.items[0]?.descripcion || '-'}
                     </td>
+                    <td className="px-2 py-2 min-w-[150px]">
+                      {fila.datos.items.length === 1 ? (
+                        <input
+                          value={fila.datos.items[0]?.claveProdServ ?? ''}
+                          onChange={e => editarClaveSat(fila.indice, e.target.value)}
+                          placeholder="31161500"
+                          className={inputCell}
+                        />
+                      ) : (
+                        <span className="inline-flex rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-500">
+                          {fila.datos.items.length} ítems
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3.5 whitespace-nowrap">
                       {fila.datos.fechaFactura || '-'}
                     </td>
@@ -493,7 +603,19 @@ export default function PreviewImportacion({
                             {adv}
                           </span>
                         ))}
-                        {fila.errores.length === 0 && fila.advertencias.length === 0 && (
+                        {fila.datos.items.length === 1 && fila.datos.items[0]?.satPendiente && (
+                          <span className="inline-flex items-center gap-1 text-xs text-yellow-800 font-semibold bg-yellow-100/60 px-2 py-0.5 rounded-sm">
+                            <AlertTriangle className="h-3 w-3 shrink-0" />
+                            Sin clave SAT
+                          </span>
+                        )}
+                        {esDuplicada && (
+                          <span className="inline-flex items-center gap-1 text-xs text-yellow-800 font-semibold bg-yellow-100/60 px-2 py-0.5 rounded-sm">
+                            <AlertTriangle className="h-3 w-3 shrink-0" />
+                            Ya existe: {motivoDuplicado}
+                          </span>
+                        )}
+                        {fila.errores.length === 0 && fila.advertencias.length === 0 && !esDuplicada && (
                           <span className="inline-flex items-center gap-1 text-xs text-green-700 font-semibold bg-green-50 px-2 py-0.5 rounded-sm">
                             <CheckCircle2 className="h-3 w-3 shrink-0" />
                             Válido

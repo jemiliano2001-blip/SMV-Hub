@@ -1,7 +1,7 @@
 # BRIEFING — 2026-06-16T21:10:08Z
 
 ## Mission
-Ensure the Compras Americanas Next.js application is fully functional: fix ESLint problems in test files, implement /ordenes and /importar pages, add Vitest tests for lib/ordenes.ts and lib/importar.ts, and verify build and tests pass.
+Ensure the SMV Hub Next.js application is fully functional: fix ESLint problems in test files, implement /ordenes and /importar pages, add Vitest tests for lib/ordenes.ts and lib/importar.ts, and verify build and tests pass.
 
 ## 🔒 My Identity
 - Archetype: Project Orchestrator

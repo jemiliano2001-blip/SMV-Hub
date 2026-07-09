@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "smv-brain",
+    "production": "smv-brain",
+    "development": "smv-brain-dev"
+  }
+}

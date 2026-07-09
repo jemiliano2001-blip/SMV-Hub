@@ -1,7 +1,7 @@
 # BRIEFING — 2026-06-16T21:28:25Z
 
 ## Mission
-Perform an independent victory audit on the orchestrator's claim of project completion for the "Compras Americanas" Next.js 16 application.
+Perform an independent victory audit on the orchestrator's claim of project completion for the SMV Hub Next.js 16 application.
 
 ## 🔒 My Identity
 - Archetype: victory_auditor
@@ -20,7 +20,7 @@ Perform an independent victory audit on the orchestrator's claim of project comp
 - Updated: 2026-06-16T21:28:25Z
 
 ## Audit Scope
-- **Work product**: "Compras Americanas" Next.js 16 application code and test results.
+- **Work product**: SMV Hub Next.js 16 application code and test results.
 - **Profile loaded**: General Project (Victory Audit & Integrity Forensics)
 - **Audit type**: victory audit
 

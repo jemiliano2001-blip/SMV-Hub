@@ -17,6 +17,8 @@ import FiltrosReporte from "@/app/reportes/components/FiltrosReporte"
 import FranjaKpis from "@/app/reportes/components/FranjaKpis"
 import TablaReporte from "@/app/reportes/components/TablaReporte"
 import AvisoPendientes from "@/app/reportes/components/AvisoPendientes"
+import ImportExportButtons from "@/app/reportes/components/ImportExportButtons"
+import RecurringOrderForm from "@/app/reportes/components/RecurringOrderForm"
 import { Loader2, AlertCircle } from "lucide-react"
 
 type PresetTipo = "semana" | "mes" | "personalizado"
@@ -108,8 +110,8 @@ export default function ReporteView() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="max-w-[1400px] mx-auto px-4 py-6">
+    <div className="w-full">
+      <div className="max-w-[1400px] mx-auto px-4 py-6 print:max-w-none print:px-0 print:py-0">
 
         {/* Volver — oculto al imprimir */}
         <div className="mb-4 no-print">
@@ -117,11 +119,6 @@ export default function ReporteView() {
             ← Inicio
           </Link>
         </div>
-
-        <CabeceraReporte
-          titulo="Reporte de compras"
-          subtitulo={tituloReporte(periodo.desde, periodo.hasta)}
-        />
 
         <FiltrosReporte
           presetTipo={presetTipo}
@@ -139,17 +136,50 @@ export default function ReporteView() {
 
         <AvisoPendientes />
 
-        {lineas.length > 0 && (
-          <div className="mb-6">
-            <FranjaKpis kpis={kpis} moneda={monedaActiva} />
-          </div>
-        )}
+        <div className="reporte-document">
+          <CabeceraReporte
+            titulo="Reporte de compras"
+            subtitulo={tituloReporte(periodo.desde, periodo.hasta)}
+            moneda={monedaActiva}
+            agruparPor={agruparPor}
+            kpis={kpis}
+            grupos={grupos}
+            totalGeneral={totalGeneral}
+          />
 
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <TablaReporte grupos={grupos} totalGeneral={totalGeneral} moneda={monedaActiva} />
+          {lineas.length > 0 && (
+            <div className="mb-6">
+              <FranjaKpis kpis={kpis} moneda={monedaActiva} />
+            </div>
+          )}
+
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm print:rounded-none print:border-0 print:shadow-none print:p-0">
+            <TablaReporte grupos={grupos} totalGeneral={totalGeneral} moneda={monedaActiva} />
+          </div>
+
+          <div className="hidden print:flex justify-between mt-3 pt-2 border-t border-gray-200 text-[7.5px] text-gray-400 tracking-wide">
+            <span>SMV Maquinados, S.A. de C.V.</span>
+            <span>Uso interno · Confidencial</span>
+          </div>
+        </div>
+
+        {/* Automatización y Sincronización */}
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8 no-print">
+          <div>
+            <ImportExportButtons />
+          </div>
+          <div>
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mt-6 h-full">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Órdenes Recurrentes</h3>
+              <p className="text-sm text-gray-600 mb-6">
+                Configura suscripciones para automatizar la compra de productos cuando el stock es bajo o en fechas programadas.
+              </p>
+              <RecurringOrderForm />
+            </div>
+          </div>
         </div>
 
       </div>
-    </main>
+    </div>
   )
 }

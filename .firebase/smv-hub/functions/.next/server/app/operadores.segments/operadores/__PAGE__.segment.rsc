@@ -1,0 +1,7 @@
+1:"$Sreact.fragment"
+2:I[82534,["/_next/static/chunks/1hmzwnd5taqgf.js","/_next/static/chunks/1wf2_vkyift-_.js","/_next/static/chunks/14mrh2-p_w84d.js","/_next/static/chunks/0fkpzjzvsc62d.js","/_next/static/chunks/38nxob3ltj70f.js"],"default"]
+3:I[77694,["/_next/static/chunks/1hmzwnd5taqgf.js","/_next/static/chunks/1wf2_vkyift-_.js","/_next/static/chunks/14mrh2-p_w84d.js","/_next/static/chunks/0fkpzjzvsc62d.js","/_next/static/chunks/38nxob3ltj70f.js"],"default"]
+4:I[97367,["/_next/static/chunks/1hmzwnd5taqgf.js","/_next/static/chunks/1wf2_vkyift-_.js","/_next/static/chunks/14mrh2-p_w84d.js","/_next/static/chunks/0fkpzjzvsc62d.js"],"OutletBoundary"]
+5:"$Sreact.suspense"
+0:{"rsc":["$","$1","c",{"children":[["$","$L2",null,{"children":["$","main",null,{"className":"min-h-screen bg-gray-50 flex flex-col","children":["$","div",null,{"className":"max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex-1","children":[["$","div",null,{"className":"mb-8","children":[["$","h1",null,{"className":"text-2xl font-bold text-gray-900","children":"Catálogo de operadores"}],["$","p",null,{"className":"text-sm text-gray-500 mt-1","children":"Lista maestra de operadores y personal — se usa como fuente para autocompletar nombres en otros módulos"}]]}],["$","$L3",null,{}]]}]}]}],[["$","script","script-0",{"src":"/_next/static/chunks/38nxob3ltj70f.js","async":true}]],["$","$L4",null,{"children":["$","$5",null,{"name":"Next.MetadataOutlet","children":"$@6"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"LIhPpFzD3xWllK09pZyoK"}
+6:null

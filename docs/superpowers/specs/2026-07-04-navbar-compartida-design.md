@@ -21,7 +21,7 @@ Cada una de las 11 páginas de módulo copia su propio `<header>`:
 Mismo look del header actual: fondo blanco, `border-b border-[#E2E8F0]`, sticky top,
 `h-16`, contenido en `max-w-7xl`.
 
-- **Izquierda:** `LogoSMV` + "Compras Americanas", como link a `/`.
+- **Izquierda:** `LogoSMV` + "SMV Hub", como link a `/`.
 - **Grupos dropdown:**
   - **Compras:** Nueva compra `/nueva-compra`, Órdenes `/ordenes`, Importar `/importar`,
     Cotizaciones `/cotizaciones`, Requisiciones `/requisiciones`, Reportes `/reportes`

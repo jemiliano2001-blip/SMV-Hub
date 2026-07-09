@@ -22,9 +22,9 @@ export default function ImportarCSV() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const descargarPlantilla = () => {
-    const headers = 'Proveedor,Requisitor,Orden de trabajo,Empresa,Estado del pedido,Fecha del pedido,Cantidad,Descripción,Link,Fecha entrega / Guía,Moneda,Total'
-    const ej1 = 'McMaster-Carr,emiliano,OT-2024-001,SMV Maquinados,aprobado,2026-06-18,2,Tornillo M6x20 acero inoxidable,https://www.mcmaster.com,2026-06-25,USD,12.50'
-    const ej2 = 'Amazon,emiliano,OT-2024-002,SilTech,pendiente,2026-06-18,1,Sensor de temperatura,https://www.amazon.com,,USD,45.00'
+    const headers = 'Proveedor,Requisitor,Orden de trabajo,Empresa,Estado del pedido,Fecha del pedido,Cantidad,Descripción,Link,Fecha entrega / Guía,Moneda,Total,Codigo'
+    const ej1 = 'McMaster-Carr,emiliano,OT-2024-001,SMV Maquinados,aprobado,2026-06-18,2,Tornillo M6x20 acero inoxidable,https://www.mcmaster.com,2026-06-25,USD,12.50,31161500'
+    const ej2 = 'Amazon,emiliano,OT-2024-002,SilTech,pendiente,2026-06-18,1,Sensor de temperatura,https://www.amazon.com,,USD,45.00,'
     const blob = new Blob([[headers, ej1, ej2].join('\n')], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -169,6 +169,7 @@ export default function ImportarCSV() {
               <li><strong>Fecha del pedido</strong></li>
               <li><strong>Cantidad</strong></li>
               <li><strong>Descripción</strong></li>
+              <li><strong>Codigo</strong> o <strong>Clave SAT</strong></li>
               <li><strong>Link</strong></li>
               <li><strong>Fecha entrega / Guía</strong></li>
             </ul>

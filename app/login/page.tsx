@@ -1,20 +1,40 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { iniciarSesionConGoogle } from '@/lib/auth'
+import LogoSMV from "@/app/LogoSMV"
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { iniciarSesionConGoogle, cerrarSesion } from '@/lib/auth'
+import { esCorreoAutorizado } from '@/lib/authorized-emails'
 import { LogIn, AlertCircle } from 'lucide-react'
 
-export default function LoginPage() {
+const MENSAJES_ERROR: Record<string, string> = {
+  no_autorizado:
+    'Tu cuenta de Google no está autorizada para SMV Hub. Contacta al administrador para solicitar acceso.',
+}
+
+function LoginForm() {
+  const searchParams = useSearchParams()
+  const codigoError = searchParams.get('error')
+  const errorDesdeQuery =
+    codigoError && MENSAJES_ERROR[codigoError] ? MENSAJES_ERROR[codigoError] : null
+
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+
+  const mensajeError = error ?? errorDesdeQuery
 
   const handleLogin = async () => {
     try {
       setLoading(true)
       setError(null)
-      await iniciarSesionConGoogle()
+      const usuario = await iniciarSesionConGoogle()
+      if (!esCorreoAutorizado(usuario.email)) {
+        await cerrarSesion()
+        setError(MENSAJES_ERROR.no_autorizado)
+        setLoading(false)
+        return
+      }
       router.push('/')
     } catch (err: unknown) {
       console.error("Error al iniciar sesión:", err instanceof Error ? err.message : "error desconocido")
@@ -30,21 +50,21 @@ export default function LoginPage() {
         {/* Brand */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2.5 mb-3">
-            <span className="text-3xl font-bold text-[#0369A1] tracking-tight">SMV</span>
+            <LogoSMV height={44} />
           </div>
           <h1 className="text-xl font-semibold text-[#0F172A] tracking-tight mb-2">
-            Compras Americanas
+            SMV Hub
           </h1>
           <p className="text-[#64748B] text-sm leading-relaxed">
-            Por favor, inicia sesión para acceder al sistema de gestión de compras.
+            Inicia sesión para acceder a la plataforma interna del taller.
           </p>
         </div>
 
         {/* Error Message */}
-        {error && (
+        {mensajeError && (
           <div className="mb-6 p-4 bg-red-50 rounded-lg flex items-start gap-3 border border-red-100">
             <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
-            <p className="text-sm text-red-700">{error}</p>
+            <p className="text-sm text-red-700">{mensajeError}</p>
           </div>
         )}
 
@@ -68,5 +88,19 @@ export default function LoginPage() {
         Acceso restringido · SMV Maquinados
       </p>
     </main>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0369A1]" />
+        </main>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   )
 }

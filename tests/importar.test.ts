@@ -31,8 +31,64 @@ import {
   procesarCSV,
   importarOrdenes,
   verificarDuplicados,
+  verificarDuplicadosEnLote,
+  esOrdenDuplicada,
+  claveFacturaProveedor,
 } from "@/lib/importar"
-import type { ExtraccionInvoice } from "@/lib/schemas"
+import type { FilaParseada } from "@/lib/importar"
+import type { ExtraccionInvoice, ItemFactura } from "@/lib/schemas"
+
+const itemFacturaBase = (overrides: Partial<ItemFactura> = {}): ItemFactura => ({
+  descripcion: "X",
+  cantidad: 1,
+  precioUnitario: 1,
+  total: 1,
+  claveProdServ: null,
+  satPendiente: true,
+  requisitor: "B",
+  ordenTrabajo: "C",
+  empresa: "D",
+  cuentaCargo: "",
+  ...overrides,
+})
+
+function datosOrdenImportBase(
+  overrides: Partial<FilaParseada["datos"]> = {}
+): FilaParseada["datos"] {
+  return {
+    proveedor: "Amazon",
+    numeroFactura: null,
+    fechaFactura: null,
+    moneda: "USD",
+    subtotal: null,
+    envio: null,
+    impuestos: null,
+    total: null,
+    items: [],
+    requisitor: "juan",
+    ordenTrabajo: "OT-1",
+    empresa: "SMV",
+    cuentaCargo: "",
+    destino: "",
+    linkProveedor: null,
+    fechaEntrega: null,
+    estado: "pendiente",
+    ...overrides,
+  }
+}
+
+function filaParseadaBase(
+  indice: number,
+  datosOverrides: Partial<FilaParseada["datos"]> = {}
+): FilaParseada {
+  return {
+    indice,
+    datos: datosOrdenImportBase(datosOverrides),
+    errores: [],
+    advertencias: [],
+    seleccionada: true,
+  }
+}
 
 // ── parsearCSVTexto ──────────────────────────────────────────────────────────
 
@@ -116,6 +172,14 @@ describe("detectarColumnas", () => {
     const idx = detectarColumnas(["XYZ", "ABC"])
     expect(Object.keys(idx)).toHaveLength(0)
   })
+
+  it("reconoce alias de clave SAT y código", () => {
+    const headers = ["Código SAT", "Precio por artículo", "Total de línea"]
+    const idx = detectarColumnas(headers)
+    expect(idx["claveProdServ"]).toBe(0)
+    expect(idx["precioUnitario"]).toBe(1)
+    expect(idx["totalLinea"]).toBe(2)
+  })
 })
 
 // ── mapearFila ───────────────────────────────────────────────────────────────
@@ -196,11 +260,12 @@ describe("mapearFila", () => {
     expect(r.errores.some(e => e.toLowerCase().includes("requisitor"))).toBe(true)
   })
 
-  it("ordenTrabajo vacío → error bloqueante", () => {
+  it("ordenTrabajo vacío no genera error", () => {
     const fila = [...filaOK]
     fila[8] = ""
     const r = mapearFila(fila, COL, 0)
-    expect(r.errores.some(e => e.toLowerCase().includes("trabajo") || e.toLowerCase().includes("orden"))).toBe(true)
+    expect(r.errores).toHaveLength(0)
+    expect(r.datos.items[0].ordenTrabajo).toBe("")
   })
 
   it("empresa vacía → error bloqueante", () => {
@@ -216,6 +281,14 @@ describe("mapearFila", () => {
     expect(r.datos.fechaEntrega).toBe("2024-06-15")
   })
 
+  it("normaliza la clave SAT si viene en la fila", () => {
+    const colConClave: Record<string, number> = { ...COL, claveProdServ: 10 }
+    const fila = [...filaOK, "31-1615-00"]
+    const r = mapearFila(fila, colConClave, 0)
+    expect(r.datos.items[0].claveProdServ).toBe("31161500")
+    expect(r.datos.items[0].satPendiente).toBe(false)
+  })
+
   it("campo ausente del colIdx produce null, no error", () => {
     const colSinLink: Record<string, number> = { ...COL }
     delete colSinLink["linkProveedor"]
@@ -228,17 +301,27 @@ describe("mapearFila", () => {
 // ── erroresRequeridos ─────────────────────────────────────────────────────────
 
 describe("erroresRequeridos", () => {
-  const completo = { proveedor: "A", requisitor: "B", ordenTrabajo: "C", empresa: "D" }
+  const itemOk = itemFacturaBase()
 
   it("no devuelve errores si todos los campos están presentes", () => {
-    expect(erroresRequeridos(completo)).toHaveLength(0)
+    expect(erroresRequeridos({ proveedor: "A", items: [itemOk] })).toHaveLength(0)
   })
 
   it("detecta cada campo obligatorio vacío", () => {
-    expect(erroresRequeridos({ ...completo, proveedor: "" })[0]).toMatch(/proveedor/i)
-    expect(erroresRequeridos({ ...completo, requisitor: "  " })[0]).toMatch(/requisitor/i)
-    expect(erroresRequeridos({ ...completo, ordenTrabajo: "" })[0]).toMatch(/trabajo/i)
-    expect(erroresRequeridos({ ...completo, empresa: "" })[0]).toMatch(/empresa/i)
+    expect(erroresRequeridos({ proveedor: "", items: [itemOk] })[0]).toMatch(/proveedor/i)
+    expect(erroresRequeridos({ proveedor: "A", items: [] })[0]).toMatch(/ítem/i)
+    expect(
+      erroresRequeridos({
+        proveedor: "A",
+        items: [{ ...itemOk, requisitor: "  " }],
+      })[0]
+    ).toMatch(/requisitor/i)
+    expect(
+      erroresRequeridos({
+        proveedor: "A",
+        items: [{ ...itemOk, empresa: "" }],
+      })[0]
+    ).toMatch(/empresa/i)
   })
 })
 
@@ -251,32 +334,65 @@ describe("mapearExtraccion", () => {
     fechaFactura: "2024-06-01",
     moneda: "USD",
     subtotal: 100,
+    envio: null,
     impuestos: 8,
     total: 108,
-    items: [{ descripcion: "Cable", cantidad: 2, precioUnitario: 50, total: 100 }],
+    items: [itemFacturaBase({
+      descripcion: "Cable",
+      cantidad: 2,
+      precioUnitario: 50,
+      total: 100,
+      requisitor: "",
+      ordenTrabajo: "",
+      empresa: "",
+      cuentaCargo: "",
+    })],
   }
 
-  it("copia los datos de factura y deja vacíos los campos manuales", () => {
+  it("copia los datos de factura; campos manuales van en ítems", () => {
     const fila = mapearExtraccion(extraccion, 0)
     expect(fila.datos.proveedor).toBe("Amazon")
     expect(fila.datos.total).toBe(108)
     expect(fila.datos.items).toHaveLength(1)
-    expect(fila.datos.requisitor).toBe("")
-    expect(fila.datos.ordenTrabajo).toBe("")
-    expect(fila.datos.empresa).toBe("")
+    expect(fila.datos.items[0].requisitor).toBe("")
+    expect(fila.datos.items[0].empresa).toBe("")
   })
 
-  it("marca errores bloqueantes por los campos manuales vacíos y queda no seleccionada", () => {
+  it("marca errores bloqueantes por requisitor/empresa vacíos en ítems", () => {
     const fila = mapearExtraccion(extraccion, 3)
     expect(fila.indice).toBe(3)
-    expect(fila.errores).toHaveLength(3) // requisitor, ordenTrabajo, empresa
+    expect(fila.errores).toHaveLength(2)
     expect(fila.seleccionada).toBe(false)
     expect(fila.datos.estado).toBe("pendiente")
   })
 
   it("si el proveedor viene vacío también lo marca como error", () => {
     const fila = mapearExtraccion({ ...extraccion, proveedor: "" }, 0)
-    expect(fila.errores).toHaveLength(4)
+    expect(fila.errores).toHaveLength(3)
+  })
+
+  it("propaga empresa/cuentaCargo extraídos por ítem", () => {
+    const fila = mapearExtraccion(
+      {
+        ...extraccion,
+        items: [
+          itemFacturaBase({
+            descripcion: "Spring",
+            cantidad: 1,
+            precioUnitario: 11.98,
+            total: 11.98,
+            empresa: "OHD",
+            cuentaCargo: "SO1157",
+            requisitor: "",
+            ordenTrabajo: "",
+          }),
+        ],
+      },
+      0
+    )
+    expect(fila.datos.items[0].empresa).toBe("OHD")
+    expect(fila.datos.items[0].cuentaCargo).toBe("SO1157")
+    expect(fila.errores).toHaveLength(1)
   })
 })
 
@@ -314,30 +430,8 @@ describe("procesarCSV", () => {
 // ── verificarDuplicados ───────────────────────────────────────────────────────
 
 describe("verificarDuplicados", () => {
-  const filaConFactura = (indice: number, numeroFactura: string, proveedor: string) => ({
-    indice,
-    datos: {
-      proveedor,
-      numeroFactura,
-      fechaFactura: null,
-      moneda: "USD",
-      subtotal: null,
-      impuestos: null,
-      total: null,
-      items: [],
-      requisitor: "juan",
-      ordenTrabajo: "OT-1",
-      empresa: "SMV",
-      cuentaCargo: "",
-      destino: "",
-      linkProveedor: null,
-      fechaEntrega: null,
-      estado: "pendiente" as const,
-    },
-    errores: [] as string[],
-    advertencias: [] as string[],
-    seleccionada: true,
-  })
+  const filaConFactura = (indice: number, numeroFactura: string, proveedor: string) =>
+    filaParseadaBase(indice, { proveedor, numeroFactura })
 
   it("devuelve [] cuando no hay duplicados", () => {
     const filas = [filaConFactura(0, "INV-1", "Amazon")]
@@ -382,6 +476,52 @@ describe("verificarDuplicados", () => {
   })
 })
 
+// ── verificarDuplicadosEnLote ─────────────────────────────────────────────────
+
+describe("verificarDuplicadosEnLote", () => {
+  const filaConFactura = (indice: number, numeroFactura: string, proveedor: string) =>
+    filaParseadaBase(indice, { proveedor, numeroFactura })
+
+  it("devuelve [] cuando no hay repeticiones en el lote", () => {
+    const filas = [
+      filaConFactura(0, "INV-1", "Amazon"),
+      filaConFactura(1, "INV-2", "Amazon"),
+    ]
+    expect(verificarDuplicadosEnLote(filas)).toHaveLength(0)
+  })
+
+  it("detecta la segunda aparición de la misma factura+proveedor", () => {
+    const filas = [
+      filaConFactura(0, "INV-1", "Amazon"),
+      filaConFactura(1, "INV-1", "Amazon"),
+    ]
+    const result = verificarDuplicadosEnLote(filas)
+    expect(result).toHaveLength(1)
+    expect(result[0].indice).toBe(1)
+    expect(result[0].motivo).toContain("repetida en este lote")
+  })
+})
+
+// ── esOrdenDuplicada ──────────────────────────────────────────────────────────
+
+describe("esOrdenDuplicada", () => {
+  it("devuelve true cuando coincide numeroFactura y proveedor", () => {
+    expect(
+      esOrdenDuplicada("INV-1", "Amazon", [{ numeroFactura: "INV-1", proveedor: "Amazon" }])
+    ).toBe(true)
+  })
+
+  it("devuelve false sin numeroFactura", () => {
+    expect(
+      esOrdenDuplicada(null, "Amazon", [{ numeroFactura: "INV-1", proveedor: "Amazon" }])
+    ).toBe(false)
+  })
+
+  it("claveFacturaProveedor es case-insensitive", () => {
+    expect(claveFacturaProveedor(" inv-1 ", " Amazon ")).toBe("inv-1|amazon")
+  })
+})
+
 // ── procesarCSV incluye columnasDetectadas ────────────────────────────────────
 
 describe("procesarCSV — columnasDetectadas", () => {
@@ -414,31 +554,20 @@ describe("procesarCSV — columnasDetectadas", () => {
 
 // ── importarOrdenes ──────────────────────────────────────────────────────────
 
-function makeFilaValida(indice: number) {
-  return {
-    indice,
-    datos: {
-      proveedor: `Proveedor ${indice}`,
-      numeroFactura: null,
-      fechaFactura: null,
-      moneda: "USD",
-      subtotal: null,
-      impuestos: null,
+function makeFilaValida(indice: number): FilaParseada {
+  return filaParseadaBase(indice, {
+    proveedor: `Proveedor ${indice}`,
+    items: [itemFacturaBase({
+      descripcion: "Item",
+      cantidad: 1,
+      precioUnitario: null,
       total: null,
-      items: [{ descripcion: "Item", cantidad: 1, precioUnitario: null, total: null }],
       requisitor: "Juan",
       ordenTrabajo: "OT-100",
       empresa: "SMV Norte",
-      cuentaCargo: '',
-      destino: '',
-      linkProveedor: null,
-      fechaEntrega: null,
-      estado: "pendiente" as const,
-    },
-    errores: [] as string[],
-    advertencias: [] as string[],
-    seleccionada: true,
-  }
+      cuentaCargo: "",
+    })],
+  })
 }
 
 describe("importarOrdenes", () => {

@@ -1,6 +1,6 @@
 ## 2026-06-16T21:26:55Z
 You are the Victory Auditor. Your working directory is D:\proyectos_code\SMV\compras-americanas\.agents\victory_auditor.
-Your mission is to perform an independent victory audit on the orchestrator's claim of project completion for the "Compras Americanas" Next.js 16 application.
+Your mission is to perform an independent victory audit on the orchestrator's claim of project completion for the SMV Hub Next.js 16 application.
 Verify the following:
 1. npm run lint completes with zero errors and zero warnings.
 2. npm run build compiles without errors.

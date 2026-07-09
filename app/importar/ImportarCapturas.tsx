@@ -8,6 +8,7 @@ import {
   ImageIcon,
   X,
 } from 'lucide-react'
+import { getClienteAuth } from '@/lib/firebase'
 import { mapearExtraccion, type FilaParseada } from '@/lib/importar'
 import type { ExtraccionInvoice } from '@/lib/schemas'
 import PreviewImportacion from './PreviewImportacion'
@@ -74,11 +75,21 @@ export default function ImportarCapturas() {
     setProcesando(true)
     setError(null)
     try {
+      const token = await getClienteAuth().currentUser?.getIdToken()
+      if (!token) {
+        setError('Inicia sesión para extraer datos de las capturas')
+        return
+      }
+
       const form = new FormData()
       archivos.forEach(f => form.append('imagenes', f))
       if (altaCalidad) form.append('calidad', 'alta')
 
-      const res = await fetch('/api/extraer-lote', { method: 'POST', body: form })
+      const res = await fetch('/api/extraer-lote', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         throw new Error(body.error || 'Error al procesar las imágenes')
@@ -151,6 +162,7 @@ export default function ImportarCapturas() {
                 <li key={i} className="flex items-center justify-between gap-2 rounded-lg border border-gray-100 bg-gray-50/50 px-3 py-1.5 text-sm">
                   <span className="flex items-center gap-3 truncate text-gray-700">
                     {objectUrls[i] ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
                       <img
                         src={objectUrls[i]}
                         alt=""
@@ -220,7 +232,7 @@ export default function ImportarCapturas() {
           <li>Sube una o varias imágenes (cada factura suelta crea una orden; cada pantallazo de tabla crea una orden por fila detectada).</li>
           <li>La IA extrae proveedor, montos, fechas e ítems de cada compra.</li>
           <li>En el preview completa Requisitor, Orden de trabajo y Empresa con &quot;Aplicar a todas&quot;.</li>
-          <li>Revisa, deselecciona lo que no quieras e importa.</li>
+          <li>Revisa, deselecciona lo que no quieras e importa. Las facturas duplicadas (mismo proveedor y número) se detectan y deseleccionan solas.</li>
         </ol>
       </section>
     </div>

@@ -13,8 +13,13 @@ service firebase.storage {
       ];
     }
 
+    function appCheckValido() {
+      return request.app != null;
+    }
+
     function esUsuarioAutorizado() {
       return request.auth != null && request.auth.token.email_verified == true &&
+             appCheckValido() &&
              request.auth.token.email in correosAutorizados();
     }
 

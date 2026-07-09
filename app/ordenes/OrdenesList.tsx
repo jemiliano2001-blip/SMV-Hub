@@ -1,33 +1,35 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { listarOrdenes, eliminarOrden, actualizarOrden, eliminarOrdenesLote } from '@/lib/ordenes'
+
 import type { OrdenCompra, EstadoOrden } from '@/lib/schemas'
-import { formatPrecio } from '@/lib/format'
-import { 
-  Loader2, 
-  Trash2, 
-  Eye, 
-  AlertCircle, 
-  ExternalLink, 
+import { formatPrecio, normalizar } from '@/lib/format'
+import {
+  formatFechaOrden,
+  cuentaCargoEfectiva,
+  ordenTieneSatPendiente,
+  itemSatPendiente,
+  displayOGuion,
+} from '@/lib/ordenes-display'
+import {
+  Loader2,
+  Trash2,
+  Eye,
+  AlertCircle,
+  ExternalLink,
   Calendar,
   X,
-  Clock, 
+  Clock,
   XCircle,
   CheckCircle2,
-  Plus,
   Edit2,
-  Search
+  Search,
+  Tags
 } from 'lucide-react'
 import OrdenFormModal from './OrdenFormModal'
+import ModalSugerirClavesSat from './ModalSugerirClavesSat'
 import { useOrdenes } from '@/lib/hooks/useOrdenes'
-
-function normalizar(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-}
+import { normalizarClaveProdServ } from '@/lib/sat/normalizar'
 
 export default function OrdenesList() {
   const {
@@ -37,6 +39,7 @@ export default function OrdenesList() {
     fetchOrdenes,
     handleEliminar,
     handleCambiarEstado,
+    handleCambiarEstadoLote,
     handleEliminarLote,
     addOrUpdateOrden
   } = useOrdenes()
@@ -50,8 +53,9 @@ export default function OrdenesList() {
   // States para bulk actions y forms
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isDeletingBulk, setIsDeletingBulk] = useState(false)
-  const [isAddingMode, setIsAddingMode] = useState(false)
+  const [isChangingEstadoBulk, setIsChangingEstadoBulk] = useState(false)
   const [ordenToEdit, setOrdenToEdit] = useState<OrdenCompra | null>(null)
+  const [satModalOrdenes, setSatModalOrdenes] = useState<OrdenCompra[] | null>(null)
 
   const ordenesFiltradas = useMemo(() => {
     let resultado = ordenes
@@ -63,7 +67,15 @@ export default function OrdenesList() {
     const q = normalizar(query.trim())
     if (q) {
       resultado = resultado.filter(o =>
-        [o.proveedor, o.requisitor, o.empresa, o.ordenTrabajo, o.numeroFactura, o.fechaFactura]
+        [
+          o.proveedor,
+          o.requisitor,
+          o.empresa,
+          o.ordenTrabajo,
+          o.numeroFactura,
+          o.fechaFactura,
+          cuentaCargoEfectiva(o),
+        ]
           .some(campo => normalizar(campo ?? '').includes(q))
       )
     }
@@ -99,6 +111,17 @@ export default function OrdenesList() {
     } else {
       alert('No se pudo actualizar el estado. Por favor, intenta de nuevo.')
     }
+  }
+
+  const onApproveClick = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    await onChangeEstadoClick(id, 'aprobada')
+  }
+
+  const onRejectClick = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!window.confirm('¿Rechazar esta orden de compra?')) return
+    await onChangeEstadoClick(id, 'rechazada')
   }
 
   // Bulk Actions
@@ -137,40 +160,83 @@ export default function OrdenesList() {
 
   const handleFormSaved = (ordenGuardada: OrdenCompra) => {
     addOrUpdateOrden(ordenGuardada)
-    setIsAddingMode(false)
     setOrdenToEdit(null)
     if (selectedOrden && selectedOrden.id === ordenGuardada.id) {
       setSelectedOrden(ordenGuardada)
     }
   }
 
-  // Format Helpers
-  const formatDate = (date: unknown) => {
-    if (!date) return '-'
-    let d: Date
-    if (date instanceof Date) {
-      d = date
-    } else if (
-      date &&
-      typeof date === 'object' &&
-      'toDate' in date &&
-      typeof (date as { toDate: unknown }).toDate === 'function'
-    ) {
-      d = (date as { toDate: () => Date }).toDate()
-    } else if (typeof date === 'string' || typeof date === 'number') {
-      d = new Date(date)
+  const ordenesSeleccionadas = useMemo(
+    () => ordenes.filter((o) => selectedIds.has(o.id)),
+    [ordenes, selectedIds]
+  )
+
+  const seleccionConSatPendiente = useMemo(
+    () => ordenesSeleccionadas.filter(ordenTieneSatPendiente),
+    [ordenesSeleccionadas]
+  )
+
+  const seleccionPendientes = useMemo(
+    () => ordenesSeleccionadas.filter((o) => o.estado === 'pendiente'),
+    [ordenesSeleccionadas]
+  )
+
+  const handleApproveMultiple = async () => {
+    if (seleccionPendientes.length === 0) return
+    if (!window.confirm(`¿Aprobar ${seleccionPendientes.length} órdenes seleccionadas?`)) return
+    setIsChangingEstadoBulk(true)
+    const ids = seleccionPendientes.map((o) => o.id)
+    const success = await handleCambiarEstadoLote(ids, 'aprobada')
+    if (success) {
+      if (selectedOrden && ids.includes(selectedOrden.id)) {
+        setSelectedOrden((prev) => (prev ? { ...prev, estado: 'aprobada' } : prev))
+      }
     } else {
-      return '-'
+      alert('No se pudieron aprobar las órdenes. Por favor, intenta de nuevo.')
     }
-    
-    // Check if valid date
-    if (isNaN(d.getTime())) return '-'
-    
-    return d.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    })
+    setIsChangingEstadoBulk(false)
+  }
+
+  const handleRejectMultiple = async () => {
+    if (seleccionPendientes.length === 0) return
+    if (
+      !window.confirm(
+        `¿Rechazar ${seleccionPendientes.length} órdenes seleccionadas? Las órdenes quedarán marcadas como rechazadas.`
+      )
+    ) {
+      return
+    }
+    setIsChangingEstadoBulk(true)
+    const ids = seleccionPendientes.map((o) => o.id)
+    const success = await handleCambiarEstadoLote(ids, 'rechazada')
+    if (success) {
+      if (selectedOrden && ids.includes(selectedOrden.id)) {
+        setSelectedOrden((prev) => (prev ? { ...prev, estado: 'rechazada' } : prev))
+      }
+    } else {
+      alert('No se pudieron rechazar las órdenes. Por favor, intenta de nuevo.')
+    }
+    setIsChangingEstadoBulk(false)
+  }
+
+  const abrirSugerirSat = (ordenesTarget: OrdenCompra[]) => {
+    const conPendientes = ordenesTarget.filter(ordenTieneSatPendiente)
+    if (conPendientes.length === 0) {
+      alert('Las órdenes seleccionadas ya tienen clave SAT en todos sus ítems.')
+      return
+    }
+    setSatModalOrdenes(conPendientes)
+  }
+
+  const handleSatApplied = (ordenesActualizadas: OrdenCompra[]) => {
+    for (const orden of ordenesActualizadas) {
+      addOrUpdateOrden(orden)
+    }
+    if (selectedOrden) {
+      const actualizada = ordenesActualizadas.find((o) => o.id === selectedOrden.id)
+      if (actualizada) setSelectedOrden(actualizada)
+    }
+    setSatModalOrdenes(null)
   }
 
   // Status Badge Helper
@@ -257,7 +323,7 @@ export default function OrdenesList() {
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Buscar por proveedor, requisitor, fecha..."
+              placeholder="Buscar por proveedor, factura, requisitor..."
               className="w-full pl-9 pr-9 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
             />
             {query && (
@@ -319,33 +385,54 @@ export default function OrdenesList() {
           </div>
         </div>
 
-        {/* Contador + Bulk delete */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            {hayFiltrosActivos && (
-              <p className="text-xs text-gray-500">
-                Mostrando <span className="font-semibold text-gray-700">{ordenesFiltradas.length}</span> de{' '}
-                <span className="font-semibold text-gray-700">{ordenes.length}</span> órdenes
-              </p>
-            )}
-            {selectedIds.size > 0 && (
+        {/* Contador + bulk actions */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {hayFiltrosActivos && (
+            <p className="text-xs text-gray-500">
+              Mostrando <span className="font-semibold text-gray-700">{ordenesFiltradas.length}</span> de{' '}
+              <span className="font-semibold text-gray-700">{ordenes.length}</span> órdenes
+            </p>
+          )}
+          {selectedIds.size > 0 && (
+            <>
+              <button
+                onClick={() => abrirSugerirSat(seleccionConSatPendiente)}
+                disabled={seleccionConSatPendiente.length === 0}
+                className="inline-flex items-center gap-2 rounded-lg bg-amber-50 text-amber-800 px-4 py-2 text-sm font-semibold hover:bg-amber-100 transition-colors border border-amber-200 disabled:opacity-50"
+              >
+                <Tags className="h-4 w-4" />
+                Sugerir claves SAT ({seleccionConSatPendiente.length})
+              </button>
+              <button
+                onClick={handleApproveMultiple}
+                disabled={isChangingEstadoBulk || seleccionPendientes.length === 0}
+                className="inline-flex items-center gap-2 rounded-lg bg-green-50 text-green-700 px-4 py-2 text-sm font-semibold hover:bg-green-100 transition-colors border border-green-200 disabled:opacity-50"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                {isChangingEstadoBulk
+                  ? 'Actualizando...'
+                  : `Aprobar (${seleccionPendientes.length})`}
+              </button>
+              <button
+                onClick={handleRejectMultiple}
+                disabled={isChangingEstadoBulk || seleccionPendientes.length === 0}
+                className="inline-flex items-center gap-2 rounded-lg bg-red-50 text-red-600 px-4 py-2 text-sm font-semibold hover:bg-red-100 transition-colors border border-red-200 disabled:opacity-50"
+              >
+                <XCircle className="h-4 w-4" />
+                {isChangingEstadoBulk
+                  ? 'Actualizando...'
+                  : `Rechazar (${seleccionPendientes.length})`}
+              </button>
               <button
                 onClick={handleDeleteMultiple}
-                disabled={isDeletingBulk}
+                disabled={isDeletingBulk || isChangingEstadoBulk}
                 className="inline-flex items-center gap-2 rounded-lg bg-red-50 text-red-600 px-4 py-2 text-sm font-semibold hover:bg-red-100 transition-colors border border-red-200 disabled:opacity-50"
               >
                 <Trash2 className="h-4 w-4" />
                 {isDeletingBulk ? 'Eliminando...' : `Eliminar ${selectedIds.size} seleccionadas`}
               </button>
-            )}
-          </div>
-          <button
-            onClick={() => setIsAddingMode(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"
-          >
-            <Plus className="h-4 w-4" />
-            Añadir Orden
-          </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -384,11 +471,11 @@ export default function OrdenesList() {
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                   />
                 </th>
-                <th className="px-6 py-4 font-semibold">ID</th>
                 <th className="px-6 py-4 font-semibold">Proveedor</th>
                 <th className="px-6 py-4 font-semibold">Requisitor</th>
-                <th className="px-6 py-4 font-semibold">Orden Trabajo</th>
+                <th className="px-6 py-4 font-semibold">No. factura</th>
                 <th className="px-6 py-4 font-semibold">Empresa</th>
+                <th className="px-6 py-4 font-semibold">Cuenta cargo</th>
                 <th className="px-6 py-4 font-semibold text-right">Total</th>
                 <th className="px-6 py-4 font-semibold">Fecha</th>
                 <th className="px-6 py-4 font-semibold">Estado</th>
@@ -396,7 +483,9 @@ export default function OrdenesList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {ordenesFiltradas.map((orden) => (
+              {ordenesFiltradas.map((orden) => {
+                const fechas = formatFechaOrden(orden)
+                return (
                 <tr 
                   key={orden.id} 
                   onClick={() => setSelectedOrden(orden)}
@@ -410,32 +499,60 @@ export default function OrdenesList() {
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                     />
                   </td>
-                  <td className="px-6 py-4 font-mono text-xs text-gray-900 max-w-[120px] truncate" title={orden.id}>
-                    {orden.id}
-                  </td>
                   <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                    {orden.proveedor}
+                    <span className="inline-flex items-center gap-1.5">
+                      {orden.proveedor}
+                      {ordenTieneSatPendiente(orden) && (
+                        <span title="Falta clave SAT en algún ítem" aria-label="SAT pendiente">
+                          <Tags className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                        </span>
+                      )}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {orden.requisitor}
+                    {displayOGuion(orden.requisitor)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-900">
+                    {displayOGuion(orden.numeroFactura)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {orden.ordenTrabajo}
+                    {displayOGuion(orden.empresa)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {orden.empresa}
+                    {displayOGuion(cuentaCargoEfectiva(orden))}
                   </td>
                   <td className="px-6 py-4 font-semibold text-gray-900 text-right whitespace-nowrap">
                     {formatPrecio(orden.total, orden.moneda)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {formatDate(orden.creadoEn)}
+                    <div className="text-gray-900">{fechas.principal}</div>
+                    {fechas.secundaria && (
+                      <div className="text-xs text-gray-400 mt-0.5">{fechas.secundaria}</div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {renderStatusBadge(orden.estado)}
                   </td>
                   <td className="px-6 py-4 text-center whitespace-nowrap">
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-1">
+                      {orden.estado === 'pendiente' && (
+                        <>
+                          <button
+                            onClick={(e) => onApproveClick(orden.id, e)}
+                            className="p-1 text-gray-500 hover:text-green-600 rounded-md hover:bg-green-50 transition-colors"
+                            title="Aprobar"
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={(e) => onRejectClick(orden.id, e)}
+                            className="p-1 text-gray-500 hover:text-red-600 rounded-md hover:bg-red-50 transition-colors"
+                            title="Rechazar"
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -456,7 +573,7 @@ export default function OrdenesList() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>
@@ -582,6 +699,7 @@ export default function OrdenesList() {
                       <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
                         <tr>
                           <th className="px-4 py-3 font-semibold">Descripción</th>
+                          <th className="px-4 py-3 font-semibold w-28">Clave SAT</th>
                           <th className="px-4 py-3 font-semibold">Empresa</th>
                           <th className="px-4 py-3 font-semibold">Cuenta cargo</th>
                           <th className="px-4 py-3 font-semibold">Requisitor</th>
@@ -594,6 +712,17 @@ export default function OrdenesList() {
                         {selectedOrden.items.map((item, index) => (
                           <tr key={index} className="hover:bg-gray-50">
                             <td className="px-4 py-3 text-gray-900 font-medium">{item.descripcion}</td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              {normalizarClaveProdServ(item.claveProdServ) ? (
+                                <span className="font-mono text-xs text-gray-800">{item.claveProdServ}</span>
+                              ) : itemSatPendiente(item) ? (
+                                <span className="inline-flex items-center gap-1 text-xs text-yellow-800 font-semibold bg-yellow-100/60 px-2 py-0.5 rounded-sm">
+                                  Sin clave SAT
+                                </span>
+                              ) : (
+                                <span className="text-gray-400">—</span>
+                              )}
+                            </td>
                             <td className="px-4 py-3 text-gray-600">{item.empresa || selectedOrden.empresa || '—'}</td>
                             <td className="px-4 py-3 text-gray-600">{item.cuentaCargo || selectedOrden.cuentaCargo || '—'}</td>
                             <td className="px-4 py-3 text-gray-600">{item.requisitor || selectedOrden.requisitor || '—'}</td>
@@ -641,6 +770,14 @@ export default function OrdenesList() {
                 <Trash2 className="h-4 w-4" /> Eliminar orden
               </button>
               <div className="flex items-center gap-2">
+                {ordenTieneSatPendiente(selectedOrden) && (
+                  <button
+                    onClick={() => abrirSugerirSat([selectedOrden])}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-800 shadow-sm hover:bg-amber-50 transition-colors"
+                  >
+                    <Tags className="h-4 w-4" /> Sugerir clave SAT
+                  </button>
+                )}
                 {selectedOrden.estado !== 'aprobada' && (
                   <button
                     onClick={() => onChangeEstadoClick(selectedOrden.id, 'aprobada')}
@@ -669,15 +806,21 @@ export default function OrdenesList() {
         </div>
       )}
 
-      {/* Formularios para Añadir / Editar */}
-      {(isAddingMode || ordenToEdit) && (
+      {/* Formulario para editar */}
+      {ordenToEdit && (
         <OrdenFormModal
-          ordenBase={ordenToEdit || undefined}
-          onClose={() => {
-            setIsAddingMode(false)
-            setOrdenToEdit(null)
-          }}
+          ordenBase={ordenToEdit}
+          onClose={() => setOrdenToEdit(null)}
           onSaved={handleFormSaved}
+        />
+      )}
+
+      {satModalOrdenes && (
+        <ModalSugerirClavesSat
+          ordenes={satModalOrdenes}
+          historialOrdenes={ordenes}
+          onClose={() => setSatModalOrdenes(null)}
+          onApplied={handleSatApplied}
         />
       )}
     </>

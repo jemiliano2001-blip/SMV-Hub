@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Agregar una página `/reportes` al app de compras-americanas que muestre un reporte profesional con KPIs, tabla agrupada con subtotales y exportación a PDF por impresión del navegador.
+**Goal:** Agregar una página `/reportes` a SMV Hub que muestre un reporte profesional con KPIs, tabla agrupada con subtotales y exportación a PDF por impresión del navegador.
 
 **Architecture:** Lógica pura en `lib/reportes.ts` (funciones sin efectos secundarios, completamente testeables con Vitest). Un Client Component `ReporteView.tsx` que llama a `listarOrdenes()`, pasa los datos por las funciones puras y renderiza componentes de presentación. El PDF se genera vía `window.print()` con `@media print` en el CSS.
 

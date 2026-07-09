@@ -110,7 +110,7 @@ export default function NavBar() {
           <Link href="/" className="flex items-center gap-2.5">
             <LogoSMV />
             <span className="text-gray-300 font-light">|</span>
-            <span className="text-sm font-semibold text-[#0F172A]">Compras Americanas</span>
+            <span className="text-sm font-semibold text-[#0F172A]">SMV Hub</span>
           </Link>
           <nav className="flex items-center gap-1 text-sm font-medium">
             {GRUPOS.map((g) => {

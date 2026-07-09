@@ -39,9 +39,10 @@ const USUARIO_DEBUG = {
   providerData: [],
 } as unknown as User
 
-export async function iniciarSesionConGoogle(): Promise<void> {
-  if (authBypassActivo()) return
-  await signInWithPopup(getClienteAuth(), proveedorGoogle)
+export async function iniciarSesionConGoogle(): Promise<User> {
+  if (authBypassActivo()) return USUARIO_DEBUG
+  const result = await signInWithPopup(getClienteAuth(), proveedorGoogle)
+  return result.user
 }
 
 export async function cerrarSesion(): Promise<void> {

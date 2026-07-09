@@ -1,4 +1,5 @@
 import type { OrdenCompra } from "@/lib/schemas"
+import { resolverCampoItem, resolverDestinoItem } from "@/lib/schemas"
 
 export type CriterioAgrupacion = "proveedor" | "destino" | "requisitor"
 
@@ -54,8 +55,7 @@ export function filtrarPorRango(
   const ini = startOfDay(desde)
   const fin = endOfDay(hasta)
   return ordenes.filter((o) => {
-    if (!o.fechaFactura) return false
-    const f = new Date(o.fechaFactura)
+    const f = o.fechaFactura ? new Date(o.fechaFactura) : new Date(o.creadoEn)
     return f >= ini && f <= fin
   })
 }
@@ -65,26 +65,26 @@ export function aplanarLineas(ordenes: OrdenCompra[]): Linea[] {
 
   for (const orden of ordenes) {
     const ref = orden.numeroFactura ?? orden.id
-    const dia = orden.fechaFactura ? new Date(orden.fechaFactura) : null
-    const base = {
+    const dia = orden.fechaFactura ? new Date(orden.fechaFactura) : new Date(orden.creadoEn)
+    const baseOrden = {
       ordenId: orden.id,
       referencia: ref,
       dia,
       proveedor: orden.proveedor,
-      requisitor: orden.requisitor,
-      cuentaCargo: orden.cuentaCargo ?? "",
-      destino: orden.destino ?? "",
       moneda: orden.moneda,
     }
 
     if (orden.items.length === 0) {
       lineas.push({
-        ...base,
+        ...baseOrden,
         descripcion: "(orden sin ítems)",
         cantidad: null,
         precioUnitario: null,
         subtotal: orden.subtotal ?? 0,
         total: orden.total ?? 0,
+        requisitor: orden.requisitor ?? "",
+        cuentaCargo: orden.cuentaCargo ?? "",
+        destino: orden.destino ?? orden.empresa ?? "",
       })
       continue
     }
@@ -98,12 +98,15 @@ export function aplanarLineas(ordenes: OrdenCompra[]): Linea[] {
         ? impuestos * (subLinea / ordenSubtotal)
         : impuestos / orden.items.length
       lineas.push({
-        ...base,
+        ...baseOrden,
         descripcion: item.descripcion,
         cantidad: item.cantidad,
         precioUnitario: item.precioUnitario,
         subtotal: subLinea,
         total: subLinea + propTax,
+        requisitor: resolverCampoItem(item, orden, "requisitor"),
+        cuentaCargo: resolverCampoItem(item, orden, "cuentaCargo"),
+        destino: resolverDestinoItem(item, orden),
       })
     }
   }

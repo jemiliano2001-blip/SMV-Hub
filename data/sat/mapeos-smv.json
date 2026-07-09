@@ -1,0 +1,37 @@
+{
+  "version": "1",
+  "entries": [
+    {
+      "tokensNormalizados": ["reamer", "chucking", "hss"],
+      "sku": "LV533-3780",
+      "claveProdServ": "23241645",
+      "descripcionEjemplo": "9.6mm 6 Flute HSS Straight Flute Chucking Reamer LV533-3780"
+    },
+    {
+      "tokensNormalizados": ["endmill", "carbide", "mill"],
+      "claveProdServ": "23241614",
+      "descripcionEjemplo": "1/4 SE 4 Flute STUB ALTIN Solid Carbide End Mill"
+    },
+    {
+      "tokensNormalizados": ["bolt", "hex"],
+      "claveProdServ": "31161500",
+      "descripcionEjemplo": "Hex Bolt 1/4-20"
+    },
+    {
+      "tokensNormalizados": ["spring", "compression"],
+      "claveProdServ": "31161904",
+      "descripcionEjemplo": "Compression Spring"
+    },
+    {
+      "tokensNormalizados": ["deburring", "blade"],
+      "sku": "BS1010",
+      "claveProdServ": "23241609",
+      "descripcionEjemplo": "10pcs BS1010 Deburring Blade"
+    },
+    {
+      "tokensNormalizados": ["oring", "gasket", "seal"],
+      "claveProdServ": "31162411",
+      "descripcionEjemplo": "Buna-N O-Ring"
+    }
+  ]
+}

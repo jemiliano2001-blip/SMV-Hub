@@ -57,7 +57,7 @@ const productSchema = zod_1.z.object({
  */
 exports.autoPurchase = functions.pubsub
     .schedule('every 15 minutes')
-    .onRun(async (context) => {
+    .onRun(async () => {
     console.log('Auto‑purchase trigger fired');
     const productSnap = await db.collection('products').get();
     const batch = db.batch();

@@ -6,6 +6,7 @@ import {
   NuevaCompraFormSchema,
   OrdenCompraSchema,
   EstadoOrdenSchema,
+  RequisicionSchema,
 } from "@/lib/schemas"
 
 // ── ItemFacturaSchema ────────────────────────────────────────────────────────
@@ -56,14 +57,16 @@ describe("ExtraccionInvoiceSchema", () => {
   })
 
   it("asigna moneda USD por defecto si falta", () => {
-    const { moneda: _, ...sinMoneda } = BASE
+    const sinMoneda = { ...BASE } as Partial<typeof BASE>
+    delete sinMoneda.moneda
     const r = ExtraccionInvoiceSchema.safeParse(sinMoneda)
     expect(r.success).toBe(true)
     if (r.success) expect(r.data.moneda).toBe("USD")
   })
 
   it("asigna items [] por defecto si falta", () => {
-    const { items: _, ...sinItems } = BASE
+    const sinItems = { ...BASE } as Partial<typeof BASE>
+    delete sinItems.items
     const r = ExtraccionInvoiceSchema.safeParse(sinItems)
     expect(r.success).toBe(true)
     if (r.success) expect(r.data.items).toEqual([])
@@ -79,8 +82,25 @@ describe("ExtraccionInvoiceSchema", () => {
     expect(r.success).toBe(true)
   })
 
+  it("acepta envio null por defecto en facturas antiguas", () => {
+    const r = ExtraccionInvoiceSchema.safeParse(BASE)
+    expect(r.success).toBe(true)
+    if (r.success) expect(r.data.envio).toBeNull()
+  })
+
+  it("valida factura con envío y total cuadrado", () => {
+    const r = ExtraccionInvoiceSchema.safeParse({
+      ...BASE,
+      envio: 15,
+      impuestos: 9.49,
+      total: 124.49,
+    })
+    expect(r.success).toBe(true)
+  })
+
   it("rechaza proveedor ausente", () => {
-    const { proveedor: _, ...sinProveedor } = BASE
+    const sinProveedor = { ...BASE } as Partial<typeof BASE>
+    delete sinProveedor.proveedor
     expect(ExtraccionInvoiceSchema.safeParse(sinProveedor).success).toBe(false)
   })
 
@@ -110,34 +130,37 @@ describe("ExtraccionInvoiceSchema", () => {
 // ── CamposManualSchema ───────────────────────────────────────────────────────
 
 describe("CamposManualSchema", () => {
-  const OK = { requisitor: "Juan", ordenTrabajo: "OT-100", empresa: "SMV" }
-
-  it("valida campos completos", () => {
-    expect(CamposManualSchema.safeParse(OK).success).toBe(true)
+  it("acepta campos legacy vacíos (opcionales a nivel orden)", () => {
+    expect(CamposManualSchema.safeParse({}).success).toBe(true)
   })
 
-  it("rechaza requisitor vacío", () => {
-    const r = CamposManualSchema.safeParse({ ...OK, requisitor: "" })
-    expect(r.success).toBe(false)
-    if (!r.success) {
-      expect(r.error.flatten().fieldErrors.requisitor).toBeDefined()
-    }
-  })
-
-  it("rechaza ordenTrabajo vacía", () => {
-    const r = CamposManualSchema.safeParse({ ...OK, ordenTrabajo: "" })
-    expect(r.success).toBe(false)
-  })
-
-  it("rechaza empresa vacía", () => {
-    const r = CamposManualSchema.safeParse({ ...OK, empresa: "" })
-    expect(r.success).toBe(false)
+  it("acepta campos legacy completos", () => {
+    expect(
+      CamposManualSchema.safeParse({
+        requisitor: "Juan",
+        ordenTrabajo: "OT-100",
+        empresa: "SMV",
+        cuentaCargo: "SO1",
+        destino: "SMV",
+      }).success
+    ).toBe(true)
   })
 })
 
 // ── NuevaCompraFormSchema (ExtraccionInvoice + CamposManual) ─────────────────
 
 describe("NuevaCompraFormSchema", () => {
+  const itemOk = {
+    descripcion: "Widget",
+    cantidad: 1,
+    precioUnitario: 10,
+    total: 10,
+    empresa: "APX",
+    cuentaCargo: "SO1148",
+    requisitor: "María",
+    ordenTrabajo: "",
+  }
+
   const OK = {
     proveedor: "Grainger",
     numeroFactura: "GR-202",
@@ -146,24 +169,35 @@ describe("NuevaCompraFormSchema", () => {
     subtotal: 200,
     impuestos: 16,
     total: 216,
-    items: [],
-    requisitor: "María",
-    ordenTrabajo: "OT-999",
-    empresa: "SMV Norte",
+    items: [itemOk],
+    requisitor: "",
+    ordenTrabajo: "",
+    empresa: "",
+    cuentaCargo: "",
+    destino: "",
   }
 
-  it("valida form completo", () => {
+  it("valida form completo con ítems", () => {
     expect(NuevaCompraFormSchema.safeParse(OK).success).toBe(true)
   })
 
-  it("rechaza si falta empresa", () => {
-    const { empresa: _, ...sin } = OK
-    expect(NuevaCompraFormSchema.safeParse(sin).success).toBe(false)
+  it("rechaza si un ítem no tiene empresa", () => {
+    const r = NuevaCompraFormSchema.safeParse({
+      ...OK,
+      items: [{ ...itemOk, empresa: "" }],
+    })
+    expect(r.success).toBe(false)
   })
 
   it("rechaza si falta proveedor", () => {
-    const { proveedor: _, ...sin } = OK
+    const sin = { ...OK } as Partial<typeof OK>
+    delete sin.proveedor
     expect(NuevaCompraFormSchema.safeParse(sin).success).toBe(false)
+  })
+
+  it("rechaza sin ítems", () => {
+    const r = NuevaCompraFormSchema.safeParse({ ...OK, items: [] })
+    expect(r.success).toBe(false)
   })
 })
 
@@ -207,7 +241,8 @@ describe("OrdenCompraSchema", () => {
   })
 
   it("asigna estado 'pendiente' por defecto", () => {
-    const { estado: _, ...sinEstado } = OK
+    const sinEstado = { ...OK } as Partial<typeof OK>
+    delete sinEstado.estado
     const r = OrdenCompraSchema.safeParse(sinEstado)
     expect(r.success).toBe(true)
     if (r.success) expect(r.data.estado).toBe("pendiente")
@@ -224,7 +259,9 @@ describe("OrdenCompraSchema", () => {
   })
 
   it("acepta orden sin imagenUrl ni imagenPath (importación histórica)", () => {
-    const { imagenUrl, imagenPath, ...sinImagen } = OK
+    const sinImagen = { ...OK } as Partial<typeof OK>
+    delete sinImagen.imagenUrl
+    delete sinImagen.imagenPath
     const r = OrdenCompraSchema.safeParse(sinImagen)
     expect(r.success).toBe(true)
   })
@@ -247,5 +284,50 @@ describe("OrdenCompraSchema", () => {
   it("acepta fechaEntrega null", () => {
     const r = OrdenCompraSchema.safeParse({ ...OK, fechaEntrega: null })
     expect(r.success).toBe(true)
+  })
+})
+
+// ── RequisicionSchema ────────────────────────────────────────────────────────
+
+describe("RequisicionSchema", () => {
+  const baseReq = {
+    id: "r1",
+    tipo: "automatizacion" as const,
+    solicitante: "Oscar",
+    estado: "no_comprado" as const,
+    fechaPedido: "2026-07-01",
+    tienda: null,
+    descripcion: "Conector SMC",
+    cantidad: null,
+    prioridad: null,
+    empresa: null,
+    ordenServicio: null,
+    parteNumero: null,
+    fechaEntregaEst: null,
+    creadoEn: new Date(),
+    actualizadoEn: new Date(),
+  }
+
+  it("default null en campos nuevos (registros viejos)", () => {
+    const r = RequisicionSchema.parse(baseReq)
+    expect(r.link).toBeNull()
+    expect(r.recibio).toBeNull()
+    expect(r.revisionFinanzas).toBeNull()
+    expect(r.nota).toBeNull()
+  })
+
+  it("acepta link y nota", () => {
+    const r = RequisicionSchema.parse({
+      ...baseReq,
+      link: "https://www.automationdirect.com/adc/overview",
+      nota: "Entregadas 28 piezas",
+    })
+    expect(r.link).toContain("automationdirect")
+    expect(r.nota).toBe("Entregadas 28 piezas")
+  })
+
+  it("acepta estado parcial", () => {
+    const r = RequisicionSchema.parse({ ...baseReq, estado: "parcial" })
+    expect(r.estado).toBe("parcial")
   })
 })

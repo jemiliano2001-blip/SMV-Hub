@@ -1,7 +1,7 @@
 # BRIEFING — 2026-06-16T21:24:08Z
 
 ## Mission
-Perform a complete integrity audit of the compras-americanas workspace to verify `/ordenes`, `/importar` pages, schemas, helper libraries, run build and lint, and ensure no cheating/facade/hardcoding patterns exist.
+Perform a complete integrity audit of the SMV Hub workspace to verify `/ordenes`, `/importar` pages, schemas, helper libraries, run build and lint, and ensure no cheating/facade/hardcoding patterns exist.
 
 ## 🔒 My Identity
 - Archetype: forensic_auditor

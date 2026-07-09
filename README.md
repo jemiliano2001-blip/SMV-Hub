@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SMV Hub
 
-## Getting Started
+Plataforma interna de SMV Maquinados — compras, diseño y operación del taller.
+Reemplaza flujos basados en Excel y automatiza la extracción de datos de facturas mediante IA.
 
-First, run the development server:
+## 🚀 Características Principales
 
+- **Gestión de Compras y Órdenes**: Extracción inteligente de facturas y órdenes de compra con la API de Gemini (Google AI), validación de montos (con impuestos y envíos), y trazabilidad en múltiples monedas.
+- **Cotizaciones e Importación**: Importación masiva vía CSV de órdenes de proveedores como McMaster-Carr y Grainger, con validación pre-carga.
+- **Almacén y Operaciones**:
+  - Catálogo de operadores.
+  - Entradas y salidas de almacén.
+  - Control de tiempo de baños (con generación de tablas dinámicas automatizadas).
+  - Control de horas extra semanales.
+- **Requisiciones y Órdenes de Servicio**: Tracking de solicitudes internas y OTs con proveedores externos.
+- **Reportes**: Generación de reportes PDF y análisis con KPIs sobre toda la operación.
+
+## 🛠️ Stack Tecnológico
+
+- **Framework:** Next.js 16 (App Router)
+- **Frontend:** React 19, Tailwind CSS v4, Lucide Icons, Zod (Validación)
+- **Backend & DB:** Firebase v12 (Firestore, Auth, Storage)
+- **IA:** Integración nativa con Gemini (REST) para estructuración de datos de recibos y facturas
+- **Scraping:** Cheerio para extracción en background de precios de proveedores
+- **Testing:** Vitest
+
+## 💻 Desarrollo Local
+
+1. Instala las dependencias:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Configura las variables de entorno en un archivo `.env.local`:
+```bash
+# Firebase config
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+# Gemini (IA Extracción)
+GEMINI_API_KEY=
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# (Opcional) Bypass de login en dev
+# NEXT_PUBLIC_DEV_AUTH_BYPASS=true
+```
 
-## Learn More
+3. Levanta el servidor de desarrollo:
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+La aplicación estará disponible en [http://localhost:3000](http://localhost:3000).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🧪 Comandos Útiles
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run build          # Build para producción
+npm run lint           # Chequeo estático (ESLint)
+npm test               # Ejecutar pruebas unitarias (Vitest)
+```
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🔒 Seguridad
+Todo el acceso de lectura y escritura está controlado por reglas estrictas en `firestore.rules` (whitelist de emails) y validaciones Zod estrictas antes de persistir datos en Firebase.

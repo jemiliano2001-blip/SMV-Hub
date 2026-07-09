@@ -2,7 +2,7 @@
 
 ## Initial Request — 2026-06-16T16:09:38-05:00
 
-Ensure the "Compras Americanas" Next.js 16 application is fully functional, free of type/lint/runtime errors, has complete page routes (`/importar`, `/ordenes`), and is backed by a comprehensive Vitest suite.
+Ensure the SMV Hub Next.js 16 application is fully functional, free of type/lint/runtime errors, has complete page routes (`/importar`, `/ordenes`), and is backed by a comprehensive Vitest suite.
 
 Working directory: D:/proyectos_code/SMV/compras-americanas
 Integrity mode: benchmark

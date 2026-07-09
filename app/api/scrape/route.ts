@@ -66,6 +66,14 @@ export async function POST(request: Request) {
       throw new Error(`Error fetching URL: ${response.status} ${response.statusText}`)
     }
 
+    // fetch sigue redirects: re-validar que el host final siga en la whitelist.
+    if (!hostnamePermitido(new URL(response.url).hostname)) {
+      return Response.json(
+        { error: 'URL inválida o dominio no permitido' },
+        { status: 400 }
+      )
+    }
+
     const html = await response.text()
     const $ = cheerio.load(html)
 

@@ -1,4 +1,4 @@
-# Plan - Compras Americanas Fixes and Enhancements
+# Plan - SMV Hub Fixes and Enhancements
 
 ## Project Overview
 The objective is to fix existing ESLint problems in test files, implement `/ordenes` and `/importar` pages, and add Vitest tests for database CRUD (`lib/ordenes.ts`) and csv imports (`lib/importar.ts`). Finally, ensure all builds, tests, and lints pass clean.

@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/horas-extra/layout,_N_T_/horas-extra/page,_N_T_/horas-extra"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/horas-extra/__PAGE__",
+    "/horas-extra",
+    "/_index",
+    "/_head"
+  ]
+}

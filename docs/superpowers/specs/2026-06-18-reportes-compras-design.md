@@ -1,7 +1,7 @@
 # Diseño — Módulo de reportes de compras
 
 Fecha: 2026-06-18
-Proyecto: compras-americanas (Next.js 16 + React 19 + Firestore)
+Proyecto: SMV Hub (repo `compras-americanas`, Next.js 16 + React 19 + Firestore)
 Estado: propuesta para revisión
 
 ## Objetivo

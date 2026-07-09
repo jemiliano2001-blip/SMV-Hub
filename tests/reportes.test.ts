@@ -21,7 +21,16 @@ function makeOrden(overrides: Partial<OrdenCompra> = {}): OrdenCompra {
     impuestos: 16,
     total: 116,
     items: [
-      { descripcion: "Tornillo M8", cantidad: 10, precioUnitario: 10, total: 100 },
+      {
+        descripcion: "Tornillo M8",
+        cantidad: 10,
+        precioUnitario: 10,
+        total: 100,
+        empresa: "SMV",
+        cuentaCargo: "SO19316",
+        requisitor: "Juan",
+        ordenTrabajo: "OT-100",
+      },
     ],
     requisitor: "Juan",
     ordenTrabajo: "OT-100",
@@ -58,8 +67,22 @@ describe("filtrarPorRango", () => {
     expect(resultado).toHaveLength(0)
   })
 
-  it("excluye órdenes sin fechaFactura", () => {
+  it("sin fechaFactura usa creadoEn como fallback (dentro del rango → incluye)", () => {
+    // makeOrden tiene creadoEn = 2026-06-10, dentro de junio
     const orden = makeOrden({ fechaFactura: null })
+    const resultado = filtrarPorRango(
+      [orden],
+      new Date("2026-06-01"),
+      new Date("2026-06-30")
+    )
+    expect(resultado).toHaveLength(1)
+  })
+
+  it("sin fechaFactura usa creadoEn como fallback (fuera del rango → excluye)", () => {
+    const orden = makeOrden({
+      fechaFactura: null,
+      creadoEn: new Date("2026-05-15"),
+    })
     const resultado = filtrarPorRango(
       [orden],
       new Date("2026-06-01"),
@@ -132,11 +155,38 @@ describe("aplanarLineas", () => {
     expect(linea.referencia).toBe("ord-42")
   })
 
-  it("mapea cuentaCargo y destino de la orden", () => {
-    const orden = makeOrden({ cuentaCargo: "CC-5", destino: "Fisher" })
-    const [linea] = aplanarLineas([orden])
-    expect(linea.cuentaCargo).toBe("CC-5")
-    expect(linea.destino).toBe("Fisher")
+  it("mapea cuentaCargo y destino por ítem con fallback a la orden", () => {
+    const orden = makeOrden({
+      cuentaCargo: "LEGACY-CC",
+      destino: "LEGACY-D",
+      items: [
+        {
+          descripcion: "A",
+          cantidad: 1,
+          precioUnitario: 10,
+          total: 10,
+          empresa: "APX",
+          cuentaCargo: "SO1157",
+          requisitor: "Ana",
+          ordenTrabajo: "",
+        },
+        {
+          descripcion: "B",
+          cantidad: 1,
+          precioUnitario: 5,
+          total: 5,
+          empresa: "",
+          cuentaCargo: "",
+          requisitor: "",
+          ordenTrabajo: "",
+        },
+      ],
+    })
+    const lineas = aplanarLineas([orden])
+    expect(lineas[0].cuentaCargo).toBe("SO1157")
+    expect(lineas[0].destino).toBe("APX")
+    expect(lineas[1].cuentaCargo).toBe("LEGACY-CC")
+    expect(lineas[1].destino).toBe("SMV")
   })
 })
 
