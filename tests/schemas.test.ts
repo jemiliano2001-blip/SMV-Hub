@@ -7,6 +7,7 @@ import {
   OrdenCompraSchema,
   EstadoOrdenSchema,
   RequisicionSchema,
+  UsuarioSchema,
 } from "@/lib/schemas"
 
 // ── ItemFacturaSchema ────────────────────────────────────────────────────────
@@ -329,5 +330,48 @@ describe("RequisicionSchema", () => {
   it("acepta estado parcial", () => {
     const r = RequisicionSchema.parse({ ...baseReq, estado: "parcial" })
     expect(r.estado).toBe("parcial")
+  })
+})
+
+// ── UsuarioSchema ────────────────────────────────────────────────────────────
+
+describe("UsuarioSchema", () => {
+  const baseUsuario = {
+    id: "uid-123",
+    email: "compras@ejemplo.com",
+    rol: "compras" as const,
+    activo: true,
+    proveedor: "password" as const,
+    creadoPor: "jemiliano2001@gmail.com",
+    creadoEn: new Date(),
+    actualizadoEn: new Date(),
+  }
+
+  it("acepta un usuario válido", () => {
+    const u = UsuarioSchema.parse(baseUsuario)
+    expect(u.rol).toBe("compras")
+    expect(u.proveedor).toBe("password")
+  })
+
+  it("rechaza un rol fuera del enum", () => {
+    const result = UsuarioSchema.safeParse({ ...baseUsuario, rol: "gerente" })
+    expect(result.success).toBe(false)
+  })
+
+  it("rechaza un proveedor fuera del enum", () => {
+    const result = UsuarioSchema.safeParse({ ...baseUsuario, proveedor: "facebook" })
+    expect(result.success).toBe(false)
+  })
+
+  it("activo por defecto es true si se omite", () => {
+    const { activo, ...sinActivo } = baseUsuario
+    void activo
+    const u = UsuarioSchema.parse(sinActivo)
+    expect(u.activo).toBe(true)
+  })
+
+  it("rechaza un email inválido", () => {
+    const result = UsuarioSchema.safeParse({ ...baseUsuario, email: "no-es-correo" })
+    expect(result.success).toBe(false)
   })
 })

@@ -260,6 +260,26 @@ export const OperadorSchema = z.object({
 })
 export type Operador = z.infer<typeof OperadorSchema>
 
+// ── Usuarios (roles y acceso, administrados desde /usuarios) ──────────────────
+
+export const RolSchema = z.enum(["admin", "compras", "diseno", "almacen"])
+export type Rol = z.infer<typeof RolSchema>
+
+export const ProveedorAuthSchema = z.enum(["google", "password"])
+export type ProveedorAuth = z.infer<typeof ProveedorAuthSchema>
+
+export const UsuarioSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  rol: RolSchema,
+  activo: z.boolean().default(true),
+  proveedor: ProveedorAuthSchema,
+  creadoPor: z.string(),
+  creadoEn: z.date(),
+  actualizadoEn: z.date(),
+})
+export type Usuario = z.infer<typeof UsuarioSchema>
+
 // ── Almacén (Entradas y Salidas) ─────────────────────────────────────────────
 
 export const EntradaAlmacenSchema = z.object({
