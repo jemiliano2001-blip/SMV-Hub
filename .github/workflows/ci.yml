@@ -52,6 +52,7 @@ jobs:
       - name: Build Next.js App
         run: npm run build
         env:
+          NODE_OPTIONS: "--max_old_space_size=4096"
           NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
           NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
           NEXT_PUBLIC_FIREBASE_PROJECT_ID: smv-brain
@@ -115,6 +116,7 @@ jobs:
           npm run build
           cd functions && npm run build
         env:
+          NODE_OPTIONS: "--max_old_space_size=4096"
           NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
           NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
           NEXT_PUBLIC_FIREBASE_PROJECT_ID: smv-brain
