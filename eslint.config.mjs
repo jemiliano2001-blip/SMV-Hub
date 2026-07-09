@@ -13,6 +13,16 @@ const eslintConfig = defineConfig([
     "functions/lib/**",
     "next-env.d.ts",
     ".firebase/**",
+    ".agents/**",
+    ".claude/**",
+    ".codex/**",
+    ".cursor/**",
+    ".gemini/**",
+    ".gstack/**",
+    ".scratch/**",
+    ".worktrees/**",
+    "coverage/**",
+    "graphify-out/**",
   ]),
 ]);
 

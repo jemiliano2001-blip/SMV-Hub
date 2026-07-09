@@ -3,7 +3,7 @@ module.exports = {
     collect: {
       // Configuración para recolectar las métricas ejecutando un servidor estático de producción
       startServerCommand: 'npm run start',
-      startServerReadyPattern: 'ready on',
+      startServerReadyPattern: 'Ready in',
       url: ['http://localhost:3000'],
       numberOfRuns: 3,
     },
