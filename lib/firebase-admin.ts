@@ -9,4 +9,4 @@ if (getApps().length === 0) {
 }
 
 export const adminAuth = getAuth()
-export const adminDb = getFirestore()
+export const adminDb = getFirestore(process.env.NEXT_PUBLIC_FIRESTORE_DATABASE_ID || "compras-americanas")
