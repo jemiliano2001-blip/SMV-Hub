@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -29,9 +30,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+firebase-debug.log
+functions/firebase-debug.log
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +43,22 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# confidential local extraction data
+data/extraccion/
+
+# generated analysis artifacts
+.graphify_*
+graphify-out/
+.gstack/
+.scratch/
+
+# datos reales de negocio — nunca comitear
+*.xlsx
+Estilo Reporte de Compras (standalone).html
+
+# build de Cloud Functions
+functions/lib/
+
+# worktrees locales de desarrollo aislado
+.worktrees/
