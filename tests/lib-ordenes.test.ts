@@ -30,6 +30,7 @@ import type { NuevaOrdenPayload } from "@/lib/ordenes"
 vi.mock("@/lib/firebase", () => ({
   db: { type: "mocked-db" },
   storage: { type: "mocked-storage" },
+  getClienteAuth: vi.fn(() => ({ currentUser: { email: "test@example.com" } })),
 }))
 
 const { mockCollectionRef, mockDocRef, mockQueryRef, MockTimestamp, mockBatch } = vi.hoisted(() => {
@@ -88,6 +89,7 @@ vi.mock("firebase/firestore", () => {
     orderBy: vi.fn((field, direction) => ({ field, direction })),
     writeBatch: vi.fn(() => mockBatch),
     Timestamp: MockTimestamp,
+    serverTimestamp: vi.fn(),
   }
 })
 
@@ -101,7 +103,7 @@ describe("lib/ordenes CRUD operations", () => {
     impuestos: 80,
     total: 580,
     items: [
-      { descripcion: "Artículo A", cantidad: 2, precioUnitario: 250, total: 500 },
+      { descripcion: "Artículo A", cantidad: 2, precioUnitario: 250, total: 500 } as any,
     ],
     requisitor: "Jane Doe",
     ordenTrabajo: "OT-123",

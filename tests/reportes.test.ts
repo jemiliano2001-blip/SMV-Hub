@@ -30,7 +30,7 @@ function makeOrden(overrides: Partial<OrdenCompra> = {}): OrdenCompra {
         cuentaCargo: "SO19316",
         requisitor: "Juan",
         ordenTrabajo: "OT-100",
-      },
+      } as any,
     ],
     requisitor: "Juan",
     ordenTrabajo: "OT-100",
@@ -109,8 +109,8 @@ describe("aplanarLineas", () => {
       subtotal: 100,
       impuestos: 16,
       items: [
-        { descripcion: "A", cantidad: 1, precioUnitario: 60, total: 60 },
-        { descripcion: "B", cantidad: 2, precioUnitario: 20, total: 40 },
+        { descripcion: "A", cantidad: 1, precioUnitario: 60, total: 60 } as any,
+        { descripcion: "B", cantidad: 2, precioUnitario: 20, total: 40 } as any,
       ],
     })
     const lineas = aplanarLineas([orden])
@@ -126,7 +126,7 @@ describe("aplanarLineas", () => {
   it("cuando no hay impuestos, total == subtotal de línea", () => {
     const orden = makeOrden({
       impuestos: null,
-      items: [{ descripcion: "X", cantidad: 1, precioUnitario: 50, total: 50 }],
+      items: [{ descripcion: "X", cantidad: 1, precioUnitario: 50, total: 50 } as any],
     })
     const [linea] = aplanarLineas([orden])
     expect(linea.subtotal).toBe(50)
@@ -169,7 +169,7 @@ describe("aplanarLineas", () => {
           cuentaCargo: "SO1157",
           requisitor: "Ana",
           ordenTrabajo: "",
-        },
+        } as any,
         {
           descripcion: "B",
           cantidad: 1,
@@ -179,7 +179,7 @@ describe("aplanarLineas", () => {
           cuentaCargo: "",
           requisitor: "",
           ordenTrabajo: "",
-        },
+        } as any,
       ],
     })
     const lineas = aplanarLineas([orden])

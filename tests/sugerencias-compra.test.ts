@@ -44,7 +44,7 @@ function makeOrden(overrides: Partial<OrdenCompra> = {}): OrdenCompra {
         cuentaCargo: "Stock",
         requisitor: "Daniel",
         ordenTrabajo: "",
-      },
+      } as any,
     ],
     requisitor: "",
     ordenTrabajo: "",
@@ -112,7 +112,7 @@ describe("aplanarHistorial", () => {
           cuentaCargo: "",
           requisitor: "",
           ordenTrabajo: "",
-        },
+        } as any,
       ],
     })
     const lineas = aplanarHistorial([orden])

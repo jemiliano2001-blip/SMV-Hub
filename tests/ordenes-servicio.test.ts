@@ -82,8 +82,8 @@ describe("normalizarOrdenServicioDesdeFirestore", () => {
   it("normaliza estatus y defaults de campos nuevos", () => {
     const raw = {
       ...ordenBase({ estatus: "recibido" as never }),
-      cantidadEntregada: undefined,
-      nota: undefined,
+      cantidadEntregada: null,
+      nota: null,
     }
     const result = normalizarOrdenServicioDesdeFirestore(raw)
     expect(result.estatus).toBe("entregada")
