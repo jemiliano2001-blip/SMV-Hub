@@ -2,10 +2,11 @@
 import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { authBypassActivo, cerrarSesion, useUsuario } from '@/lib/auth'
-import { esCorreoAutorizado } from '@/lib/authorized-emails'
+import { useRol } from '@/lib/hooks/useRol'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { usuario, cargando } = useUsuario()
+  const { rol, cargando: cargandoRol } = useRol(usuario)
   const router = useRouter()
   const pathname = usePathname()
 
@@ -13,7 +14,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     !cargando &&
     !!usuario &&
     !authBypassActivo() &&
-    !esCorreoAutorizado(usuario.email)
+    !cargandoRol &&
+    !rol
 
   useEffect(() => {
     if (!cargando && !usuario && pathname !== '/login') {
@@ -33,12 +35,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
-    if (!cargando && usuario && pathname === '/login') {
+    if (!cargando && !cargandoRol && usuario && pathname === '/login') {
       router.push('/')
     }
-  }, [usuario, cargando, router, pathname, usuarioNoAutorizado])
+  }, [usuario, cargando, cargandoRol, router, pathname, usuarioNoAutorizado])
 
-  if (cargando || usuarioNoAutorizado) {
+  if (cargando || (!!usuario && !authBypassActivo() && cargandoRol) || usuarioNoAutorizado) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0369A1]"></div>
