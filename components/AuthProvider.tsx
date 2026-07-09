@@ -6,7 +6,10 @@ import { useRol } from '@/lib/hooks/useRol'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { usuario, cargando } = useUsuario()
-  const { rol, cargando: cargandoRol } = useRol(usuario)
+  // En modo bypass el usuario simulado no tiene token real de Firebase Auth,
+  // así que una lectura a Firestore para su rol fallaría siempre (ver
+  // lib/auth.ts). Pasamos null para que useRol no la intente.
+  const { rol, cargando: cargandoRol } = useRol(authBypassActivo() ? null : usuario)
   const router = useRouter()
   const pathname = usePathname()
 
