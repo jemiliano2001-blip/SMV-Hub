@@ -6,8 +6,9 @@ import { usePathname } from 'next/navigation'
 import { ChevronDown } from 'lucide-react'
 import LogoSMV from '@/app/LogoSMV'
 import BotonSesion from '@/app/BotonSesion'
-import { useUsuario } from '@/lib/auth'
-import { obtenerRol, tienePermiso } from '@/lib/roles'
+import { authBypassActivo, useUsuario } from '@/lib/auth'
+import { tienePermiso } from '@/lib/roles'
+import { useRol } from '@/lib/hooks/useRol'
 
 type GrupoNav = { nombre: string; links: { href: string; label: string }[] }
 
@@ -44,7 +45,7 @@ const GRUPOS: GrupoNav[] = [
 export default function NavBar() {
   const pathname = usePathname()
   const { usuario } = useUsuario()
-  const rol = obtenerRol(usuario?.email)
+  const { rol } = useRol(authBypassActivo() ? null : usuario)
   const [abierto, setAbierto] = useState<string | null>(null)
   const navRef = useRef<HTMLElement>(null)
 
@@ -95,7 +96,10 @@ export default function NavBar() {
               if (rol === 'admin') {
                 gruposFiltrados.push({
                   nombre: 'Administración',
-                  links: [{ href: '/auditoria', label: 'Auditoría' }]
+                  links: [
+                    { href: '/auditoria', label: 'Auditoría' },
+                    { href: '/usuarios', label: 'Usuarios' },
+                  ]
                 })
               }
 
