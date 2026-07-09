@@ -150,17 +150,44 @@ function FilaUsuario({
 }
 
 function UsuariosContent() {
-  const { usuarios, loading, error, crearUsuario, cambiarRol, cambiarActivo, resetearPassword } = useUsuarios()
+  const { usuarios, loading, error, fetchUsuarios, crearUsuario, cambiarRol, cambiarActivo, resetearPassword } = useUsuarios()
   const [passwordTemporal, setPasswordTemporal] = useState<string | null>(null)
+  const [accionError, setAccionError] = useState<string | null>(null)
 
   async function handleCrear(email: string, rol: Rol) {
     const tempPassword = await crearUsuario(email, rol)
     setPasswordTemporal(tempPassword)
   }
 
+  async function handleCambiarRol(uid: string, rol: Rol) {
+    setAccionError(null)
+    try {
+      await cambiarRol(uid, rol)
+    } catch (err) {
+      console.error('Error cambiando rol:', err)
+      setAccionError('No se pudo cambiar el rol. Intenta de nuevo.')
+    }
+  }
+
+  async function handleCambiarActivo(uid: string, activo: boolean) {
+    setAccionError(null)
+    try {
+      await cambiarActivo(uid, activo)
+    } catch (err) {
+      console.error('Error cambiando acceso:', err)
+      setAccionError('No se pudo cambiar el acceso. Intenta de nuevo.')
+    }
+  }
+
   async function handleResetPassword(uid: string) {
-    const tempPassword = await resetearPassword(uid)
-    setPasswordTemporal(tempPassword)
+    setAccionError(null)
+    try {
+      const tempPassword = await resetearPassword(uid)
+      setPasswordTemporal(tempPassword)
+    } catch (err) {
+      console.error('Error reseteando contraseña:', err)
+      setAccionError('No se pudo resetear la contraseña. Intenta de nuevo.')
+    }
   }
 
   return (
@@ -172,10 +199,20 @@ function UsuariosContent() {
         <BannerPasswordTemporal password={passwordTemporal} onClose={() => setPasswordTemporal(null)} />
       )}
 
-      {error && (
+      {(error || accionError) && (
         <div className="mb-6 p-4 bg-red-50 rounded-lg flex items-start gap-3 border border-red-100">
           <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
-          <p className="text-sm text-red-700">{error}</p>
+          <div>
+            <p className="text-sm text-red-700">{error || accionError}</p>
+            {error && (
+              <button
+                onClick={fetchUsuarios}
+                className="mt-2 text-xs font-semibold text-red-800 underline hover:text-red-900"
+              >
+                Reintentar
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -202,8 +239,8 @@ function UsuariosContent() {
                 <FilaUsuario
                   key={u.id}
                   usuario={u}
-                  onCambiarRol={cambiarRol}
-                  onCambiarActivo={cambiarActivo}
+                  onCambiarRol={handleCambiarRol}
+                  onCambiarActivo={handleCambiarActivo}
                   onResetearPassword={handleResetPassword}
                 />
               ))
