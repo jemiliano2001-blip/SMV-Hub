@@ -50,6 +50,18 @@ export default function OrdenesList() {
   const [query, setQuery] = useState('')
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoOrden | 'todos'>('todos')
 
+  const [colFiltros, setColFiltros] = useState({
+    proveedor: '',
+    requisitor: '',
+    empresa: '',
+    cuentaCargo: ''
+  })
+
+  const proveedoresUnicos = useMemo(() => Array.from(new Set(ordenes.map(o => o.proveedor).filter(Boolean))).sort(), [ordenes])
+  const requisitoresUnicos = useMemo(() => Array.from(new Set(ordenes.map(o => o.requisitor).filter(Boolean))).sort(), [ordenes])
+  const empresasUnicas = useMemo(() => Array.from(new Set(ordenes.map(o => o.empresa).filter(Boolean))).sort(), [ordenes])
+  const cuentasUnicas = useMemo(() => Array.from(new Set(ordenes.map(o => cuentaCargoEfectiva(o)).filter(Boolean))).sort(), [ordenes])
+
   // States para bulk actions y forms
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isDeletingBulk, setIsDeletingBulk] = useState(false)
@@ -64,10 +76,23 @@ export default function OrdenesList() {
       resultado = resultado.filter(o => o.estado === estadoFiltro)
     }
 
+    if (colFiltros.proveedor) {
+      resultado = resultado.filter(o => o.proveedor === colFiltros.proveedor)
+    }
+    if (colFiltros.requisitor) {
+      resultado = resultado.filter(o => o.requisitor === colFiltros.requisitor)
+    }
+    if (colFiltros.empresa) {
+      resultado = resultado.filter(o => o.empresa === colFiltros.empresa)
+    }
+    if (colFiltros.cuentaCargo) {
+      resultado = resultado.filter(o => cuentaCargoEfectiva(o) === colFiltros.cuentaCargo)
+    }
+
     const q = normalizar(query.trim())
     if (q) {
-      resultado = resultado.filter(o =>
-        [
+      resultado = resultado.filter(o => {
+        const matchBase = [
           o.proveedor,
           o.requisitor,
           o.empresa,
@@ -75,19 +100,35 @@ export default function OrdenesList() {
           o.numeroFactura,
           o.fechaFactura,
           cuentaCargoEfectiva(o),
-        ]
-          .some(campo => normalizar(campo ?? '').includes(q))
-      )
+        ].some(campo => normalizar(campo ?? '').includes(q))
+
+        if (matchBase) return true
+
+        if (o.items && o.items.length > 0) {
+          return o.items.some(item => 
+            [
+              item.descripcion, 
+              item.claveProdServ, 
+              item.empresa, 
+              item.cuentaCargo, 
+              item.requisitor
+            ].some(campo => normalizar(campo ?? '').includes(q))
+          )
+        }
+
+        return false
+      })
     }
 
     return resultado
-  }, [ordenes, query, estadoFiltro])
+  }, [ordenes, query, estadoFiltro, colFiltros])
 
-  const hayFiltrosActivos = query.trim() !== '' || estadoFiltro !== 'todos'
+  const hayFiltrosActivos = query.trim() !== '' || estadoFiltro !== 'todos' || Object.values(colFiltros).some(v => v !== '')
 
   const limpiarFiltros = () => {
     setQuery('')
     setEstadoFiltro('todos')
+    setColFiltros({ proveedor: '', requisitor: '', empresa: '', cuentaCargo: '' })
   }
 
   const onDeleteClick = async (id: string, e: React.MouseEvent) => {
@@ -323,7 +364,7 @@ export default function OrdenesList() {
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Buscar por proveedor, factura, requisitor..."
+              placeholder="Buscar por proveedor, factura, requisitor, empresa, ítem..."
               className="w-full pl-9 pr-9 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
             />
             {query && (
@@ -463,7 +504,7 @@ export default function OrdenesList() {
           <table className="w-full text-sm text-left text-gray-500">
             <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-4 py-4 w-12 text-center">
+                <th className="px-3 py-3 w-10 text-center">
                   <input
                     type="checkbox"
                     checked={ordenesFiltradas.length > 0 && selectedIds.size === ordenesFiltradas.length}
@@ -471,15 +512,55 @@ export default function OrdenesList() {
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                   />
                 </th>
-                <th className="px-6 py-4 font-semibold">Proveedor</th>
-                <th className="px-6 py-4 font-semibold">Requisitor</th>
-                <th className="px-6 py-4 font-semibold">No. factura</th>
-                <th className="px-6 py-4 font-semibold">Empresa</th>
-                <th className="px-6 py-4 font-semibold">Cuenta cargo</th>
-                <th className="px-6 py-4 font-semibold text-right">Total</th>
-                <th className="px-6 py-4 font-semibold">Fecha</th>
-                <th className="px-6 py-4 font-semibold">Estado</th>
-                <th className="px-6 py-4 font-semibold text-center">Acciones</th>
+                <th className="px-3 py-3 font-semibold align-top">
+                  <div>Proveedor</div>
+                  <select 
+                    value={colFiltros.proveedor} 
+                    onChange={e => setColFiltros({...colFiltros, proveedor: e.target.value})}
+                    className="mt-1 block w-full max-w-[140px] text-xs font-normal border border-gray-300 rounded p-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="">Todos</option>
+                    {proveedoresUnicos.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </th>
+                <th className="px-3 py-3 font-semibold align-top">
+                  <div>Requisitor</div>
+                  <select 
+                    value={colFiltros.requisitor} 
+                    onChange={e => setColFiltros({...colFiltros, requisitor: e.target.value})}
+                    className="mt-1 block w-full max-w-[100px] text-xs font-normal border border-gray-300 rounded p-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="">Todos</option>
+                    {requisitoresUnicos.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </th>
+                <th className="px-3 py-3 font-semibold align-top">No. factura</th>
+                <th className="px-3 py-3 font-semibold align-top">
+                  <div>Empresa</div>
+                  <select 
+                    value={colFiltros.empresa} 
+                    onChange={e => setColFiltros({...colFiltros, empresa: e.target.value})}
+                    className="mt-1 block w-full max-w-[100px] text-xs font-normal border border-gray-300 rounded p-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="">Todos</option>
+                    {empresasUnicas.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </th>
+                <th className="px-3 py-3 font-semibold align-top">
+                  <div>Cuenta cargo</div>
+                  <select 
+                    value={colFiltros.cuentaCargo} 
+                    onChange={e => setColFiltros({...colFiltros, cuentaCargo: e.target.value})}
+                    className="mt-1 block w-full max-w-[140px] text-xs font-normal border border-gray-300 rounded p-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="">Todos</option>
+                    {cuentasUnicas.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </th>
+                <th className="px-3 py-3 font-semibold text-right align-top">Total</th>
+                <th className="px-3 py-3 font-semibold align-top">Fecha</th>
+                <th className="px-3 py-3 font-semibold align-top">Estado</th>
+                <th className="px-3 py-3 font-semibold text-center align-top">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -491,7 +572,7 @@ export default function OrdenesList() {
                   onClick={() => setSelectedOrden(orden)}
                   className="hover:bg-gray-50 cursor-pointer transition-colors"
                 >
-                  <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={selectedIds.has(orden.id)}
@@ -499,9 +580,9 @@ export default function OrdenesList() {
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                     />
                   </td>
-                  <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                    <span className="inline-flex items-center gap-1.5">
-                      {orden.proveedor}
+                  <td className="px-3 py-3 font-medium text-gray-900 truncate max-w-[140px]" title={orden.proveedor}>
+                    <span className="inline-flex items-center gap-1.5 w-full">
+                      <span className="truncate">{orden.proveedor}</span>
                       {ordenTieneSatPendiente(orden) && (
                         <span title="Falta clave SAT en algún ítem" aria-label="SAT pendiente">
                           <Tags className="h-3.5 w-3.5 text-amber-600 shrink-0" />
@@ -509,31 +590,31 @@ export default function OrdenesList() {
                       )}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 py-3 whitespace-nowrap truncate max-w-[100px]" title={orden.requisitor || ''}>
                     {displayOGuion(orden.requisitor)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-900">
+                  <td className="px-3 py-3 whitespace-nowrap text-gray-900 truncate max-w-[120px]" title={orden.numeroFactura || ''}>
                     {displayOGuion(orden.numeroFactura)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 py-3 whitespace-nowrap truncate max-w-[100px]" title={orden.empresa || ''}>
                     {displayOGuion(orden.empresa)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 py-3 whitespace-nowrap truncate max-w-[140px]" title={cuentaCargoEfectiva(orden) || ''}>
                     {displayOGuion(cuentaCargoEfectiva(orden))}
                   </td>
-                  <td className="px-6 py-4 font-semibold text-gray-900 text-right whitespace-nowrap">
+                  <td className="px-3 py-3 font-semibold text-gray-900 text-right whitespace-nowrap">
                     {formatPrecio(orden.total, orden.moneda)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 py-3 whitespace-nowrap">
                     <div className="text-gray-900">{fechas.principal}</div>
                     {fechas.secundaria && (
                       <div className="text-xs text-gray-400 mt-0.5">{fechas.secundaria}</div>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 py-3 whitespace-nowrap">
                     {renderStatusBadge(orden.estado)}
                   </td>
-                  <td className="px-6 py-4 text-center whitespace-nowrap">
+                  <td className="px-3 py-3 text-center whitespace-nowrap">
                     <div className="flex items-center justify-center gap-1">
                       {orden.estado === 'pendiente' && (
                         <>

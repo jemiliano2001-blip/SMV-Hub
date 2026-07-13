@@ -40,14 +40,14 @@ const INSTRUCCIONES = `Analiza esta factura/invoice o confirmación de pedido y 
   En USA el total suele ser subtotal + envio + impuestos; en Texas el tax (~8.25%) aplica sobre mercancía + envío.
 - items: cada producto/servicio con descripcion, cantidad, precioUnitario, total,
   empresa, cuentaCargo, requisitor y ordenTrabajo.
-  En McMaster-Carr y proveedores similares, el campo "Your reference" / referencia del ítem
-  suele tener formato "EMPRESA / SO1234" o "APX / linea p749":
-  - empresa: texto antes del "/" (ej. APX, OHD, SMV, Fisher). Empresa y destino son lo mismo.
+  En McMaster-Carr y proveedores similares, el campo "Your reference" / referencia del ítem suele contener esta información:
+  - empresa (destino): detecta a qué empresa va dirigido. Ejemplos de clientes: AFX INDUSTRIES, CYPRESS INDUSTRIES MEXICO, FISHER DYNAMICS MEXICO, LOGASA, LLC., MECALUX MEXICO, OHD OPERATORS DE MEXICO, SENSATA TECHNOLIGIES INC, SILICONE TECHNOLOGIES, SUPRAJIT MEXICO, TERMOFORMADOS INDUSTRIALES DE MATAMOROS. También "SMV" para herramientas propias. Suele venir abreviado (ej. APX, OHD, SMV, Fisher).
   - cuentaCargo: texto después del "/" (ej. SO1148, linea p749). Un SO por ítem.
+  - requisitor: la persona que lo pide. Usualmente son: Antonio, Pantoja, Chava, Oscar, Pablo, Baez, Francisco.
   Si NO hay referencia explícita y el ítem es una herramienta de taller (brocas, fresas,
   reamers, machuelos, inserts, calibradores, etc.), usa empresa "SMV" y cuentaCargo "Stock".
   Si la referencia existe, respétala (no inventes "Stock").
-  requisitor y ordenTrabajo en ítems: déjalos "" salvo que aparezcan explícitos por línea.
+  requisitor y ordenTrabajo en ítems: déjalos "" salvo que aparezcan explícitos o se deduzcan de la referencia.
 Usa null en campos numéricos y "" en textos cuando no haya dato con certeza.`
 
 const INSTRUCCIONES_LOTE = `Analiza esta imagen, que puede ser:
@@ -61,7 +61,9 @@ Devuelve un campo "registros" con un elemento por cada compra detectada:
 Para cada registro extrae: proveedor, numeroFactura, fechaFactura (YYYY-MM-DD),
 moneda (ISO, "USD" si no aparece), subtotal, envio, impuestos, total e items
 (descripcion, cantidad, precioUnitario, total, empresa, cuentaCargo, requisitor, ordenTrabajo).
-En McMaster-Carr parsea "Your reference" por ítem: empresa antes de "/", cuentaCargo después.
+En McMaster-Carr parsea "Your reference" por ítem.
+Empresas/Destinos comunes (pueden venir abreviados): AFX, CYPRESS, FISHER, LOGASA, MECALUX, OHD, SENSATA, SILICONE, SUPRAJIT, TERMOFORMADOS, o SMV.
+Requisitores comunes: Antonio, Pantoja, Chava, Oscar, Pablo, Baez, Francisco.
 Si no hay referencia y el ítem es herramienta de taller, usa empresa "SMV" y cuentaCargo "Stock".
 Usa null en numéricos y "" en textos cuando no haya dato con certeza.`
 
