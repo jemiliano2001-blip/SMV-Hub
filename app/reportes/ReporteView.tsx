@@ -114,10 +114,18 @@ export default function ReporteView() {
       <div className="max-w-[1400px] mx-auto px-4 py-6 print:max-w-none print:px-0 print:py-0">
 
         {/* Volver — oculto al imprimir */}
-        <div className="mb-4 no-print">
-          <Link href="/" className="text-sm text-blue-600 hover:underline">
+        <div className="mb-4 no-print flex justify-between items-center text-sm">
+          <Link href="/" className="text-blue-600 hover:underline">
             ← Inicio
           </Link>
+          <div className="flex gap-4">
+            <span className="font-semibold text-blue-600 border-b-2 border-blue-600 pb-1">
+              Reporte Gerencial
+            </span>
+            <Link href="/reportes/contable" className="text-gray-500 hover:text-gray-900 transition-colors">
+              Reporte Contable
+            </Link>
+          </div>
         </div>
 
         <FiltrosReporte

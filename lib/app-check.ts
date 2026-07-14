@@ -1,7 +1,7 @@
 'use client'
 
 import { initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from 'firebase/app-check'
-import { getApp } from 'firebase/app'
+import { firebaseApp } from './firebase'
 
 let appCheckInstance: AppCheck | undefined
 
@@ -33,7 +33,7 @@ export function inicializarAppCheck(): AppCheck | null {
     globalScope.FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken
   }
 
-  appCheckInstance = initializeAppCheck(getApp(), {
+  appCheckInstance = initializeAppCheck(firebaseApp, {
     provider: new ReCaptchaV3Provider(siteKey),
     isTokenAutoRefreshEnabled: true,
   })

@@ -58,6 +58,7 @@ export type SugerirClaveSatDeps = GeminiSatDeps & {
 const UMBRAL_SCORE_ALTO = 160
 const UMBRAL_SCORE_MEDIO = 80
 const UMBRAL_GAP_SCORE = 40
+const CONCURRENCIA_LOTE_SAT = 3
 
 function resolverMaxCandidatosGemini(): number {
   const raw = process.env.SAT_MAX_CANDIDATOS?.trim()
@@ -408,7 +409,11 @@ export async function sugerirClaveSatItem(
   const desdeGlosario = buscarConGlosario(descripcion, opciones)
   if (desdeGlosario) return guardarEnCache(descripcion, item.proveedor, desdeGlosario)
 
-  const { candidatos, scores } = obtenerCandidatosParaGemini(descripcion, terminosGlosario, opciones)
+  const { candidatos, scores } = obtenerCandidatosParaGemini(
+    descripcion,
+    item.terminosPrevios?.trim() || terminosGlosario,
+    opciones
+  )
 
   try {
     const fusion = await traducirYElegir(descripcion, candidatos, item.proveedor, scores)
@@ -468,13 +473,23 @@ export async function sugerirClavesSatLote(
     grupos.set(key, indices)
   }
 
-  for (const indices of grupos.values()) {
-    const item = items[indices[0]]
-    const sugerencia = await sugerirClaveSatItem(item, historial, deps)
-    for (const i of indices) {
-      resultados[i] = sugerencia
+  const gruposPendientes = [...grupos.values()]
+  let siguienteGrupo = 0
+  const workers = Array.from(
+    { length: Math.min(CONCURRENCIA_LOTE_SAT, gruposPendientes.length) },
+    async () => {
+      while (siguienteGrupo < gruposPendientes.length) {
+        const indices = gruposPendientes[siguienteGrupo++]
+        const item = items[indices[0]]
+        const sugerencia = await sugerirClaveSatItem(item, historial, deps)
+        for (const i of indices) {
+          resultados[i] = sugerencia
+        }
+      }
     }
-  }
+  )
+
+  await Promise.all(workers)
 
   return resultados
 }

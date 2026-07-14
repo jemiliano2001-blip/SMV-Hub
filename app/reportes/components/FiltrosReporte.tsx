@@ -16,6 +16,7 @@ type Props = {
   onHasta: (d: Date) => void
   onAgrupar: (criterio: CriterioAgrupacion) => void
   onMoneda: (m: string) => void
+  ocultarAgrupar?: boolean
 }
 
 function toInputDate(d: Date): string {
@@ -34,6 +35,7 @@ export default function FiltrosReporte({
   onHasta,
   onAgrupar,
   onMoneda,
+  ocultarAgrupar,
 }: Props) {
   const btnBase = "px-3 py-1.5 text-sm rounded-md font-medium transition-colors"
   const btnActive = "bg-blue-600 text-white"
@@ -76,18 +78,20 @@ export default function FiltrosReporte({
       </div>
 
       {/* Agrupar por */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-500">Agrupar:</span>
-        <select
-          className={inputCls}
-          value={agruparPor}
-          onChange={(e) => onAgrupar(e.target.value as CriterioAgrupacion)}
-        >
-          <option value="proveedor">Proveedor</option>
-          <option value="destino">Destino</option>
-          <option value="requisitor">Requisitor</option>
-        </select>
-      </div>
+      {!ocultarAgrupar && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">Agrupar:</span>
+          <select
+            className={inputCls}
+            value={agruparPor}
+            onChange={(e) => onAgrupar(e.target.value as CriterioAgrupacion)}
+          >
+            <option value="proveedor">Proveedor</option>
+            <option value="destino">Destino</option>
+            <option value="requisitor">Requisitor</option>
+          </select>
+        </div>
+      )}
 
       {/* Filtro de moneda (solo cuando hay más de una) */}
       {monedas.length > 1 && (

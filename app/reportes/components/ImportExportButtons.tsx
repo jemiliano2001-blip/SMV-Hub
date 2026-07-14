@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { getApp } from "firebase/app";
 import { getFunctions, httpsCallable } from "firebase/functions";
+import { firebaseApp } from "@/lib/firebase";
 
 export default function ImportExportButtons() {
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-  const functions = getFunctions(getApp());
+  const functions = getFunctions(firebaseApp);
 
   function getErrorMessage(error: unknown): string {
     return error instanceof Error ? error.message : 'Error desconocido';

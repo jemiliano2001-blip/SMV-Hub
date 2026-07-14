@@ -38,8 +38,9 @@ const INSTRUCCIONES = `Analiza esta factura/invoice o confirmación de pedido y 
 - subtotal, envio, impuestos, total: montos numéricos, o null si no se leen con certeza.
   envio = cargo de envío/shipping/freight (NO incluir en subtotal).
   En USA el total suele ser subtotal + envio + impuestos; en Texas el tax (~8.25%) aplica sobre mercancía + envío.
-- items: cada producto/servicio con descripcion, cantidad, precioUnitario, total,
+- items: cada producto/servicio con descripcion, descripcionSimplificada, cantidad, precioUnitario, total,
   empresa, cuentaCargo, requisitor y ordenTrabajo.
+  - descripcionSimplificada: traduce la descripción original al español y resúmela en pocas palabras claras (para la contadora).
   En McMaster-Carr y proveedores similares, el campo "Your reference" / referencia del ítem suele contener esta información:
   - empresa (destino): detecta a qué empresa va dirigido. Ejemplos de clientes: AFX INDUSTRIES, CYPRESS INDUSTRIES MEXICO, FISHER DYNAMICS MEXICO, LOGASA, LLC., MECALUX MEXICO, OHD OPERATORS DE MEXICO, SENSATA TECHNOLIGIES INC, SILICONE TECHNOLOGIES, SUPRAJIT MEXICO, TERMOFORMADOS INDUSTRIALES DE MATAMOROS. También "SMV" para herramientas propias. Suele venir abreviado (ej. APX, OHD, SMV, Fisher).
   - cuentaCargo: texto después del "/" (ej. SO1148, linea p749). Un SO por ítem.
@@ -60,7 +61,8 @@ Devuelve un campo "registros" con un elemento por cada compra detectada:
 
 Para cada registro extrae: proveedor, numeroFactura, fechaFactura (YYYY-MM-DD),
 moneda (ISO, "USD" si no aparece), subtotal, envio, impuestos, total e items
-(descripcion, cantidad, precioUnitario, total, empresa, cuentaCargo, requisitor, ordenTrabajo).
+(descripcion, descripcionSimplificada, cantidad, precioUnitario, total, empresa, cuentaCargo, requisitor, ordenTrabajo).
+En descripcionSimplificada traduce al español y resume brevemente para la contadora.
 En McMaster-Carr parsea "Your reference" por ítem.
 Empresas/Destinos comunes (pueden venir abreviados): AFX, CYPRESS, FISHER, LOGASA, MECALUX, OHD, SENSATA, SILICONE, SUPRAJIT, TERMOFORMADOS, o SMV.
 Requisitores comunes: Antonio, Pantoja, Chava, Oscar, Pablo, Baez, Francisco.
@@ -72,6 +74,7 @@ const ITEM_FACTURA_SCHEMA = {
   type: "object",
   properties: {
     descripcion: { type: "string" },
+    descripcionSimplificada: { type: "string" },
     cantidad: { type: "number", nullable: true },
     precioUnitario: { type: "number", nullable: true },
     total: { type: "number", nullable: true },
@@ -82,6 +85,7 @@ const ITEM_FACTURA_SCHEMA = {
   },
   required: [
     "descripcion",
+    "descripcionSimplificada",
     "cantidad",
     "precioUnitario",
     "total",

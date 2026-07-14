@@ -5,8 +5,11 @@ const {
   mockGet,
   mockSet,
   mockUpdate,
+  mockDelete,
   mockCreateUser,
   mockUpdateUser,
+  mockDeleteUser,
+  mockSetCustomUserClaims,
   mockOrderBy,
   mockCollectionGet,
 } = vi.hoisted(() => ({
@@ -14,8 +17,11 @@ const {
   mockGet: vi.fn(),
   mockSet: vi.fn(),
   mockUpdate: vi.fn(),
+  mockDelete: vi.fn(),
   mockCreateUser: vi.fn(),
   mockUpdateUser: vi.fn(),
+  mockDeleteUser: vi.fn(),
+  mockSetCustomUserClaims: vi.fn(),
   mockOrderBy: vi.fn(),
   mockCollectionGet: vi.fn(),
 }))
@@ -24,6 +30,8 @@ vi.mock("@/lib/firebase-admin", () => ({
   adminAuth: {
     createUser: mockCreateUser,
     updateUser: mockUpdateUser,
+    deleteUser: mockDeleteUser,
+    setCustomUserClaims: mockSetCustomUserClaims,
   },
   adminDb: {
     collection: vi.fn(() => ({
@@ -101,6 +109,7 @@ import {
   crearUsuarioAdmin,
   actualizarUsuarioAdmin,
   resetearPasswordAdmin,
+  eliminarUsuarioAdmin,
   listarUsuariosAdmin,
 } from "@/lib/usuarios-admin"
 
@@ -135,6 +144,32 @@ describe("crearUsuarioAdmin", () => {
     expect(resultado.uid).toBe("uid-nuevo")
     expect(resultado.tempPassword).toHaveLength(16)
   })
+
+  it("usa la contraseña que mande el admin en vez de generar una temporal", async () => {
+    mockCreateUser.mockResolvedValue({ uid: "uid-nuevo" })
+    const resultado = await crearUsuarioAdmin({
+      email: "nuevo@ejemplo.com",
+      rol: "compras",
+      creadoPor: "jemiliano2001@gmail.com",
+      password: "miPasswordElegida",
+    })
+
+    expect(mockCreateUser).toHaveBeenCalledWith(
+      expect.objectContaining({ password: "miPasswordElegida" })
+    )
+    expect(resultado.tempPassword).toBeNull()
+  })
+
+  it("sincroniza el claim smvHubActivo para las reglas de Storage", async () => {
+    mockCreateUser.mockResolvedValue({ uid: "uid-nuevo" })
+    await crearUsuarioAdmin({
+      email: "nuevo@ejemplo.com",
+      rol: "compras",
+      creadoPor: "jemiliano2001@gmail.com",
+    })
+
+    expect(mockSetCustomUserClaims).toHaveBeenCalledWith("uid-nuevo", { smvHubActivo: true })
+  })
 })
 
 describe("actualizarUsuarioAdmin", () => {
@@ -143,21 +178,24 @@ describe("actualizarUsuarioAdmin", () => {
     mockDoc.mockReturnValue({ update: mockUpdate })
   })
 
-  it("actualiza el rol en Firestore sin tocar Auth", async () => {
+  it("actualiza el rol en Firestore sin tocar Auth ni claims", async () => {
     await actualizarUsuarioAdmin("uid-1", { rol: "diseno" })
     expect(mockUpdateUser).not.toHaveBeenCalled()
+    expect(mockSetCustomUserClaims).not.toHaveBeenCalled()
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ rol: "diseno" }))
   })
 
-  it("al desactivar, deshabilita la cuenta en Auth y activo:false en Firestore", async () => {
+  it("al desactivar, deshabilita la cuenta en Auth, apaga el claim y activo:false en Firestore", async () => {
     await actualizarUsuarioAdmin("uid-1", { activo: false })
     expect(mockUpdateUser).toHaveBeenCalledWith("uid-1", { disabled: true })
+    expect(mockSetCustomUserClaims).toHaveBeenCalledWith("uid-1", { smvHubActivo: false })
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ activo: false }))
   })
 
-  it("al reactivar, habilita la cuenta en Auth y activo:true en Firestore", async () => {
+  it("al reactivar, habilita la cuenta en Auth, prende el claim y activo:true en Firestore", async () => {
     await actualizarUsuarioAdmin("uid-1", { activo: true })
     expect(mockUpdateUser).toHaveBeenCalledWith("uid-1", { disabled: false })
+    expect(mockSetCustomUserClaims).toHaveBeenCalledWith("uid-1", { smvHubActivo: true })
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ activo: true }))
   })
 })
@@ -172,6 +210,37 @@ describe("resetearPasswordAdmin", () => {
     const tempPassword = await resetearPasswordAdmin("uid-1")
     expect(tempPassword).toHaveLength(16)
     expect(mockUpdateUser).toHaveBeenCalledWith("uid-1", { password: tempPassword })
+  })
+
+  it("usa la contraseña que mande el admin y no retorna nada para mostrar", async () => {
+    const resultado = await resetearPasswordAdmin("uid-1", "miPasswordElegida")
+    expect(resultado).toBeNull()
+    expect(mockUpdateUser).toHaveBeenCalledWith("uid-1", { password: "miPasswordElegida" })
+  })
+})
+
+describe("eliminarUsuarioAdmin", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockDoc.mockReturnValue({ delete: mockDelete })
+  })
+
+  it("elimina la cuenta de Auth y el documento de Firestore", async () => {
+    await eliminarUsuarioAdmin("uid-1")
+    expect(mockDeleteUser).toHaveBeenCalledWith("uid-1")
+    expect(mockDelete).toHaveBeenCalled()
+  })
+
+  it("borra el documento huérfano aunque la cuenta de Auth ya no exista", async () => {
+    mockDeleteUser.mockRejectedValue(Object.assign(new Error("no user"), { code: "auth/user-not-found" }))
+    await eliminarUsuarioAdmin("uid-huerfano")
+    expect(mockDelete).toHaveBeenCalled()
+  })
+
+  it("propaga cualquier otro error de Auth sin borrar el documento", async () => {
+    mockDeleteUser.mockRejectedValue(Object.assign(new Error("permission denied"), { code: "auth/insufficient-permission" }))
+    await expect(eliminarUsuarioAdmin("uid-1")).rejects.toThrow("permission denied")
+    expect(mockDelete).not.toHaveBeenCalled()
   })
 })
 

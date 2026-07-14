@@ -18,21 +18,21 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 }
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp()
+export const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp()
 
 // El proyecto smv-brain aloja varias bases Firestore; esta app usa la base
 // nombrada "compras-americanas" (la "(default)" pertenece a otro proyecto).
 const firestoreDbId =
   process.env.NEXT_PUBLIC_FIRESTORE_DATABASE_ID ?? "compras-americanas"
 
-export const db = getFirestore(app, firestoreDbId)
-export const storage = getStorage(app)
+export const db = getFirestore(firebaseApp, firestoreDbId)
+export const storage = getStorage(firebaseApp)
 
 // Auth se inicializa de forma perezosa y solo en el navegador: getAuth valida
 // la API key al construirse y rompería el prerender en el servidor.
 let authInstance: Auth | undefined
 export function getClienteAuth(): Auth {
-  if (!authInstance) authInstance = getAuth(app)
+  if (!authInstance) authInstance = getAuth(firebaseApp)
   return authInstance
 }
 
@@ -43,6 +43,6 @@ export async function getClienteAnalytics(): Promise<Analytics | null> {
   if (typeof window === "undefined") return null
   if (analyticsInstance) return analyticsInstance
   if (!(await isAnalyticsSupported())) return null
-  analyticsInstance = getAnalytics(app)
+  analyticsInstance = getAnalytics(firebaseApp)
   return analyticsInstance
 }

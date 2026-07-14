@@ -9,6 +9,8 @@ export type Linea = {
   dia: Date | null
   proveedor: string
   descripcion: string
+  descripcionSimplificada?: string
+  claveProdServ?: string
   cantidad: number | null
   precioUnitario: number | null
   subtotal: number
@@ -78,6 +80,8 @@ export function aplanarLineas(ordenes: OrdenCompra[]): Linea[] {
       lineas.push({
         ...baseOrden,
         descripcion: "(orden sin ítems)",
+        descripcionSimplificada: "",
+        claveProdServ: "",
         cantidad: null,
         precioUnitario: null,
         subtotal: orden.subtotal ?? 0,
@@ -100,6 +104,8 @@ export function aplanarLineas(ordenes: OrdenCompra[]): Linea[] {
       lineas.push({
         ...baseOrden,
         descripcion: item.descripcion,
+        descripcionSimplificada: item.descripcionSimplificada || "",
+        claveProdServ: item.claveProdServ || "",
         cantidad: item.cantidad,
         precioUnitario: item.precioUnitario,
         subtotal: subLinea,

@@ -3,24 +3,30 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Exige sesión con correo verificado. Para cerrar el acceso a correos
-    // específicos, replica aquí la lista blanca de firestore.rules.
-    function correosAutorizados() {
-      return [
-        'ordenes@smv.com',
-        'lorena@smv.com',
-        'jemiliano2001@gmail.com',
-      ];
+    // Correo con acceso admin garantizado, fijo como red de seguridad — debe
+    // coincidir con CORREO_ADMIN_BREAK_GLASS en lib/authorized-emails.ts.
+    function esCorreoBreakGlass() {
+      return request.auth.token.email == 'jemiliano2001@gmail.com';
     }
 
+    // App Check: el cliente web debe enviar token válido (reCAPTCHA v3 + debug en dev).
+    // ponytail: desactivado 2026-07-13, App Check devuelve 403 en prod (site key
+    // sin registrar/dominio no autorizado) y bloqueaba a todo el mundo, incluido
+    // el break-glass. Reactivar cambiando a `request.app != null` cuando se
+    // valide en Firebase Console → App Check (ver docs/infra/app-check-setup.md).
     function appCheckValido() {
-      return request.app != null;
+      return true;
     }
 
+    // La autorización vive en la colección `usuarios` de la base Firestore
+    // nombrada "compras-americanas", que estas reglas no pueden leer (las
+    // cross-service rules de Storage solo alcanzan la base "(default)"). El
+    // acceso se decide con el custom claim `smvHubActivo` del ID token, que
+    // lib/usuarios-admin.ts sincroniza al crear usuarios y al cambiar su acceso.
     function esUsuarioAutorizado() {
       return request.auth != null && request.auth.token.email_verified == true &&
              appCheckValido() &&
-             request.auth.token.email in correosAutorizados();
+             (esCorreoBreakGlass() || request.auth.token.smvHubActivo == true);
     }
 
     // Imágenes de órdenes: solo usuarios autorizados.

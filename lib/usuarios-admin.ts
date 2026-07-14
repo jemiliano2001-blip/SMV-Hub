@@ -43,26 +43,43 @@ export async function obtenerUsuarioAdmin(
   return { rol: rolParseado.data, activo: data?.activo === true }
 }
 
+/**
+ * Sincroniza el custom claim `smvHubActivo` en el ID token del usuario. Las
+ * reglas de Storage lo necesitan porque no pueden leer la colección `usuarios`:
+ * las cross-service rules de Storage solo alcanzan la base Firestore "(default)"
+ * y esta app usa la base nombrada "compras-americanas". El claim se refleja en
+ * el cliente hasta el siguiente refresh del token (≤1 h); la desactivación
+ * inmediata la cubre `disabled` en la cuenta de Auth.
+ */
+async function sincronizarClaimAcceso(uid: string, activo: boolean): Promise<void> {
+  await adminAuth.setCustomUserClaims(uid, { smvHubActivo: activo })
+}
+
 export interface NuevoUsuarioPayload {
   email: string
   rol: Rol
   creadoPor: string
+  /** Si se omite, se genera una temporal aleatoria. */
+  password?: string
 }
 
 export interface UsuarioCreado {
   uid: string
-  tempPassword: string
+  /** null cuando el admin fijó su propia contraseña (ya la conoce, no hay que mostrarla). */
+  tempPassword: string | null
 }
 
-/** Crea la cuenta en Firebase Auth (con contraseña temporal y correo ya
- * verificado, porque el admin da fe del correo) y su documento en Firestore. */
+/** Crea la cuenta en Firebase Auth (correo ya verificado, porque el admin da fe
+ * del correo) y su documento en Firestore. Contraseña: la que mande el admin,
+ * o una temporal aleatoria si no mandó ninguna. */
 export async function crearUsuarioAdmin(payload: NuevoUsuarioPayload): Promise<UsuarioCreado> {
-  const tempPassword = generarPasswordTemporal()
+  const passwordFinal = payload.password ?? generarPasswordTemporal()
   const cuenta = await adminAuth.createUser({
     email: payload.email,
-    password: tempPassword,
+    password: passwordFinal,
     emailVerified: true,
   })
+  await sincronizarClaimAcceso(cuenta.uid, true)
 
   const ahora = new Date()
   await adminDb.collection(COLECCION).doc(cuenta.uid).set({
@@ -75,7 +92,7 @@ export async function crearUsuarioAdmin(payload: NuevoUsuarioPayload): Promise<U
     actualizadoEn: ahora,
   })
 
-  return { uid: cuenta.uid, tempPassword }
+  return { uid: cuenta.uid, tempPassword: payload.password ? null : passwordFinal }
 }
 
 export interface CambiosUsuarioAdmin {
@@ -92,6 +109,7 @@ export async function actualizarUsuarioAdmin(
 ): Promise<void> {
   if (cambios.activo !== undefined) {
     await adminAuth.updateUser(uid, { disabled: !cambios.activo })
+    await sincronizarClaimAcceso(uid, cambios.activo)
   }
 
   await adminDb.collection(COLECCION).doc(uid).update({
@@ -100,13 +118,27 @@ export async function actualizarUsuarioAdmin(
   })
 }
 
-/** Genera y aplica una nueva contraseña temporal. Se muestra una sola vez al
- * admin — no se persiste en texto plano en ningún lado. */
-export async function resetearPasswordAdmin(uid: string): Promise<string> {
-  const tempPassword = generarPasswordTemporal()
-  await adminAuth.updateUser(uid, { password: tempPassword })
+/** Aplica una contraseña nueva: la que mande el admin, o una temporal aleatoria
+ * si no mandó ninguna. La temporal se muestra una sola vez — no se persiste en
+ * texto plano en ningún lado. */
+export async function resetearPasswordAdmin(uid: string, password?: string): Promise<string | null> {
+  const passwordFinal = password ?? generarPasswordTemporal()
+  await adminAuth.updateUser(uid, { password: passwordFinal })
   await adminDb.collection(COLECCION).doc(uid).update({ actualizadoEn: new Date() })
-  return tempPassword
+  return password ? null : passwordFinal
+}
+
+/** Elimina la cuenta de Firebase Auth y su documento en `usuarios`. Irreversible.
+ * Si la cuenta de Auth ya no existe (doc huérfano, p.ej. borrada manualmente
+ * antes), igual borra el documento de Firestore en vez de bloquear para siempre. */
+export async function eliminarUsuarioAdmin(uid: string): Promise<void> {
+  try {
+    await adminAuth.deleteUser(uid)
+  } catch (error: unknown) {
+    const code = error && typeof error === "object" && "code" in error ? String((error as { code: unknown }).code) : ""
+    if (code !== "auth/user-not-found") throw error
+  }
+  await adminDb.collection(COLECCION).doc(uid).delete()
 }
 
 /** Lista los usuarios administrados. Documentos con un `rol` inválido o

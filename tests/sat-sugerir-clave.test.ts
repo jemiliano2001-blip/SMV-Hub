@@ -3,6 +3,7 @@ import type { OrdenCompra } from "@/lib/schemas"
 import * as buscarSat from "@/lib/sat/buscar"
 import { clearSatSugerenciaCache } from "@/lib/sat/cache-sugerencias"
 import { traducirConGlosario } from "@/lib/sat/glosario-industrial"
+import { resolverModeloLite } from "@/lib/sat/gemini-sat"
 import {
   construirHistorialSat,
   esResultadoClaro,
@@ -46,6 +47,21 @@ describe("traducirConGlosario", () => {
     const r = traducirConGlosario("1/4 Solid Carbide End Mill")
     expect(r).not.toBeNull()
     expect(r?.terminosBusqueda).toMatch(/herramienta|corte|carburo/)
+  })
+})
+
+describe("resolverModeloLite", () => {
+  const modeloOriginal = process.env.GEMINI_MODEL_SAT
+
+  afterEach(() => {
+    if (modeloOriginal === undefined) delete process.env.GEMINI_MODEL_SAT
+    else process.env.GEMINI_MODEL_SAT = modeloOriginal
+  })
+
+  it("migra el override obsoleto al modelo ligero vigente", () => {
+    process.env.GEMINI_MODEL_SAT = "gemini-3.5-flash-lite"
+
+    expect(resolverModeloLite()).toBe("gemini-3.1-flash-lite")
   })
 })
 
@@ -309,6 +325,37 @@ describe("sugerirClaveSatItem", () => {
 
     expect(traducirYElegir).toHaveBeenCalledTimes(1)
     expect(segundo.claveProdServ).toBe("31161500")
+  })
+
+  it("prioriza términos previos en español al formar candidatos para Gemini", async () => {
+    mockSinCoincidenciaLocal()
+    const entry = getSatCatalogEntries().find((e) => e.clave === "31161500")
+    const queries: string[] = []
+    vi.mocked(buscarSat.buscarClavesSat).mockImplementation((query: string) => {
+      queries.push(query)
+      return query === "punzón industrial de acero" && entry
+        ? [{ entry, score: 100, reasons: ["Candidato traducido"] }]
+        : []
+    })
+
+    const result = await sugerirClaveSatItem(
+      {
+        descripcion: "HARFINGTON Sheet Metal Punch XYZ",
+        terminosPrevios: "punzón industrial de acero",
+      },
+      new Map(),
+      {
+        traducirYElegir: vi.fn().mockResolvedValue({
+          terminosBusqueda: "punzón industrial de acero",
+          clave: "31161500",
+          motivo: "Candidato validado",
+          confianzaIa: "alta" as const,
+        }),
+      }
+    )
+
+    expect(queries).toContain("punzón industrial de acero")
+    expect(result.claveProdServ).toBe("31161500")
   })
 })
 

@@ -11,8 +11,12 @@ service cloud.firestore {
     }
 
     // App Check: el cliente web debe enviar token válido (reCAPTCHA v3 + debug en dev).
+    // ponytail: desactivado 2026-07-13, App Check devuelve 403 en prod (site key
+    // sin registrar/dominio no autorizado) y bloqueaba a todo el mundo, incluido
+    // el break-glass. Reactivar cambiando a `request.app != null` cuando se
+    // valide en Firebase Console → App Check (ver docs/infra/app-check-setup.md).
     function appCheckValido() {
-      return request.app != null;
+      return true;
     }
 
     // Correo con acceso admin garantizado, fijo como red de seguridad — debe
@@ -304,6 +308,20 @@ service cloud.firestore {
         && request.resource.data.descripcionEjemplo is string;
 
       allow delete: if esUsuarioAutorizado();
+    }
+
+    // ── Reportes Contables ───────────────────────────────────────────────────
+
+    function reporteContableValido(d) {
+      return d.fechaGeneracion is timestamp &&
+             d.creadoPor is string &&
+             d.totalLineas is number;
+    }
+
+    match /reportes_contables/{reporteId} {
+      allow read: if esUsuarioAutorizado();
+      allow create: if esUsuarioAutorizado() && reporteContableValido(request.resource.data);
+      allow update, delete: if false;
     }
 
     // ── Auditoría (Registro de acciones) ─────────────────────────────────────

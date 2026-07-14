@@ -4,6 +4,7 @@ import { z } from "zod"
 
 export const ItemFacturaSchema = z.object({
   descripcion: z.string(),
+  descripcionSimplificada: z.string().optional().default(""),
   cantidad: z.number().nullable(),
   precioUnitario: z.number().nullable(),
   total: z.number().nullable(),
@@ -133,6 +134,7 @@ export const OrdenCompraSchema = NuevaCompraFormBaseSchema.extend({
   linkProveedor: z.string().nullable().optional(),
   fechaEntrega: z.string().nullable().optional(),
   estado: EstadoOrdenSchema.default("pendiente"),
+  reporteContableId: z.string().nullable().optional(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 })

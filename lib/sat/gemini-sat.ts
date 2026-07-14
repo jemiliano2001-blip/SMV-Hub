@@ -8,6 +8,8 @@ export const MODELO_SAT_LITE = "gemini-3.1-flash-lite"
 export const MODELO_SAT_ESCALADO = "gemini-3.5-flash"
 /** @deprecated Usar MODELO_SAT_LITE */
 export const MODELO_SAT = MODELO_SAT_LITE
+const MODELO_SAT_OBSOLETO = "gemini-3.5-flash-lite"
+const TIEMPO_MAXIMO_GEMINI_MS = 15_000
 
 type GeminiGenerateResponse = {
   candidates?: Array<{
@@ -26,16 +28,17 @@ function obtenerApiKey(): string {
   return key
 }
 
-function resolverModeloLite(): string {
-  return process.env.GEMINI_MODEL_SAT?.trim() || MODELO_SAT_LITE
+export function resolverModeloLite(): string {
+  const configurado = process.env.GEMINI_MODEL_SAT?.trim()
+  if (configurado === MODELO_SAT_OBSOLETO) {
+    console.warn(`[sat] ${MODELO_SAT_OBSOLETO} ya no existe; se usará ${MODELO_SAT_LITE}`)
+    return MODELO_SAT_LITE
+  }
+  return configurado || MODELO_SAT_LITE
 }
 
 function resolverModeloEscalado(): string {
   return process.env.GEMINI_MODEL_SAT_ESCALADO?.trim() || MODELO_SAT_ESCALADO
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 async function llamarGeminiTexto(
@@ -56,19 +59,24 @@ async function llamarGeminiTexto(
     },
   }
 
-  const maxReintentos = 3
+  // The report processor retries a failed chunk. Keeping this call to one
+  // bounded attempt prevents a slow 5xx/429 sequence from exhausting the
+  // 60-second Hosting SSR limit.
+  const maxReintentos = 1
   for (let intento = 1; intento <= maxReintentos; intento++) {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    })
-
-    if (res.status === 429 || res.status >= 500) {
-      if (intento < maxReintentos) {
-        await sleep(Math.min(30000, 2000 * 2 ** (intento - 1)))
-        continue
+    let res: Response
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(TIEMPO_MAXIMO_GEMINI_MS),
+      })
+    } catch (error) {
+      if (error instanceof DOMException && (error.name === "TimeoutError" || error.name === "AbortError")) {
+        throw new ErrorIA("Gemini tardó demasiado en responder")
       }
+      throw error
     }
 
     if (!res.ok) {
@@ -274,24 +282,24 @@ export async function traducirYElegirClaveSat(
   proveedor?: string,
   candidatosScores?: SatSearchResult[]
 ): Promise<ResultadoTraduccionFusion> {
-  let extraccion: ExtraccionIndustrial | undefined
-  try {
-    extraccion = await extraerProductoIndustrial(descripcion, proveedor)
-  } catch {
-    // sin extracción
-  }
-
+  // The lightweight model already receives the product and validated SAT
+  // candidates. Reserve the extra analysis for genuinely ambiguous cases.
   const lite = await elegirClaveConModelo(
     descripcion,
     candidatos,
     proveedor,
-    resolverModeloLite(),
-    extraccion
+    resolverModeloLite()
   )
 
   if (!necesitaEscalamiento(lite, candidatosScores)) return lite
 
   try {
+    let extraccion: ExtraccionIndustrial | undefined
+    try {
+      extraccion = await extraerProductoIndustrial(descripcion, proveedor)
+    } catch {
+      // The escalated model can still decide from the original description.
+    }
     const escalado = await elegirClaveConModelo(
       descripcion,
       candidatos,

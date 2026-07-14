@@ -6,6 +6,7 @@ import { RolSchema } from "@/lib/schemas"
 const NuevoUsuarioSchema = z.object({
   email: z.string().email(),
   rol: RolSchema,
+  password: z.string().min(6).optional(),
 })
 
 export async function GET(request: Request) {

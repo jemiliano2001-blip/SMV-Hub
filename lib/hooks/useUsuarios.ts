@@ -46,16 +46,16 @@ export function useUsuarios() {
     }
   }
 
-  async function crearUsuario(email: string, rol: Rol): Promise<string> {
+  async function crearUsuario(email: string, rol: Rol, password?: string): Promise<string | null> {
     const res = await fetch("/api/usuarios", {
       method: "POST",
       headers: await headersAutenticados(),
-      body: JSON.stringify({ email, rol }),
+      body: JSON.stringify({ email, rol, password }),
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error ?? "No se pudo crear el usuario")
     await fetchUsuarios()
-    return data.tempPassword as string
+    return data.tempPassword as string | null
   }
 
   async function cambiarRol(uid: string, rol: Rol): Promise<void> {
@@ -78,14 +78,27 @@ export function useUsuarios() {
     await fetchUsuarios()
   }
 
-  async function resetearPassword(uid: string): Promise<string> {
+  async function resetearPassword(uid: string, password?: string): Promise<string | null> {
     const res = await fetch(`/api/usuarios/${uid}/reset-password`, {
       method: "POST",
       headers: await headersAutenticados(),
+      body: JSON.stringify({ password }),
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error ?? "No se pudo resetear la contraseña")
-    return data.tempPassword as string
+    return data.tempPassword as string | null
+  }
+
+  async function eliminarUsuario(uid: string): Promise<void> {
+    const res = await fetch(`/api/usuarios/${uid}`, {
+      method: "DELETE",
+      headers: await headersAutenticados(),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      throw new Error(data?.error ?? "No se pudo eliminar el usuario")
+    }
+    await fetchUsuarios()
   }
 
   return {
@@ -97,5 +110,6 @@ export function useUsuarios() {
     cambiarRol,
     cambiarActivo,
     resetearPassword,
+    eliminarUsuario,
   }
 }

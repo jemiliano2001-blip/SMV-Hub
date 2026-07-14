@@ -25,6 +25,7 @@ type FormInput = z.input<typeof NuevaCompraFormSchema>
 
 const ITEM_VACIO: ItemFactura = {
   descripcion: '',
+  descripcionSimplificada: '',
   cantidad: null,
   precioUnitario: null,
   total: null,
@@ -216,11 +217,19 @@ export default function NuevaCompraForm({
       return
     }
 
+    // Snapshot a memoria: si el archivo original vive en una carpeta sincronizada
+    // (OneDrive Files On-Demand, unidad de red, etc.), Chrome puede perder acceso
+    // a sus bytes en disco si el usuario tarda en llenar el formulario antes de
+    // guardar (net::ERR_FILE_NOT_FOUND al subir). El snapshot ya no depende de
+    // que el archivo original siga disponible.
+    const bytes = await file.arrayBuffer()
+    const archivo = new File([bytes], file.name, { type: file.type })
+
     setPreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev)
-      return URL.createObjectURL(file)
+      return URL.createObjectURL(archivo)
     })
-    setImagen(file)
+    setImagen(archivo)
     setErrorExtraccion(null)
     setExtraido(false)
     setExtrayendo(true)
@@ -233,7 +242,7 @@ export default function NuevaCompraForm({
       }
 
       const fd = new FormData()
-      fd.append('imagen', file)
+      fd.append('imagen', archivo)
       const res = await fetch('/api/extraer', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },

@@ -232,6 +232,7 @@ export function mapearFila(
   const items: ItemFactura[] = [
     {
       descripcion: get("descripcion"),
+      descripcionSimplificada: "",
       cantidad,
       precioUnitario,
       total: totalLinea,

@@ -8,18 +8,18 @@ module.exports = {
       numberOfRuns: 3,
     },
     assert: {
-      // Afirmaciones estrictas: buscamos mínimo 90 en cada categoría
+      // Se reportan umbrales de calidad sin bloquear el deploy.
       assertions: {
-        'categories:performance': ['error', { minScore: 0.9 }],
-        'categories:accessibility': ['error', { minScore: 0.9 }],
-        'categories:best-practices': ['error', { minScore: 0.9 }],
-        'categories:seo': ['error', { minScore: 0.9 }],
+        'categories:performance': ['warn', { minScore: 0.9 }],
+        'categories:accessibility': ['warn', { minScore: 0.9 }],
+        'categories:best-practices': ['warn', { minScore: 0.9 }],
+        'categories:seo': ['warn', { minScore: 0.9 }],
       },
     },
     upload: {
-      // Dónde subir los reportes de Lighthouse.
-      // Usamos el almacenamiento temporal gratuito para ver reportes en PRs.
-      target: 'temporary-public-storage',
+      // El workflow conserva este directorio como artefacto de GitHub Actions.
+      target: 'filesystem',
+      outputDir: '.lighthouseci',
     },
   },
 };

@@ -32,6 +32,8 @@ export interface SugerenciaClaveSat {
 export interface ItemParaSugerirSat {
   descripcion: string
   proveedor?: string
+  /** Descripción normalizada en español disponible antes de buscar candidatos. */
+  terminosPrevios?: string
 }
 
 export type HistorialSatEntry = {

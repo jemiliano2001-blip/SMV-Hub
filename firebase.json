@@ -13,6 +13,10 @@
   "hosting": {
     "site": "smv-hub",
     "source": ".",
+    "frameworksBackend": {
+      "region": "us-central1",
+      "memory": "512MiB"
+    },
     "ignore": [
       "firebase.json",
       "**/.*",

@@ -229,7 +229,7 @@ export default function ReporteContableView() {
       "Proveedor": l.proveedor,
       "Descripción Simplificada": l.descripcionSimplificada || l.descripcion,
       "Clave SAT": l.claveProdServ || "",
-      "Descripción Clave SAT": (l.claveProdServ && satDict[l.claveProdServ]) ? satDict[l.claveProdServ] : "",
+      "Descripción Clave SAT": satDict[l.claveProdServ || ""] || "",
       "Cantidad": l.cantidad || 0,
       "Precio Unitario": l.precioUnitario || 0,
       "Total": l.total,

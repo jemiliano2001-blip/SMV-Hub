@@ -1,5 +1,5 @@
-import { getApp } from 'firebase/app';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { firebaseApp } from '@/lib/firebase';
 
 export interface SupplierData {
   supplierName: string;
@@ -28,7 +28,7 @@ export interface RecommendationResponse {
 export async function getSupplierRecommendation(
   requestData: RecommendationRequest
 ): Promise<RecommendationResponse> {
-  const functions = getFunctions(getApp());
+  const functions = getFunctions(firebaseApp);
   
   // Creates a reference to the callable Cloud Function
   const recommendProvider = httpsCallable<RecommendationRequest, RecommendationResponse>(

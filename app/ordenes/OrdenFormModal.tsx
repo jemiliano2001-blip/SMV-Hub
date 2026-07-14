@@ -148,6 +148,7 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
         const claveProdServ = normalizarClaveProdServ(i.claveProdServ)
         return {
           descripcion: i.descripcion,
+          descripcionSimplificada: (i as any).descripcionSimplificada || '',
           cantidad: i.cantidad ? Number(i.cantidad) : null,
           precioUnitario: i.precioUnitario ? Number(i.precioUnitario) : null,
           total: i.total ? Number(i.total) : null,

@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { verificarAdmin } from "@/lib/api-auth"
-import { actualizarUsuarioAdmin } from "@/lib/usuarios-admin"
+import { actualizarUsuarioAdmin, eliminarUsuarioAdmin } from "@/lib/usuarios-admin"
 import { RolSchema } from "@/lib/schemas"
 
 const CambiosUsuarioSchema = z
@@ -29,5 +29,23 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ui
   } catch (error: unknown) {
     console.error("Error actualizando usuario:", error instanceof Error ? error.message : "error desconocido")
     return Response.json({ error: "No se pudo actualizar el usuario" }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request, { params }: { params: Promise<{ uid: string }> }) {
+  const auth = await verificarAdmin(request)
+  if (!auth.ok) return auth.response
+
+  const { uid } = await params
+  if (uid === auth.uid) {
+    return Response.json({ error: "No puedes eliminar tu propia cuenta" }, { status: 400 })
+  }
+
+  try {
+    await eliminarUsuarioAdmin(uid)
+    return Response.json({ ok: true })
+  } catch (error: unknown) {
+    console.error("Error eliminando usuario:", error instanceof Error ? error.message : "error desconocido")
+    return Response.json({ error: "No se pudo eliminar el usuario" }, { status: 500 })
   }
 }

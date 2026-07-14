@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { UserPlus, Copy, Check, AlertCircle } from 'lucide-react'
+import { UserPlus, Copy, Check, AlertCircle, Trash2, KeyRound } from 'lucide-react'
 import AuthGuard from '../AuthGuard'
 import { useUsuarios, type UsuarioAdmin } from '@/lib/hooks/useUsuarios'
 import type { Rol } from '@/lib/schemas'
@@ -40,20 +40,26 @@ function BannerPasswordTemporal({ password, onClose }: { password: string; onClo
   )
 }
 
-function FormNuevoUsuario({ onCrear }: { onCrear: (email: string, rol: Rol) => Promise<void> }) {
+function FormNuevoUsuario({ onCrear }: { onCrear: (email: string, rol: Rol, password?: string) => Promise<void> }) {
   const [email, setEmail] = useState('')
   const [rol, setRol] = useState<Rol>('compras')
+  const [password, setPassword] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (password && password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres')
+      return
+    }
     setEnviando(true)
     setError(null)
     try {
-      await onCrear(email, rol)
+      await onCrear(email, rol, password || undefined)
       setEmail('')
       setRol('compras')
+      setPassword('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el usuario')
     } finally {
@@ -86,6 +92,16 @@ function FormNuevoUsuario({ onCrear }: { onCrear: (email: string, rol: Rol) => P
           ))}
         </select>
       </div>
+      <div className="min-w-[180px]">
+        <label className="block text-xs font-medium text-gray-500 mb-1">Contraseña (opcional)</label>
+        <input
+          type="text"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="En blanco = generar temporal"
+          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+        />
+      </div>
       <button
         type="submit"
         disabled={enviando}
@@ -104,12 +120,35 @@ function FilaUsuario({
   onCambiarRol,
   onCambiarActivo,
   onResetearPassword,
+  onEliminar,
 }: {
   usuario: UsuarioAdmin
   onCambiarRol: (uid: string, rol: Rol) => Promise<void>
   onCambiarActivo: (uid: string, activo: boolean) => Promise<void>
-  onResetearPassword: (uid: string) => Promise<void>
+  onResetearPassword: (uid: string, password?: string) => Promise<void>
+  onEliminar: (uid: string) => Promise<void>
 }) {
+  const [mostrarReset, setMostrarReset] = useState(false)
+  const [nuevaPassword, setNuevaPassword] = useState('')
+  const [errorReset, setErrorReset] = useState<string | null>(null)
+
+  async function confirmarReset() {
+    if (nuevaPassword && nuevaPassword.length < 6) {
+      setErrorReset('Mínimo 6 caracteres')
+      return
+    }
+    await onResetearPassword(usuario.id, nuevaPassword || undefined)
+    setMostrarReset(false)
+    setNuevaPassword('')
+    setErrorReset(null)
+  }
+
+  function handleEliminar() {
+    if (window.confirm(`¿Eliminar a ${usuario.email}? Esto borra su acceso permanentemente.`)) {
+      onEliminar(usuario.id)
+    }
+  }
+
   return (
     <tr className="border-b border-gray-100">
       <td className="px-4 py-3 text-sm text-gray-900">{usuario.email}</td>
@@ -136,27 +175,73 @@ function FilaUsuario({
         </button>
       </td>
       <td className="px-4 py-3">
-        {usuario.proveedor === 'password' && (
+        <div className="flex items-center gap-3">
+          {usuario.proveedor === 'password' &&
+            (mostrarReset ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  autoFocus
+                  value={nuevaPassword}
+                  onChange={(e) => setNuevaPassword(e.target.value)}
+                  placeholder="En blanco = temporal"
+                  className="w-36 px-2 py-1 text-xs rounded border border-gray-200"
+                />
+                <button onClick={confirmarReset} className="text-xs font-medium text-[#0369A1] hover:underline">
+                  Confirmar
+                </button>
+                <button
+                  onClick={() => {
+                    setMostrarReset(false)
+                    setNuevaPassword('')
+                    setErrorReset(null)
+                  }}
+                  className="text-xs text-gray-400 hover:underline"
+                >
+                  Cancelar
+                </button>
+                {errorReset && <span className="text-xs text-red-600">{errorReset}</span>}
+              </div>
+            ) : (
+              <button
+                onClick={() => setMostrarReset(true)}
+                className="flex items-center gap-1 text-xs text-[#0369A1] hover:underline"
+              >
+                <KeyRound className="h-3.5 w-3.5" />
+                Contraseña
+              </button>
+            ))}
           <button
-            onClick={() => onResetearPassword(usuario.id)}
-            className="text-xs text-[#0369A1] hover:underline"
+            onClick={handleEliminar}
+            className="flex items-center gap-1 text-xs text-red-600 hover:underline"
           >
-            Resetear contraseña
+            <Trash2 className="h-3.5 w-3.5" />
+            Eliminar
           </button>
-        )}
+        </div>
       </td>
     </tr>
   )
 }
 
 function UsuariosContent() {
-  const { usuarios, loading, error, fetchUsuarios, crearUsuario, cambiarRol, cambiarActivo, resetearPassword } = useUsuarios()
+  const {
+    usuarios,
+    loading,
+    error,
+    fetchUsuarios,
+    crearUsuario,
+    cambiarRol,
+    cambiarActivo,
+    resetearPassword,
+    eliminarUsuario,
+  } = useUsuarios()
   const [passwordTemporal, setPasswordTemporal] = useState<string | null>(null)
   const [accionError, setAccionError] = useState<string | null>(null)
 
-  async function handleCrear(email: string, rol: Rol) {
-    const tempPassword = await crearUsuario(email, rol)
-    setPasswordTemporal(tempPassword)
+  async function handleCrear(email: string, rol: Rol, password?: string) {
+    const tempPassword = await crearUsuario(email, rol, password)
+    if (tempPassword) setPasswordTemporal(tempPassword)
   }
 
   async function handleCambiarRol(uid: string, rol: Rol) {
@@ -179,14 +264,24 @@ function UsuariosContent() {
     }
   }
 
-  async function handleResetPassword(uid: string) {
+  async function handleResetPassword(uid: string, password?: string) {
     setAccionError(null)
     try {
-      const tempPassword = await resetearPassword(uid)
-      setPasswordTemporal(tempPassword)
+      const tempPassword = await resetearPassword(uid, password)
+      if (tempPassword) setPasswordTemporal(tempPassword)
     } catch (err) {
       console.error('Error reseteando contraseña:', err)
       setAccionError('No se pudo resetear la contraseña. Intenta de nuevo.')
+    }
+  }
+
+  async function handleEliminar(uid: string) {
+    setAccionError(null)
+    try {
+      await eliminarUsuario(uid)
+    } catch (err) {
+      console.error('Error eliminando usuario:', err)
+      setAccionError(err instanceof Error ? err.message : 'No se pudo eliminar el usuario. Intenta de nuevo.')
     }
   }
 
@@ -242,6 +337,7 @@ function UsuariosContent() {
                   onCambiarRol={handleCambiarRol}
                   onCambiarActivo={handleCambiarActivo}
                   onResetearPassword={handleResetPassword}
+                  onEliminar={handleEliminar}
                 />
               ))
             )}

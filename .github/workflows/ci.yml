@@ -104,6 +104,14 @@ jobs:
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
 
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: .lighthouseci
+          if-no-files-found: warn
+
   deploy:
     name: Deploy to Firebase
     runs-on: ubuntu-latest
@@ -114,18 +122,34 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Check Firebase deploy credentials
+        id: firebase_credentials
+        shell: bash
+        env:
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT_KEY" ]; then
+            echo "::warning::FIREBASE_SERVICE_ACCOUNT_KEY is not configured; skipping GitHub Firebase deploy. Deploy locally with Firebase CLI or add the repo secret."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup Node.js
+        if: steps.firebase_credentials.outputs.available == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
       - name: Install All Dependencies
+        if: steps.firebase_credentials.outputs.available == 'true'
         run: |
           npm ci
           cd functions && npm ci
 
       - name: Build Project
+        if: steps.firebase_credentials.outputs.available == 'true'
         run: |
           npm run build
           cd functions && npm run build
@@ -141,6 +165,7 @@ jobs:
           NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ secrets.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}
 
       - name: Deploy to Firebase (hosting, functions, rules, storage)
+        if: steps.firebase_credentials.outputs.available == 'true'
         uses: w9jds/firebase-action@master
         with:
           args: deploy --only hosting,functions:autoPurchase,functions:recommendProvider,functions:exportToGoogleSheets,functions:importFromGoogleSheets,functions:exportToExcel,firestore:rules,storage
@@ -157,7 +182,21 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Check Firebase deploy credentials
+        id: firebase_credentials
+        shell: bash
+        env:
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT_KEY" ]; then
+            echo "::warning::FIREBASE_SERVICE_ACCOUNT_KEY is not configured; skipping rules deploy. Deploy locally with Firebase CLI or add the repo secret."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Deploy Firestore and Storage rules
+        if: steps.firebase_credentials.outputs.available == 'true'
         uses: w9jds/firebase-action@master
         with:
           args: deploy --only firestore:rules,storage

@@ -1,18 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
-const { mockVerificarAdmin, mockActualizar, mockResetear } = vi.hoisted(() => ({
+const { mockVerificarAdmin, mockActualizar, mockResetear, mockEliminar } = vi.hoisted(() => ({
   mockVerificarAdmin: vi.fn(),
   mockActualizar: vi.fn(),
   mockResetear: vi.fn(),
+  mockEliminar: vi.fn(),
 }))
 
 vi.mock("@/lib/api-auth", () => ({ verificarAdmin: mockVerificarAdmin }))
 vi.mock("@/lib/usuarios-admin", () => ({
   actualizarUsuarioAdmin: mockActualizar,
   resetearPasswordAdmin: mockResetear,
+  eliminarUsuarioAdmin: mockEliminar,
 }))
 
-import { PATCH } from "@/app/api/usuarios/[uid]/route"
+import { PATCH, DELETE } from "@/app/api/usuarios/[uid]/route"
 import { POST as resetPassword } from "@/app/api/usuarios/[uid]/reset-password/route"
 
 function makeRequest(method: string, body?: unknown): Request {
@@ -80,6 +82,50 @@ describe("POST /api/usuarios/[uid]/reset-password", () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body).toEqual({ tempPassword: "nueva-temp-123" })
-    expect(mockResetear).toHaveBeenCalledWith("uid-1")
+    expect(mockResetear).toHaveBeenCalledWith("uid-1", undefined)
+  })
+
+  it("acepta una contraseña personalizada y la reenvía", async () => {
+    mockResetear.mockResolvedValue(null)
+    const res = await resetPassword(makeRequest("POST", { password: "miPassword123" }), { params })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body).toEqual({ tempPassword: null })
+    expect(mockResetear).toHaveBeenCalledWith("uid-1", "miPassword123")
+  })
+
+  it("retorna 400 si la contraseña personalizada es muy corta", async () => {
+    const res = await resetPassword(makeRequest("POST", { password: "abc" }), { params })
+    expect(res.status).toBe(400)
+    expect(mockResetear).not.toHaveBeenCalled()
+  })
+})
+
+describe("DELETE /api/usuarios/[uid]", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockVerificarAdmin.mockResolvedValue({ ok: true, uid: "admin-1", email: "jemiliano2001@gmail.com" })
+  })
+
+  it("retorna 403 si no es admin", async () => {
+    mockVerificarAdmin.mockResolvedValue({
+      ok: false,
+      response: Response.json({ error: "Se requiere rol de administrador" }, { status: 403 }),
+    })
+    const res = await DELETE(makeRequest("DELETE"), { params })
+    expect(res.status).toBe(403)
+    expect(mockEliminar).not.toHaveBeenCalled()
+  })
+
+  it("retorna 400 si el admin intenta eliminarse a sí mismo", async () => {
+    const res = await DELETE(makeRequest("DELETE"), { params: Promise.resolve({ uid: "admin-1" }) })
+    expect(res.status).toBe(400)
+    expect(mockEliminar).not.toHaveBeenCalled()
+  })
+
+  it("elimina al usuario", async () => {
+    const res = await DELETE(makeRequest("DELETE"), { params })
+    expect(res.status).toBe(200)
+    expect(mockEliminar).toHaveBeenCalledWith("uid-1")
   })
 })
