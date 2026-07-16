@@ -148,7 +148,7 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
         const claveProdServ = normalizarClaveProdServ(i.claveProdServ)
         return {
           descripcion: i.descripcion,
-          descripcionSimplificada: (i as any).descripcionSimplificada || '',
+          descripcionSimplificada: '',
           cantidad: i.cantidad ? Number(i.cantidad) : null,
           precioUnitario: i.precioUnitario ? Number(i.precioUnitario) : null,
           total: i.total ? Number(i.total) : null,
@@ -193,7 +193,8 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
         const id = await crearOrden(payload)
         onSaved({ ...payload, id, creadoEn: new Date(), actualizadoEn: new Date() } as OrdenCompra)
       }
-    } catch (err) {
+      onClose()
+    } catch (err: unknown) {
       console.error(err)
       setError('Ocurrió un error al guardar la orden. Revisa los datos.')
     } finally {
