@@ -22,6 +22,12 @@ Módulos actuales:
 - `/ordenes` — lista las órdenes con búsqueda de texto libre + filtros de estado por pill; detalle en modal; edición inline vía `OrdenFormModal`; bulk delete.
 - `/importar` — importación masiva por CSV con preview validado y carga por lotes a Firestore.
 - `/reportes` — reporte con KPIs, tabla agrupada con subtotales y export a PDF (vía `@media print` de Tailwind). Incluye envío de reportes por correo y órdenes recurrentes. Lógica pura en `lib/reportes.ts`; UI en `app/reportes/`.
+- `/finanzas` — facturación y cobranza de clientes sincronizada con Odoo; solo rol `admin` (ver
+  `lib/roles.ts` y `firestore.rules`). Lógica en `lib/finanzas.ts` / `lib/finanzas-facturas.ts`;
+  sync en `functions/src/odooSync.ts` + `odoo-mapeo.ts`.
+- `/caja-chica` — movimientos y arqueo de caja chica (`lib/caja-chica.ts`).
+- `/claves-sat` — buscador de claves SAT (`BuscadorClavesSat.tsx`), complementa la sugerencia
+  automática de `/nueva-compra`.
 - `/cotizaciones` — gestión de cotizaciones; importación por CSV, tabs de estado y listado.
 - `/requisiciones` — gestión de requisiciones (CRUD vía `lib/requisiciones.ts` + hook `useRequisiciones`).
 - `/ordenes-servicio` — gestión de órdenes de servicio (CRUD vía `lib/ordenes-servicio.ts` + hook `useOrdenesServicio`).
@@ -29,6 +35,9 @@ Módulos actuales:
 - `/banos` — registros de tiempos de baño, conteos diarios y agregación de resumen mensual.
 - `/horas-extra` — tabla editable para seguimiento de horas extras semanales por departamento.
 - `/operadores` — catálogo de personal para auto-completar en módulos operativos.
+- `/usuarios` — administración de accesos y roles (solo `admin`); lógica en `lib/usuarios.ts` /
+  `lib/usuarios-admin.ts`.
+- `/auditoria` — pantalla exclusiva de auditoría (`lib/auditoria.ts`).
 - `/login` — página de inicio de sesión con Google Sign-In; redirige al home si ya hay sesión.
 
 `POST /api/scrape` extrae precio/datos de un producto desde URLs de un whitelist de hosts
@@ -50,6 +59,11 @@ npm run test:coverage  # Vitest con reporte de cobertura
 # Correr un solo archivo de pruebas (los archivos en tests/ reflejan 1:1 los módulos de lib/):
 npx vitest run tests/reportes.test.ts
 ```
+
+`npm run build` corre con `--webpack` (no Turbopack) y valida el bundle después: Firebase
+Hosting usa Turbopack por defecto, pero con `firebase-admin`/`firebase-functions` genera
+aliases con hash que la función SSR no resuelve en producción — no lo cambies a `next build`
+a secas (ver `next.config.ts` y `scripts/verificar-bundle-firebase.mjs`).
 
 ## Variables de entorno
 
@@ -123,8 +137,10 @@ GEMINI_API_KEY=
   - `hooks/` — hooks de datos por módulo (`useOrdenes`, `useCotizaciones`, `useRequisiciones`, `useOrdenesServicio`)
   - `services/recommendation.ts` — cliente del lado del cliente que llama a la Cloud Function `recommendProvider` (Vertex AI) para sugerir el mejor proveedor dado SKU + lista de suppliers con precio y lead time
 - `functions/` — Cloud Functions de Firebase (TypeScript en `functions/src/`): `autoPurchase`,
-  `recommendProvider` (Vertex AI), sync con Google Sheets (`sheetsSync`) y Excel (`excelSync`),
-  `auth.ts` (middleware de autenticación compartido entre functions). Build/deploy aparte de la app Next.js.
+  `recommendProvider` (Vertex AI), sync con Google Sheets (`sheetsSync`), Excel (`excelSync`) y
+  Odoo (`odooSync` + `odoo-mapeo.ts` — primer uso de Secret Manager vía `runWith({ secrets })`
+  en este repo), `auth.ts` (middleware de autenticación compartido). Build/deploy aparte de la
+  app Next.js.
 - `tests/` — pruebas de Vitest; la mayoría prueban lógica pura de `lib/` sin Firebase real, pero
   `extraer-route.test.ts` y `extraer-lote.test.ts` testean los Route Handlers mockeando fetch/Gemini,
   y `lib-ordenes.test.ts` / `ordenes.test.ts` cubren la capa CRUD de Firestore
@@ -250,6 +266,14 @@ pruebas locales — `useUsuario` devuelve un usuario simulado y no se contacta F
 En producción **siempre** se exige sesión. Control con `NEXT_PUBLIC_DEV_AUTH_BYPASS`:
 `"true"` fuerza el bypass, `"false"` lo desactiva (exige login incluso en dev), sin definir
 deja el comportamiento por defecto (bypass solo fuera de producción).
+
+### Roles y permisos
+
+Además de la sesión, cada usuario tiene un `Rol` (`admin`|`compras`|`diseno`|`almacen`,
+`lib/schemas.ts`). `lib/roles.ts` define `PERMISOS_POR_ROL` (rutas base permitidas por rol) y
+`tienePermiso(rol, pathname)`; `AuthGuard.tsx` bloquea la navegación y `NavBar.tsx` oculta los
+enlaces según el rol. `/finanzas`, `/auditoria` y `/usuarios` son exclusivos de `admin` —
+mantener sincronizado con `firestore.rules`.
 
 ## Flujo de planeación
 
