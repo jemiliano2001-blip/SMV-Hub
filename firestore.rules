@@ -310,6 +310,40 @@ service cloud.firestore {
       allow delete: if esUsuarioAutorizado();
     }
 
+    // ── Caja Chica ───────────────────────────────────────────────────────────
+
+    function movimientoCajaChicaValido(d) {
+      return d.fecha is string &&
+             d.periodo is string &&
+             d.descripcion is string &&
+             d.proveedor is string &&
+             d.categoria is string &&
+             d.solicitante is string &&
+             d.comprobante in ['FACTURA', 'VALE', 'TICKET', 'NINGUNO'] &&
+             d.deducible is bool &&
+             d.tipo in ['ENTRADA', 'SALIDA'] &&
+             d.monto is number &&
+             d.costoReal is number &&
+             d.ivaEstimado is number &&
+             d.verificado is bool &&
+             d.creadoEn is timestamp &&
+             d.actualizadoEn is timestamp;
+    }
+
+    match /caja_chica_movimientos/{movimientoId} {
+      allow read: if esUsuarioAutorizado();
+
+      allow create: if esUsuarioAutorizado()
+                    && movimientoCajaChicaValido(request.resource.data);
+
+      allow update: if esUsuarioAutorizado()
+                    && movimientoCajaChicaValido(request.resource.data)
+                    && request.resource.data.creadoEn == resource.data.creadoEn
+                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+
+      allow delete: if esUsuarioAutorizado();
+    }
+
     // ── Reportes Contables ───────────────────────────────────────────────────
 
     function reporteContableValido(d) {
@@ -322,6 +356,30 @@ service cloud.firestore {
       allow read: if esUsuarioAutorizado();
       allow create: if esUsuarioAutorizado() && reporteContableValido(request.resource.data);
       allow update, delete: if false;
+    }
+
+    // ── Finanzas (espejo de solo lectura de facturación de clientes en Odoo) ─
+    // Más sensible que compras: restringido a admin, no a cualquier usuario
+    // activo. Nunca se escribe desde el navegador — solo el Cloud Function de
+    // sync vía Admin SDK, que ignora estas reglas.
+
+    function esAdminRol() {
+      return exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
+    }
+
+    function esFinanzasAutorizado() {
+      return esUsuarioAutorizado() && (esCorreoBreakGlass() || esAdminRol());
+    }
+
+    match /finanzas_facturas/{facturaId} {
+      allow read: if esFinanzasAutorizado();
+      allow write: if false;
+    }
+
+    match /finanzas_sync_state/{docId} {
+      allow read: if esFinanzasAutorizado();
+      allow write: if false;
     }
 
     // ── Auditoría (Registro de acciones) ─────────────────────────────────────

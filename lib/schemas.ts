@@ -352,3 +352,72 @@ export const HorasExtraSchema = z.object({
   actualizadoEn: z.date(),
 })
 export type HorasExtra = z.infer<typeof HorasExtraSchema>
+
+// ── Caja Chica ───────────────────────────────────────────────────────────────
+
+export const TipoMovimientoCajaSchema = z.enum(["ENTRADA", "SALIDA"])
+export type TipoMovimientoCaja = z.infer<typeof TipoMovimientoCajaSchema>
+
+export const ComprobanteCajaSchema = z.enum(["FACTURA", "VALE", "TICKET", "NINGUNO"])
+export type ComprobanteCaja = z.infer<typeof ComprobanteCajaSchema>
+
+export const MovimientoCajaChicaSchema = z.object({
+  id: z.string(),
+  fecha: z.string(), // YYYY-MM-DD
+  periodo: z.string(), // YYYY-MM
+  descripcion: z.string(),
+  proveedor: z.string(),
+  categoria: z.string(),
+  solicitante: z.string(),
+  comprobante: ComprobanteCajaSchema,
+  deducible: z.boolean(),
+  tipo: TipoMovimientoCajaSchema,
+  monto: z.number().min(0),
+  costoReal: z.number().min(0),
+  ivaEstimado: z.number().min(0),
+  verificado: z.boolean().default(false),
+  creadoEn: z.date(),
+  actualizadoEn: z.date(),
+})
+export type MovimientoCajaChica = z.infer<typeof MovimientoCajaChicaSchema>
+
+// ── Finanzas: facturación de clientes (espejo de solo lectura de Odoo) ───────
+// Campos confirmados contra Odoo real (Fase 0, 2026-07-15): account.move,
+// compañía única "SERVICIOS Y MAQUINADOS VAZQUEZ" (id=1).
+
+export const EstadoPagoFacturaSchema = z.enum(["no_pagado", "pagado_parcial", "pagado", "revertido"])
+export type EstadoPagoFactura = z.infer<typeof EstadoPagoFacturaSchema>
+
+export const EstadoFacturaSchema = z.enum(["borrador", "publicado", "cancelado"]) // state: draft/posted/cancel
+export type EstadoFactura = z.infer<typeof EstadoFacturaSchema>
+
+export const TipoFacturaSchema = z.enum(["factura", "nota_credito"]) // move_type: out_invoice/out_refund
+export type TipoFactura = z.infer<typeof TipoFacturaSchema>
+
+export const FacturaClienteSchema = z.object({
+  id: z.string(), // `odoo_<move_id>`
+  odooId: z.number(),
+  odooCompanyId: z.number(),
+  numeroFactura: z.string(), // move.name — "/" hasta que se postea
+  cliente: z.string(), // partner_id[1]
+  odooPartnerId: z.number(), // partner_id[0]
+  fechaFactura: z.string().nullable(), // invoice_date, YYYY-MM-DD — null en no-posteadas
+  fechaVencimiento: z.string().nullable(), // invoice_date_due
+  moneda: z.string(), // currency_id[1], código ISO — nunca asumir MXN
+  subtotal: z.number(), // amount_untaxed
+  impuestos: z.number(), // amount_tax — nunca hardcodear tasa (8% frontera ≠ 16% general)
+  total: z.number(), // amount_total
+  saldoPendiente: z.number(), // amount_residual ("Amount Due")
+  montoPagado: z.number(), // derivado: total - saldoPendiente
+  estadoPago: EstadoPagoFacturaSchema,
+  estado: EstadoFacturaSchema,
+  tipo: TipoFacturaSchema,
+  referencia: z.string().nullable(), // ref: PO del cliente, o nota de reversión en notas de crédito
+  origenVenta: z.string().nullable(), // invoice_origin — orden de venta origen, ej. "2026/S01413"
+  origen: z.literal("odoo"), // trazabilidad (CLAUDE.md regla 9)
+  sincronizadoEn: z.date(),
+  creadoEn: z.date(),
+  actualizadoEn: z.date(),
+})
+export type FacturaCliente = z.infer<typeof FacturaClienteSchema>
+

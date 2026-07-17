@@ -7,15 +7,16 @@ export type { Rol }
 export const PERMISOS_POR_ROL: Record<Rol, string[]> = {
   admin: [
     '/',
-    '/nueva-compra', '/ordenes', '/importar', '/claves-sat', '/cotizaciones', '/requisiciones', '/reportes',
+    '/nueva-compra', '/ordenes', '/importar', '/claves-sat', '/cotizaciones', '/requisiciones', '/reportes', '/caja-chica',
     '/almacen', '/ordenes-servicio', '/operadores',
     '/horas-extra', '/banos',
+    '/finanzas', // Facturación de clientes (Odoo) — solo admin, ver firestore.rules
     '/auditoria', // Pantalla exclusiva
     '/usuarios', // Administración de accesos y roles
   ],
   compras: [
     '/',
-    '/nueva-compra', '/importar', '/cotizaciones', '/requisiciones',
+    '/nueva-compra', '/importar', '/cotizaciones', '/requisiciones', '/caja-chica',
     '/almacen', '/ordenes-servicio', '/operadores',
     '/horas-extra', '/banos'
     // Excluidos: /ordenes, /claves-sat, /reportes, /auditoria, /usuarios

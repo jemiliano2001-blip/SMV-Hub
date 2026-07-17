@@ -49,6 +49,7 @@ next-env.d.ts
 
 # confidential local extraction data
 data/extraccion/
+data/odoo-discovery/
 
 # generated analysis artifacts
 .graphify_*

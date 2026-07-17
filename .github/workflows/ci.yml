@@ -168,7 +168,7 @@ jobs:
         if: steps.firebase_credentials.outputs.available == 'true'
         uses: w9jds/firebase-action@master
         with:
-          args: deploy --only hosting,functions:autoPurchase,functions:recommendProvider,functions:exportToGoogleSheets,functions:importFromGoogleSheets,functions:exportToExcel,firestore:rules,storage
+          args: deploy --only hosting,functions:autoPurchase,functions:recommendProvider,functions:exportToGoogleSheets,functions:importFromGoogleSheets,functions:exportToExcel,functions:syncOdooFacturasScheduled,functions:syncOdooFacturasManual,firestore:rules,storage
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
           PROJECT_ID: smv-brain

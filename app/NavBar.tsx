@@ -22,7 +22,17 @@ const GRUPOS: GrupoNav[] = [
       { href: '/claves-sat', label: 'Claves SAT' },
       { href: '/cotizaciones', label: 'Cotizaciones' },
       { href: '/requisiciones', label: 'Requisiciones' },
+      { href: '/caja-chica', label: 'Caja chica' },
       { href: '/reportes', label: 'Reportes' },
+    ],
+  },
+  {
+    nombre: 'Finanzas',
+    links: [
+      { href: '/finanzas', label: 'Resumen' },
+      { href: '/finanzas/facturacion', label: 'Facturación por cliente' },
+      { href: '/finanzas/cobranza', label: 'Cobranza' },
+      { href: '/finanzas/reportes', label: 'Reportes' },
     ],
   },
   {

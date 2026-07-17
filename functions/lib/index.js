@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.exportToExcel = exports.importFromGoogleSheets = exports.exportToGoogleSheets = exports.recommendProvider = exports.autoPurchase = void 0;
+exports.syncOdooFacturasManual = exports.syncOdooFacturasScheduled = exports.exportToExcel = exports.importFromGoogleSheets = exports.exportToGoogleSheets = exports.recommendProvider = exports.autoPurchase = void 0;
 var autoPurchase_1 = require("./autoPurchase");
 Object.defineProperty(exports, "autoPurchase", { enumerable: true, get: function () { return autoPurchase_1.autoPurchase; } });
 var recommendation_1 = require("./recommendation");
@@ -10,3 +10,6 @@ Object.defineProperty(exports, "exportToGoogleSheets", { enumerable: true, get: 
 Object.defineProperty(exports, "importFromGoogleSheets", { enumerable: true, get: function () { return sheetsSync_1.importFromGoogleSheets; } });
 var excelSync_1 = require("./excelSync");
 Object.defineProperty(exports, "exportToExcel", { enumerable: true, get: function () { return excelSync_1.exportToExcel; } });
+var odooSync_1 = require("./odooSync");
+Object.defineProperty(exports, "syncOdooFacturasScheduled", { enumerable: true, get: function () { return odooSync_1.syncOdooFacturasScheduled; } });
+Object.defineProperty(exports, "syncOdooFacturasManual", { enumerable: true, get: function () { return odooSync_1.syncOdooFacturasManual; } });
