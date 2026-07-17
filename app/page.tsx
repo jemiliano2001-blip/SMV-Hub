@@ -111,27 +111,27 @@ export default function Home() {
             key={href}
             href={href}
             className={[
-              'group flex items-start gap-4 rounded-xl border p-5 cursor-pointer transition-all duration-150',
+              'group flex items-start gap-4 rounded-2xl border p-5 cursor-pointer transition-all duration-300 hover:-translate-y-1 active:scale-[0.98]',
               primary
-                ? 'bg-[#0369A1] border-[#0369A1] text-white hover:bg-[#0284C7] hover:border-[#0284C7]'
-                : 'bg-white border-[#E2E8F0] hover:border-[#0369A1] hover:shadow-sm',
+                ? 'bg-gradient-to-br from-[#0369A1] to-[#1E40AF] border-transparent text-white hover:shadow-xl hover:shadow-blue-900/20 shadow-md'
+                : 'bg-white border-gray-200 hover:border-blue-200 hover:shadow-xl hover:shadow-gray-200/50 shadow-sm',
             ].join(' ')}
           >
             <div
               className={[
-                'shrink-0 rounded-lg p-2 transition-colors duration-150',
+                'shrink-0 rounded-xl p-2.5 transition-all duration-300 group-hover:scale-110 shadow-sm',
                 primary
-                  ? 'bg-white/20'
-                  : 'bg-[#F8FAFC] group-hover:bg-[#EFF6FF]',
+                  ? 'bg-white/20 text-white'
+                  : 'bg-slate-50 text-[#0369A1] group-hover:bg-blue-50 group-hover:text-blue-600',
               ].join(' ')}
             >
-              <Icon className={`h-5 w-5 ${primary ? 'text-white' : 'text-[#0369A1]'}`} />
+              <Icon className="h-5 w-5" />
             </div>
-            <div className="min-w-0">
-              <div className={`font-semibold text-sm ${primary ? 'text-white' : 'text-[#0F172A]'}`}>
+            <div className="min-w-0 flex-1 mt-0.5">
+              <div className={`font-bold text-sm tracking-tight transition-colors ${primary ? 'text-white' : 'text-slate-900 group-hover:text-blue-900'}`}>
                 {label}
               </div>
-              <div className={`text-xs mt-0.5 leading-relaxed ${primary ? 'text-white/80' : 'text-[#64748B]'}`}>
+              <div className={`text-xs mt-1.5 leading-relaxed font-medium ${primary ? 'text-blue-100' : 'text-slate-500 group-hover:text-slate-600'}`}>
                 {desc}
               </div>
             </div>
