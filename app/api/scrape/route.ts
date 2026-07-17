@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio'
 import { verificarUsuarioAutorizado } from '@/lib/api-auth'
-import { parsePrice } from '@/lib/scrape'
+import { SCRAPERS, genericScraper } from '@/lib/scrapers'
 
 const HOSTS_PERMITIDOS = [
   'amazon.com',
@@ -78,70 +78,26 @@ export async function POST(request: Request) {
     const $ = cheerio.load(html)
 
     let title = ''
-    let price = null
+    let price: number | null = null
     let provider = ''
 
     const hostname = parsedUrl.hostname.toLowerCase()
-
-    // --- Provider-specific parsing logic ---
-    if (hostname.includes('amazon.')) {
-      provider = 'Amazon'
-      title = $('#productTitle').text().trim()
-      const priceText = $('.a-price .a-offscreen').first().text() || $('#priceblock_ourprice').text() || $('#priceblock_dealprice').text()
-      if (priceText) {
-        price = parsePrice(priceText)
-      }
-    } 
-    else if (hostname.includes('ebay.')) {
-      provider = 'eBay'
-      title = $('.x-item-title__mainTitle span').text().trim() || $('#itemTitle').text().replace('Details about  ', '').trim()
-      const priceText = $('.x-price-primary span').text() || $('#prcIsum').text()
-      if (priceText) {
-        price = parsePrice(priceText)
-      }
-    }
-    else if (hostname.includes('mcmaster.com')) {
-      provider = 'McMaster-Carr'
-      // McMaster is heavily JS rendered, but sometimes we can grab title from the meta tags or h1
-      title = $('h1').text().trim() || $('meta[property="og:title"]').attr('content') || ''
-      const priceText = $('.Price').first().text() || $('[data-mcm-price]').attr('data-mcm-price')
-      if (priceText) price = parsePrice(priceText)
-    }
-    else if (hostname.includes('mscdirect.com')) {
-      provider = 'MSC Industrial Supply'
-      title = $('h1.product-title').text().trim() || $('h1').text().trim()
-      const priceText = $('.product-price .price').first().text() || $('.item-price').text()
-      if (priceText) price = parsePrice(priceText)
-    }
-    else if (hostname.includes('digikey.')) {
-      provider = 'DigiKey'
-      title = $('h1').text().trim() || $('title').text().replace(' | DigiKey', '').trim()
-      const priceText = $('[data-testid="price-and-procure-title"]').text() || $('.product-details-price').text()
-      if (priceText) price = parsePrice(priceText)
-    }
-    else if (hostname.includes('mouser.')) {
-      provider = 'Mouser'
-      title = $('h1').text().trim() || $('#spnDescription').text().trim()
-      const priceText = $('.price-pricing').first().text() || $('.pdp-pricing-table .price').first().text()
-      if (priceText) price = parsePrice(priceText)
-    }
-    else if (hostname.includes('homedepot.')) {
-      provider = 'Home Depot'
-      title = $('h1').text().trim()
-      const priceText = $('.price-format__main-price').first().text() || $('.price__format').first().text()
-      if (priceText) price = parsePrice(priceText)
-    }
-    else {
+    
+    // Find matching scraper strategy based on hostname
+    const match = Object.entries(SCRAPERS).find(([key]) => hostname.includes(key))
+    
+    if (match) {
+      const scraper = match[1]
+      provider = scraper.provider
+      const result = scraper.extract($)
+      title = result.title
+      price = result.price
+    } else {
       // Generic fallback
-      provider = hostname.replace('www.', '').split('.')[0]
-      // Capitalize first letter
-      provider = provider.charAt(0).toUpperCase() + provider.slice(1)
-      
-      title = $('meta[property="og:title"]').attr('content') || $('title').text() || $('h1').first().text().trim()
-      
-      // Try to find a price generic
-      const possiblePrice = $('[itemprop="price"]').attr('content') || $('[property="product:price:amount"]').attr('content')
-      if (possiblePrice) price = parsePrice(possiblePrice)
+      const result = genericScraper(hostname, $)
+      provider = result.provider
+      title = result.title
+      price = result.price
     }
 
     return Response.json({
