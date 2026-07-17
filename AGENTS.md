@@ -32,3 +32,10 @@ When configuring or updating Gemini models, ALWAYS refer to [https://ai.google.d
 - **Roles/permisos:** every user has a `Rol` (`admin`|`compras`|`diseno`|`almacen`, `lib/schemas.ts`); `lib/roles.ts` (`PERMISOS_POR_ROL`, `tienePermiso()`) gates routes in `AuthGuard.tsx` and hides nav links in `NavBar.tsx`. `/finanzas`, `/auditoria`, `/usuarios` are `admin`-only — keep in sync with `firestore.rules` when adding a route or changing a role's access.
 - **`/finanzas` + `/caja-chica`:** client invoicing/collections synced from Odoo (`functions/src/odooSync.ts` + `odoo-mapeo.ts`, first use of Secret Manager via `runWith({ secrets })` in this repo, prefixed `FINANZAS_*`; pure mapping logic has no firebase-admin/functions deps so it's testable from repo root with Vitest); app logic in `lib/finanzas.ts` / `lib/finanzas-facturas.ts`. Petty cash movements/arqueo in `lib/caja-chica.ts`.
 - **Build:** `npm run build` runs `next build --webpack` (not Turbopack) then `scripts/verificar-bundle-firebase.mjs` — Turbopack + `firebase-admin`/`firebase-functions` produces hashed aliases the Firebase Hosting SSR function can't resolve in prod; don't drop the `--webpack` flag or the verify step.
+- `lib/sat/gemini-sat.ts` auto-falls back if `GEMINI_MODEL_SAT` is set to the retired
+  `gemini-3.5-flash-lite` (logs a warning, uses `gemini-3.1-flash-lite` instead); ambiguous
+  SAT classifications escalate to `GEMINI_MODEL_SAT_ESCALADO` (default `gemini-3.5-flash`).
+- `lib/usuarios-admin.ts` syncs a Firebase Auth custom claim `smvHubActivo` (gates
+  `storage.rules`) whenever a user's `activo` flag changes; the claim only refreshes on the
+  client's next sign-in/token refresh (≤1h). `scripts/backfill-claims-usuarios.mjs` backfills
+  it for accounts created before this sync existed.

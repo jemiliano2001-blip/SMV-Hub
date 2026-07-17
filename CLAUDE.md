@@ -22,6 +22,10 @@ Módulos actuales:
 - `/ordenes` — lista las órdenes con búsqueda de texto libre + filtros de estado por pill; detalle en modal; edición inline vía `OrdenFormModal`; bulk delete.
 - `/importar` — importación masiva por CSV con preview validado y carga por lotes a Firestore.
 - `/reportes` — reporte con KPIs, tabla agrupada con subtotales y export a PDF (vía `@media print` de Tailwind). Incluye envío de reportes por correo y órdenes recurrentes. Lógica pura en `lib/reportes.ts`; UI en `app/reportes/`.
+- `/reportes/contable` — cierre contable por lotes: agrupa órdenes pendientes en un
+  `ReporteContableLote` (`lib/reportes-contables.ts`), traduce descripciones al español y
+  sugiere/reasigna claves SAT en batch vía IA (`lib/reportes-contables-ia.ts` +
+  `POST /api/retro-traducir-lote`, `POST /api/sat-descripciones`).
 - `/finanzas` — facturación y cobranza de clientes sincronizada con Odoo; solo rol `admin` (ver
   `lib/roles.ts` y `firestore.rules`). Lógica en `lib/finanzas.ts` / `lib/finanzas-facturas.ts`;
   sync en `functions/src/odooSync.ts` + `odoo-mapeo.ts`.
@@ -84,6 +88,8 @@ GEMINI_API_KEY=
 # GEMINI_MODEL=
 # Opcional: modelo económico para sugerencia de claves SAT (default gemini-3.1-flash-lite)
 # GEMINI_MODEL_SAT=
+# Opcional: modelo de escalación para casos SAT ambiguos (default gemini-3.5-flash)
+# GEMINI_MODEL_SAT_ESCALADO=
 
 # Opcional: omite el login en desarrollo (ver sección Autenticación)
 # NEXT_PUBLIC_DEV_AUTH_BYPASS=true
@@ -133,6 +139,9 @@ GEMINI_API_KEY=
   - `api-auth.ts` / `authorized-emails.ts` — verificación de token + whitelist de correos en Route Handlers
   - `firebase-admin.ts` — Firebase Admin SDK (para Route Handlers y Server Actions que necesitan acceso privilegiado)
   - `reportes.ts` — lógica pura de reportes: `filtrarPorRango`, `aplanarLineas`, `agrupar`, `calcularKpis`, `periodoPreset`
+  - `reportes-contables.ts` / `reportes-contables-ia.ts` — lotes de cierre contable
+    (colección `reportes_contables`) y clasificación IA en batch (traducción + clave SAT)
+    para `/reportes/contable`
   - `firebase.ts`, `auth.ts`, `storage.ts` — inicialización de Firebase y utilidades
   - `hooks/` — hooks de datos por módulo (`useOrdenes`, `useCotizaciones`, `useRequisiciones`, `useOrdenesServicio`)
   - `services/recommendation.ts` — cliente del lado del cliente que llama a la Cloud Function `recommendProvider` (Vertex AI) para sugerir el mejor proveedor dado SKU + lista de suppliers con precio y lead time
@@ -194,11 +203,11 @@ Otros schemas clave en `lib/schemas.ts`:
 - **`CotizacionSchema`** — modelo plano: 1 fila = 1 pieza + 1 proveedor. `ubicacion: "MX"|"USA"`
   determina la moneda (`MXN`/`USD`). `estatus: "cotizado"|"cancelado"|"revisar"`.
 - **`RequisicionSchema`** — `tipo: "general"|"automatizacion"` controla qué campos son visibles
-  en la UI. `estado: "no_comprado"|"en_proceso"|"comprado"|"recibido"`. Los campos
+  en la UI. `estado: "no_comprado"|"en_proceso"|"comprado"|"parcial"|"recibido"`. Los campos
   `parteNumero` y `fechaEntregaEst` aplican solo cuando `tipo === "automatizacion"`.
 - **`OrdenServicioSchema`** — seguimiento de OTs con proveedores externos (hoja Fisher).
-  `estatus: "pendiente"|"en_proceso"|"recibido"|"cancelado"`. Campos clave: `numOC`, `ingAcargo`,
-  `ordenTrabajo`, `tiempoEntrega`.
+  `estatus: "pendiente"|"en_proceso"|"detenida"|"entregada"|"cancelado"` (legacy `"recibido"` →
+  `"entregada"`). Campos clave: `numOC`, `ingAcargo`, `ordenTrabajo`, `tiempoEntrega`.
 
 ## Next.js 16 — leer esto antes de escribir código de Next.js
 
