@@ -5,6 +5,8 @@ export type CriterioAgrupacion = "proveedor" | "destino" | "requisitor"
 
 export type Linea = {
   ordenId: string
+  /** Índice del ítem dentro de orden.items; -1 si la línea no corresponde a un ítem real (orden sin ítems). */
+  itemIndex: number
   referencia: string
   dia: Date | null
   proveedor: string
@@ -79,6 +81,7 @@ export function aplanarLineas(ordenes: OrdenCompra[]): Linea[] {
     if (orden.items.length === 0) {
       lineas.push({
         ...baseOrden,
+        itemIndex: -1,
         descripcion: "(orden sin ítems)",
         descripcionSimplificada: "",
         claveProdServ: "",
@@ -96,13 +99,14 @@ export function aplanarLineas(ordenes: OrdenCompra[]): Linea[] {
     const ordenSubtotal = orden.items.reduce((s, item) => s + (item.total ?? 0), 0)
     const impuestos = orden.impuestos ?? 0
 
-    for (const item of orden.items) {
+    orden.items.forEach((item, itemIndex) => {
       const subLinea = item.total ?? 0
       const propTax = ordenSubtotal > 0
         ? impuestos * (subLinea / ordenSubtotal)
         : impuestos / orden.items.length
       lineas.push({
         ...baseOrden,
+        itemIndex,
         descripcion: item.descripcion,
         descripcionSimplificada: item.descripcionSimplificada || "",
         claveProdServ: item.claveProdServ || "",
@@ -114,7 +118,7 @@ export function aplanarLineas(ordenes: OrdenCompra[]): Linea[] {
         cuentaCargo: resolverCampoItem(item, orden, "cuentaCargo"),
         destino: resolverDestinoItem(item, orden),
       })
-    }
+    })
   }
 
   return lineas

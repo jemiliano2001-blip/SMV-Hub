@@ -198,6 +198,11 @@ function alternativasDesdeResults(results: SatSearchResult[], excluirClave?: str
 export function esResultadoClaro(results: SatSearchResult[]): boolean {
   const top = results[0]
   if (!top) return false
+  // El término principal (tipo de producto) nunca coincidió — el score alto
+  // suele deberse solo a material/acabado genérico (ej. "acero inoxidable"),
+  // no a que el catálogo tenga el producto real. Mejor no sugerir nada que
+  // sugerir con confianza algo equivocado.
+  if (!top.coincideTerminoPrincipal) return false
   if (top.score >= UMBRAL_SCORE_ALTO) return true
   const segundo = results[1]
   if (top.score >= UMBRAL_SCORE_MEDIO && segundo) {
@@ -405,6 +410,20 @@ export async function sugerirClaveSatItem(
   const omitirBusquedaLocal = pareceDescripcionIngles(descripcion, item.proveedor)
   const desdeLocal = omitirBusquedaLocal ? null : buscarLocal(descripcion, opciones)
   if (desdeLocal) return guardarEnCache(descripcion, item.proveedor, desdeLocal)
+
+  // Si ya hay una traducción limpia en español (ej. descripcionSimplificada de
+  // reportes-contables-ia), búscala directo en el catálogo antes de pedirle a
+  // Gemini que elija — el mismo buscador que usa /claves-sat ya la encuentra
+  // bien; no hace falta que la IA "adivine" entre candidatos.
+  if (item.terminosPrevios?.trim()) {
+    const desdeTerminosPrevios = buscarDesdeTerminos(
+      item.terminosPrevios.trim(),
+      "local",
+      "Descripción traducida: ",
+      opciones
+    )
+    if (desdeTerminosPrevios) return guardarEnCache(descripcion, item.proveedor, desdeTerminosPrevios)
+  }
 
   const desdeGlosario = buscarConGlosario(descripcion, opciones)
   if (desdeGlosario) return guardarEnCache(descripcion, item.proveedor, desdeGlosario)

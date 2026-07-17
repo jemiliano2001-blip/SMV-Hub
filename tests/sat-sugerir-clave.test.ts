@@ -69,7 +69,7 @@ describe("esResultadoClaro", () => {
   it("acepta score alto sin segundo candidato", () => {
     const entry = getSatCatalogEntries()[0]
     expect(
-      esResultadoClaro([{ entry, score: 200, reasons: [] }])
+      esResultadoClaro([{ entry, score: 200, reasons: [], coincideTerminoPrincipal: true }])
     ).toBe(true)
   })
 
@@ -78,8 +78,8 @@ describe("esResultadoClaro", () => {
     const e2 = getSatCatalogEntries()[1]
     expect(
       esResultadoClaro([
-        { entry: e1, score: 120, reasons: [] },
-        { entry: e2, score: 70, reasons: [] },
+        { entry: e1, score: 120, reasons: [], coincideTerminoPrincipal: true },
+        { entry: e2, score: 70, reasons: [], coincideTerminoPrincipal: true },
       ])
     ).toBe(true)
   })
@@ -89,9 +89,19 @@ describe("esResultadoClaro", () => {
     const e2 = getSatCatalogEntries()[1]
     expect(
       esResultadoClaro([
-        { entry: e1, score: 90, reasons: [] },
-        { entry: e2, score: 85, reasons: [] },
+        { entry: e1, score: 90, reasons: [], coincideTerminoPrincipal: true },
+        { entry: e2, score: 85, reasons: [], coincideTerminoPrincipal: true },
       ])
+    ).toBe(false)
+  })
+
+  it("rechaza un score alto si el término principal de la búsqueda nunca coincidió", () => {
+    // Bug reportado: "Perno de resorte con bola de acero inoxidable" caía en
+    // "Ángulos de acero inoxidable" (score alto) solo por material/acabado
+    // genérico — "perno"/"resorte"/"bola" (el producto real) nunca coincidía.
+    const entry = getSatCatalogEntries()[0]
+    expect(
+      esResultadoClaro([{ entry, score: 320, reasons: [], coincideTerminoPrincipal: false }])
     ).toBe(false)
   })
 })
@@ -102,6 +112,7 @@ describe("construirHistorialSat", () => {
       ordenMock("a", [
         {
           descripcion: "1/4 End Mill Carbide",
+          descripcionSimplificada: "1/4 End Mill Carbide",
           cantidad: 1,
           precioUnitario: 10,
           total: 10,
@@ -157,6 +168,7 @@ describe("sugerirClaveSatItem", () => {
       ordenMock("a", [
         {
           descripcion: "Hex Bolt 1/4-20",
+          descripcionSimplificada: "Hex Bolt 1/4-20",
           cantidad: 1,
           precioUnitario: 1,
           total: 1,
@@ -195,6 +207,32 @@ describe("sugerirClaveSatItem", () => {
     expect(sinGemini.traducirYElegir).not.toHaveBeenCalled()
   })
 
+  it("no asigna con falsa confianza cuando solo coincide un material/acabado genérico", async () => {
+    // Bug reportado: "Perno de resorte con bola de acero inoxidable" se
+    // asignaba a "Ángulos de acero inoxidable" solo porque "acero inoxidable"
+    // coincidía — el catálogo SAT no tiene una clave específica para este
+    // producto (verificado a mano contra el catálogo real). Lo correcto es
+    // no asignar nada con confianza en vez de una clave equivocada.
+    const traducirYElegir = vi.fn().mockResolvedValue({
+      terminosBusqueda: "perno resorte bola acero inoxidable",
+      clave: null,
+      motivo: "Sin candidato confiable",
+      confianzaIa: "baja" as const,
+    })
+
+    const result = await sugerirClaveSatItem(
+      {
+        descripcion: "Ball spring plunger stainless steel 1/4-20",
+        terminosPrevios: "Perno de resorte con punta de bola de acero inoxidable 1/4-20",
+      },
+      new Map(),
+      { traducirYElegir }
+    )
+
+    expect(traducirYElegir).toHaveBeenCalled()
+    expect(result.claveProdServ).toBeNull()
+  })
+
   it("end mill en inglés usa glosario sin Gemini", async () => {
     const result = await sugerirClaveSatItem(
       {
@@ -217,7 +255,7 @@ describe("sugerirClaveSatItem", () => {
     vi.mocked(buscarSat.buscarClavesSat).mockImplementation((query: string) => {
       if (query.includes("widget especial")) {
         return entry
-          ? [{ entry, score: 240, reasons: ["Coincidencia traducida"] }]
+          ? [{ entry, score: 240, reasons: ["Coincidencia traducida"], coincideTerminoPrincipal: true }]
           : []
       }
       return []
@@ -246,7 +284,7 @@ describe("sugerirClaveSatItem", () => {
     const entry = getSatCatalogEntries().find((e) => e.clave === "31161500")
     vi.mocked(buscarSat.buscarClavesSat).mockImplementation((query: string) => {
       if (query.includes("xyzabc")) return []
-      return entry ? [{ entry, score: 100, reasons: ["candidato"] }] : []
+      return entry ? [{ entry, score: 100, reasons: ["candidato"], coincideTerminoPrincipal: true }] : []
     })
 
     const traducirYElegir = vi.fn().mockResolvedValue({
@@ -274,8 +312,8 @@ describe("sugerirClaveSatItem", () => {
     vi.mocked(buscarSat.buscarClavesSat).mockReturnValue(
       entry && entry2
         ? [
-            { entry, score: 100, reasons: ["candidato"] },
-            { entry: entry2, score: 95, reasons: ["candidato2"] },
+            { entry, score: 100, reasons: ["candidato"], coincideTerminoPrincipal: true },
+            { entry: entry2, score: 95, reasons: ["candidato2"], coincideTerminoPrincipal: true },
           ]
         : []
     )
@@ -304,10 +342,10 @@ describe("sugerirClaveSatItem", () => {
     vi.mocked(buscarSat.buscarClavesSat).mockImplementation((query: string) => {
       if (query.includes("widget cache")) {
         return entry
-          ? [{ entry, score: 240, reasons: ["ok"] }]
+          ? [{ entry, score: 240, reasons: ["ok"], coincideTerminoPrincipal: true }]
           : []
       }
-      return entry ? [{ entry, score: 100, reasons: ["candidato"] }] : []
+      return entry ? [{ entry, score: 100, reasons: ["candidato"], coincideTerminoPrincipal: true }] : []
     })
 
     const traducirYElegir = vi.fn().mockResolvedValue({
@@ -327,15 +365,22 @@ describe("sugerirClaveSatItem", () => {
     expect(segundo.claveProdServ).toBe("31161500")
   })
 
-  it("prioriza términos previos en español al formar candidatos para Gemini", async () => {
+  it("encuentra la clave buscando directo con los términos previos, sin necesitar Gemini", async () => {
     mockSinCoincidenciaLocal()
     const entry = getSatCatalogEntries().find((e) => e.clave === "31161500")
     const queries: string[] = []
     vi.mocked(buscarSat.buscarClavesSat).mockImplementation((query: string) => {
       queries.push(query)
       return query === "punzón industrial de acero" && entry
-        ? [{ entry, score: 100, reasons: ["Candidato traducido"] }]
+        ? [{ entry, score: 100, reasons: ["Candidato traducido"], coincideTerminoPrincipal: true }]
         : []
+    })
+
+    const traducirYElegir = vi.fn().mockResolvedValue({
+      terminosBusqueda: "punzón industrial de acero",
+      clave: "31161500",
+      motivo: "Candidato validado",
+      confianzaIa: "alta" as const,
     })
 
     const result = await sugerirClaveSatItem(
@@ -344,18 +389,18 @@ describe("sugerirClaveSatItem", () => {
         terminosPrevios: "punzón industrial de acero",
       },
       new Map(),
-      {
-        traducirYElegir: vi.fn().mockResolvedValue({
-          terminosBusqueda: "punzón industrial de acero",
-          clave: "31161500",
-          motivo: "Candidato validado",
-          confianzaIa: "alta" as const,
-        }),
-      }
+      { traducirYElegir }
     )
 
     expect(queries).toContain("punzón industrial de acero")
     expect(result.claveProdServ).toBe("31161500")
+    expect(result.fuente).toBe("local")
+    // La búsqueda determinística ya resolvió la clave: no debió hacer falta
+    // preguntarle a Gemini (bug reportado: la IA elegía candidatos erróneos
+    // aunque la búsqueda directa con la misma traducción ya daba la respuesta
+    // correcta, ej. "resorte de compresión" → clave equivocada de "máquina de
+    // forjado de martillo de resorte").
+    expect(traducirYElegir).not.toHaveBeenCalled()
   })
 })
 
@@ -373,9 +418,9 @@ describe("sugerirClavesSatLote", () => {
     vi.spyOn(buscarSat, "buscarClavesSat").mockImplementation((query: string) => {
       const entry = getSatCatalogEntries().find((e) => e.clave === "31161500")
       if (query.includes("widget lote")) {
-        return entry ? [{ entry, score: 240, reasons: ["ok"] }] : []
+        return entry ? [{ entry, score: 240, reasons: ["ok"], coincideTerminoPrincipal: true }] : []
       }
-      return entry ? [{ entry, score: 100, reasons: ["candidato"] }] : []
+      return entry ? [{ entry, score: 100, reasons: ["candidato"], coincideTerminoPrincipal: true }] : []
     })
 
     const traducirYElegir = vi.fn().mockResolvedValue({

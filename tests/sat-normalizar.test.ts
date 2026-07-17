@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest"
-import { esClaveProdServ, normalizarClaveProdServ, normalizarTextoSat, tokenizarTextoSat } from "@/lib/sat/normalizar"
+import {
+  esClaveProdServ,
+  normalizarClaveProdServ,
+  normalizarTextoSat,
+  tokenizarTextoSat,
+  stemPalabraSat,
+  stemTextoSat,
+} from "@/lib/sat/normalizar"
 
 describe("normalizarTextoSat", () => {
   it("convierte a mayúsculas y quita acentos", () => {
@@ -14,6 +21,28 @@ describe("normalizarTextoSat", () => {
 describe("tokenizarTextoSat", () => {
   it("elimina palabras vacías comunes", () => {
     expect(tokenizarTextoSat("resorte de compresion para troquel")).toEqual(["RESORTE", "COMPRESION", "TROQUEL"])
+  })
+})
+
+describe("stemPalabraSat", () => {
+  it("quita una 's' final en palabras de más de 3 letras", () => {
+    expect(stemPalabraSat("RESORTES")).toBe("RESORTE")
+    expect(stemPalabraSat("TORNILLOS")).toBe("TORNILLO")
+  })
+
+  it("no toca palabras cortas para no destruir siglas/unidades", () => {
+    expect(stemPalabraSat("GAS")).toBe("GAS")
+    expect(stemPalabraSat("MES")).toBe("MES")
+  })
+
+  it("no toca palabras que ya están en singular", () => {
+    expect(stemPalabraSat("RESORTE")).toBe("RESORTE")
+  })
+})
+
+describe("stemTextoSat", () => {
+  it("estematiza cada palabra de una frase normalizada", () => {
+    expect(stemTextoSat("RESORTES DE COMPRESION")).toBe("RESORTE DE COMPRESION")
   })
 })
 

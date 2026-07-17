@@ -40,6 +40,7 @@ import type { ExtraccionInvoice, ItemFactura } from "@/lib/schemas"
 
 const itemFacturaBase = (overrides: Partial<ItemFactura> = {}): ItemFactura => ({
   descripcion: "X",
+  descripcionSimplificada: "X",
   cantidad: 1,
   precioUnitario: 1,
   total: 1,

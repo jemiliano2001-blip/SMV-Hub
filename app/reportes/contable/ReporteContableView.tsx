@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react"
 import Link from "next/link"
-import { listarOrdenes } from "@/lib/ordenes"
-import { aplanarLineas } from "@/lib/reportes"
+import { listarOrdenes, actualizarClavesSatLote } from "@/lib/ordenes"
+import { aplanarLineas, type Linea } from "@/lib/reportes"
 import type { OrdenCompra } from "@/lib/schemas"
 import { getClienteAuth } from "@/lib/firebase"
 import {
@@ -13,7 +13,7 @@ import {
   type ResumenProcesamientoContableIa,
 } from "@/lib/reportes-contables-ia"
 import { extraerEntradasHistorialSat } from "@/lib/sat/sugerir-clave"
-import { Loader2, AlertCircle, FileSpreadsheet, Printer, Sparkles, CheckCircle2, History } from "lucide-react"
+import { Loader2, AlertCircle, FileSpreadsheet, Printer, Sparkles, CheckCircle2, History, RefreshCw } from "lucide-react"
 import * as XLSX from "xlsx"
 import { listarLotesContables, crearLoteContable, type ReporteContableLote } from "@/lib/reportes-contables"
 
@@ -64,6 +64,8 @@ export default function ReporteContableView() {
   const [progresoIa, setProgresoIa] = useState<{ actual: number; total: number } | null>(null)
   const [resultadoIa, setResultadoIa] = useState<string | null>(null)
   const [guardandoLote, setGuardandoLote] = useState(false)
+  const [resugieriendo, setResugieriendo] = useState<Set<string>>(new Set())
+  const [errorResugerir, setErrorResugerir] = useState<string | null>(null)
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -220,6 +222,54 @@ export default function ReporteContableView() {
       alert("Error al guardar lote: " + mensajeError(error))
     } finally {
       setGuardandoLote(false)
+    }
+  }
+
+  const handleResugerir = async (linea: Linea) => {
+    if (linea.itemIndex < 0) return
+    const clave = `${linea.ordenId}-${linea.itemIndex}`
+    setErrorResugerir(null)
+    setResugieriendo((prev) => new Set(prev).add(clave))
+
+    try {
+      const user = getClienteAuth().currentUser
+      if (!user) throw new Error("Tu sesión expiró. Inicia sesión de nuevo para continuar.")
+      const token = await user.getIdToken()
+
+      const res = await fetch("/api/sugerir-clave-sat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          items: [{ descripcion: linea.descripcion, proveedor: linea.proveedor }],
+          historialEntradas: extraerEntradasHistorialSat(ordenesFiltradas),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "No se pudo generar la sugerencia")
+
+      const sugerencia = data.sugerencias?.[0] as { claveProdServ: string | null } | undefined
+      if (!sugerencia?.claveProdServ) {
+        throw new Error("No hubo una nueva sugerencia de clave SAT para esta línea")
+      }
+
+      const orden = ordenes.find((o) => o.id === linea.ordenId)
+      if (!orden) throw new Error("La orden ya no existe")
+
+      const itemsActualizados = orden.items.map((item, idx) =>
+        idx === linea.itemIndex
+          ? { ...item, claveProdServ: sugerencia.claveProdServ!, satPendiente: false }
+          : item
+      )
+      await actualizarClavesSatLote([{ ordenId: linea.ordenId, items: itemsActualizados }])
+      await cargar()
+    } catch (error) {
+      setErrorResugerir(mensajeError(error))
+    } finally {
+      setResugieriendo((prev) => {
+        const next = new Set(prev)
+        next.delete(clave)
+        return next
+      })
     }
   }
 
@@ -393,6 +443,12 @@ export default function ReporteContableView() {
               </div>
             </div>
 
+            {errorResugerir && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 no-print">
+                {errorResugerir}
+              </div>
+            )}
+
             {resultadoIa && (
               <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 no-print">
                 {resultadoIa}
@@ -448,15 +504,30 @@ export default function ReporteContableView() {
                             )}
                           </td>
                           <td className="px-4 py-3 max-w-xs">
-                            <div className="font-medium text-gray-900">{l.claveProdServ || "—"}</div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-medium text-gray-900">{l.claveProdServ || "—"}</span>
+                              {l.itemIndex >= 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleResugerir(l)}
+                                  disabled={resugieriendo.has(`${l.ordenId}-${l.itemIndex}`)}
+                                  title="Volver a sugerir la clave SAT para esta línea"
+                                  className="text-gray-400 hover:text-blue-600 disabled:opacity-50 no-print"
+                                >
+                                  <RefreshCw
+                                    className={`h-3.5 w-3.5 ${resugieriendo.has(`${l.ordenId}-${l.itemIndex}`) ? "animate-spin" : ""}`}
+                                  />
+                                </button>
+                              )}
+                            </div>
                             {!l.claveProdServ && (
                               <span className="mt-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 print:hidden">
                                 Revisar
                               </span>
                             )}
                             <div className="text-xs text-gray-500 truncate" title={satDict[l.claveProdServ || ""]}>
-                              {cargandoSat && l.claveProdServ && !satDict[l.claveProdServ] 
-                                ? "Cargando..." 
+                              {cargandoSat && l.claveProdServ && !satDict[l.claveProdServ]
+                                ? "Cargando..."
                                 : satDict[l.claveProdServ || ""] || ""}
                             </div>
                           </td>

@@ -1,10 +1,24 @@
 import { findSatCatalogEntryByKey, getSatCatalogEntries, type SatCatalogEntry } from "@/lib/sat/catalogo"
-import { normalizarClaveProdServ, normalizarTextoSat, tokenizarTextoSat } from "@/lib/sat/normalizar"
+import {
+  normalizarClaveProdServ,
+  normalizarTextoSat,
+  tokenizarTextoSat,
+  stemPalabraSat,
+  stemTextoSat,
+} from "@/lib/sat/normalizar"
 
 export interface SatSearchResult {
   entry: SatCatalogEntry
   score: number
   reasons: string[]
+  /**
+   * true si el primer término específico (no genérico) de la búsqueda
+   * coincidió con esta entrada. Evita que un match que solo coincide por
+   * material/acabado genérico (ej. "acero inoxidable") se trate como
+   * confiable cuando el tipo de producto real (ej. "perno", "resorte") nunca
+   * coincidió con nada del catálogo.
+   */
+  coincideTerminoPrincipal: boolean
 }
 
 export type BuscarClavesSatOpciones = {
@@ -25,10 +39,10 @@ function unique<T>(values: T[]): T[] {
   return Array.from(new Set(values))
 }
 
-function tokenMatchesHaystack(token: string, haystack: string): boolean {
+function tokenMatchesHaystack(token: string, haystackStem: string): boolean {
   if (token.length < 3) return false
-  const padded = ` ${haystack} `
-  return padded.includes(` ${token} `)
+  const padded = ` ${haystackStem} `
+  return padded.includes(` ${stemPalabraSat(token)} `)
 }
 
 function extraerFrasesQuery(query: string): string[] {
@@ -66,6 +80,7 @@ function scoreEntry(entry: SatCatalogEntry, query: string): SatSearchResult | nu
       entry,
       score: 1000,
       reasons: ["Coincidencia exacta por clave"],
+      coincideTerminoPrincipal: true,
     }
   }
 
@@ -78,27 +93,35 @@ function scoreEntry(entry: SatCatalogEntry, query: string): SatSearchResult | nu
       .filter(Boolean)
       .join(" ")
   )
+  // Estematizado (quita plurales simples) para que "resorte" encuentre
+  // "Resortes de compresión" en el catálogo y viceversa.
+  const haystackStem = stemTextoSat(haystack)
 
   let score = 0
   const reasons: string[] = []
 
-  if (haystack.includes(normalizedQuery)) {
+  if (haystackStem.includes(stemTextoSat(normalizedQuery))) {
     score += 400
     reasons.push("La descripción contiene la búsqueda completa")
   }
 
   const frases = extraerFrasesQuery(query)
   for (const frase of frases) {
-    if (frase.length >= 6 && haystack.includes(frase)) {
+    if (frase.length >= 6 && haystackStem.includes(stemTextoSat(frase))) {
       score += 120
       reasons.push(`Coincide frase: ${frase}`)
       break
     }
   }
 
-  const matchedTokens = queryTokens.filter((token) => tokenMatchesHaystack(token, haystack))
+  const matchedTokens = queryTokens.filter((token) => tokenMatchesHaystack(token, haystackStem))
   const tokensEspecificos = matchedTokens.filter((t) => !PALABRAS_GENERICAS.has(t))
   const tokensGenericos = matchedTokens.filter((t) => PALABRAS_GENERICAS.has(t))
+
+  const queryTokensEspecificos = queryTokens.filter((t) => !PALABRAS_GENERICAS.has(t))
+  const primerTerminoEspecifico = queryTokensEspecificos[0]
+  const coincideTerminoPrincipal =
+    !primerTerminoEspecifico || tokensEspecificos.includes(primerTerminoEspecifico)
 
   if (tokensEspecificos.length > 0) {
     score += tokensEspecificos.length * 100
@@ -115,7 +138,9 @@ function scoreEntry(entry: SatCatalogEntry, query: string): SatSearchResult | nu
   }
 
   const exactKeywordMatches = queryTokens.filter(
-    (token) => token.length >= 2 && entry.palabrasClave.includes(token)
+    (token) =>
+      token.length >= 2 &&
+      entry.palabrasClave.some((kw) => stemPalabraSat(kw) === stemPalabraSat(token))
   )
   if (exactKeywordMatches.length > 0) {
     score += exactKeywordMatches.length * 40
@@ -124,7 +149,7 @@ function scoreEntry(entry: SatCatalogEntry, query: string): SatSearchResult | nu
 
   if (score === 0) return null
 
-  return { entry, score, reasons }
+  return { entry, score, reasons, coincideTerminoPrincipal }
 }
 
 export function buscarClavesSat(
@@ -146,6 +171,7 @@ export function buscarClavesSat(
             entry: exactEntry,
             score: 1000,
             reasons: ["Coincidencia exacta por clave"],
+            coincideTerminoPrincipal: true,
           },
         ]
       : []

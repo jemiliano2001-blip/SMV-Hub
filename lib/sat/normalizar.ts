@@ -37,6 +37,19 @@ export function tokenizarTextoSat(value: string): string[] {
     .filter((token) => token.length >= 2 && !STOP_WORDS.has(token))
 }
 
+// ponytail: heurística simple (quita una "s" final), no gramática completa.
+// Cubre el caso dominante en el catálogo (resorte/resortes, tornillo/tornillos,
+// palabras terminadas en vocal+s). No cubre plurales en "-es" tras consonante
+// (motor/motores) — ampliar aquí si aparece un caso real de eso.
+export function stemPalabraSat(palabra: string): string {
+  return palabra.length > 3 && palabra.endsWith("S") ? palabra.slice(0, -1) : palabra
+}
+
+/** Aplica stemPalabraSat a cada palabra de un texto ya normalizado (normalizarTextoSat). */
+export function stemTextoSat(textoNormalizado: string): string {
+  return textoNormalizado.split(" ").map(stemPalabraSat).join(" ")
+}
+
 export function normalizarClaveProdServ(value: string | null | undefined): string | null {
   if (!value) return null
   const soloDigitos = value.replace(/\D+/g, "")

@@ -33,4 +33,16 @@ describe("buscarClavesSat con catálogo cargado", () => {
     expect(results.length).toBeGreaterThan(0)
     expect(results.some((result) => /RESORTE|SPRING|COMPRES/i.test(result.entry.descripcion))).toBe(true)
   })
+
+  it("singular encuentra el mismo top result que plural (el catálogo dice 'Resortes')", () => {
+    // Bug reportado: "resorte de compresión" (singular, como lo escribe la
+    // gente) no encontraba la clave de "Resortes de compresión" (plural,
+    // como está en el catálogo SAT) — "Tester del resorte tipo compresión"
+    // salía primero por error.
+    const singular = buscarClavesSat("resorte de compresion", 3)
+    const plural = buscarClavesSat("resortes de compresion", 3)
+    expect(singular[0]?.entry.clave).toBe(plural[0]?.entry.clave)
+    expect(singular[0]?.entry.descripcion).toMatch(/^Resortes de compresión$/i)
+    expect(singular[0]?.score).toBeGreaterThanOrEqual(400)
+  })
 })

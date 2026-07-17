@@ -30,6 +30,7 @@ function makeOrden(overrides: Partial<OrdenCompra> = {}): OrdenCompra {
     items: [
       {
         descripcion: "Bolt",
+        descripcionSimplificada: "Bolt",
         cantidad: 1,
         precioUnitario: 100,
         total: 100,
@@ -81,6 +82,7 @@ describe("ordenTieneSatPendiente", () => {
           items: [
             {
               descripcion: "X",
+              descripcionSimplificada: "X",
               cantidad: 1,
               precioUnitario: 1,
               total: 1,
@@ -107,6 +109,7 @@ describe("itemSatPendiente", () => {
     expect(
       itemSatPendiente({
         descripcion: "X",
+        descripcionSimplificada: "X",
         cantidad: 1,
         precioUnitario: 1,
         total: 1,
