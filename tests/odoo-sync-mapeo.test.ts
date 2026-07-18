@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { mapearFacturaOdoo, type OdooFacturaRaw } from "../functions/src/odoo-mapeo"
+import { idsHuerfanos, mapearFacturaOdoo, type OdooFacturaRaw } from "../functions/src/odoo-mapeo"
 
 // Fixtures sintéticos (nombres/montos inventados) que reproducen la MISMA
 // forma real observada en Odoo durante el descubrimiento de Fase 0
@@ -132,5 +132,25 @@ describe("mapearFacturaOdoo", () => {
     expect(f.odooPartnerId).toBe(0)
     expect(f.cliente).toBe("")
     expect(f.odooCompanyId).toBe(0)
+  })
+})
+
+describe("idsHuerfanos", () => {
+  it("sin huérfanos cuando todos los existentes siguen vigentes", () => {
+    expect(idsHuerfanos(["odoo_1", "odoo_2"], ["odoo_1", "odoo_2"])).toEqual([])
+  })
+
+  it("detecta IDs que ya no están en el set actual de Odoo", () => {
+    expect(idsHuerfanos(["odoo_1", "odoo_2", "odoo_3"], ["odoo_1", "odoo_3"])).toEqual([
+      "odoo_2",
+    ])
+  })
+
+  it("existentes vacío → ningún huérfano", () => {
+    expect(idsHuerfanos([], ["odoo_1"])).toEqual([])
+  })
+
+  it("actuales vacío → todos los existentes son huérfanos", () => {
+    expect(idsHuerfanos(["odoo_1", "odoo_2"], [])).toEqual(["odoo_1", "odoo_2"])
   })
 })

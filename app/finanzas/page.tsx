@@ -2,28 +2,63 @@
 
 import AuthGuard from "@/app/AuthGuard"
 import { useMemo, useState } from "react"
-import { Loader2, AlertCircle } from "lucide-react"
+import { Loader2, AlertCircle, TrendingUp, TrendingDown } from "lucide-react"
 import { useFinanzasFacturas } from "@/lib/hooks/useFinanzasFacturas"
 import {
   monedasPresentes,
   filtrarPorMoneda,
   filtrarPorRango,
   calcularKpisFinanzas,
+  compararKpis,
+  serieMensual,
   agruparPorCliente,
   periodoPreset,
   rangoDeMes,
   mesActualStr,
+  mesAnteriorStr,
+  type DeltaKpi,
 } from "@/lib/finanzas"
 import { formatPrecio } from "@/lib/format"
 import FinanzasNav from "@/app/finanzas/FinanzasNav"
 import BannerSync from "@/app/finanzas/BannerSync"
 import SelectorMes from "@/app/finanzas/SelectorMes"
+import GraficaTendencia from "@/app/finanzas/GraficaTendencia"
 
-function KpiCard({ titulo, valor, subtitulo }: { titulo: string; valor: string; subtitulo?: string }) {
+function DeltaBadge({ delta }: { delta: DeltaKpi }) {
+  if (delta.porcentaje === null) {
+    return <span className="text-xs text-gray-400">— vs. mes anterior</span>
+  }
+  const positivo = delta.porcentaje >= 0
+  const Icono = positivo ? TrendingUp : TrendingDown
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-xs font-medium ${
+        positivo ? "text-emerald-600" : "text-red-600"
+      }`}
+    >
+      <Icono className="h-3 w-3" />
+      {positivo ? "+" : ""}
+      {delta.porcentaje.toFixed(1)}% vs. mes anterior
+    </span>
+  )
+}
+
+function KpiCard({
+  titulo,
+  valor,
+  subtitulo,
+  delta,
+}: {
+  titulo: string
+  valor: string
+  subtitulo?: string
+  delta?: DeltaKpi
+}) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <p className="text-xs text-gray-500 mb-1">{titulo}</p>
       <p className="text-2xl font-bold text-gray-900 tabular-nums leading-tight">{valor}</p>
+      {delta && <div className="mt-1"><DeltaBadge delta={delta} /></div>}
       {subtitulo && <p className="text-xs text-gray-400 mt-1">{subtitulo}</p>}
     </div>
   )
@@ -45,9 +80,18 @@ function ResumenFinanzas() {
     () => calcularKpisFinanzas(filtrarPorRango(facturasMoneda, desdeMes, hastaMes)),
     [facturasMoneda, desdeMes, hastaMes]
   )
+  const deltasMes = useMemo(() => {
+    const { desde, hasta } = rangoDeMes(mesAnteriorStr(mesSeleccionado))
+    const kpisAnteriores = calcularKpisFinanzas(filtrarPorRango(facturasMoneda, desde, hasta))
+    return compararKpis(kpisMes, kpisAnteriores)
+  }, [facturasMoneda, kpisMes, mesSeleccionado])
   const kpisAnio = useMemo(
     () => calcularKpisFinanzas(filtrarPorRango(facturasMoneda, desdeAnio, hastaAnio)),
     [facturasMoneda, desdeAnio, hastaAnio]
+  )
+  const serie12Meses = useMemo(
+    () => serieMensual(facturasMoneda, 12, rangoDeMes(mesSeleccionado).hasta),
+    [facturasMoneda, mesSeleccionado]
   )
   const topClientes = useMemo(
     () => agruparPorCliente(filtrarPorRango(facturasMoneda, desdeAnio, hastaAnio)).slice(0, 5),
@@ -102,11 +146,18 @@ function ResumenFinanzas() {
           <SelectorMes value={mesSeleccionado} onChange={setMesSeleccionado} />
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <KpiCard titulo="Facturación" valor={formatPrecio(kpisMes.facturacionTotal, moneda)} subtitulo="Neto de notas de crédito" />
-          <KpiCard titulo="Subtotal" valor={formatPrecio(kpisMes.subtotal, moneda)} />
-          <KpiCard titulo="IVA" valor={formatPrecio(kpisMes.impuestos, moneda)} />
-          <KpiCard titulo="Facturas" valor={String(kpisMes.numFacturas)} subtitulo={`${kpisMes.numNotasCredito} notas de crédito`} />
+          <KpiCard titulo="Facturación" valor={formatPrecio(kpisMes.facturacionTotal, moneda)} subtitulo="Neto de notas de crédito" delta={deltasMes.facturacionTotal} />
+          <KpiCard titulo="Subtotal" valor={formatPrecio(kpisMes.subtotal, moneda)} delta={deltasMes.subtotal} />
+          <KpiCard titulo="IVA" valor={formatPrecio(kpisMes.impuestos, moneda)} delta={deltasMes.impuestos} />
+          <KpiCard titulo="Facturas" valor={String(kpisMes.numFacturas)} subtitulo={`${kpisMes.numNotasCredito} notas de crédito`} delta={deltasMes.numFacturas} />
         </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">
+          Tendencia de facturación — últimos 12 meses ({moneda})
+        </h2>
+        <GraficaTendencia serie={serie12Meses} moneda={moneda} />
       </div>
 
       <div>

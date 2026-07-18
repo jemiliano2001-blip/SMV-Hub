@@ -11,9 +11,16 @@ import {
   filtrarPorRango,
   clasificarCobranza,
   diasAtraso,
+  bucketAging,
+  distribucionAging,
+  calcularDso,
+  calcularCei,
+  periodoPreset,
   rangoDeMes,
   mesActualStr,
+  BUCKETS_AGING,
   type EstadoCobranza,
+  type BucketAging,
 } from "@/lib/finanzas"
 import { formatPrecio, formatFecha } from "@/lib/format"
 import FinanzasNav from "@/app/finanzas/FinanzasNav"
@@ -29,6 +36,16 @@ const ETIQUETA_ESTADO: Record<EstadoCobranza, { label: string; clase: string }> 
   vencida: { label: "Vencida", clase: "bg-red-50 text-red-700" },
 }
 
+// Etiqueta, acción sugerida por bucket (playbook estándar de cobranza para
+// PyMEs: el aging es una lista de acciones, no una foto) y color de la barra.
+const INFO_BUCKET: Record<BucketAging, { label: string; accion: string; color: string }> = {
+  corriente: { label: "Corriente", accion: "Sin vencer — solo monitorear", color: "#10B981" },
+  b1_30: { label: "1–30 días", accion: "Enviar recordatorio de pago", color: "#F59E0B" },
+  b31_60: { label: "31–60 días", accion: "Contactar y comprometer fecha de pago", color: "#F97316" },
+  b61_90: { label: "61–90 días", accion: "Llamada directa al decisor", color: "#EF4444" },
+  b90: { label: "90+ días", accion: "Carta formal / detener trabajo nuevo / decisión legal", color: "#991B1B" },
+}
+
 function Cobranza() {
   const { facturas, estadoSync, loading, error, recargar } = useFinanzasFacturas()
   const [monedaActiva, setMonedaActiva] = useState<string | null>(null)
@@ -38,18 +55,24 @@ function Cobranza() {
 
   const monedas = useMemo(() => monedasPresentes(facturas), [facturas])
   const moneda = monedaActiva ?? monedas[0] ?? "MXN"
+  const facturasMoneda = useMemo(() => filtrarPorMoneda(facturas, moneda), [facturas, moneda])
 
   const filas = useMemo(() => {
     const hoy = new Date()
-    let base = facturasValidas(filtrarPorMoneda(facturas, moneda)).filter((f) => f.tipo === "factura")
+    let base = facturasValidas(facturasMoneda).filter((f) => f.tipo === "factura")
     if (periodoTipo === "mes") {
       const { desde, hasta } = rangoDeMes(mesSeleccionado)
       base = filtrarPorRango(base, desde, hasta)
     }
     return base
-      .map((f) => ({ factura: f, estado: clasificarCobranza(f, hoy), atraso: diasAtraso(f, hoy) }))
+      .map((f) => ({
+        factura: f,
+        estado: clasificarCobranza(f, hoy),
+        atraso: diasAtraso(f, hoy),
+        bucket: bucketAging(f, hoy),
+      }))
       .sort((a, b) => b.atraso - a.atraso)
-  }, [facturas, moneda, periodoTipo, mesSeleccionado])
+  }, [facturasMoneda, periodoTipo, mesSeleccionado])
 
   const filasFiltradas = filtro === "todas" ? filas : filas.filter((f) => f.estado === filtro)
 
@@ -59,6 +82,21 @@ function Cobranza() {
   )
   const numVencidas = filas.filter((f) => f.estado === "vencida").length
   const numPendientes = filas.filter((f) => f.estado === "pendiente").length
+
+  // KPIs de cobranza sobre el conjunto de la moneda activa (independientes del
+  // filtro de mes de la tabla): el aging y el DSO se leen sobre el saldo vivo.
+  const { aging, dso, cei } = useMemo(() => {
+    const hoy = new Date()
+    const { desde, hasta } = periodoPreset("mes")
+    return {
+      aging: distribucionAging(facturasMoneda, hoy),
+      dso: calcularDso(facturasMoneda, desde, hasta),
+      cei: calcularCei(facturasMoneda, desde, hasta, hoy),
+    }
+  }, [facturasMoneda])
+
+  const pct90 = aging.buckets.b90.pct
+  const alerta90 = pct90 > 5
 
   if (loading && facturas.length === 0) {
     return (
@@ -118,7 +156,7 @@ function Cobranza() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <p className="text-xs text-gray-500 mb-1">Total por cobrar</p>
           <p className="text-2xl font-bold text-gray-900 tabular-nums">{formatPrecio(totalPorCobrar, moneda)}</p>
@@ -131,7 +169,73 @@ function Cobranza() {
           <p className="text-xs text-gray-500 mb-1">Vencidas</p>
           <p className="text-2xl font-bold text-red-600 tabular-nums">{numVencidas}</p>
         </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <p className="text-xs text-gray-500 mb-1">DSO</p>
+          <p className="text-2xl font-bold text-gray-900 tabular-nums">
+            {dso === null ? "—" : `${Math.round(dso)} días`}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">Días promedio en cobrar</p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <p className="text-xs text-gray-500 mb-1">CEI del mes</p>
+          <p
+            className={`text-2xl font-bold tabular-nums ${
+              cei === null ? "text-gray-900" : cei >= 80 ? "text-emerald-600" : cei >= 70 ? "text-amber-600" : "text-red-600"
+            }`}
+          >
+            {cei === null ? "—" : `${cei.toFixed(0)}%`}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">Efectividad de cobro (aprox.)</p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <p className="text-xs text-gray-500 mb-1">Saldo en 90+ días</p>
+          <p className={`text-2xl font-bold tabular-nums ${alerta90 ? "text-red-600" : "text-gray-900"}`}>
+            {pct90.toFixed(1)}%
+          </p>
+          <p className={`text-xs mt-1 ${alerta90 ? "text-red-500 font-medium" : "text-gray-400"}`}>
+            {alerta90 ? "Arriba del 5% — atención" : "Sano si es menor al 5%"}
+          </p>
+        </div>
       </div>
+
+      {aging.totalPorCobrar > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3">
+            Antigüedad del saldo por cobrar ({moneda})
+          </h2>
+          <div className="flex h-4 w-full overflow-hidden rounded-full bg-gray-100">
+            {BUCKETS_AGING.map((b) =>
+              aging.buckets[b].pct > 0 ? (
+                <div
+                  key={b}
+                  className="h-full"
+                  style={{ width: `${aging.buckets[b].pct}%`, backgroundColor: INFO_BUCKET[b].color }}
+                  title={`${INFO_BUCKET[b].label}: ${formatPrecio(aging.buckets[b].total, moneda)} (${aging.buckets[b].pct.toFixed(1)}%)`}
+                />
+              ) : null
+            )}
+          </div>
+          <div className="mt-3 grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+            {BUCKETS_AGING.map((b) => (
+              <div key={b} className="flex items-start gap-1.5">
+                <span
+                  className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-sm"
+                  style={{ backgroundColor: INFO_BUCKET[b].color }}
+                />
+                <div>
+                  <p className="font-medium text-gray-700">
+                    {INFO_BUCKET[b].label}
+                    <span className="text-gray-400 font-normal"> · {aging.buckets[b].cantidad}</span>
+                  </p>
+                  <p className="tabular-nums text-gray-500">
+                    {formatPrecio(aging.buckets[b].total, moneda)} ({aging.buckets[b].pct.toFixed(1)}%)
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex bg-gray-200/50 p-1 rounded-lg w-fit gap-1">
         {(["todas", "pendiente", "vencida", "pagada"] as Filtro[]).map((f) => (
@@ -161,11 +265,12 @@ function Cobranza() {
                   <th className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Total</th>
                   <th className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Saldo</th>
                   <th className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Días atraso</th>
+                  <th className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Antigüedad</th>
                   <th className="pb-2 text-left text-xs font-semibold text-gray-600">Estado</th>
                 </tr>
               </thead>
               <tbody>
-                {filasFiltradas.map(({ factura, estado, atraso }) => (
+                {filasFiltradas.map(({ factura, estado, atraso, bucket }) => (
                   <tr key={factura.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-2 pr-3">{factura.cliente}</td>
                     <td className="py-2 pr-3 font-mono text-xs text-gray-500">{factura.numeroFactura}</td>
@@ -175,6 +280,23 @@ function Cobranza() {
                       {formatPrecio(factura.saldoPendiente, moneda)}
                     </td>
                     <td className="py-2 pr-3 text-right tabular-nums text-gray-500">{atraso > 0 ? atraso : "—"}</td>
+                    <td className="py-2 pr-3">
+                      {factura.saldoPendiente > 0 && atraso > 0 ? (
+                        <span
+                          className="inline-flex items-center gap-1 text-xs font-medium"
+                          style={{ color: INFO_BUCKET[bucket].color }}
+                          title={INFO_BUCKET[bucket].accion}
+                        >
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: INFO_BUCKET[bucket].color }}
+                          />
+                          {INFO_BUCKET[bucket].label}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
+                    </td>
                     <td className="py-2">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ETIQUETA_ESTADO[estado].clase}`}>
                         {ETIQUETA_ESTADO[estado].label}

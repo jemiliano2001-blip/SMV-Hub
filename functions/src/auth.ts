@@ -1,5 +1,5 @@
 import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
+import { getDb } from './firestore-db';
 
 /**
  * Correo con acceso garantizado, fijo como red de seguridad — debe coincidir
@@ -20,7 +20,8 @@ export function assertAppCheckCallable(context: functions.https.CallableContext)
 
 async function usuarioActivo(uid: string, email: string): Promise<boolean> {
   if (email === CORREO_ADMIN_BREAK_GLASS) return true;
-  const snap = await admin.firestore().collection('usuarios').doc(uid).get();
+  // Usuarios viven en la base nombrada `compras-americanas`, no en "(default)".
+  const snap = await getDb().collection('usuarios').doc(uid).get();
   return snap.exists && snap.data()?.activo === true;
 }
 

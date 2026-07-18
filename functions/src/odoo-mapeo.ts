@@ -104,3 +104,13 @@ export function mapearFacturaOdoo(
     sincronizadoEn: ahora,
   }
 }
+
+/**
+ * IDs en Firestore que ya no están en el set vigente de Odoo (cancelados o
+ * borrados). Odoo no expone un log de deletions por API: al filtrar
+ * `state = posted`, simplemente dejan de aparecer — hay que reconciliar.
+ */
+export function idsHuerfanos(idsExistentes: string[], idsActuales: string[]): string[] {
+  const actuales = new Set(idsActuales)
+  return idsExistentes.filter((id) => !actuales.has(id))
+}

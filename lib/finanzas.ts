@@ -142,3 +142,177 @@ export function rangoDeMes(anioMes: string): { desde: Date; hasta: Date } {
 export function mesActualStr(hoy: Date = new Date()): string {
   return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}`
 }
+
+/** Mes anterior a un valor "YYYY-MM" (cruza años: "2026-01" → "2025-12"). */
+export function mesAnteriorStr(anioMes: string): string {
+  const [anio, mes] = anioMes.split("-").map(Number)
+  return mesActualStr(new Date(anio, mes - 2, 1))
+}
+
+// ── Comparación de periodos ──────────────────────────────────────────────────
+
+export type DeltaKpi = {
+  absoluto: number
+  /** null cuando el periodo anterior es 0 (no hay base de comparación). */
+  porcentaje: number | null
+}
+
+export type DeltasKpis = Record<keyof KpisFinanzas, DeltaKpi>
+
+export function compararKpis(actual: KpisFinanzas, anterior: KpisFinanzas): DeltasKpis {
+  const claves = Object.keys(actual) as Array<keyof KpisFinanzas>
+  const out = {} as DeltasKpis
+  for (const clave of claves) {
+    const a = actual[clave]
+    const b = anterior[clave]
+    out[clave] = {
+      absoluto: a - b,
+      porcentaje: b === 0 ? null : ((a - b) / Math.abs(b)) * 100,
+    }
+  }
+  return out
+}
+
+// ── Serie mensual (tendencia) ────────────────────────────────────────────────
+
+export type PuntoMensual = {
+  /** "YYYY-MM" */
+  mes: string
+  /** Facturación neta del mes (facturas − notas de crédito). */
+  total: number
+}
+
+/**
+ * Facturación neta por mes para los últimos `meses` meses terminando en el mes
+ * de `hasta`. Meses sin facturas aparecen en 0 (sin huecos). Las facturas deben
+ * venir ya filtradas por moneda — nunca mezclar monedas en una serie.
+ */
+export function serieMensual(
+  facturas: FacturaCliente[],
+  meses: number,
+  hasta: Date = new Date()
+): PuntoMensual[] {
+  const totales = new Map<string, number>()
+  for (const f of facturasValidas(facturas)) {
+    if (!f.fechaFactura) continue
+    const mes = f.fechaFactura.slice(0, 7)
+    totales.set(mes, (totales.get(mes) ?? 0) + signo(f) * f.total)
+  }
+
+  const out: PuntoMensual[] = []
+  for (let i = meses - 1; i >= 0; i--) {
+    const mes = mesActualStr(new Date(hasta.getFullYear(), hasta.getMonth() - i, 1))
+    out.push({ mes, total: totales.get(mes) ?? 0 })
+  }
+  return out
+}
+
+// ── Aging (antigüedad de saldos) ─────────────────────────────────────────────
+
+export type BucketAging = "corriente" | "b1_30" | "b31_60" | "b61_90" | "b90"
+
+export const BUCKETS_AGING: BucketAging[] = ["corriente", "b1_30", "b31_60", "b61_90", "b90"]
+
+export function bucketAging(f: FacturaCliente, hoy: Date = new Date()): BucketAging {
+  const dias = diasAtraso(f, hoy)
+  if (dias <= 0) return "corriente"
+  if (dias <= 30) return "b1_30"
+  if (dias <= 60) return "b31_60"
+  if (dias <= 90) return "b61_90"
+  return "b90"
+}
+
+export type DistribucionAging = {
+  totalPorCobrar: number
+  buckets: Record<BucketAging, { total: number; cantidad: number; pct: number }>
+}
+
+/**
+ * Distribución del saldo abierto por bucket de antigüedad. Solo facturas
+ * publicadas de tipo "factura" con saldo pendiente > 0 (las notas de crédito
+ * no son cuentas por cobrar). Benchmark de referencia: 90+ arriba del 5% del
+ * total indica problema sistémico de cobranza.
+ */
+export function distribucionAging(
+  facturas: FacturaCliente[],
+  hoy: Date = new Date()
+): DistribucionAging {
+  const abiertas = facturasValidas(facturas).filter(
+    (f) => f.tipo === "factura" && f.saldoPendiente > 0
+  )
+
+  const buckets = Object.fromEntries(
+    BUCKETS_AGING.map((b) => [b, { total: 0, cantidad: 0, pct: 0 }])
+  ) as DistribucionAging["buckets"]
+
+  for (const f of abiertas) {
+    const b = bucketAging(f, hoy)
+    buckets[b].total += f.saldoPendiente
+    buckets[b].cantidad += 1
+  }
+
+  const totalPorCobrar = abiertas.reduce((s, f) => s + f.saldoPendiente, 0)
+  if (totalPorCobrar > 0) {
+    for (const b of BUCKETS_AGING) {
+      buckets[b].pct = (buckets[b].total / totalPorCobrar) * 100
+    }
+  }
+
+  return { totalPorCobrar, buckets }
+}
+
+// ── KPIs de cobranza ─────────────────────────────────────────────────────────
+
+/**
+ * DSO clásico: (saldo por cobrar vigente / facturación del periodo) × días del
+ * periodo. Devuelve null si no hubo facturación en el periodo (sin base).
+ * Las facturas deben venir ya filtradas por moneda.
+ */
+export function calcularDso(
+  facturas: FacturaCliente[],
+  desde: Date,
+  hasta: Date
+): number | null {
+  const saldoVigente = facturasValidas(facturas)
+    .filter((f) => f.tipo === "factura" && f.saldoPendiente > 0)
+    .reduce((s, f) => s + f.saldoPendiente, 0)
+
+  const facturadoPeriodo = filtrarPorRango(facturas, desde, hasta)
+    .filter((f) => f.tipo === "factura")
+    .reduce((s, f) => s + f.total, 0)
+
+  if (facturadoPeriodo <= 0) return null
+
+  const diasPeriodo = Math.round((hasta.getTime() - desde.getTime()) / 86_400_000) + 1
+  return (saldoVigente / facturadoPeriodo) * diasPeriodo
+}
+
+/**
+ * CEI (Collection Effectiveness Index) aproximado con los datos del espejo:
+ * cobrado de las facturas del periodo / cobrable (facturado menos lo que aún
+ * no vence). Sin fechas de pago reales (llegarían con el sync de
+ * account.payment, Fase 3 del plan) esto es una aproximación por snapshot:
+ * asume que el saldo actual refleja lo no cobrado del periodo. Devuelve null
+ * si no hay nada cobrable todavía. Rango: 0–100; >90 excelente, <70 problema.
+ */
+export function calcularCei(
+  facturas: FacturaCliente[],
+  desde: Date,
+  hasta: Date,
+  hoy: Date = new Date()
+): number | null {
+  const delPeriodo = filtrarPorRango(facturas, desde, hasta).filter(
+    (f) => f.tipo === "factura"
+  )
+
+  const facturado = delPeriodo.reduce((s, f) => s + f.total, 0)
+  const saldoAbierto = delPeriodo.reduce((s, f) => s + Math.max(0, f.saldoPendiente), 0)
+  const noVencido = delPeriodo
+    .filter((f) => f.saldoPendiente > 0 && clasificarCobranza(f, hoy) !== "vencida")
+    .reduce((s, f) => s + f.saldoPendiente, 0)
+
+  const cobrado = facturado - saldoAbierto
+  const cobrable = facturado - noVencido
+  if (cobrable <= 0) return null
+  return (cobrado / cobrable) * 100
+}

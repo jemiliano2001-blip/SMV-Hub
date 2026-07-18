@@ -1,12 +1,10 @@
 import * as functions from 'firebase-functions';
-import { getFirestore } from 'firebase-admin/firestore';
 import { assertAuthorizedCallable, errorMessage } from './auth';
-import { mapearFacturaOdoo, type OdooFacturaRaw } from './odoo-mapeo';
+import { getDb } from './firestore-db';
+import { idsHuerfanos, mapearFacturaOdoo, type OdooFacturaRaw } from './odoo-mapeo';
 
-// `admin.firestore()` (namespaced, sin argumento) apunta a la base "(default)".
-// Este proyecto usa una base nombrada — mismo patrón que lib/firebase-admin.ts
-// en la app Next.js. Sin esto, el sync escribe donde nadie lee.
-const db = getFirestore('compras-americanas');
+// Base nombrada compartida — ver firestore-db.ts.
+const db = getDb();
 
 // Credenciales de un sistema financiero externo → Secret Manager, no
 // process.env plano como excelSync.ts/sheetsSync.ts (primera vez en este
@@ -28,6 +26,8 @@ const CAMPOS_FACTURA = [
   'amount_untaxed', 'amount_tax', 'amount_total', 'amount_residual',
   'currency_id', 'payment_state', 'state', 'ref', 'invoice_origin', 'company_id',
 ];
+
+const TAMANO_LOTE = 400; // límite de writeBatch de Firestore
 
 async function llamarOdoo<T>(url: string, service: string, method: string, args: unknown[]): Promise<T> {
   for (let intento = 1; intento <= 3; intento++) {
@@ -79,7 +79,6 @@ async function sincronizarFacturasOdoo(): Promise<number> {
     existentesSnap.docs.map((d) => [d.id, d.data().creadoEn as FirebaseFirestore.Timestamp])
   );
 
-  const TAMANO_LOTE = 400; // límite de writeBatch de Firestore
   for (let i = 0; i < registros.length; i += TAMANO_LOTE) {
     const batch = db.batch();
     for (const raw of registros.slice(i, i + TAMANO_LOTE)) {
@@ -93,10 +92,36 @@ async function sincronizarFacturasOdoo(): Promise<number> {
     await batch.commit();
   }
 
+  // Reconciliación: Odoo no expone deletions. Facturas canceladas/borradas
+  // dejan de aparecer en search_read (state=posted) y quedarían inflando
+  // KPIs si no se eliminan del espejo.
+  let huerfanosEliminados = 0;
+  const idsActuales = registros.map((r) => `odoo_${r.id}`);
+  const huerfanos = idsHuerfanos([...creadoEnExistente.keys()], idsActuales);
+
+  if (registros.length === 0 && creadoEnExistente.size > 0) {
+    // Guard de seguridad financiera: respuesta vacía con espejo no vacío
+    // huele a glitch de Odoo — no vaciar el espejo.
+    console.warn(
+      `Sync Odoo→Finanzas: Odoo devolvió 0 facturas pero hay ${creadoEnExistente.size} en Firestore; se omite el prune de huérfanos.`
+    );
+  } else if (huerfanos.length > 0) {
+    for (let i = 0; i < huerfanos.length; i += TAMANO_LOTE) {
+      const batch = db.batch();
+      for (const id of huerfanos.slice(i, i + TAMANO_LOTE)) {
+        batch.delete(db.collection('finanzas_facturas').doc(id));
+      }
+      await batch.commit();
+    }
+    huerfanosEliminados = huerfanos.length;
+    console.log(`Sync Odoo→Finanzas: eliminados ${huerfanosEliminados} huérfanos`);
+  }
+
   await db.collection('finanzas_sync_state').doc('odoo').set({
     ultimaCorridaEn: ahora,
     ultimoError: null,
     facturasSincronizadas: registros.length,
+    huerfanosEliminados,
   });
 
   return registros.length;
