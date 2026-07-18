@@ -8,7 +8,8 @@
     "rules": "storage.rules"
   },
   "functions": {
-    "source": "functions"
+    "source": "functions",
+    "codebase": "smv-hub"
   },
   "hosting": {
     "site": "smv-hub",
