@@ -382,6 +382,38 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    function seguimientoCobranzaValido(d, facturaId) {
+      return d.keys().hasOnly([
+               'facturaId',
+               'nota',
+               'promesaPagoFecha',
+               'enDisputa',
+               'actualizadoEn',
+               'actualizadoPor'
+             ]) &&
+             d.facturaId == facturaId &&
+             d.facturaId.matches('^odoo_[0-9]+$') &&
+             d.nota is string &&
+             d.nota.size() <= 2000 &&
+             d.promesaPagoFecha is string &&
+             (
+               d.promesaPagoFecha == '' ||
+               d.promesaPagoFecha.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+             ) &&
+             d.enDisputa is bool &&
+             d.actualizadoEn == request.time &&
+             d.actualizadoPor == request.auth.token.email;
+    }
+
+    // Seguimiento operativo local. No modifica el espejo de Odoo y conserva
+    // responsable + timestamp en cada escritura.
+    match /finanzas_seguimiento/{facturaId} {
+      allow read: if esFinanzasAutorizado();
+      allow create, update: if esFinanzasAutorizado() &&
+        seguimientoCobranzaValido(request.resource.data, facturaId);
+      allow delete: if esFinanzasAutorizado();
+    }
+
     // ── Auditoría (Registro de acciones) ─────────────────────────────────────
     
     match /auditoria/{auditId} {

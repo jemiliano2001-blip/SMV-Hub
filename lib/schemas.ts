@@ -421,3 +421,25 @@ export const FacturaClienteSchema = z.object({
 })
 export type FacturaCliente = z.infer<typeof FacturaClienteSchema>
 
+// ── Finanzas: seguimiento local de cobranza ─────────────────────────────────
+// Vive separado del espejo de Odoo. El id del documento es `facturaId`.
+
+const FechaIsoOpcionalSchema = z.union([
+  z.literal(""),
+  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe usar formato YYYY-MM-DD"),
+])
+
+export const SeguimientoCobranzaInputSchema = z.object({
+  facturaId: z.string().regex(/^odoo_\d+$/, "La factura de Odoo no es válida"),
+  nota: z.string().trim().max(2_000, "La nota no puede exceder 2,000 caracteres"),
+  promesaPagoFecha: FechaIsoOpcionalSchema,
+  enDisputa: z.boolean(),
+  actualizadoPor: z.string().trim().email("El correo del responsable no es válido"),
+}).strict()
+export type SeguimientoCobranzaInput = z.infer<typeof SeguimientoCobranzaInputSchema>
+
+export const SeguimientoCobranzaSchema = SeguimientoCobranzaInputSchema.extend({
+  actualizadoEn: z.date(),
+}).strict()
+export type SeguimientoCobranza = z.infer<typeof SeguimientoCobranzaSchema>
+

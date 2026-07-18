@@ -14,6 +14,8 @@ import {
   distribucionAging,
   calcularDso,
   calcularCei,
+  idsFacturasPrioritarias,
+  topClientesVencidos,
   periodoPreset,
   rangoDeMes,
   mesActualStr,
@@ -494,5 +496,88 @@ describe("calcularCei", () => {
       makeFactura({ fechaFactura: "2026-06-05", fechaVencimiento: "2026-09-01", total: 1000, saldoPendiente: 1000 }),
     ]
     expect(calcularCei(facturas, desde, hasta, hoy)).toBeNull()
+  })
+})
+
+// ── priorización de cobranza ─────────────────────────────────────────────────
+
+describe("topClientesVencidos", () => {
+  const hoy = new Date(2026, 6, 15)
+
+  it("agrupa por cliente, suma saldo vencido y ordena de mayor a menor", () => {
+    const facturas = [
+      makeFactura({
+        id: "odoo_1",
+        cliente: "Cliente A",
+        numeroFactura: "INV-A1",
+        fechaVencimiento: "2026-05-01",
+        saldoPendiente: 400,
+      }),
+      makeFactura({
+        id: "odoo_2",
+        cliente: "Cliente A",
+        numeroFactura: "INV-A2",
+        fechaVencimiento: "2026-06-01",
+        saldoPendiente: 300,
+      }),
+      makeFactura({
+        id: "odoo_3",
+        cliente: "Cliente B",
+        numeroFactura: "INV-B1",
+        fechaVencimiento: "2026-04-01",
+        saldoPendiente: 500,
+      }),
+    ]
+
+    const top = topClientesVencidos(facturas, hoy)
+    expect(top[0]).toMatchObject({
+      cliente: "Cliente A",
+      saldoVencido: 700,
+      cantidadFacturas: 2,
+      facturaMasAntigua: "INV-A1",
+    })
+    expect(top[1].cliente).toBe("Cliente B")
+  })
+
+  it("excluye pagadas, no vencidas, notas de crédito y canceladas", () => {
+    const facturas = [
+      makeFactura({ saldoPendiente: 0, fechaVencimiento: "2026-01-01" }),
+      makeFactura({ saldoPendiente: 100, fechaVencimiento: "2026-08-01" }),
+      makeFactura({ tipo: "nota_credito", saldoPendiente: 100, fechaVencimiento: "2026-01-01" }),
+      makeFactura({ estado: "cancelado", saldoPendiente: 100, fechaVencimiento: "2026-01-01" }),
+    ]
+    expect(topClientesVencidos(facturas, hoy)).toEqual([])
+  })
+
+  it("rechaza mezclar monedas antes de agregar saldos", () => {
+    const facturas = [
+      makeFactura({ moneda: "MXN", fechaVencimiento: "2026-01-01" }),
+      makeFactura({ moneda: "USD", fechaVencimiento: "2026-01-01" }),
+    ]
+    expect(() => topClientesVencidos(facturas, hoy)).toThrow("una sola moneda")
+  })
+})
+
+describe("idsFacturasPrioritarias", () => {
+  const hoy = new Date(2026, 6, 15)
+
+  it("elige el cuartil superior por saldo dentro de 31–60 días", () => {
+    const facturas = Array.from({ length: 8 }, (_, indice) =>
+      makeFactura({
+        id: `odoo_${indice + 1}`,
+        fechaVencimiento: "2026-06-01", // 44 días
+        saldoPendiente: (indice + 1) * 100,
+      })
+    )
+    expect(idsFacturasPrioritarias(facturas, hoy)).toEqual(["odoo_8", "odoo_7"])
+  })
+
+  it("ignora otros buckets y facturas sin saldo", () => {
+    const facturas = [
+      makeFactura({ id: "odoo_1", fechaVencimiento: "2026-07-01", saldoPendiente: 1000 }),
+      makeFactura({ id: "odoo_2", fechaVencimiento: "2026-06-01", saldoPendiente: 0 }),
+      makeFactura({ id: "odoo_3", fechaVencimiento: "2026-01-01", saldoPendiente: 2000 }),
+    ]
+    expect(idsFacturasPrioritarias(facturas, hoy)).toEqual([])
   })
 })

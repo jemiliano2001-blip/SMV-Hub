@@ -316,3 +316,86 @@ export function calcularCei(
   if (cobrable <= 0) return null
   return (cobrado / cobrable) * 100
 }
+
+// ── Priorización de cobranza ─────────────────────────────────────────────────
+
+export type ClienteVencido = {
+  cliente: string
+  saldoVencido: number
+  cantidadFacturas: number
+  facturaMasAntigua: string
+  fechaVencimientoMasAntigua: string
+  diasMaximosAtraso: number
+}
+
+function exigirMonedaUnica(facturas: FacturaCliente[]): void {
+  const monedas = new Set(facturas.map((factura) => factura.moneda))
+  if (monedas.size > 1) {
+    throw new Error("El cálculo financiero requiere facturas de una sola moneda.")
+  }
+}
+
+/**
+ * Agrupa facturas vencidas por cliente y prioriza por saldo. Las facturas deben
+ * venir filtradas por una sola moneda.
+ */
+export function topClientesVencidos(
+  facturas: FacturaCliente[],
+  hoy: Date = new Date(),
+  limite = 5
+): ClienteVencido[] {
+  exigirMonedaUnica(facturas)
+  const vencidas = facturasValidas(facturas).filter(
+    (f) =>
+      f.tipo === "factura" &&
+      f.saldoPendiente > 0 &&
+      clasificarCobranza(f, hoy) === "vencida"
+  )
+  const porCliente = new Map<string, FacturaCliente[]>()
+  for (const factura of vencidas) {
+    const actuales = porCliente.get(factura.cliente) ?? []
+    actuales.push(factura)
+    porCliente.set(factura.cliente, actuales)
+  }
+
+  return Array.from(porCliente.entries())
+    .map(([cliente, delCliente]) => {
+      const porAntiguedad = [...delCliente].sort((a, b) =>
+        (a.fechaVencimiento ?? "").localeCompare(b.fechaVencimiento ?? "")
+      )
+      const masAntigua = porAntiguedad[0]
+      return {
+        cliente,
+        saldoVencido: delCliente.reduce((s, f) => s + f.saldoPendiente, 0),
+        cantidadFacturas: delCliente.length,
+        facturaMasAntigua: masAntigua.numeroFactura,
+        fechaVencimientoMasAntigua: masAntigua.fechaVencimiento ?? "",
+        diasMaximosAtraso: diasAtraso(masAntigua, hoy),
+      }
+    })
+    .sort((a, b) => b.saldoVencido - a.saldoVencido)
+    .slice(0, Math.max(0, limite))
+}
+
+/**
+ * Selecciona el cuartil superior (máximo 5) por saldo dentro del bucket 31–60,
+ * la zona donde el seguimiento personal ofrece mejor retorno.
+ */
+export function idsFacturasPrioritarias(
+  facturas: FacturaCliente[],
+  hoy: Date = new Date()
+): string[] {
+  exigirMonedaUnica(facturas)
+  const candidatas = facturasValidas(facturas)
+    .filter(
+      (f) =>
+        f.tipo === "factura" &&
+        f.saldoPendiente > 0 &&
+        bucketAging(f, hoy) === "b31_60"
+    )
+    .sort((a, b) => b.saldoPendiente - a.saldoPendiente)
+
+  if (candidatas.length === 0) return []
+  const limite = Math.min(5, Math.max(1, Math.ceil(candidatas.length * 0.25)))
+  return candidatas.slice(0, limite).map((factura) => factura.id)
+}
