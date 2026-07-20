@@ -8,7 +8,7 @@ export const PERMISOS_POR_ROL: Record<Rol, string[]> = {
   admin: [
     '/',
     '/nueva-compra', '/ordenes', '/importar', '/claves-sat', '/cotizaciones', '/requisiciones', '/reportes', '/caja-chica',
-    '/almacen', '/ordenes-servicio', '/operadores',
+    '/almacen', '/pedidos-almacen', '/ordenes-servicio', '/operadores',
     '/horas-extra', '/banos',
     '/finanzas', // Facturación de clientes (Odoo) — solo admin, ver firestore.rules
     '/auditoria', // Pantalla exclusiva
@@ -17,7 +17,7 @@ export const PERMISOS_POR_ROL: Record<Rol, string[]> = {
   compras: [
     '/',
     '/nueva-compra', '/importar', '/cotizaciones', '/requisiciones', '/caja-chica',
-    '/almacen', '/ordenes-servicio', '/operadores',
+    '/almacen', '/pedidos-almacen', '/ordenes-servicio', '/operadores',
     '/horas-extra', '/banos'
     // Excluidos: /ordenes, /claves-sat, /reportes, /auditoria, /usuarios
   ],
@@ -27,7 +27,7 @@ export const PERMISOS_POR_ROL: Record<Rol, string[]> = {
   ],
   almacen: [
     '/',
-    '/almacen', '/banos'
+    '/almacen', '/pedidos-almacen', '/banos'
   ]
 }
 

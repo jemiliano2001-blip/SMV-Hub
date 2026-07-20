@@ -61,3 +61,13 @@ export function formatIndicadorCapturaBano(date: Date = new Date()): string {
   }).format(date)
   return `Hoy, ${fecha} — ${horaAhoraLocal(date)}`
 }
+
+/** Fecha y hora cortas en es-MX, para mostrar "quién y cuándo" en listas. */
+export function formatFechaHoraCorta(date: Date): string {
+  return new Intl.DateTimeFormat("es-MX", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date)
+}

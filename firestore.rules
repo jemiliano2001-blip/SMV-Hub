@@ -247,6 +247,53 @@ service cloud.firestore {
       allow delete: if esUsuarioAutorizado();
     }
 
+    // ── Pedidos de almacén (captura móvil: "necesito que compres X") ────────
+
+    // Rol del usuario autenticado, leído de su doc en `usuarios`. Distinto de
+    // esAdminRol(): aquí se acepta una lista de roles, no solo admin.
+    function rolUsuario() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol;
+    }
+
+    function esPedidoAlmacenCreador() {
+      return esUsuarioAutorizado() &&
+        (esCorreoBreakGlass() || rolUsuario() in ['admin', 'compras', 'almacen']);
+    }
+
+    // Solo quien compra puede cambiar el estado del pedido o vincularlo a una
+    // orden — el encargado de almacén únicamente crea, no gestiona el estado.
+    function esPedidoAlmacenGestor() {
+      return esUsuarioAutorizado() &&
+        (esCorreoBreakGlass() || rolUsuario() in ['admin', 'compras']);
+    }
+
+    function pedidoAlmacenValido(d) {
+      return d.descripcion is string &&
+             d.urgente is bool &&
+             d.estado in ['pendiente', 'comprado', 'cancelado'] &&
+             d.solicitadoPorUid is string &&
+             d.solicitadoPorNombre is string &&
+             d.creadoEn is timestamp &&
+             d.actualizadoEn is timestamp;
+    }
+
+    match /pedidos-almacen/{pedidoId} {
+      allow read: if esUsuarioAutorizado();
+
+      allow create: if esPedidoAlmacenCreador()
+                    && pedidoAlmacenValido(request.resource.data)
+                    && request.resource.data.estado == 'pendiente';
+
+      // El audit trail es inmutable: la fecha de creación no cambia y la marca
+      // de actualización debe avanzar.
+      allow update: if esPedidoAlmacenGestor()
+                    && pedidoAlmacenValido(request.resource.data)
+                    && request.resource.data.creadoEn == resource.data.creadoEn
+                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+
+      allow delete: if false;
+    }
+
     // ── Control de Baños ─────────────────────────────────────────────────────
 
     function registroBanoValido(d) {

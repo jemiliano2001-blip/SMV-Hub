@@ -58,8 +58,10 @@ function esArchivoFacturaValido(file: File): boolean {
 
 export default function NuevaCompraForm({
   onSubmit: onExternalSubmit,
+  initialDescripcion,
 }: {
   onSubmit?: (data: NuevaCompraForm, imagen?: File) => Promise<void>
+  initialDescripcion?: string
 }) {
   const [imagen, setImagen] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -88,7 +90,7 @@ export default function NuevaCompraForm({
     defaultValues: {
       moneda: 'USD',
       envio: null,
-      items: [{ ...ITEM_VACIO }],
+      items: [{ ...ITEM_VACIO, descripcion: initialDescripcion ?? ITEM_VACIO.descripcion }],
       requisitor: '',
       ordenTrabajo: '',
       empresa: '',

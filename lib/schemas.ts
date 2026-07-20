@@ -311,6 +311,38 @@ export const SalidaAlmacenSchema = z.object({
 })
 export type SalidaAlmacen = z.infer<typeof SalidaAlmacenSchema>
 
+// ── Pedidos de almacén (captura móvil: "necesito que compres X") ──────────────
+// El encargado de almacén anota qué necesita comprado, sin datos de factura.
+// Se convierte en una orden real vía /nueva-compra?pedidoId=... (lib/pedidos-almacen.ts).
+
+export const EstadoPedidoAlmacenSchema = z.enum(["pendiente", "comprado", "cancelado"])
+export type EstadoPedidoAlmacen = z.infer<typeof EstadoPedidoAlmacenSchema>
+
+export const PedidoAlmacenSchema = z.object({
+  id: z.string(),
+  descripcion: z.string().min(1),
+  urgente: z.boolean().default(false),
+  imagenUrl: z.string().url().optional(),
+  imagenPath: z.string().optional(),
+  estado: EstadoPedidoAlmacenSchema.default("pendiente"),
+  solicitadoPorUid: z.string(),
+  solicitadoPorNombre: z.string(),
+  ordenIdVinculada: z.string().nullable().default(null),
+  creadoEn: z.date(),
+  actualizadoEn: z.date(),
+})
+export type PedidoAlmacen = z.infer<typeof PedidoAlmacenSchema>
+
+export const NuevoPedidoAlmacenSchema = PedidoAlmacenSchema.pick({
+  descripcion: true,
+  urgente: true,
+  imagenUrl: true,
+  imagenPath: true,
+  solicitadoPorUid: true,
+  solicitadoPorNombre: true,
+})
+export type NuevoPedidoAlmacen = z.infer<typeof NuevoPedidoAlmacenSchema>
+
 // ── Control de Baños ──────────────────────────────────────────────────────────
 
 export const BanoSchema = z.enum(["Baño #1", "Baño #2", "CNC", "Automatizacion"])

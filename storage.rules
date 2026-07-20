@@ -40,6 +40,15 @@ service firebase.storage {
                        || request.resource.contentType == 'application/pdf');
     }
 
+    // Fotos de pedidos de almacén: solo usuarios autorizados.
+    match /pedidos-almacen/{imagen=**} {
+      allow read: if esUsuarioAutorizado();
+
+      allow write: if esUsuarioAutorizado()
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
     // Todo lo demás: denegado por defecto.
     match /{allPaths=**} {
       allow read, write: if false;

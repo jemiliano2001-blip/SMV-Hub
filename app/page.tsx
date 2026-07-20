@@ -1,6 +1,7 @@
 import LogoSMV from "@/app/LogoSMV"
 import Link from 'next/link'
-import { ShoppingCart, Package, Upload, BarChart3, FileSearch, ClipboardList, Wrench, Users, Archive, Clock, Search } from 'lucide-react'
+import { ShoppingCart, Package, Upload, BarChart3, FileSearch, ClipboardList, Wrench, Users, Archive, Clock, Search, ClipboardCheck } from 'lucide-react'
+import PedidoAlmacenBadge from '@/app/pedidos-almacen/PedidoAlmacenBadge'
 
 const NAV_CARDS = [
   {
@@ -74,6 +75,13 @@ const NAV_CARDS = [
     primary: false,
   },
   {
+    href: '/pedidos-almacen',
+    icon: ClipboardCheck,
+    label: 'Pedidos de almacén',
+    desc: 'Lo que almacén pide comprar — captura rápida desde el celular',
+    primary: false,
+  },
+  {
     href: '/banos',
     icon: Clock,
     label: 'Control de Baños',
@@ -128,8 +136,9 @@ export default function Home() {
               <Icon className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1 mt-0.5">
-              <div className={`font-bold text-sm tracking-tight transition-colors ${primary ? 'text-white' : 'text-slate-900 group-hover:text-blue-900'}`}>
+              <div className={`flex items-center gap-1.5 font-bold text-sm tracking-tight transition-colors ${primary ? 'text-white' : 'text-slate-900 group-hover:text-blue-900'}`}>
                 {label}
+                {href === '/pedidos-almacen' && <PedidoAlmacenBadge />}
               </div>
               <div className={`text-xs mt-1.5 leading-relaxed font-medium ${primary ? 'text-blue-100' : 'text-slate-500 group-hover:text-slate-600'}`}>
                 {desc}

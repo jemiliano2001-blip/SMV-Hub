@@ -5,10 +5,17 @@ import { useRouter } from 'next/navigation'
 import NuevaCompraForm from './NuevaCompraForm'
 import { subirImagenOrden } from '@/lib/storage'
 import { crearOrden } from '@/lib/ordenes'
+import { marcarPedidoAlmacenComprado } from '@/lib/pedidos-almacen'
 import type { NuevaCompraForm as FormData } from '@/lib/schemas'
 import { sincronizarCamposLegacyOrden } from '@/lib/schemas'
 
-export default function NuevaCompraFormWrapper() {
+export default function NuevaCompraFormWrapper({
+  pedidoId,
+  descripcionInicial,
+}: {
+  pedidoId?: string
+  descripcionInicial?: string
+} = {}) {
   const router = useRouter()
   const [errorGuardado, setErrorGuardado] = useState<string | null>(null)
 
@@ -16,7 +23,7 @@ export default function NuevaCompraFormWrapper() {
     setErrorGuardado(null)
     try {
       const imagenGuardada = imagen ? await subirImagenOrden(imagen) : null
-      await crearOrden(
+      const ordenId = await crearOrden(
         sincronizarCamposLegacyOrden({
           ...data,
           ...(imagenGuardada
@@ -24,6 +31,17 @@ export default function NuevaCompraFormWrapper() {
             : {}),
         })
       )
+
+      if (pedidoId) {
+        // Best-effort: la orden ya se guardó, que es lo importante — si esto
+        // falla no bloqueamos la navegación, solo queda el pedido sin vincular.
+        try {
+          await marcarPedidoAlmacenComprado(pedidoId, ordenId)
+        } catch (err) {
+          console.error('[nueva-compra] no se pudo vincular el pedido de almacén:', err)
+        }
+      }
+
       router.push('/ordenes')
     } catch (err) {
       console.error('[nueva-compra] error al guardar:', err)
@@ -38,7 +56,7 @@ export default function NuevaCompraFormWrapper() {
           {errorGuardado}
         </div>
       )}
-      <NuevaCompraForm onSubmit={handleSubmit} />
+      <NuevaCompraForm onSubmit={handleSubmit} initialDescripcion={descripcionInicial} />
     </>
   )
 }

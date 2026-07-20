@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { ChevronDown } from 'lucide-react'
 import LogoSMV from '@/app/LogoSMV'
 import BotonSesion from '@/app/BotonSesion'
+import PedidoAlmacenBadge from '@/app/pedidos-almacen/PedidoAlmacenBadge'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { tienePermiso } from '@/lib/roles'
 import { useRol } from '@/lib/hooks/useRol'
@@ -39,6 +40,7 @@ const GRUPOS: GrupoNav[] = [
     nombre: 'Operación',
     links: [
       { href: '/almacen', label: 'Almacén' },
+      { href: '/pedidos-almacen', label: 'Pedidos de almacén' },
       { href: '/ordenes-servicio', label: 'Órdenes de servicio' },
       { href: '/operadores', label: 'Operadores' },
     ],
@@ -125,6 +127,7 @@ export default function NavBar() {
                     }`}
                   >
                     {g.nombre}
+                    {g.links.some((l) => l.href === '/pedidos-almacen') && <PedidoAlmacenBadge />}
                     <ChevronDown
                       className={`h-4 w-4 transition-transform ${desplegado ? 'rotate-180' : ''}`}
                     />
@@ -135,13 +138,14 @@ export default function NavBar() {
                         <Link
                           key={l.href}
                           href={l.href}
-                          className={`block px-4 py-2 text-sm transition-colors ${
+                          className={`flex items-center gap-1.5 px-4 py-2 text-sm transition-colors ${
                             esActiva(l.href)
                               ? 'bg-blue-50 text-[#0369A1] font-semibold'
                               : 'text-gray-700 hover:bg-gray-50'
                           }`}
                         >
                           {l.label}
+                          {l.href === '/pedidos-almacen' && <PedidoAlmacenBadge />}
                         </Link>
                       ))}
                     </div>
