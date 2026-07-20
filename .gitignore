@@ -66,3 +66,44 @@ functions/lib/
 
 # worktrees locales de desarrollo aislado
 .worktrees/
+
+# local AI agent tooling (claude-flow/codex/mcp — config/caché local, no es
+# config del proyecto; .claude/agents/security-reviewer.md, .claude/launch.json
+# y .claude/skills/{firebase-seed,gen-test}/ sí son del proyecto y siguen trackeados)
+.claude-flow/
+.codex/
+.context/
+.swarm/
+.mcp.json
+ruvector.db
+.agents/skills/
+.claude/.proven-config-version
+.claude/_archived_skills_*/
+.claude/commands/
+.claude/helpers/
+.claude/proven-config.json
+.claude/settings.json
+.claude/agents/browser/
+.claude/agents/consensus/
+.claude/agents/core/
+.claude/agents/sparc/
+.claude/agents/swarm/
+.claude/agents/testing/
+.claude/skills/browser/
+.claude/skills/github-code-review/
+.claude/skills/github-multi-repo/
+.claude/skills/github-project-management/
+.claude/skills/github-release-management/
+.claude/skills/github-workflow-automation/
+.claude/skills/pair-programming/
+.claude/skills/skill-builder/
+.claude/skills/sparc-methodology/
+.claude/skills/stream-chain/
+.claude/skills/swarm-advanced/
+.claude/skills/swarm-orchestration/
+.claude/skills/verification-quality/
+
+# volcados de salida de lint/tsc redirigidos a archivo — no se versionan
+eslint-head.txt
+eslint-output.txt
+tsc-errors.txt
