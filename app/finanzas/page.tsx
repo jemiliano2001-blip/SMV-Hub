@@ -2,7 +2,7 @@
 
 import AuthGuard from "@/app/AuthGuard"
 import { useMemo, useState } from "react"
-import { Loader2, AlertCircle, TrendingUp, TrendingDown } from "lucide-react"
+import { Loader2, AlertCircle, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react"
 import { useFinanzasFacturas } from "@/lib/hooks/useFinanzasFacturas"
 import {
   monedasPresentes,
@@ -18,6 +18,7 @@ import {
   mesAnteriorStr,
   type DeltaKpi,
 } from "@/lib/finanzas"
+import { detectarAnomaliasFinancieras, type AnomaliaFinanciera } from "@/lib/finanzas-anomalias"
 import { formatPrecio } from "@/lib/format"
 import FinanzasNav from "@/app/finanzas/FinanzasNav"
 import BannerSync from "@/app/finanzas/BannerSync"
@@ -64,6 +65,56 @@ function KpiCard({
   )
 }
 
+function AlertasFinancieras({ alertas }: { alertas: AnomaliaFinanciera[] }) {
+  const visibles = alertas.slice(0, 5)
+
+  return (
+    <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-700">Alertas para revisar</h2>
+          <p className="mt-1 text-xs text-gray-400">
+            Reglas de integridad y desviaciones del último mes cerrado
+          </p>
+        </div>
+        <AlertTriangle className={`h-5 w-5 ${alertas.length > 0 ? "text-amber-500" : "text-emerald-500"}`} />
+      </div>
+
+      {visibles.length === 0 ? (
+        <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          No hay alertas con los datos actuales.
+        </p>
+      ) : (
+        <div className="mt-4 space-y-2">
+          {visibles.map((alerta) => (
+            <div key={alerta.id} className="rounded-lg border border-amber-100 bg-amber-50/60 px-3 py-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                  alerta.severidad === "alta"
+                    ? "bg-red-100 text-red-700"
+                    : alerta.severidad === "media"
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-gray-100 text-gray-600"
+                }`}>
+                  {alerta.severidad}
+                </span>
+                <p className="text-sm font-medium text-gray-800">{alerta.titulo}</p>
+              </div>
+              <p className="mt-1 text-xs text-gray-600">{alerta.detalle}</p>
+              <p className="mt-1 text-xs font-medium text-gray-500">Acción: {alerta.accion}</p>
+            </div>
+          ))}
+          {alertas.length > visibles.length && (
+            <p className="pt-1 text-xs text-gray-500">
+              Hay {alertas.length - visibles.length} alertas adicionales en los datos cargados.
+            </p>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
 function ResumenFinanzas() {
   const { facturas, estadoSync, loading, error, recargar } = useFinanzasFacturas()
   const [monedaActiva, setMonedaActiva] = useState<string | null>(null)
@@ -92,6 +143,10 @@ function ResumenFinanzas() {
   const serie12Meses = useMemo(
     () => serieMensual(facturasMoneda, 12, rangoDeMes(mesSeleccionado).hasta),
     [facturasMoneda, mesSeleccionado]
+  )
+  const alertas = useMemo(
+    () => detectarAnomaliasFinancieras(facturasMoneda),
+    [facturasMoneda]
   )
   const topClientes = useMemo(
     () => agruparPorCliente(filtrarPorRango(facturasMoneda, desdeAnio, hastaAnio)).slice(0, 5),
@@ -152,6 +207,8 @@ function ResumenFinanzas() {
           <KpiCard titulo="Facturas" valor={String(kpisMes.numFacturas)} subtitulo={`${kpisMes.numNotasCredito} notas de crédito`} delta={deltasMes.numFacturas} />
         </div>
       </div>
+
+      <AlertasFinancieras alertas={alertas} />
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
         <h2 className="text-sm font-semibold text-gray-700 mb-3">
