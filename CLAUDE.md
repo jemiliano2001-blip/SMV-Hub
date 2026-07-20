@@ -54,20 +54,36 @@ El roadmap vivo está en [PROJECT.md](PROJECT.md) y los planes detallados en
 
 ```bash
 npm run dev            # servidor de desarrollo en http://localhost:3000
-npm run build          # build de producción
+npm run build          # build de producción (incluye verify:firebase-ssr)
 npm run lint           # ESLint
 npm test               # corre la suite de Vitest una vez
 npm run test:watch     # Vitest en modo watch
 npm run test:coverage  # Vitest con reporte de cobertura
 
-# Correr un solo archivo de pruebas (los archivos en tests/ reflejan 1:1 los módulos de lib/):
+# Correr un solo archivo de pruebas (la mayoría de los archivos en tests/ reflejan 1:1 los
+# módulos de lib/, pero también hay tests de Route Handlers como extraer-route.test.ts):
 npx vitest run tests/reportes.test.ts
+
+# Catálogo SAT (poblar/actualizar data/sat/catalogo.json)
+npm run sat:import          # importación estándar
+npm run sat:import:phpcfdi  # importación desde el catálogo phpcfdi
 ```
 
 `npm run build` corre con `--webpack` (no Turbopack) y valida el bundle después: Firebase
 Hosting usa Turbopack por defecto, pero con `firebase-admin`/`firebase-functions` genera
 aliases con hash que la función SSR no resuelve en producción — no lo cambies a `next build`
 a secas (ver `next.config.ts` y `scripts/verificar-bundle-firebase.mjs`).
+
+### Cloud Functions (`functions/`)
+
+Build y deploy son independientes de la app Next.js — requieren `cd functions` primero:
+
+```bash
+cd functions
+npm run build   # tsc → lib/
+npm run serve   # build + firebase emulators:start --only functions
+npm run deploy  # build + firebase deploy --only functions (usa codebase "smv-hub", ver AGENTS.md)
+```
 
 ## Variables de entorno
 
