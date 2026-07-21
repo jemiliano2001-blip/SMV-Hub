@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const {
-  mockVerificarUsuarioAutorizado,
+  mockVerificarAdmin,
   mockDocOrden,
   mockGetOrden,
   mockActualizarOrden,
   mockCargarMapeos,
   mockSugerirClaves,
 } = vi.hoisted(() => ({
-  mockVerificarUsuarioAutorizado: vi.fn(),
+  mockVerificarAdmin: vi.fn(),
   mockDocOrden: vi.fn(),
   mockGetOrden: vi.fn(),
   mockActualizarOrden: vi.fn(),
@@ -17,7 +17,7 @@ const {
 }))
 
 vi.mock("@/lib/api-auth", () => ({
-  verificarUsuarioAutorizado: mockVerificarUsuarioAutorizado,
+  verificarAdmin: mockVerificarAdmin,
 }))
 
 vi.mock("@/lib/firebase-admin", () => ({
@@ -71,7 +71,7 @@ function documentoOrden() {
 describe("POST /api/retro-traducir-lote", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockVerificarUsuarioAutorizado.mockResolvedValue({
+    mockVerificarAdmin.mockResolvedValue({
       ok: true,
       uid: "usuario-1",
       email: "compras@smv.com",
@@ -91,7 +91,7 @@ describe("POST /api/retro-traducir-lote", () => {
   })
 
   it("retorna 401 sin autorización antes de leer Firestore", async () => {
-    mockVerificarUsuarioAutorizado.mockResolvedValueOnce({
+    mockVerificarAdmin.mockResolvedValueOnce({
       ok: false,
       response: Response.json({ error: "No autorizado" }, { status: 401 }),
     })

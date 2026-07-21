@@ -69,6 +69,102 @@ function parseNumeroOpcional(value: string): number | null {
 const INPUT_CLS =
   'rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
 
+type OrdenServicioCardProps = {
+  o: OrdenServicio
+  selected: boolean
+  onToggleSelect: (id: string, e: React.MouseEvent) => void
+  onCambioEstatus: (id: string, estatus: EstatusOrdenServicio) => void
+  onEditar: (o: OrdenServicio) => void
+  onEliminar: (id: string, desc: string) => void
+}
+
+// Tarjeta para < md: mismos datos que la fila de tabla, sin scroll horizontal.
+function OrdenServicioCard({ o, selected, onToggleSelect, onCambioEstatus, onEditar, onEliminar }: OrdenServicioCardProps) {
+  return (
+    <div className={`p-4 space-y-2.5 ${o.estatus === 'detenida' ? 'bg-red-50/40' : ''}`}>
+      <div className="flex justify-between items-start gap-3">
+        <div className="min-w-0 flex items-start gap-2.5">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={(e) => onToggleSelect(o.id, e as unknown as React.MouseEvent)}
+            className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0"
+          />
+          <div className="min-w-0">
+            <p className="text-xs text-gray-500">{formatFecha(o.fechaOC)}{o.numOC ? ` · OC ${o.numOC}` : ''}</p>
+            <p className="text-sm font-semibold text-gray-900 break-words">{o.descripcion}</p>
+          </div>
+        </div>
+        <select
+          value={o.estatus}
+          onChange={(e) => onCambioEstatus(o.id, e.target.value as EstatusOrdenServicio)}
+          className={`shrink-0 rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset border-0 focus:ring-2 focus:ring-blue-500 ${ESTATUS_BADGE[o.estatus]}`}
+          title="Cambiar estatus"
+        >
+          {ESTATUS_ORDEN_SERVICIO.map((e) => (
+            <option key={e} value={e}>{ESTATUS_LABEL[e]}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 text-xs pl-[26px]">
+        <div className="min-w-0">
+          <span className="text-gray-400 block">Requisitor</span>
+          <span className="text-gray-900 truncate block">{o.requisitor || '-'}</span>
+        </div>
+        <div className="min-w-0">
+          <span className="text-gray-400 block">Ing. a cargo</span>
+          <span className="text-gray-900 truncate block">{o.ingAcargo || '-'}</span>
+        </div>
+        <div className="min-w-0">
+          <span className="text-gray-400 block">O.T.</span>
+          <span className="text-gray-900 truncate block font-mono">{o.ordenTrabajo || '-'}</span>
+        </div>
+        <div
+          className="min-w-0"
+          title={
+            o.cantidadEntregada != null
+              ? `Entregadas: ${o.cantidadEntregada}, Pendientes: ${o.cantidadPendiente ?? calcularCantidadPendiente(o.cantidad, o.cantidadEntregada) ?? '?'}`
+              : undefined
+          }
+        >
+          <span className="text-gray-400 block">Cantidad</span>
+          <span className="text-gray-900 block">{formatearCantidadEntrega(o)}</span>
+        </div>
+        <div className="min-w-0">
+          <span className="text-gray-400 block">T. entrega</span>
+          <span className="text-gray-900 truncate block">{o.tiempoEntrega || '-'}</span>
+        </div>
+        <div className="min-w-0">
+          <span className="text-gray-400 block">F. entrega</span>
+          <span className="text-gray-900 truncate block">{o.fechaEntrega?.trim() || '-'}</span>
+        </div>
+        {o.fechaEntregaActualizada?.trim() && (
+          <div className="min-w-0 col-span-2">
+            <span className="text-gray-400 block">F. entrega actualizada</span>
+            <span className="text-gray-900 truncate block">{o.fechaEntregaActualizada}</span>
+          </div>
+        )}
+        {o.nota?.trim() && (
+          <div className="min-w-0 col-span-2">
+            <span className="text-gray-400 block">Nota</span>
+            <span className="text-gray-900 break-words block">{o.nota}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-end gap-3 pl-[26px] pt-2 border-t border-gray-50">
+        <button onClick={() => onEditar(o)} className="p-1.5 text-gray-400 hover:text-blue-600" title="Editar">
+          <Edit2 className="h-4 w-4" />
+        </button>
+        <button onClick={() => onEliminar(o.id, o.descripcion)} className="p-1.5 text-gray-400 hover:text-red-600" title="Eliminar">
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function OrdenesServicioList() {
   const {
     ordenes,
@@ -414,7 +510,7 @@ export default function OrdenesServicioList() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm text-left text-gray-500">
                 <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
                   <tr>
@@ -531,6 +627,22 @@ export default function OrdenesServicioList() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {filtradas.length > 0 && (
+            <div className="md:hidden divide-y divide-gray-100">
+              {filtradas.map((o) => (
+                <OrdenServicioCard
+                  key={o.id}
+                  o={o}
+                  selected={selectedIds.has(o.id)}
+                  onToggleSelect={toggleSelection}
+                  onCambioEstatus={handleCambioEstatus}
+                  onEditar={setOrdenToEdit}
+                  onEliminar={handleEliminar}
+                />
+              ))}
             </div>
           )}
         </div>

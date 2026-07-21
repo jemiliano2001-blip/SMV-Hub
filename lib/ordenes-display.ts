@@ -2,6 +2,8 @@ import { formatFecha } from "@/lib/format"
 import { normalizarClaveProdServ } from "@/lib/sat/normalizar"
 import { resolverCampoItem, type OrdenCompra } from "@/lib/schemas"
 
+export const LINK_GRUPO_WHATSAPP = "https://chat.whatsapp.com/IDCzgRSehHiEKiBldKFMLM"
+
 export type FechaOrdenDisplay = {
   principal: string
   secundaria: string | null
@@ -64,4 +66,62 @@ export function ordenTieneSatPendiente(orden: OrdenCompra): boolean {
 export function displayOGuion(valor: string | null | undefined): string {
   const t = valor?.trim()
   return t ? t : "—"
+}
+
+export function generarMensajeWhatsApp(
+  orden: Omit<OrdenCompra, "id" | "creadoEn" | "actualizadoEn"> & {
+    id?: string
+    imagenUrl?: string | null
+    creadoEn?: Date
+    actualizadoEn?: Date
+  }
+): string {
+  const proveedor = orden.proveedor?.trim() || ""
+  const items = orden.items || []
+
+  const itemsListStr = items
+    .map((item) => {
+      const cant = item.cantidad && item.cantidad > 1 ? `${item.cantidad} ` : ""
+      const desc = item.descripcionSimplificada?.trim() || item.descripcion?.trim() || ""
+      return `${cant}${desc}`
+    })
+    .filter(Boolean)
+
+  let itemsTexto = ""
+  if (itemsListStr.length === 1) {
+    itemsTexto = itemsListStr[0]
+  } else if (itemsListStr.length === 2) {
+    itemsTexto = `${itemsListStr[0]} y ${itemsListStr[1]}`
+  } else if (itemsListStr.length > 2) {
+    const ultimo = itemsListStr[itemsListStr.length - 1]
+    const resto = itemsListStr.slice(0, -1).join(", ")
+    itemsTexto = `${resto} y ${ultimo}`
+  } else {
+    itemsTexto = "compra"
+  }
+
+  const empresas = Array.from(
+    new Set(
+      items
+        .map((item) => item.empresa?.trim() || orden.empresa?.trim())
+        .filter(Boolean)
+    )
+  )
+
+  const destinoTexto = empresas.length > 0 ? ` para *${empresas.join(" / ")}*` : ""
+  const provTexto = proveedor ? ` en *${proveedor}*` : ""
+  const totalTexto = orden.total ? ` por *${orden.moneda || 'USD'} $${orden.total}*` : ""
+
+  let mensaje = `*Notificación de Compra (EUA)*\n\nBuen día, se pidió ${itemsTexto}${destinoTexto}${provTexto}${totalTexto}.`
+
+  // Adjunta el link directo del comprobante/screenshot/foto/pdf para vista previa en WhatsApp
+  if (orden.imagenUrl) {
+    mensaje += `\n\n📄 *Comprobante / Foto / PDF:* ${orden.imagenUrl}`
+  }
+
+  return mensaje
+}
+
+export function obtenerUrlWhatsApp(mensaje: string): string {
+  return `https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`
 }

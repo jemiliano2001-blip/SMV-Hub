@@ -60,18 +60,52 @@ export async function POST(request: Request) {
       'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
     }
 
-    const response = await fetch(parsedUrl.toString(), { headers })
+    // redirect: 'manual' evita que fetch siga automáticamente un redirect hacia
+    // un host fuera de la whitelist antes de que podamos validarlo.
+    let currentUrl = parsedUrl
+    let response = await fetch(currentUrl.toString(), { headers, redirect: 'manual' })
+    let redirectHops = 0
+
+    while (response.status >= 300 && response.status < 400) {
+      if (redirectHops >= 3) {
+        return Response.json(
+          { error: 'URL inválida o dominio no permitido' },
+          { status: 400 }
+        )
+      }
+
+      const location = response.headers.get('location')
+      if (!location) {
+        return Response.json(
+          { error: 'URL inválida o dominio no permitido' },
+          { status: 400 }
+        )
+      }
+
+      let resolvedUrl: URL
+      try {
+        resolvedUrl = new URL(location, currentUrl)
+      } catch {
+        return Response.json(
+          { error: 'URL inválida o dominio no permitido' },
+          { status: 400 }
+        )
+      }
+
+      if (!hostnamePermitido(resolvedUrl.hostname)) {
+        return Response.json(
+          { error: 'URL inválida o dominio no permitido' },
+          { status: 400 }
+        )
+      }
+
+      currentUrl = resolvedUrl
+      redirectHops += 1
+      response = await fetch(currentUrl.toString(), { headers, redirect: 'manual' })
+    }
 
     if (!response.ok) {
       throw new Error(`Error fetching URL: ${response.status} ${response.statusText}`)
-    }
-
-    // fetch sigue redirects: re-validar que el host final siga en la whitelist.
-    if (!hostnamePermitido(new URL(response.url).hostname)) {
-      return Response.json(
-        { error: 'URL inválida o dominio no permitido' },
-        { status: 400 }
-      )
     }
 
     const html = await response.text()
@@ -81,7 +115,7 @@ export async function POST(request: Request) {
     let price: number | null = null
     let provider = ''
 
-    const hostname = parsedUrl.hostname.toLowerCase()
+    const hostname = currentUrl.hostname.toLowerCase()
     
     // Find matching scraper strategy based on hostname
     const match = Object.entries(SCRAPERS).find(([key]) => hostname.includes(key))

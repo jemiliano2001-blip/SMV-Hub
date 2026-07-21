@@ -20,3 +20,13 @@ export async function subirImagenPedidoAlmacen(file: File): Promise<{ url: strin
   const url = await getDownloadURL(storageRef)
   return { url, path }
 }
+
+export async function subirComprobanteCajaChica(file: File): Promise<{ url: string; path: string }> {
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+  const id = crypto.randomUUID()
+  const path = `caja-chica/${id}.${ext}`
+  const storageRef = ref(storage, path)
+  await uploadBytes(storageRef, file)
+  const url = await getDownloadURL(storageRef)
+  return { url, path }
+}

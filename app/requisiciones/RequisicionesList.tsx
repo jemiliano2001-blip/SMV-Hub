@@ -96,6 +96,173 @@ function CeldaDescripcion({ r }: { r: Requisicion }) {
   )
 }
 
+type RequisicionCardProps = {
+  r: Requisicion
+  isAuto: boolean
+  hoy: string
+  selected: boolean
+  onToggleSelect: (id: string, e: React.MouseEvent) => void
+  onCambioEstado: (id: string, estado: EstatusRequisicion) => void
+  onCampoInline: (id: string, campo: 'recibio' | 'revisionFinanzas', valor: string) => void
+  onEditar: (r: Requisicion) => void
+  onEliminar: (id: string, desc: string) => void
+}
+
+// Tarjeta para < md: mismos datos que la fila de tabla (general y automatización), sin scroll horizontal.
+function RequisicionCard({
+  r,
+  isAuto,
+  hoy,
+  selected,
+  onToggleSelect,
+  onCambioEstado,
+  onCampoInline,
+  onEditar,
+  onEliminar,
+}: RequisicionCardProps) {
+  return (
+    <div className={`p-4 space-y-2.5 ${r.estado === 'parcial' ? 'bg-pink-50/40' : ''}`}>
+      <div className="flex justify-between items-start gap-3">
+        <div className="min-w-0 flex items-start gap-2.5">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={(e) => onToggleSelect(r.id, e as unknown as React.MouseEvent)}
+            className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0"
+          />
+          <div className="min-w-0">
+            <p className="text-xs text-gray-500">
+              {formatFecha(r.fechaPedido)}
+              {!isAuto && r.solicitante ? ` · ${r.solicitante}` : ''}
+            </p>
+            <div className="text-sm font-semibold text-gray-900 break-words">
+              <CeldaDescripcion r={r} />
+            </div>
+          </div>
+        </div>
+        <select
+          value={r.estado}
+          onChange={(e) => onCambioEstado(r.id, e.target.value as EstatusRequisicion)}
+          className={`shrink-0 rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset border-0 focus:ring-2 focus:ring-blue-500 ${ESTADO_BADGE[r.estado]}`}
+          title="Cambiar estado"
+        >
+          {ESTADOS_REQUISICION.map((e) => (
+            <option key={e} value={e}>{ESTADO_LABEL[e]}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 text-xs pl-[26px]">
+        {isAuto ? (
+          <>
+            <div className="min-w-0">
+              <span className="text-gray-400 block">Proveedor</span>
+              <span className="text-gray-900 truncate block">{r.tienda || '-'}</span>
+            </div>
+            <div className="min-w-0">
+              <span className="text-gray-400 block">Parte # · Cant.</span>
+              <span className="text-gray-900 truncate block font-mono">{r.parteNumero || '-'} · {r.cantidad || '-'}</span>
+            </div>
+            <div className="min-w-0">
+              <span className="text-gray-400 block">F. entrega</span>
+              <span className="text-gray-900 block">{r.fechaEntregaEst ? formatFecha(r.fechaEntregaEst) : '-'}</span>
+            </div>
+            <div className="min-w-0">
+              <span className="text-gray-400 block">Plazo</span>
+              <CeldaAtraso r={r} hoy={hoy} isAuto />
+            </div>
+            <div className="min-w-0">
+              <span className="text-gray-400 block">Empresa · O.T.</span>
+              <span className="flex items-center gap-1.5">
+                {r.empresa ? (
+                  <span className={`rounded px-1.5 py-0.5 font-semibold ${badgeEmpresa(r.empresa)}`}>{r.empresa}</span>
+                ) : '-'}
+                <span className="text-gray-900 font-mono truncate">{r.ordenServicio || ''}</span>
+              </span>
+            </div>
+            <div className="min-w-0">
+              <span className="text-gray-400 block">Link</span>
+              {r.link ? (
+                <a href={r.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  Abrir
+                </a>
+              ) : '-'}
+            </div>
+            <div className="min-w-0">
+              <span className="text-gray-400 block">Recibió</span>
+              <select
+                value={r.recibio ?? ''}
+                onChange={(e) => onCampoInline(r.id, 'recibio', e.target.value)}
+                className="rounded border-0 bg-transparent text-gray-900 focus:ring-1 focus:ring-blue-500 -ml-1"
+              >
+                <option value="">—</option>
+                {SOLICITANTES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-0">
+              <span className="text-gray-400 block">Rev. finanzas</span>
+              <select
+                value={r.revisionFinanzas ?? ''}
+                onChange={(e) => onCampoInline(r.id, 'revisionFinanzas', e.target.value)}
+                className={`rounded px-1 -ml-1 font-semibold border-0 focus:ring-1 focus:ring-blue-500 ${
+                  r.revisionFinanzas === 'Entrega parcial' ? 'bg-yellow-100 text-yellow-800' : 'bg-transparent text-gray-900'
+                }`}
+              >
+                {REVISION_FINANZAS_OPCIONES.map((op) => (
+                  <option key={op || 'vacio'} value={op}>{op || '—'}</option>
+                ))}
+              </select>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="min-w-0">
+              <span className="text-gray-400 block">Tienda</span>
+              <span className="text-gray-900 truncate block">{r.tienda || '-'}</span>
+            </div>
+            <div className="min-w-0">
+              <span className="text-gray-400 block">Cantidad</span>
+              <span className="text-gray-900 block">{r.cantidad || '-'}</span>
+            </div>
+            <div className="min-w-0">
+              <span className="text-gray-400 block">Prioridad</span>
+              {r.prioridad ? (
+                <span className={`inline-block rounded px-1.5 py-0.5 font-semibold ${PRIORIDAD_BADGE[r.prioridad]}`}>
+                  {r.prioridad}
+                </span>
+              ) : '-'}
+            </div>
+            <div className="min-w-0">
+              <span className="text-gray-400 block">Límite</span>
+              <CeldaAtraso r={r} hoy={hoy} isAuto={false} />
+            </div>
+            <div className="min-w-0">
+              <span className="text-gray-400 block">Empresa · O.T.</span>
+              <span className="flex items-center gap-1.5">
+                {r.empresa ? (
+                  <span className={`rounded px-1.5 py-0.5 font-semibold ${badgeEmpresa(r.empresa)}`}>{r.empresa}</span>
+                ) : '-'}
+                <span className="text-gray-900 font-mono truncate">{r.ordenServicio || ''}</span>
+              </span>
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="flex items-center justify-end gap-3 pl-[26px] pt-2 border-t border-gray-50">
+        <button onClick={() => onEditar(r)} className="p-1.5 text-gray-400 hover:text-blue-600" title="Editar">
+          <Edit2 className="h-4 w-4" />
+        </button>
+        <button onClick={() => onEliminar(r.id, r.descripcion)} className="p-1.5 text-gray-400 hover:text-red-600" title="Eliminar">
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function RequisicionesList() {
   const {
     requisiciones,
@@ -548,7 +715,7 @@ export default function RequisicionesList() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm text-left text-gray-500">
                 <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
                   <tr>
@@ -754,6 +921,25 @@ export default function RequisicionesList() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {filtradas.length > 0 && (
+            <div className="md:hidden divide-y divide-gray-100">
+              {filtradas.map((r) => (
+                <RequisicionCard
+                  key={r.id}
+                  r={r}
+                  isAuto={isAuto}
+                  hoy={hoy}
+                  selected={selectedIds.has(r.id)}
+                  onToggleSelect={toggleSelection}
+                  onCambioEstado={handleCambioEstado}
+                  onCampoInline={handleCampoInline}
+                  onEditar={setRequisicionToEdit}
+                  onEliminar={handleEliminar}
+                />
+              ))}
             </div>
           )}
         </div>

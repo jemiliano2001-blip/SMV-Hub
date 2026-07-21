@@ -102,7 +102,30 @@ function FacturacionPorCliente() {
             No hay facturación en este periodo con los filtros seleccionados.
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="md:hidden divide-y divide-gray-100 -mx-4 sm:-mx-6">
+            {grupos.map((g) => (
+              <div key={g.cliente} className="px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">{g.cliente}</p>
+                  <p className="text-xs text-gray-500">{g.facturas.length} facturas · {g.pctDelTotal.toFixed(1)}%</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-bold text-gray-900 tabular-nums">{formatPrecio(g.total, moneda)}</p>
+                  <p className="text-xs text-gray-400 tabular-nums">{formatPrecio(g.subtotal, moneda)} subt.</p>
+                </div>
+              </div>
+            ))}
+            <div className="px-4 sm:px-6 py-3 flex items-center justify-between gap-3 bg-gray-50">
+              <p className="text-xs font-bold text-gray-900 uppercase tracking-wide">Total General</p>
+              <div className="text-right shrink-0">
+                <p className="text-base font-bold text-gray-900 tabular-nums">{formatPrecio(totalGeneral, moneda)}</p>
+                <p className="text-xs text-gray-500">{totalFacturas} facturas</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b-2 border-gray-300">
@@ -137,6 +160,7 @@ function FacturacionPorCliente() {
               </tfoot>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>

@@ -359,6 +359,20 @@ service cloud.firestore {
 
     // ── Caja Chica ───────────────────────────────────────────────────────────
 
+    // Los movimientos históricos pueden no tener adjunto. Cuando existe,
+    // restringimos los metadatos al comprobante guardado bajo caja-chica/.
+    function adjuntoCajaChicaValido(d) {
+      return (!d.keys().hasAny(['archivoUrl']) ||
+                d.archivoUrl == null ||
+                (d.archivoUrl is string && d.archivoUrl.size() <= 3000)) &&
+             (!d.keys().hasAny(['archivoNombre']) ||
+                d.archivoNombre == null ||
+                (d.archivoNombre is string && d.archivoNombre.size() <= 255)) &&
+             (!d.keys().hasAny(['archivoPath']) ||
+                d.archivoPath == null ||
+                (d.archivoPath is string && d.archivoPath.matches('^caja-chica/.+')));
+    }
+
     function movimientoCajaChicaValido(d) {
       return d.fecha is string &&
              d.periodo is string &&
@@ -374,7 +388,8 @@ service cloud.firestore {
              d.ivaEstimado is number &&
              d.verificado is bool &&
              d.creadoEn is timestamp &&
-             d.actualizadoEn is timestamp;
+             d.actualizadoEn is timestamp &&
+             adjuntoCajaChicaValido(d);
     }
 
     match /caja_chica_movimientos/{movimientoId} {

@@ -8,6 +8,7 @@ import { crearOrden } from '@/lib/ordenes'
 import { marcarPedidoAlmacenComprado } from '@/lib/pedidos-almacen'
 import type { NuevaCompraForm as FormData } from '@/lib/schemas'
 import { sincronizarCamposLegacyOrden } from '@/lib/schemas'
+import { generarMensajeWhatsApp, obtenerUrlWhatsApp } from '@/lib/ordenes-display'
 
 export default function NuevaCompraFormWrapper({
   pedidoId,
@@ -19,7 +20,7 @@ export default function NuevaCompraFormWrapper({
   const router = useRouter()
   const [errorGuardado, setErrorGuardado] = useState<string | null>(null)
 
-  async function handleSubmit(data: FormData, imagen?: File) {
+  async function handleSubmit(data: FormData, imagen?: File, notificarWhatsApp?: boolean) {
     setErrorGuardado(null)
     try {
       const imagenGuardada = imagen ? await subirImagenOrden(imagen) : null
@@ -40,6 +41,18 @@ export default function NuevaCompraFormWrapper({
         } catch (err) {
           console.error('[nueva-compra] no se pudo vincular el pedido de almacén:', err)
         }
+      }
+
+      if (notificarWhatsApp) {
+        const msg = generarMensajeWhatsApp({
+          ...data,
+          id: ordenId,
+          estado: 'pendiente',
+          creadoEn: new Date(),
+          actualizadoEn: new Date(),
+        })
+        const url = obtenerUrlWhatsApp(msg)
+        window.open(url, '_blank')
       }
 
       router.push('/ordenes')

@@ -148,7 +148,25 @@ function ReportesFinanzas() {
         {grupos.length === 0 ? (
           <p className="text-sm text-gray-500 py-8 text-center">Sin facturación en este periodo.</p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* print:hidden — al imprimir siempre se usa la tabla, sin importar el ancho de página. */}
+          <div className="md:hidden print:hidden divide-y divide-gray-100 -mx-4 sm:-mx-6">
+            {facturasPeriodo.map((f) => (
+              <div key={f.id} className="px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">{f.cliente}</p>
+                  <p className="text-xs text-gray-500 font-mono">{f.numeroFactura} · {formatFecha(f.fechaFactura)}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-bold text-gray-900 tabular-nums">{formatPrecio(f.total, moneda)}</p>
+                  <p className="text-xs text-gray-400 tabular-nums">
+                    {formatPrecio(f.subtotal, moneda)} + {formatPrecio(f.impuestos, moneda)} IVA
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden md:block print:block overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b-2 border-gray-300">
@@ -174,6 +192,7 @@ function ReportesFinanzas() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>

@@ -408,6 +408,9 @@ export const MovimientoCajaChicaSchema = z.object({
   costoReal: z.number().min(0),
   ivaEstimado: z.number().min(0),
   verificado: z.boolean().default(false),
+  archivoUrl: z.string().nullable().optional(),
+  archivoNombre: z.string().nullable().optional(),
+  archivoPath: z.string().nullable().optional(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 })

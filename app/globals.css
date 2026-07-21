@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 /* ── Design System — SMV Hub ────────────────────────────────────────────────
    Paleta: Data-Dense Dashboard (UI/UX Pro Max)
@@ -8,13 +9,31 @@
 :root {
   --background: #F8FAFC;
   --foreground: #1E3A8A; /* Text */
-  --color-primary: #1E40AF;
-  --color-secondary: #3B82F6;
-  --color-cta: #F59E0B;
-  --color-cta-hover: #D97706;
-  --color-surface: #ffffff;
-  --color-border: #E2E8F0;
-  --color-muted: #64748B;
+
+  /* ── Tokens shadcn/ui ─────────────────────────────────────────────────────
+     Mapeados a la paleta que ya usa la app para que los componentes nuevos se
+     vean idénticos a los viejos y la migración pueda ser gradual. El azul de
+     marca (#0369A1) está hardcodeado en decenas de className por todo el repo;
+     `--primary` es ese mismo color para que convivan sin diferencias.
+     ────────────────────────────────────────────────────────────────────────── */
+  --radius: 0.5rem;
+  --card: #ffffff;
+  --card-foreground: var(--foreground);
+  --popover: #ffffff;
+  --popover-foreground: var(--foreground);
+  --primary: #0369A1;
+  --primary-foreground: #ffffff;
+  --secondary: #F1F5F9;
+  --secondary-foreground: #0F172A;
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+  --accent: #F1F5F9;
+  --accent-foreground: #0F172A;
+  --destructive: #DC2626;
+  --destructive-foreground: #ffffff;
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #0369A1;
 }
 
 @theme inline {
@@ -22,6 +41,29 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-fira-sans), system-ui, sans-serif;
   --font-mono: var(--font-fira-code), monospace;
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
 body {

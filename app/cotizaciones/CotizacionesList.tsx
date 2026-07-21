@@ -35,6 +35,78 @@ const ESTATUS_BADGE: Record<EstatusCotizacion, string> = {
   revisar: 'bg-yellow-50 text-yellow-800 ring-yellow-600/20',
 }
 
+type CotizacionCardProps = {
+  c: Cotizacion
+  selected: boolean
+  onToggleSelect: (id: string, e: React.MouseEvent) => void
+  onEditar: (c: Cotizacion) => void
+}
+
+// Tarjeta para < md: mismo dato que la fila de tabla, sin scroll horizontal.
+function CotizacionCard({ c, selected, onToggleSelect, onEditar }: CotizacionCardProps) {
+  return (
+    <div onClick={() => onEditar(c)} className="p-4 space-y-2.5 active:bg-gray-50 cursor-pointer">
+      <div className="flex justify-between items-start gap-3">
+        <div className="min-w-0 flex items-start gap-2.5">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={(e) => onToggleSelect(c.id, e as unknown as React.MouseEvent)}
+            onClick={(e) => e.stopPropagation()}
+            className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0"
+          />
+          <div className="min-w-0">
+            <p className="text-xs text-gray-500">{formatFecha(c.fecha)} · {c.solicitante || '—'}</p>
+            <p className="text-sm font-semibold text-gray-900 break-words">{c.descripcion}</p>
+          </div>
+        </div>
+        <span className={`shrink-0 inline-flex rounded-full px-2 py-1 text-xs font-semibold capitalize ring-1 ring-inset ${ESTATUS_BADGE[c.estatus]}`}>
+          {c.estatus}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 text-xs pl-[26px]">
+        <div className="min-w-0">
+          <span className="text-gray-400 block">Proveedor</span>
+          <span className="text-gray-900 truncate block">{c.proveedor}</span>
+        </div>
+        <div className="min-w-0">
+          <span className="text-gray-400 block">No. parte</span>
+          <span className="text-gray-900 truncate block font-mono">{c.numeroParte || '-'}</span>
+        </div>
+        <div className="min-w-0">
+          <span className="text-gray-400 block">Ubicación</span>
+          <span className={`inline-block rounded px-1.5 py-0.5 font-semibold ${c.ubicacion === 'USA' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+            {c.ubicacion === 'USA' ? 'EUA' : 'MX'}
+          </span>
+        </div>
+        <div className="min-w-0">
+          <span className="text-gray-400 block">Cantidad</span>
+          <span className="text-gray-900">{c.cantidad ?? '-'}</span>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between pl-[26px] pt-2 border-t border-gray-50">
+        <span className="text-xs text-gray-500">{formatPrecio(c.precioUnitario, c.moneda)} c/u</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-bold text-gray-900">{formatPrecio(c.total, c.moneda)}</span>
+          {c.link && /^https?:\/\//i.test(c.link) && (
+            <a
+              href={c.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-gray-400 hover:text-blue-600"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function CotizacionesList() {
   const {
     cotizaciones,
@@ -300,9 +372,9 @@ export default function CotizacionesList() {
         </div>
       </div>
 
-      {/* Tabla */}
+      {/* Tabla (desktop) / Tarjetas (celular) */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm text-left text-gray-500">
             <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
               <tr>
@@ -374,6 +446,19 @@ export default function CotizacionesList() {
             </tbody>
           </table>
         </div>
+
+        <div className="md:hidden divide-y divide-gray-100">
+          {filasPagina.map((c) => (
+            <CotizacionCard
+              key={c.id}
+              c={c}
+              selected={selectedIds.has(c.id)}
+              onToggleSelect={toggleSelection}
+              onEditar={setCotizacionToEdit}
+            />
+          ))}
+        </div>
+
         {filtradas.length === 0 && (
           <div className="text-center py-12 text-sm text-gray-500">
             Ninguna cotización coincide con la búsqueda.

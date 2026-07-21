@@ -49,6 +49,16 @@ service firebase.storage {
                    && request.resource.contentType.matches('image/.*');
     }
 
+    // Comprobantes de caja chica: solo usuarios autorizados.
+    match /caja-chica/{archivo=**} {
+      allow read: if esUsuarioAutorizado();
+
+      allow write: if esUsuarioAutorizado()
+                   && request.resource.size < 10 * 1024 * 1024
+                   && (request.resource.contentType.matches('image/.*')
+                       || request.resource.contentType == 'application/pdf');
+    }
+
     // Todo lo demás: denegado por defecto.
     match /{allPaths=**} {
       allow read, write: if false;

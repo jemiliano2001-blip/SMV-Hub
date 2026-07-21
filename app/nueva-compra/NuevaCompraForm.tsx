@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Plus, Trash2, Upload, X, AlertTriangle, FileText } from 'lucide-react'
+import WhatsAppIcon from '@/components/WhatsAppIcon'
 import { z } from 'zod'
 import { getClienteAuth } from '@/lib/firebase'
 import { buscarPorFacturaYProveedor, listarOrdenes } from '@/lib/ordenes'
@@ -60,7 +61,7 @@ export default function NuevaCompraForm({
   onSubmit: onExternalSubmit,
   initialDescripcion,
 }: {
-  onSubmit?: (data: NuevaCompraForm, imagen?: File) => Promise<void>
+  onSubmit?: (data: NuevaCompraForm, imagen?: File, notificarWhatsApp?: boolean) => Promise<void>
   initialDescripcion?: string
 }) {
   const [imagen, setImagen] = useState<File | null>(null)
@@ -71,6 +72,7 @@ export default function NuevaCompraForm({
   const [duplicadoDetectado, setDuplicadoDetectado] = useState<string | null>(null)
   const [verificandoDuplicado, setVerificandoDuplicado] = useState(false)
   const [dragActive, setDragActive] = useState(false)
+  const [notificarWhatsApp, setNotificarWhatsApp] = useState(true)
   const dropzoneRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -372,7 +374,7 @@ export default function NuevaCompraForm({
 
   async function onSubmit(data: NuevaCompraForm) {
     if (duplicadoDetectado) return
-    await onExternalSubmit?.(data, imagen ?? undefined)
+    await onExternalSubmit?.(data, imagen ?? undefined, notificarWhatsApp)
   }
 
   const itemsError =
@@ -657,7 +659,20 @@ export default function NuevaCompraForm({
       </section>
 
       {/* ── Submit ───────────────────────────────────────────────────── */}
-      <div className="flex justify-end pb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-8 border-t border-gray-200 pt-6">
+        <label className="flex items-center gap-2.5 text-sm text-gray-600 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={notificarWhatsApp}
+            onChange={(e) => setNotificarWhatsApp(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer transition-colors duration-200"
+          />
+          <span className="flex items-center gap-1.5 font-medium text-gray-700">
+            <WhatsAppIcon className="h-4.5 w-4.5 text-green-500 shrink-0" />
+            Notificar por WhatsApp al guardar
+          </span>
+        </label>
+
         <button
           type="submit"
           disabled={extrayendo || isSubmitting || verificandoDuplicado || Boolean(duplicadoDetectado)}

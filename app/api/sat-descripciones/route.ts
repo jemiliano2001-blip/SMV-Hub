@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server"
+import { verificarUsuarioAutorizado } from "@/lib/api-auth"
 import { findSatCatalogEntryByKey } from "@/lib/sat/catalogo"
 
 export async function POST(req: Request) {
+  const auth = await verificarUsuarioAutorizado(req)
+  if (!auth.ok) return auth.response
+
   try {
     const body = await req.json()
     const claves = body.claves as string[]

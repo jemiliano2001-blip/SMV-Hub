@@ -23,6 +23,23 @@
         { "fieldPath": "fecha", "order": "DESCENDING" },
         { "fieldPath": "horaEntrada", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "caja_chica_movimientos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "periodo", "order": "ASCENDING" },
+        { "fieldPath": "fecha", "order": "DESCENDING" },
+        { "fieldPath": "creadoEn", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "caja_chica_movimientos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fecha", "order": "DESCENDING" },
+        { "fieldPath": "creadoEn", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

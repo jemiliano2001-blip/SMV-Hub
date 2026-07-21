@@ -112,11 +112,18 @@ export default function ReporteContableView() {
     if (clavesUnicas.length === 0) return
 
     const fetchSat = async () => {
+      const user = getClienteAuth().currentUser
+      if (!user) return
+
       setCargandoSat(true)
       try {
+        const token = await user.getIdToken()
         const res = await fetch("/api/sat-descripciones", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({ claves: clavesUnicas })
         })
         if (res.ok) {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useOperadores } from '@/lib/hooks/useOperadores'
-import type { Area } from '@/lib/schemas'
+import type { Area, Operador } from '@/lib/schemas'
 import { Plus, Search, UserCheck, UserX, Download, Check, X } from 'lucide-react'
 
 function getInitials(name: string) {
@@ -25,6 +25,86 @@ const AREA_COLORS: Record<Area, string> = {
   cnc: 'bg-amber-50 text-amber-700 border-amber-200',
   limpieza: 'bg-gray-50 text-gray-600 border-gray-200',
   administracion: 'bg-rose-50 text-rose-700 border-rose-200',
+}
+
+type OperadorCardProps = {
+  op: Operador
+  editando: boolean
+  nombreEditado: string
+  onNombreEditadoChange: (v: string) => void
+  onEmpezarEdicion: () => void
+  onGuardarEdicion: () => void
+  onCancelarEdicion: () => void
+  onCambiarArea: (area: Area) => void
+  onToggle: () => void
+}
+
+// Tarjeta para < md: mismos datos y acciones que la fila de tabla, sin scroll horizontal.
+function OperadorCard({
+  op,
+  editando,
+  nombreEditado,
+  onNombreEditadoChange,
+  onEmpezarEdicion,
+  onGuardarEdicion,
+  onCancelarEdicion,
+  onCambiarArea,
+  onToggle,
+}: OperadorCardProps) {
+  return (
+    <div className={`p-3 flex items-center justify-between gap-3 ${!op.activo ? 'opacity-50' : ''}`}>
+      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${AREA_COLORS[op.area]}`}>
+          {getInitials(op.nombre)}
+        </div>
+        {editando ? (
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            <input
+              type="text"
+              value={nombreEditado}
+              onChange={(e) => onNombreEditadoChange(e.target.value)}
+              className="w-full min-w-0 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-[#0369A1]"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') onGuardarEdicion()
+                if (e.key === 'Escape') onCancelarEdicion()
+              }}
+            />
+            <button onClick={onGuardarEdicion} className="text-emerald-600 bg-emerald-50 rounded p-1 hover:bg-emerald-100 shrink-0"><Check className="w-4 h-4" /></button>
+            <button onClick={onCancelarEdicion} className="text-red-600 bg-red-50 rounded p-1 hover:bg-red-100 shrink-0"><X className="w-4 h-4" /></button>
+          </div>
+        ) : (
+          <div className="min-w-0 flex-1">
+            <p
+              className="font-medium text-gray-900 truncate cursor-pointer hover:text-[#0369A1]"
+              onClick={onEmpezarEdicion}
+              title="Clic para editar"
+            >
+              {op.nombre}
+            </p>
+            <select
+              value={op.area}
+              onChange={(e) => onCambiarArea(e.target.value as Area)}
+              className={`mt-1 text-xs font-medium px-2 py-0.5 rounded-full border cursor-pointer ${AREA_COLORS[op.area]}`}
+            >
+              {AREAS.map((a) => (
+                <option key={a.value} value={a.value}>{a.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+      <button
+        onClick={onToggle}
+        className={`shrink-0 inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${
+          op.activo ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+        }`}
+        title={op.activo ? 'Clic para desactivar' : 'Clic para activar'}
+      >
+        {op.activo ? <UserCheck className="h-3.5 w-3.5" /> : <UserX className="h-3.5 w-3.5" />}
+      </button>
+    </div>
+  )
 }
 
 export default function OperadoresList() {
@@ -250,8 +330,32 @@ export default function OperadoresList() {
         </div>
       )}
 
-      {/* Tabla de operadores */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      {/* Tarjetas (celular) */}
+      <div className="md:hidden bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
+        {filtrados.length === 0 ? (
+          <div className="text-center py-12 text-gray-400 text-sm">
+            {busqueda ? 'Sin resultados para la búsqueda' : 'No hay operadores registrados'}
+          </div>
+        ) : (
+          filtrados.map((op) => (
+            <OperadorCard
+              key={op.id}
+              op={op}
+              editando={editandoId === op.id}
+              nombreEditado={nombreEditado}
+              onNombreEditadoChange={setNombreEditado}
+              onEmpezarEdicion={() => { setEditandoId(op.id); setNombreEditado(op.nombre) }}
+              onGuardarEdicion={() => guardarEdicion(op.id)}
+              onCancelarEdicion={() => setEditandoId(null)}
+              onCambiarArea={(area) => handleCambiarArea(op.id, area)}
+              onToggle={() => handleToggle(op.id, op.activo)}
+            />
+          ))
+        )}
+      </div>
+
+      {/* Tabla de operadores (desktop) */}
+      <div className="hidden md:block bg-white border border-gray-200 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">

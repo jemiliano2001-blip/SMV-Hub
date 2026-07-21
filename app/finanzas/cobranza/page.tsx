@@ -12,6 +12,7 @@ import {
 import { useUsuario } from "@/lib/auth"
 import { useFinanzasFacturas } from "@/lib/hooks/useFinanzasFacturas"
 import { useSeguimientoCobranza } from "@/lib/hooks/useSeguimientoCobranza"
+import type { FacturaCliente, SeguimientoCobranza, SeguimientoCobranzaInput } from "@/lib/schemas"
 import {
   facturasValidas,
   monedasPresentes,
@@ -37,6 +38,124 @@ import FinanzasNav from "@/app/finanzas/FinanzasNav"
 import BannerSync from "@/app/finanzas/BannerSync"
 import SelectorMes from "@/app/finanzas/SelectorMes"
 import SeguimientoCobranzaEditor from "@/app/finanzas/cobranza/SeguimientoCobranzaEditor"
+
+type FilaCobranza = {
+  factura: FacturaCliente
+  estado: EstadoCobranza
+  atraso: number
+  bucket: BucketAging
+}
+
+type FacturaCobranzaCardProps = {
+  fila: FilaCobranza
+  moneda: string
+  prioritaria: boolean
+  seguimiento: SeguimientoCobranza | undefined
+  expandida: boolean
+  onToggleExpand: (id: string) => void
+  loadingSeguimiento: boolean
+  usuarioEmail: string | null | undefined
+  onGuardar: (entrada: SeguimientoCobranzaInput) => Promise<void>
+  onEliminar: (facturaId: string) => Promise<void>
+}
+
+// Tarjeta para < md: mismos datos que la fila de tabla, con el editor de seguimiento
+// desplegándose dentro de la tarjeta en vez de en una fila hermana.
+function FacturaCobranzaCard({
+  fila: { factura, estado, atraso, bucket },
+  moneda,
+  prioritaria,
+  seguimiento,
+  expandida,
+  onToggleExpand,
+  loadingSeguimiento,
+  usuarioEmail,
+  onGuardar,
+  onEliminar,
+}: FacturaCobranzaCardProps) {
+  return (
+    <div className={`p-4 space-y-2.5 ${prioritaria ? "bg-amber-50/70" : ""}`}>
+      <div className="flex justify-between items-start gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-gray-900 truncate">{factura.cliente}</p>
+          <p className="text-xs text-gray-500 font-mono">{factura.numeroFactura} · vence {formatFecha(factura.fechaVencimiento)}</p>
+        </div>
+        {seguimiento?.enDisputa ? (
+          <span className="shrink-0 rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">En disputa</span>
+        ) : (
+          <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${ETIQUETA_ESTADO[estado].clase}`}>
+            {ETIQUETA_ESTADO[estado].label}
+          </span>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <div className="min-w-0">
+          <span className="text-gray-400 block">Total</span>
+          <span className="text-gray-900 tabular-nums block">{formatPrecio(factura.total, moneda)}</span>
+        </div>
+        <div className="min-w-0">
+          <span className="text-gray-400 block">Saldo</span>
+          <span className="text-gray-900 tabular-nums font-medium block">
+            {formatPrecio(factura.saldoPendiente, moneda)}
+            {prioritaria && (
+              <span className="ml-1.5 inline-flex rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-800">
+                Prioridad
+              </span>
+            )}
+          </span>
+        </div>
+        <div className="min-w-0">
+          <span className="text-gray-400 block">Días atraso</span>
+          <span className="text-gray-900 tabular-nums block">{atraso > 0 ? atraso : "—"}</span>
+        </div>
+        <div className="min-w-0">
+          <span className="text-gray-400 block">Antigüedad</span>
+          {factura.saldoPendiente > 0 && atraso > 0 ? (
+            <span
+              className="inline-flex items-center gap-1 font-medium"
+              style={{ color: INFO_BUCKET[bucket].color }}
+              title={INFO_BUCKET[bucket].accion}
+            >
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: INFO_BUCKET[bucket].color }} />
+              {INFO_BUCKET[bucket].label}
+            </span>
+          ) : (
+            <span className="text-gray-400">—</span>
+          )}
+        </div>
+      </div>
+
+      <div className="pt-2 border-t border-gray-50">
+        <button
+          type="button"
+          onClick={() => onToggleExpand(factura.id)}
+          disabled={loadingSeguimiento}
+          aria-expanded={expandida}
+          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+        >
+          {seguimiento ? "Editar seguimiento" : "Agregar seguimiento"}
+          {expandida ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        </button>
+        {expandida && (
+          <div className="mt-3">
+            {usuarioEmail ? (
+              <SeguimientoCobranzaEditor
+                facturaId={factura.id}
+                seguimiento={seguimiento}
+                actualizadoPor={usuarioEmail}
+                onGuardar={onGuardar}
+                onEliminar={onEliminar}
+              />
+            ) : (
+              <p className="text-sm text-amber-700">No se pudo identificar la sesión para registrar la trazabilidad.</p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 type Filtro = "todas" | EstadoCobranza | "disputa"
 type PeriodoCobranza = "todas" | "mes"
@@ -349,7 +468,25 @@ function Cobranza() {
         {filasFiltradas.length === 0 ? (
           <p className="text-sm text-gray-500 py-8 text-center">No hay facturas para este filtro.</p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <div className="md:hidden divide-y divide-gray-100 -mx-4 sm:-mx-6">
+              {filasFiltradas.map((fila) => (
+                <FacturaCobranzaCard
+                  key={fila.factura.id}
+                  fila={fila}
+                  moneda={moneda}
+                  prioritaria={idsPrioritarias.has(fila.factura.id)}
+                  seguimiento={seguimientos.get(fila.factura.id)}
+                  expandida={facturaExpandida === fila.factura.id}
+                  onToggleExpand={(id) => setFacturaExpandida((actual) => (actual === id ? null : id))}
+                  loadingSeguimiento={loadingSeguimiento}
+                  usuarioEmail={usuario?.email}
+                  onGuardar={guardarSeguimiento}
+                  onEliminar={eliminarSeguimiento}
+                />
+              ))}
+            </div>
+            <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b-2 border-gray-300">
@@ -466,7 +603,8 @@ function Cobranza() {
                 })}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </div>
     </div>

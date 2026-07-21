@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server"
 import { z } from "zod"
-import { verificarUsuarioAutorizado } from "@/lib/api-auth"
+import { verificarAdmin } from "@/lib/api-auth"
 import { adminDb } from "@/lib/firebase-admin"
 import { ErrorIA } from "@/lib/extraer-ia"
 import {
@@ -181,7 +181,7 @@ async function procesarOrden(
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await verificarUsuarioAutorizado(req)
+  const auth = await verificarAdmin(req)
   if (!auth.ok) return auth.response
 
   let body: unknown

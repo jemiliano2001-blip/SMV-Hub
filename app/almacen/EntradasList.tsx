@@ -17,6 +17,54 @@ const ESTATUS_BADGE: Record<EstatusEntrada, string> = {
   devuelto: 'bg-red-50 text-red-700 ring-red-600/20',
 }
 
+type EntradaCardProps = {
+  e: EntradaAlmacen
+  onCycleEstatus: (id: string, actual: EstatusEntrada) => void
+  onEliminar: (id: string, desc: string) => void
+}
+
+// Tarjeta para < md: mismos datos que la fila de tabla, sin scroll horizontal.
+function EntradaCard({ e, onCycleEstatus, onEliminar }: EntradaCardProps) {
+  return (
+    <div className="p-4 space-y-2.5">
+      <div className="flex justify-between items-start gap-3">
+        <div className="min-w-0">
+          <p className="text-xs text-gray-500">{e.fecha}</p>
+          <p className="text-sm font-semibold text-gray-900 break-words">{e.descripcion}</p>
+        </div>
+        <button
+          onClick={() => onCycleEstatus(e.id, e.estatus)}
+          title="Click para cambiar estatus"
+          className={`shrink-0 inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ring-1 ring-inset hover:opacity-75 transition-opacity ${ESTATUS_BADGE[e.estatus]}`}
+        >
+          {e.estatus}
+        </button>
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-xs">
+        <div className="min-w-0">
+          <span className="text-gray-400 block">Cantidad</span>
+          <span className="text-gray-900 block">{e.cantidad}</span>
+        </div>
+        <div className="min-w-0">
+          <span className="text-gray-400 block">Cargo a</span>
+          <span className={`inline-block px-2 py-0.5 rounded-full font-medium ${e.cargoA.toLowerCase() === 'stock' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+            {e.cargoA}
+          </span>
+        </div>
+        <div className="min-w-0">
+          <span className="text-gray-400 block">Recibió</span>
+          <span className="text-gray-900 truncate block">{e.recibio}</span>
+        </div>
+      </div>
+      <div className="flex justify-end pt-2 border-t border-gray-50">
+        <button onClick={() => onEliminar(e.id, e.descripcion)} className="p-1.5 text-gray-400 hover:text-red-500" title="Eliminar">
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function EntradasList() {
   const { entradas, loading, error, agregarEntrada, editarEntrada, borrarEntrada } = useEntradas()
 
@@ -181,8 +229,8 @@ export default function EntradasList() {
         </button>
       </form>
 
-      {/* Table */}
-      <div className="overflow-x-auto border border-gray-200 rounded-lg">
+      {/* Table (desktop) */}
+      <div className="hidden md:block overflow-x-auto border border-gray-200 rounded-lg">
         <table className="w-full text-sm text-left">
           <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
             <tr>
@@ -236,6 +284,19 @@ export default function EntradasList() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Cards (mobile) */}
+      <div className="md:hidden border border-gray-200 rounded-lg divide-y divide-gray-100">
+        {filtradas.length === 0 ? (
+          <div className="px-4 py-8 text-center text-gray-500 text-sm">
+            {busqueda ? 'No se encontraron entradas' : 'No hay entradas registradas'}
+          </div>
+        ) : (
+          filtradas.map((e) => (
+            <EntradaCard key={e.id} e={e} onCycleEstatus={handleCycleEstatus} onEliminar={handleEliminar} />
+          ))
+        )}
       </div>
     </div>
   )

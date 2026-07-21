@@ -2,6 +2,38 @@ import { useState } from 'react'
 import { useSalidas } from '@/lib/hooks/useAlmacen'
 import { useOperadores } from '@/lib/hooks/useOperadores'
 import { Plus, Trash2, Search } from 'lucide-react'
+import type { SalidaAlmacen } from '@/lib/schemas'
+
+type SalidaCardProps = {
+  s: SalidaAlmacen
+  onEliminar: (id: string, desc: string) => void
+}
+
+// Tarjeta para < md: mismos datos que la fila de tabla, sin scroll horizontal.
+function SalidaCard({ s, onEliminar }: SalidaCardProps) {
+  return (
+    <div className="p-4 space-y-2.5">
+      <div className="flex justify-between items-start gap-3">
+        <div className="min-w-0">
+          <p className="text-xs text-gray-500">{s.fecha}</p>
+          <p className="text-sm font-semibold text-gray-900 break-words">{s.herramienta}</p>
+        </div>
+        <span className="shrink-0 text-sm font-semibold text-gray-900">x{s.cantidad}</span>
+      </div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-xs text-gray-600">
+          <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center font-medium text-gray-600">
+            {s.operador.charAt(0).toUpperCase()}
+          </div>
+          {s.operador}
+        </div>
+        <button onClick={() => onEliminar(s.id, s.herramienta)} className="p-1.5 text-gray-400 hover:text-red-500" title="Eliminar">
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default function SalidasList() {
   const { salidas, loading: loadingSalidas, error, agregarSalida, borrarSalida } = useSalidas()
@@ -137,8 +169,8 @@ export default function SalidasList() {
         </button>
       </form>
 
-      {/* Table */}
-      <div className="overflow-x-auto border border-gray-200 rounded-lg">
+      {/* Table (desktop) */}
+      <div className="hidden md:block overflow-x-auto border border-gray-200 rounded-lg">
         <table className="w-full text-sm text-left">
           <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
             <tr>
@@ -181,6 +213,17 @@ export default function SalidasList() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Cards (mobile) */}
+      <div className="md:hidden border border-gray-200 rounded-lg divide-y divide-gray-100">
+        {filtradas.length === 0 ? (
+          <div className="px-4 py-8 text-center text-gray-500 text-sm">
+            {busqueda ? 'No se encontraron salidas' : 'No hay salidas registradas'}
+          </div>
+        ) : (
+          filtradas.map((s) => <SalidaCard key={s.id} s={s} onEliminar={handleEliminar} />)
+        )}
       </div>
     </div>
   )
