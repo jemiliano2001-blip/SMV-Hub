@@ -1,6 +1,2 @@
-export { autoPurchase } from "./autoPurchase";
-export { recommendProvider } from "./recommendation";
-export { exportToGoogleSheets, importFromGoogleSheets } from "./sheetsSync";
-export { exportToExcel } from "./excelSync";
 export { syncOdooFacturasScheduled, syncOdooFacturasManual } from "./odooSync";
 export { syncOdooComprasScheduled, syncOdooComprasManual } from "./odoo-compras-sync";

@@ -17,8 +17,6 @@ import FiltrosReporte from "@/app/reportes/components/FiltrosReporte"
 import FranjaKpis from "@/app/reportes/components/FranjaKpis"
 import TablaReporte from "@/app/reportes/components/TablaReporte"
 import AvisoPendientes from "@/app/reportes/components/AvisoPendientes"
-import ImportExportButtons from "@/app/reportes/components/ImportExportButtons"
-import RecurringOrderForm from "@/app/reportes/components/RecurringOrderForm"
 import { Loader2, AlertCircle } from "lucide-react"
 
 type PresetTipo = "semana" | "mes" | "personalizado"
@@ -203,21 +201,6 @@ export default function ReporteView() {
           </div>
         </div>
 
-        {/* Automatización y Sincronización */}
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8 no-print">
-          <div>
-            <ImportExportButtons />
-          </div>
-          <div>
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mt-6 h-full">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Órdenes Recurrentes</h3>
-              <p className="text-sm text-gray-600 mb-6">
-                Configura suscripciones para automatizar la compra de productos cuando el stock es bajo o en fechas programadas.
-              </p>
-              <RecurringOrderForm />
-            </div>
-          </div>
-        </div>
         </>
         )}
 
