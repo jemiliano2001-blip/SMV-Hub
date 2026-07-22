@@ -66,15 +66,22 @@ export async function obtenerUsuarioAdmin(
 }
 
 /**
- * Sincroniza el custom claim `smvHubActivo` en el ID token del usuario. Las
+ * Sincroniza los custom claims de acceso en el ID token del usuario. Las
  * reglas de Storage lo necesitan porque no pueden leer la colección `usuarios`:
  * las cross-service rules de Storage solo alcanzan la base Firestore "(default)"
  * y esta app usa la base nombrada "compras-americanas". El claim se refleja en
  * el cliente hasta el siguiente refresh del token (≤1 h); la desactivación
  * inmediata la cubre `disabled` en la cuenta de Auth.
  */
-async function sincronizarClaimAcceso(uid: string, activo: boolean): Promise<void> {
-  await adminAuth.setCustomUserClaims(uid, { smvHubActivo: activo })
+async function sincronizarClaimsAcceso(
+  uid: string,
+  activo: boolean,
+  modulos: readonly ModuloId[]
+): Promise<void> {
+  await adminAuth.setCustomUserClaims(uid, {
+    smvHubActivo: activo,
+    smvHubModulos: [...modulos],
+  })
 }
 
 export interface NuevoUsuarioPayload {
@@ -116,7 +123,7 @@ export async function crearUsuarioAdmin(payload: NuevoUsuarioPayload): Promise<U
     password: passwordFinal,
     emailVerified: true,
   })
-  await sincronizarClaimAcceso(cuenta.uid, true)
+  await sincronizarClaimsAcceso(cuenta.uid, true, modulos)
 
   const ahora = new Date()
   await adminDb.collection(COLECCION).doc(cuenta.uid).set({
@@ -183,7 +190,6 @@ export async function actualizarUsuarioAdmin(
 
   if (cambios.activo !== undefined) {
     await adminAuth.updateUser(uid, { disabled: !cambios.activo })
-    await sincronizarClaimAcceso(uid, cambios.activo)
   }
 
   const update: Record<string, unknown> = {
@@ -191,6 +197,11 @@ export async function actualizarUsuarioAdmin(
   }
 
   const plantillaNueva = cambios.plantilla ?? cambios.rol
+  const modulosFinales = cambios.modulos ?? (
+    plantillaNueva !== undefined
+      ? modulosDePlantilla(plantillaNueva)
+      : modulosDesdeUsuarioLegacy(actual)
+  )
   if (plantillaNueva !== undefined) {
     update.plantilla = plantillaNueva
     update.rol = plantillaNueva
@@ -212,6 +223,14 @@ export async function actualizarUsuarioAdmin(
   }
 
   await ref.update(update)
+
+  if (
+    cambios.activo !== undefined ||
+    cambios.modulos !== undefined ||
+    plantillaNueva !== undefined
+  ) {
+    await sincronizarClaimsAcceso(uid, seguiraActivo, modulosFinales)
+  }
 }
 
 /** Aplica una contraseña nueva: la que mande el admin, o una temporal aleatoria. */
