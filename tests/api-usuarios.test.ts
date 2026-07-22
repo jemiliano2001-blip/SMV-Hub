@@ -6,7 +6,10 @@ const { mockVerificarAdmin, mockListar, mockCrear } = vi.hoisted(() => ({
   mockCrear: vi.fn(),
 }))
 
-vi.mock("@/lib/api-auth", () => ({ verificarAdmin: mockVerificarAdmin }))
+vi.mock("@/lib/api-auth", () => ({
+  verificarAdmin: mockVerificarAdmin,
+  verificarSuperAdmin: mockVerificarAdmin,
+}))
 vi.mock("@/lib/usuarios-admin", () => ({
   listarUsuariosAdmin: mockListar,
   crearUsuarioAdmin: mockCrear,
@@ -95,7 +98,7 @@ describe("POST /api/usuarios", () => {
     expect(body).toEqual({ uid: "uid-nuevo", tempPassword: "abc123" })
     expect(mockCrear).toHaveBeenCalledWith({
       email: "nuevo@ejemplo.com",
-      rol: "compras",
+      plantilla: "compras",
       creadoPor: "jemiliano2001@gmail.com",
     })
   })

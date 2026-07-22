@@ -1,28 +1,29 @@
 import { CheckCircle2, Clock, XCircle } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 
 export default function OrdenBadgeEstado({ estado }: { estado: string }) {
   switch (estado) {
     case 'aprobada':
       return (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2 py-1 text-xs font-semibold text-green-700 ring-1 ring-green-600/20 ring-inset">
-          <CheckCircle2 className="h-3.5 w-3.5" />
+        <Badge variant="outline" className="bg-emerald-50 text-emerald-900 border-emerald-300 font-mono text-[10px] font-bold uppercase gap-1 shadow-2xs">
+          <CheckCircle2 className="h-3 w-3 text-emerald-600" />
           Aprobada
-        </span>
+        </Badge>
       )
     case 'rechazada':
       return (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 ring-1 ring-red-600/20 ring-inset">
-          <XCircle className="h-3.5 w-3.5" />
+        <Badge variant="outline" className="bg-red-50 text-red-900 border-red-300 font-mono text-[10px] font-bold uppercase gap-1 shadow-2xs">
+          <XCircle className="h-3 w-3 text-red-600" />
           Rechazada
-        </span>
+        </Badge>
       )
     case 'pendiente':
     default:
       return (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-50 px-2 py-1 text-xs font-semibold text-yellow-800 ring-1 ring-yellow-600/20 ring-inset">
-          <Clock className="h-3.5 w-3.5" />
+        <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 font-mono text-[10px] font-bold uppercase gap-1 shadow-2xs">
+          <Clock className="h-3 w-3 text-amber-600" />
           Pendiente
-        </span>
+        </Badge>
       )
   }
 }

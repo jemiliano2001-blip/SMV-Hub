@@ -38,7 +38,11 @@ function tituloReporte(desde: Date, hasta: Date): string {
   return `${desde.toLocaleDateString(loc, opt)} — ${hasta.toLocaleDateString(loc, opt)}`
 }
 
+import DashboardInteligenciaCompras from "./DashboardInteligenciaCompras"
+import { BarChart3, FileSpreadsheet } from "lucide-react"
+
 export default function ReporteView() {
+  const [tabVista, setTabVista] = useState<"dashboard" | "gerencial">("dashboard")
   const [ordenes, setOrdenes] = useState<OrdenCompra[]>([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -113,34 +117,62 @@ export default function ReporteView() {
     <div className="w-full">
       <div className="max-w-[1400px] mx-auto px-4 py-6 print:max-w-none print:px-0 print:py-0">
 
-        {/* Volver — oculto al imprimir */}
-        <div className="mb-4 no-print flex justify-between items-center text-sm">
-          <Link href="/" className="text-blue-600 hover:underline">
-            ← Inicio
+        {/* Navegación y selector de pestañas (Oculto al imprimir) */}
+        <div className="mb-6 no-print flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+          <Link href="/" className="text-xs font-bold text-[#0369A1] hover:underline flex items-center gap-1">
+            ← Volver al Inicio
           </Link>
-          <div className="flex gap-4">
-            <span className="font-semibold text-blue-600 border-b-2 border-blue-600 pb-1">
-              Reporte Gerencial
-            </span>
-            <Link href="/reportes/contable" className="text-gray-500 hover:text-gray-900 transition-colors">
-              Reporte Contable
-            </Link>
+
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+            <button
+              onClick={() => setTabVista("dashboard")}
+              className={[
+                "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
+                tabVista === "dashboard"
+                  ? "bg-slate-900 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60",
+              ].join(" ")}
+            >
+              <BarChart3 className="h-4 w-4 text-amber-400" />
+              Dashboard Inteligencia 3-Tier
+            </button>
+
+            <button
+              onClick={() => setTabVista("gerencial")}
+              className={[
+                "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
+                tabVista === "gerencial"
+                  ? "bg-white text-slate-900 shadow-xs border border-slate-200"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60",
+              ].join(" ")}
+            >
+              <FileSpreadsheet className="h-4 w-4 text-slate-500" />
+              Reporte Gerencial &amp; Filtros
+            </button>
           </div>
+
+          <Link href="/reportes/contable" className="text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors">
+            Reporte Contable →
+          </Link>
         </div>
 
-        <FiltrosReporte
-          presetTipo={presetTipo}
-          desde={periodo.desde}
-          hasta={periodo.hasta}
-          agruparPor={agruparPor}
-          monedas={monedas}
-          moneda={monedaActiva}
-          onPreset={handlePreset}
-          onDesde={(d) => { setPeriodo((p) => ({ ...p, desde: d })); setPresetTipo("personalizado") }}
-          onHasta={(d) => { setPeriodo((p) => ({ ...p, hasta: d })); setPresetTipo("personalizado") }}
-          onAgrupar={setAgruparPor}
-          onMoneda={setMoneda}
-        />
+        {tabVista === "dashboard" && <DashboardInteligenciaCompras />}
+
+        {tabVista === "gerencial" && (
+          <>
+            <FiltrosReporte
+              presetTipo={presetTipo}
+              desde={periodo.desde}
+              hasta={periodo.hasta}
+              agruparPor={agruparPor}
+              monedas={monedas}
+              moneda={monedaActiva}
+              onPreset={handlePreset}
+              onDesde={(d) => { setPeriodo((p) => ({ ...p, desde: d })); setPresetTipo("personalizado") }}
+              onHasta={(d) => { setPeriodo((p) => ({ ...p, hasta: d })); setPresetTipo("personalizado") }}
+              onAgrupar={setAgruparPor}
+              onMoneda={setMoneda}
+            />
 
         <AvisoPendientes />
 
@@ -186,6 +218,8 @@ export default function ReporteView() {
             </div>
           </div>
         </div>
+        </>
+        )}
 
       </div>
     </div>

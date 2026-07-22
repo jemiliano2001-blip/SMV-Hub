@@ -73,7 +73,13 @@ describe("verificarAdmin", () => {
 
   it("retorna 403 si el usuario está activo pero no es admin", async () => {
     mockVerifyIdToken.mockResolvedValue({ email: "a@b.com", email_verified: true, uid: "u1" })
-    mockObtenerUsuarioAdmin.mockResolvedValue({ rol: "compras", activo: true })
+    mockObtenerUsuarioAdmin.mockResolvedValue({
+      rol: "compras",
+      plantilla: "compras",
+      modulos: [],
+      esSuperAdmin: false,
+      activo: true,
+    })
     const res = await verificarAdmin(makeRequest("Bearer token"))
     expect(res.ok).toBe(false)
     if (!res.ok) expect(res.response.status).toBe(403)
@@ -81,7 +87,13 @@ describe("verificarAdmin", () => {
 
   it("retorna ok:true si el usuario es admin activo", async () => {
     mockVerifyIdToken.mockResolvedValue({ email: "a@b.com", email_verified: true, uid: "u1" })
-    mockObtenerUsuarioAdmin.mockResolvedValue({ rol: "admin", activo: true })
+    mockObtenerUsuarioAdmin.mockResolvedValue({
+      rol: "admin",
+      plantilla: "admin",
+      modulos: [],
+      esSuperAdmin: true,
+      activo: true,
+    })
     const res = await verificarAdmin(makeRequest("Bearer token"))
     expect(res).toEqual({ ok: true, uid: "u1", email: "a@b.com" })
   })
@@ -89,7 +101,13 @@ describe("verificarAdmin", () => {
   it("retorna 500 en vez de lanzar si Firestore falla en el segundo chequeo de rol", async () => {
     mockVerifyIdToken.mockResolvedValue({ email: "a@b.com", email_verified: true, uid: "u1" })
     mockObtenerUsuarioAdmin
-      .mockResolvedValueOnce({ rol: "admin", activo: true }) // dentro de verificarUsuarioAutorizado
+      .mockResolvedValueOnce({
+        rol: "admin",
+        plantilla: "admin",
+        modulos: [],
+        esSuperAdmin: true,
+        activo: true,
+      }) // dentro de verificarUsuarioAutorizado
       .mockRejectedValueOnce(new Error("Firestore no disponible")) // chequeo propio de verificarAdmin
     const res = await verificarAdmin(makeRequest("Bearer token"))
     expect(res.ok).toBe(false)

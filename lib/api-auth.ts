@@ -77,17 +77,20 @@ export async function verificarUsuarioAutorizado(request: Request): Promise<Resu
   }
 }
 
-/** Igual que verificarUsuarioAutorizado, pero además exige rol admin. */
-export async function verificarAdmin(request: Request): Promise<ResultadoAuth> {
+/**
+ * Exige super-admin (flag `esSuperAdmin`, plantilla/rol admin legacy, o break-glass).
+ * Alias histórico: verificarAdmin.
+ */
+export async function verificarSuperAdmin(request: Request): Promise<ResultadoAuth> {
   const base = await verificarUsuarioAutorizado(request)
   if (!base.ok) return base
 
   try {
     const info = await obtenerUsuarioAdmin(base.uid, base.email)
-    if (!info || info.rol !== "admin") {
+    if (!info || !info.esSuperAdmin) {
       return {
         ok: false,
-        response: respuestaError(403, "Se requiere rol de administrador"),
+        response: respuestaError(403, "Se requiere acceso de super-administrador"),
       }
     }
 
@@ -98,4 +101,9 @@ export async function verificarAdmin(request: Request): Promise<ResultadoAuth> {
       response: respuestaError(500, "No se pudo verificar el acceso, intenta de nuevo"),
     }
   }
+}
+
+/** @deprecated Usar verificarSuperAdmin. */
+export async function verificarAdmin(request: Request): Promise<ResultadoAuth> {
+  return verificarSuperAdmin(request)
 }

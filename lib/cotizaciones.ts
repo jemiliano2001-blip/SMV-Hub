@@ -13,6 +13,7 @@ import type { Cotizacion } from "@/lib/schemas"
 import { makeDateConverter, crearLote, eliminarLote, actualizarDocumento } from "@/lib/firestore-helpers"
 import { getClienteAuth } from "@/lib/firebase"
 import { registrarAuditoria } from "@/lib/auditoria"
+import { generarLlavePieza } from "@/lib/pieza-matching"
 
 const cotizacionConverter = makeDateConverter<Cotizacion>()
 const cotizacionesRef = () =>
@@ -26,8 +27,11 @@ export type NuevaCotizacionPayload = Omit<Cotizacion, "id" | "creadoEn" | "actua
 
 export async function crearCotizacion(payload: NuevaCotizacionPayload): Promise<string> {
   const ahora = new Date()
+  const llavePieza =
+    payload.llavePieza || generarLlavePieza(payload.numeroParte, payload.descripcion)
   const ref = await addDoc(cotizacionesRef(), {
     ...payload,
+    llavePieza,
     creadoEn: ahora,
     actualizadoEn: ahora,
   } as Cotizacion)
@@ -44,7 +48,11 @@ export async function crearCotizacionesLote(
   payloads: NuevaCotizacionPayload[],
   onProgreso?: (completadas: number, total: number) => void
 ): Promise<number> {
-  const result = await crearLote(cotizacionesRef, payloads as Record<string, unknown>[], onProgreso)
+  const conLlave = payloads.map((p) => ({
+    ...p,
+    llavePieza: p.llavePieza || generarLlavePieza(p.numeroParte, p.descripcion),
+  }))
+  const result = await crearLote(cotizacionesRef, conLlave as Record<string, unknown>[], onProgreso)
   const user = getClienteAuth().currentUser
   await registrarAuditoria(user?.email, 'CREAR', 'cotizaciones', 'LOTE', `Creó ${payloads.length} cotizaciones`)
   return result

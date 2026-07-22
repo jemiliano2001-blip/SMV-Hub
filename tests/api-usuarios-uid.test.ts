@@ -7,7 +7,10 @@ const { mockVerificarAdmin, mockActualizar, mockResetear, mockEliminar } = vi.ho
   mockEliminar: vi.fn(),
 }))
 
-vi.mock("@/lib/api-auth", () => ({ verificarAdmin: mockVerificarAdmin }))
+vi.mock("@/lib/api-auth", () => ({
+  verificarAdmin: mockVerificarAdmin,
+  verificarSuperAdmin: mockVerificarAdmin,
+}))
 vi.mock("@/lib/usuarios-admin", () => ({
   actualizarUsuarioAdmin: mockActualizar,
   resetearPasswordAdmin: mockResetear,
@@ -51,7 +54,7 @@ describe("PATCH /api/usuarios/[uid]", () => {
   it("actualiza el rol", async () => {
     const res = await PATCH(makeRequest("PATCH", { rol: "diseno" }), { params })
     expect(res.status).toBe(200)
-    expect(mockActualizar).toHaveBeenCalledWith("uid-1", { rol: "diseno" })
+    expect(mockActualizar).toHaveBeenCalledWith("uid-1", { plantilla: "diseno" })
   })
 
   it("actualiza activo", async () => {

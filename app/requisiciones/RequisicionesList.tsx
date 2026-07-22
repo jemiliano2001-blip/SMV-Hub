@@ -5,7 +5,7 @@ import { Loader2, AlertCircle, ClipboardList, Trash2, Edit2, Sparkles } from 'lu
 import type { EstatusRequisicion, PrioridadRequisicion, TipoRequisicion, Requisicion } from '@/lib/schemas'
 import type { NuevaRequisicionPayload } from '@/lib/requisiciones'
 import { useRequisiciones } from '@/lib/hooks/useRequisiciones'
-import { formatFecha, normalizar } from '@/lib/format'
+import { formatFecha, normalizar, fechaHoyLocal } from '@/lib/format'
 import { getClienteAuth } from '@/lib/firebase'
 import {
   estadoAtraso,
@@ -23,6 +23,10 @@ import {
   truncarNota,
 } from '@/lib/requisiciones-helpers'
 import RequisicionFormModal from './RequisicionFormModal'
+import { useRequisicionesFlujo } from '@/lib/hooks/useRequisicionesFlujo'
+import NuevaRequisicionModal from './NuevaRequisicionModal'
+import DetalleRequisicionModal from './DetalleRequisicionModal'
+import { Zap, Plus, ArrowRight, Eye, Layers } from 'lucide-react'
 
 export const SOLICITANTES = ['Lorena/Stock', 'Salvador', 'Oscar', 'Pantoja', 'Rojo']
 export const EMPRESAS = ['AFX', 'Taller', 'OHD', 'Siltech']
@@ -45,7 +49,7 @@ function emptyForm() {
     prioridad: '' as PrioridadRequisicion | '',
     empresa: '',
     ordenServicio: '',
-    fechaPedido: new Date().toISOString().split('T')[0],
+    fechaPedido: fechaHoyLocal(),
     parteNumero: '',
     fechaEntregaEst: '',
     recibio: '',
@@ -276,6 +280,16 @@ export default function RequisicionesList() {
     editarRequisicion,
   } = useRequisiciones()
 
+  const {
+    todasRequisiciones: todasFlujo,
+    crearRequisicion: crearReqFlujo,
+    seleccionarGanador,
+    generarOC,
+    obtenerCotizaciones,
+    agregarCotizacion,
+  } = useRequisicionesFlujo()
+
+  const [tabVista, setTabVista] = useState<'flujo' | 'tabla'>('flujo')
   const [tipoActivo, setTipoActivo] = useState<TipoRequisicion>('general')
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
@@ -284,6 +298,10 @@ export default function RequisicionesList() {
   const [filtroEstado, setFiltroEstado] = useState<EstatusRequisicion | 'todos'>('todos')
   const [filtroEmpresa, setFiltroEmpresa] = useState('')
   const [busqueda, setBusqueda] = useState('')
+
+  // Modales de Flujo de Compras End-to-End
+  const [modalNuevaFlujo, setModalNuevaFlujo] = useState(false)
+  const [reqDetalleModal, setReqDetalleModal] = useState<Requisicion | null>(null)
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isDeletingBulk, setIsDeletingBulk] = useState(false)
@@ -323,7 +341,7 @@ export default function RequisicionesList() {
         prioridad: (form.prioridad || null) as PrioridadRequisicion | null,
         empresa: form.empresa || null,
         ordenServicio: form.ordenServicio.trim() || null,
-        fechaPedido: form.fechaPedido || new Date().toISOString().split('T')[0],
+        fechaPedido: form.fechaPedido || fechaHoyLocal(),
         estado: 'no_comprado',
         parteNumero: isAuto ? (form.parteNumero.trim() || null) : null,
         fechaEntregaEst: isAuto ? (form.fechaEntregaEst || null) : null,
@@ -443,22 +461,179 @@ export default function RequisicionesList() {
 
   return (
     <div className="space-y-6">
-      {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
-        {(['general', 'automatizacion'] as const).map((t) => (
+      {/* PESTAÑAS PRINCIPALES DE NAVEGACIÓN */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+        <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
           <button
-            key={t}
-            onClick={() => { setTipoActivo(t); setFiltroEstado('todos'); setFiltroEmpresa(''); setBusqueda(''); setSelectedIds(new Set()) }}
-            className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${
-              tipoActivo === t
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
+            onClick={() => setTabVista('flujo')}
+            className={[
+              'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2',
+              tabVista === 'flujo'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60',
+            ].join(' ')}
           >
-            {t === 'general' ? 'Compras generales' : 'Automatización'}
+            <Zap className="h-4 w-4 text-amber-400" />
+            Flujo de Compras End-to-End ({todasFlujo.length})
           </button>
-        ))}
+          <button
+            onClick={() => setTabVista('tabla')}
+            className={[
+              'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2',
+              tabVista === 'tabla'
+                ? 'bg-white text-slate-900 shadow-xs border border-slate-200'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60',
+            ].join(' ')}
+          >
+            <Layers className="h-4 w-4 text-slate-500" />
+            Catálogo Tradicional de Requisiciones
+          </button>
+        </div>
+
+        {tabVista === 'flujo' && (
+          <button
+            onClick={() => setModalNuevaFlujo(true)}
+            className="flex items-center gap-1.5 px-4 py-2 bg-[#0369A1] hover:bg-[#0284C7] text-white text-xs font-bold rounded-xl shadow-xs transition-transform active:scale-95"
+          >
+            <Plus className="h-4 w-4" /> + Nueva Requisición (Tooling)
+          </button>
+        )}
       </div>
+
+      {/* VISTA 1: FLUJO DE COMPRAS END-TO-END */}
+      {tabVista === 'flujo' && (
+        <div className="space-y-6">
+          {/* KPI STATS */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Solicitudes</span>
+              <p className="text-xl font-extrabold text-slate-900 font-mono">{todasFlujo.length}</p>
+            </div>
+            <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700">En Cotización</span>
+              <p className="text-xl font-extrabold text-amber-900 font-mono">
+                {todasFlujo.filter((r) => r.estatusFlujo === 'cotizando' || r.estatusFlujo === 'enviada').length}
+              </p>
+            </div>
+            <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700">Ganador Seleccionado</span>
+              <p className="text-xl font-extrabold text-purple-900 font-mono">
+                {todasFlujo.filter((r) => r.estatusFlujo === 'aprobada').length}
+              </p>
+            </div>
+            <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">OC Generadas</span>
+              <p className="text-xl font-extrabold text-emerald-900 font-mono">
+                {todasFlujo.filter((r) => r.estatusFlujo === 'convertida_a_oc' || r.estado === 'comprado').length}
+              </p>
+            </div>
+          </div>
+
+          {/* LISTADO DE REQUISICIONES EN FLUJO */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {todasFlujo.map((req) => {
+              const esOC = req.estatusFlujo === 'convertida_a_oc' || req.estado === 'comprado'
+              const esAprobada = req.estatusFlujo === 'aprobada'
+              const esCotiz = req.estatusFlujo === 'cotizando'
+
+              return (
+                <div
+                  key={req.id}
+                  className="bg-white border border-slate-200 p-4 rounded-2xl shadow-2xs hover:shadow-md transition-all space-y-3 flex flex-col justify-between"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-black bg-slate-900 text-white px-2.5 py-0.5 rounded-md">
+                          {req.folio || `REQ-${req.id.substring(0, 6)}`}
+                        </span>
+                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                          {req.departamento || req.empresa || 'Taller'}
+                        </span>
+                      </div>
+
+                      <span
+                        className={[
+                          'text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full border font-mono',
+                          esOC
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                            : esAprobada
+                            ? 'bg-purple-100 text-purple-800 border-purple-300'
+                            : esCotiz
+                            ? 'bg-amber-100 text-amber-800 border-amber-300'
+                            : 'bg-sky-100 text-sky-800 border-sky-300',
+                        ].join(' ')}
+                      >
+                        {esOC ? '✓ OC GENERADA' : esAprobada ? '★ GANADOR ELEGIDO' : esCotiz ? '⚡ COTIZANDO' : 'ENVIADA'}
+                      </span>
+                    </div>
+
+                    <h3 className="text-sm font-extrabold text-slate-900 leading-snug">{req.descripcion}</h3>
+
+                    <div className="text-xs text-slate-500 space-y-1 font-mono">
+                      <div className="flex items-center justify-between">
+                        <span>Solicitante:</span>
+                        <strong className="text-slate-800">{req.solicitante}</strong>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Fecha:</span>
+                        <span className="text-slate-700">{req.fechaPedido}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Herramientas solicitadas:</span>
+                        <strong className="text-slate-900">{req.items?.length || 1} ítem(s)</strong>
+                      </div>
+                    </div>
+
+                    {req.proveedorGanadorNombre && (
+                      <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-0.5">
+                        <span className="text-[10px] font-bold text-emerald-800 uppercase block">Proveedor Seleccionado</span>
+                        <p className="font-extrabold text-emerald-950 flex items-center justify-between">
+                          <span>{req.proveedorGanadorNombre}</span>
+                          {req.ordenCompraFolio && (
+                            <span className="font-mono text-[10px] bg-emerald-700 text-white px-2 py-0.5 rounded">
+                              {req.ordenCompraFolio}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100">
+                    <button
+                      onClick={() => setReqDetalleModal(req)}
+                      className="w-full py-2 bg-[#0369A1] hover:bg-[#0284C7] text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <Eye className="h-4 w-4" /> Ver Flujo / Cotizar / Emitir OC <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* VISTA 2: CATÁLOGO TRADICIONAL DE REQUISICIONES */}
+      {tabVista === 'tabla' && (
+        <div className="space-y-6">
+          {/* Sub-tabs */}
+          <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+            {(['general', 'automatizacion'] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => { setTipoActivo(t); setFiltroEstado('todos'); setFiltroEmpresa(''); setBusqueda(''); setSelectedIds(new Set()) }}
+                className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${
+                  tipoActivo === t
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {t === 'general' ? 'Compras generales' : 'Automatización'}
+              </button>
+            ))}
+          </div>
 
       {/* Form */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-xs p-5">
@@ -944,7 +1119,10 @@ export default function RequisicionesList() {
           )}
         </div>
       )}
+    </div>
+  )}
 
+      {/* MODALES DE EDICIÓN TRADICIONAL */}
       {requisicionToEdit && (
         <RequisicionFormModal
           requisicionBase={requisicionToEdit}
@@ -952,6 +1130,23 @@ export default function RequisicionesList() {
           onSaved={handleFormSaved}
         />
       )}
+
+      {/* MODALES DE FLUJO END-TO-END */}
+      <NuevaRequisicionModal
+        abierto={modalNuevaFlujo}
+        onClose={() => setModalNuevaFlujo(false)}
+        onCrear={crearReqFlujo}
+      />
+
+      <DetalleRequisicionModal
+        abierto={!!reqDetalleModal}
+        onClose={() => setReqDetalleModal(null)}
+        requisicion={reqDetalleModal}
+        obtenerCotizaciones={obtenerCotizaciones}
+        agregarCotizacion={agregarCotizacion}
+        seleccionarGanador={seleccionarGanador}
+        generarOC={generarOC}
+      />
     </div>
   )
 }

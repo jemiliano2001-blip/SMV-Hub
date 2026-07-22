@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
 import { AppCheckProvider } from "@/components/AppCheckProvider";
 import NavBar from "@/app/NavBar";
+import { Toaster } from "@/components/ui/sonner";
 
 const firaCode = Fira_Code({
   variable: "--font-fira-code",
@@ -36,6 +37,7 @@ export default function RootLayout({
           <AuthProvider>
             <NavBar />
             {children}
+            <Toaster />
           </AuthProvider>
         </AppCheckProvider>
       </body>

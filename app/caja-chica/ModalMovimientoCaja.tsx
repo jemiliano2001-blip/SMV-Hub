@@ -4,6 +4,7 @@ import type { NuevoMovimientoCajaPayload } from '@/lib/caja-chica'
 import type { MovimientoCajaChica, TipoMovimientoCaja, ComprobanteCaja } from '@/lib/schemas'
 import { fechaHoyLocal } from '@/lib/format'
 import { subirComprobanteCajaChica } from '@/lib/storage'
+import { ModalCamara } from '@/components/ModalCamara'
 
 interface ModalProps {
   movimiento: MovimientoCajaChica | null
@@ -74,9 +75,9 @@ export default function ModalMovimientoCaja({
   const [archivoUrl, setArchivoUrl] = useState<string | null>(movimiento?.archivoUrl || null)
   const [archivoNombre, setArchivoNombre] = useState<string | null>(movimiento?.archivoNombre || null)
   const [archivoPath, setArchivoPath] = useState<string | null>(movimiento?.archivoPath || null)
+  const [isCamaraModalOpen, setIsCamaraModalOpen] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const cameraInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     return () => {
@@ -112,10 +113,7 @@ export default function ModalMovimientoCaja({
     }
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
+  const procesarArchivo = (file: File) => {
     if (file.size > 10 * 1024 * 1024) {
       setError("El archivo no puede exceder los 10 MB")
       return
@@ -134,7 +132,7 @@ export default function ModalMovimientoCaja({
     setArchivoNombre(file.name)
     // Si sube comprobante pero sigue siendo VALE o NINGUNO, lo pasamos a TICKET
     if (comprobante === 'NINGUNO' || comprobante === 'VALE') setComprobante('TICKET')
-    
+
     setArchivoUrl(null)
     setArchivoPath(null)
     setError(null)
@@ -145,7 +143,12 @@ export default function ModalMovimientoCaja({
     } else {
       setArchivoPreview(null)
     }
+  }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    procesarArchivo(file)
     e.target.value = ''
   }
 
@@ -525,20 +528,12 @@ export default function ModalMovimientoCaja({
                           </div>
 
                           <div
-                            onClick={() => cameraInputRef.current?.click()}
-                            className="flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed border-gray-300 hover:border-[#0369A1] hover:bg-sky-50/20 rounded-lg cursor-pointer transition-all group text-center sm:hidden"
+                            onClick={() => setIsCamaraModalOpen(true)}
+                            className="flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed border-gray-300 hover:border-[#0369A1] hover:bg-sky-50/20 rounded-lg cursor-pointer transition-all group text-center"
                           >
                             <Camera className="h-6 w-6 text-gray-400 group-hover:text-[#0369A1] group-hover:scale-110 transition-transform" />
                             <span className="text-xs font-semibold text-gray-700">Tomar Foto (Cámara)</span>
-                            <span className="text-[10px] text-gray-400">Usar la cámara del celular</span>
-                            <input
-                              ref={cameraInputRef}
-                              type="file"
-                              accept="image/*"
-                              capture="environment"
-                              onChange={handleFileChange}
-                              className="hidden"
-                            />
+                            <span className="text-[10px] text-gray-400">Usar la cámara del dispositivo o celular</span>
                           </div>
                         </div>
                       )}
@@ -578,6 +573,13 @@ export default function ModalMovimientoCaja({
           </div>
         </form>
       </div>
+
+      <ModalCamara
+        isOpen={isCamaraModalOpen}
+        onClose={() => setIsCamaraModalOpen(false)}
+        onCapture={procesarArchivo}
+        titulo="Comprobante - Foto de Cámara"
+      />
     </div>
   )
 }

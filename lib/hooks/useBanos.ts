@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   listarRegistrosBano,
+  suscribirRegistrosBano,
   crearRegistroBano,
   actualizarRegistroBano,
   eliminarRegistroBano,
@@ -24,11 +25,22 @@ export function useBanos(mesFiltro?: string) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchRegistros()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    const unsub = suscribirRegistrosBano(
+      (data) => {
+        setRegistros(data)
+        setLoading(false)
+      },
+      mesFiltro,
+      (err) => {
+        console.error('Error suscribiendo a registros de baño:', err)
+        setError('No se pudieron cargar los registros en tiempo real. Intenta de nuevo.')
+        setLoading(false)
+      }
+    )
+    return () => unsub()
   }, [mesFiltro])
 
-  async function fetchRegistros() {
+  const fetchRegistros = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -40,7 +52,7 @@ export function useBanos(mesFiltro?: string) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [mesFiltro])
 
   async function registrarEntrada(payload: Omit<NuevoRegistroBanoPayload, 'tiempoMinutos' | 'horaLlegada'>): Promise<void> {
     await crearRegistroBano({
@@ -48,20 +60,15 @@ export function useBanos(mesFiltro?: string) {
       horaLlegada: null,
       tiempoMinutos: null,
     })
-    await fetchRegistros()
   }
 
   async function registrarLlegada(id: string, horaLlegada: string, horaEntrada: string): Promise<void> {
     const tiempoMinutos = calcularMinutos(horaEntrada, horaLlegada)
     await actualizarRegistroBano(id, { horaLlegada, tiempoMinutos })
-    setRegistros((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, horaLlegada, tiempoMinutos } : r))
-    )
   }
 
   async function borrarRegistro(id: string): Promise<void> {
     await eliminarRegistroBano(id)
-    setRegistros((prev) => prev.filter((r) => r.id !== id))
   }
 
   return {

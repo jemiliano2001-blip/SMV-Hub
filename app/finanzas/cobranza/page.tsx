@@ -614,12 +614,17 @@ function Cobranza() {
 export default function CobranzaPage() {
   return (
     <AuthGuard>
-      <main className="min-h-screen bg-gray-50 flex flex-col">
-        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex-1">
-          <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <main className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
+        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-1 space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Cobranza</h1>
-              <p className="text-sm text-gray-500 mt-1">Facturas pagadas, pendientes y vencidas</p>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base font-bold text-slate-900 tracking-tight">Cobranza</h1>
+                <span className="text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded">
+                  Odoo Mirror
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">Facturas pagadas, pendientes y vencidas</p>
             </div>
             <FinanzasNav />
           </div>

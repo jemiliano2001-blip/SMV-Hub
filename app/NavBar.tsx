@@ -14,10 +14,11 @@ import {
 } from '@/components/ui/sheet'
 import LogoSMV from '@/app/LogoSMV'
 import BotonSesion from '@/app/BotonSesion'
+import BuscadorGlobalCommand from '@/components/BuscadorGlobalCommand'
 import PedidoAlmacenBadge from '@/app/pedidos-almacen/PedidoAlmacenBadge'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { tienePermiso } from '@/lib/roles'
-import { useRol } from '@/lib/hooks/useRol'
+import { usePermisos } from '@/lib/hooks/useRol'
 
 type GrupoNav = { nombre: string; links: { href: string; label: string }[] }
 
@@ -28,10 +29,10 @@ const GRUPOS: GrupoNav[] = [
       { href: '/nueva-compra', label: 'Nueva compra (IA)' },
       { href: '/caja-chica', label: 'Caja chica' },
       { href: '/ordenes', label: 'Ver órdenes' },
-      { href: '/importar', label: 'Importar masivo' },
       { href: '/claves-sat', label: 'Claves SAT' },
       { href: '/cotizaciones', label: 'Cotizaciones' },
       { href: '/requisiciones', label: 'Requisiciones' },
+      { href: '/proveedores', label: 'Catálogo de proveedores' },
       { href: '/reportes', label: 'Reportes de compras' },
     ],
   },
@@ -65,7 +66,7 @@ const GRUPOS: GrupoNav[] = [
 export default function NavBar() {
   const pathname = usePathname()
   const { usuario } = useUsuario()
-  const { rol } = useRol(authBypassActivo() ? null : usuario)
+  const { modulos, esSuperAdmin } = usePermisos(authBypassActivo() ? null : usuario)
   const [abierto, setAbierto] = useState<string | null>(null)
   const [menuMovil, setMenuMovil] = useState(false)
   // Cierra el dropdown y el menú móvil al navegar. Ajuste durante el render
@@ -80,23 +81,26 @@ export default function NavBar() {
   const navRef = useRef<HTMLElement>(null)
 
   const gruposFiltrados = useMemo(() => {
+    const bypass = authBypassActivo()
     const grupos = GRUPOS.map((g) => ({
       ...g,
-      links: g.links.filter((l) => tienePermiso(rol, l.href)),
+      links: g.links.filter((l) => bypass || tienePermiso(modulos, l.href)),
     })).filter((g) => g.links.length > 0)
 
-    if (rol === 'admin') {
+    if (bypass || esSuperAdmin) {
       grupos.push({
         nombre: 'Administración',
         links: [
           { href: '/usuarios', label: 'Usuarios y roles' },
-          { href: '/auditoria', label: 'Bitácora de auditoría' },
+          ...(bypass || tienePermiso(modulos, '/auditoria')
+            ? [{ href: '/auditoria', label: 'Bitácora de auditoría' }]
+            : []),
         ],
       })
     }
 
     return grupos
-  }, [rol])
+  }, [modulos, esSuperAdmin])
 
   useEffect(() => {
     if (!abierto) return
@@ -176,6 +180,7 @@ export default function NavBar() {
             })}
 
             <div className="ml-3 pl-3 border-l border-slate-200 flex items-center gap-2">
+              <BuscadorGlobalCommand />
               <BotonSesion />
             </div>
           </nav>

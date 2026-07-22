@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   listarPedidosAlmacen,
+  suscribirPedidosAlmacen,
   crearPedidoAlmacen,
   marcarPedidoAlmacenComprado,
   cancelarPedidoAlmacen,
@@ -13,10 +14,21 @@ export function usePedidosAlmacen() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchPedidos()
+    const unsub = suscribirPedidosAlmacen(
+      (data) => {
+        setPedidos(data)
+        setLoading(false)
+      },
+      (err) => {
+        console.error('Error suscribiendo a pedidos de almacén:', err)
+        setError('No se pudieron cargar los pedidos en tiempo real. Intenta de nuevo.')
+        setLoading(false)
+      }
+    )
+    return () => unsub()
   }, [])
 
-  async function fetchPedidos() {
+  const fetchPedidos = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -28,23 +40,18 @@ export function usePedidosAlmacen() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   async function agregarPedido(payload: NuevoPedidoAlmacen): Promise<void> {
     await crearPedidoAlmacen(payload)
-    await fetchPedidos()
   }
 
   async function marcarComprado(id: string, ordenId: string): Promise<void> {
     await marcarPedidoAlmacenComprado(id, ordenId)
-    setPedidos((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, estado: 'comprado', ordenIdVinculada: ordenId } : p))
-    )
   }
 
   async function cancelarPedido(id: string): Promise<void> {
     await cancelarPedidoAlmacen(id)
-    setPedidos((prev) => prev.map((p) => (p.id === id ? { ...p, estado: 'cancelado' } : p)))
   }
 
   return {

@@ -1,7 +1,13 @@
 import { randomInt } from "node:crypto"
 import { adminAuth, adminDb } from "@/lib/firebase-admin"
-import { RolSchema, type Rol, type Usuario } from "@/lib/schemas"
+import { type ModuloId, type Rol, type Usuario } from "@/lib/schemas"
 import { CORREO_ADMIN_BREAK_GLASS } from "@/lib/authorized-emails"
+import {
+  esSuperAdminDesdeUsuarioLegacy,
+  modulosDePlantilla,
+  modulosDesdeUsuarioLegacy,
+  plantillaDesdeUsuarioLegacy,
+} from "@/lib/roles"
 
 const COLECCION = "usuarios"
 const ALFABETO_PASSWORD =
@@ -17,30 +23,46 @@ export function generarPasswordTemporal(longitud = 16): string {
 }
 
 export interface InfoUsuarioAdmin {
+  /** Alias de plantilla (compat con verificarAdmin legacy). */
   rol: Rol
+  plantilla: Rol
+  modulos: ModuloId[]
+  esSuperAdmin: boolean
   activo: boolean
 }
 
 /**
- * Resuelve rol + estado de acceso de un usuario. El correo break-glass
- * siempre resuelve a admin activo sin tocar Firestore (red de seguridad).
+ * Resuelve permisos de un usuario. El correo break-glass siempre resuelve a
+ * super-admin activo sin tocar Firestore (red de seguridad).
  */
 export async function obtenerUsuarioAdmin(
   uid: string,
   email: string | null | undefined
 ): Promise<InfoUsuarioAdmin | null> {
   if (email && email.trim().toLowerCase() === CORREO_ADMIN_BREAK_GLASS) {
-    return { rol: "admin", activo: true }
+    return {
+      rol: "admin",
+      plantilla: "admin",
+      modulos: modulosDePlantilla("admin"),
+      esSuperAdmin: true,
+      activo: true,
+    }
   }
 
   const snap = await adminDb.collection(COLECCION).doc(uid).get()
   if (!snap.exists) return null
 
-  const data = snap.data()
-  const rolParseado = RolSchema.safeParse(data?.rol)
-  if (!rolParseado.success) return null
+  const data = snap.data() ?? {}
+  const plantilla = plantillaDesdeUsuarioLegacy(data)
+  if (!plantilla) return null
 
-  return { rol: rolParseado.data, activo: data?.activo === true }
+  return {
+    rol: plantilla,
+    plantilla,
+    modulos: modulosDesdeUsuarioLegacy(data),
+    esSuperAdmin: esSuperAdminDesdeUsuarioLegacy(data),
+    activo: data.activo === true,
+  }
 }
 
 /**
@@ -57,10 +79,16 @@ async function sincronizarClaimAcceso(uid: string, activo: boolean): Promise<voi
 
 export interface NuevoUsuarioPayload {
   email: string
-  rol: Rol
+  /** Plantilla inicial (rellena modulos). Preferir sobre `rol`. */
+  plantilla?: Rol
+  /** Si se omite, se usan los módulos de la plantilla. */
+  modulos?: ModuloId[]
+  esSuperAdmin?: boolean
   creadoPor: string
   /** Si se omite, se genera una temporal aleatoria. */
   password?: string
+  /** @deprecated Usar plantilla. */
+  rol?: Rol
 }
 
 export interface UsuarioCreado {
@@ -69,10 +97,19 @@ export interface UsuarioCreado {
   tempPassword: string | null
 }
 
-/** Crea la cuenta en Firebase Auth (correo ya verificado, porque el admin da fe
- * del correo) y su documento en Firestore. Contraseña: la que mande el admin,
- * o una temporal aleatoria si no mandó ninguna. */
+function resolverPlantillaYModulos(payload: {
+  plantilla?: Rol
+  rol?: Rol
+  modulos?: ModuloId[]
+}): { plantilla: Rol; modulos: ModuloId[] } {
+  const plantilla = payload.plantilla ?? payload.rol ?? "compras"
+  const modulos = payload.modulos ?? modulosDePlantilla(plantilla)
+  return { plantilla, modulos }
+}
+
+/** Crea la cuenta en Firebase Auth y su documento en Firestore. */
 export async function crearUsuarioAdmin(payload: NuevoUsuarioPayload): Promise<UsuarioCreado> {
+  const { plantilla, modulos } = resolverPlantillaYModulos(payload)
   const passwordFinal = payload.password ?? generarPasswordTemporal()
   const cuenta = await adminAuth.createUser({
     email: payload.email,
@@ -84,7 +121,10 @@ export async function crearUsuarioAdmin(payload: NuevoUsuarioPayload): Promise<U
   const ahora = new Date()
   await adminDb.collection(COLECCION).doc(cuenta.uid).set({
     email: payload.email,
-    rol: payload.rol,
+    rol: plantilla,
+    plantilla,
+    modulos,
+    esSuperAdmin: payload.esSuperAdmin === true,
     activo: true,
     proveedor: "password",
     creadoPor: payload.creadoPor,
@@ -96,31 +136,85 @@ export async function crearUsuarioAdmin(payload: NuevoUsuarioPayload): Promise<U
 }
 
 export interface CambiosUsuarioAdmin {
-  rol?: Rol
+  plantilla?: Rol
+  modulos?: ModuloId[]
+  esSuperAdmin?: boolean
   activo?: boolean
+  /** @deprecated Usar plantilla (también reescribe modulos si no mandas modulos). */
+  rol?: Rol
 }
 
-/** Actualiza rol y/o estado de acceso. Al cambiar `activo`, además
- * habilita/deshabilita la cuenta en Firebase Auth (doble candado: aunque a
- * alguien le quede una sesión abierta, el siguiente refresh de token falla). */
+async function contarSuperAdminsActivos(exceptoUid?: string): Promise<number> {
+  const snap = await adminDb.collection(COLECCION).get()
+  let n = 0
+  for (const d of snap.docs) {
+    if (exceptoUid && d.id === exceptoUid) continue
+    const data = d.data()
+    if (data.activo !== true) continue
+    if (esSuperAdminDesdeUsuarioLegacy(data)) n++
+  }
+  return n
+}
+
+/**
+ * Actualiza plantilla/módulos/super-admin y/o estado de acceso.
+ * Protege: no quitar el último super-admin activo.
+ */
 export async function actualizarUsuarioAdmin(
   uid: string,
   cambios: CambiosUsuarioAdmin
 ): Promise<void> {
+  const ref = adminDb.collection(COLECCION).doc(uid)
+  const snap = await ref.get()
+  if (!snap.exists) throw new Error("Usuario no encontrado")
+
+  const actual = snap.data() ?? {}
+  const eraSuper = esSuperAdminDesdeUsuarioLegacy(actual)
+  const seguiraActivo = cambios.activo !== undefined ? cambios.activo : actual.activo === true
+  const seguiraSuper =
+    cambios.esSuperAdmin !== undefined ? cambios.esSuperAdmin : eraSuper
+
+  if (eraSuper && (!seguiraSuper || !seguiraActivo)) {
+    const otros = await contarSuperAdminsActivos(uid)
+    if (otros === 0) {
+      throw new Error("No puedes quitar el último super-admin activo")
+    }
+  }
+
   if (cambios.activo !== undefined) {
     await adminAuth.updateUser(uid, { disabled: !cambios.activo })
     await sincronizarClaimAcceso(uid, cambios.activo)
   }
 
-  await adminDb.collection(COLECCION).doc(uid).update({
-    ...cambios,
+  const update: Record<string, unknown> = {
     actualizadoEn: new Date(),
-  })
+  }
+
+  const plantillaNueva = cambios.plantilla ?? cambios.rol
+  if (plantillaNueva !== undefined) {
+    update.plantilla = plantillaNueva
+    update.rol = plantillaNueva
+    if (cambios.modulos === undefined) {
+      update.modulos = modulosDePlantilla(plantillaNueva)
+    }
+  }
+
+  if (cambios.modulos !== undefined) {
+    update.modulos = cambios.modulos
+  }
+
+  if (cambios.esSuperAdmin !== undefined) {
+    update.esSuperAdmin = cambios.esSuperAdmin
+  }
+
+  if (cambios.activo !== undefined) {
+    update.activo = cambios.activo
+  }
+
+  await ref.update(update)
 }
 
-/** Aplica una contraseña nueva: la que mande el admin, o una temporal aleatoria
- * si no mandó ninguna. La temporal se muestra una sola vez — no se persiste en
- * texto plano en ningún lado. */
+/** Aplica una contraseña nueva: la que mande el admin, o una temporal aleatoria. */
 export async function resetearPasswordAdmin(uid: string, password?: string): Promise<string | null> {
   const passwordFinal = password ?? generarPasswordTemporal()
   await adminAuth.updateUser(uid, { password: passwordFinal })
@@ -128,10 +222,19 @@ export async function resetearPasswordAdmin(uid: string, password?: string): Pro
   return password ? null : passwordFinal
 }
 
-/** Elimina la cuenta de Firebase Auth y su documento en `usuarios`. Irreversible.
- * Si la cuenta de Auth ya no existe (doc huérfano, p.ej. borrada manualmente
- * antes), igual borra el documento de Firestore en vez de bloquear para siempre. */
+/** Elimina la cuenta de Firebase Auth y su documento en `usuarios`. Irreversible. */
 export async function eliminarUsuarioAdmin(uid: string): Promise<void> {
+  const snap = await adminDb.collection(COLECCION).doc(uid).get()
+  if (snap.exists) {
+    const data = snap.data() ?? {}
+    if (esSuperAdminDesdeUsuarioLegacy(data) && data.activo === true) {
+      const otros = await contarSuperAdminsActivos(uid)
+      if (otros === 0) {
+        throw new Error("No puedes eliminar el último super-admin activo")
+      }
+    }
+  }
+
   try {
     await adminAuth.deleteUser(uid)
   } catch (error: unknown) {
@@ -141,28 +244,49 @@ export async function eliminarUsuarioAdmin(uid: string): Promise<void> {
   await adminDb.collection(COLECCION).doc(uid).delete()
 }
 
-/** Lista los usuarios administrados. Documentos con un `rol` inválido o
- * corrupto se omiten (mismo criterio defensivo que obtenerUsuarioAdmin) en
- * vez de romper la pantalla de admin completa. */
+interface DocUsuarioFirestore {
+  email?: string
+  rol?: unknown
+  plantilla?: unknown
+  modulos?: unknown
+  esSuperAdmin?: unknown
+  activo?: unknown
+  proveedor?: unknown
+  creadoPor?: string
+  creadoEn?: { toDate?: () => Date }
+  actualizadoEn?: { toDate?: () => Date }
+}
+
+function mapearDocUsuario(id: string, data: DocUsuarioFirestore): Usuario | null {
+  const plantilla = plantillaDesdeUsuarioLegacy(data)
+  if (!plantilla) return null
+  if (typeof data.email !== "string") return null
+
+  const proveedor = data.proveedor === "google" || data.proveedor === "password" ? data.proveedor : "password"
+
+  return {
+    id,
+    email: data.email,
+    rol: plantilla,
+    plantilla,
+    modulos: modulosDesdeUsuarioLegacy(data),
+    esSuperAdmin: esSuperAdminDesdeUsuarioLegacy(data),
+    activo: data.activo === true,
+    proveedor,
+    creadoPor: data.creadoPor ?? "",
+    creadoEn: data.creadoEn?.toDate?.() ?? new Date(),
+    actualizadoEn: data.actualizadoEn?.toDate?.() ?? new Date(),
+  }
+}
+
+/** Lista los usuarios administrados. Docs sin plantilla/rol válido se omiten. */
 export async function listarUsuariosAdmin(): Promise<Usuario[]> {
   const snap = await adminDb.collection(COLECCION).orderBy("email", "asc").get()
   const usuarios: Usuario[] = []
 
   for (const d of snap.docs) {
-    const data = d.data()
-    const rolParseado = RolSchema.safeParse(data.rol)
-    if (!rolParseado.success) continue
-
-    usuarios.push({
-      id: d.id,
-      email: data.email,
-      rol: rolParseado.data,
-      activo: data.activo === true,
-      proveedor: data.proveedor,
-      creadoPor: data.creadoPor,
-      creadoEn: data.creadoEn?.toDate?.() ?? new Date(),
-      actualizadoEn: data.actualizadoEn?.toDate?.() ?? new Date(),
-    })
+    const u = mapearDocUsuario(d.id, d.data() as DocUsuarioFirestore)
+    if (u) usuarios.push(u)
   }
 
   return usuarios

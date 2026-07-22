@@ -164,14 +164,24 @@ jobs:
           NEXT_PUBLIC_FIRESTORE_DATABASE_ID: compras-americanas
           NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ secrets.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}
 
+      # Force webpack: Firebase frameworksBackend runs `next build` without flags;
+      # Next 16 defaults to Turbopack, which breaks firebase-admin in the SSR function.
+      - name: Patch Next.js bin for webpack deploy
+        if: steps.firebase_credentials.outputs.available == 'true'
+        run: node scripts/patch-next-webpack.mjs apply
+
       - name: Deploy to Firebase (hosting, functions, rules, storage)
         if: steps.firebase_credentials.outputs.available == 'true'
         uses: w9jds/firebase-action@master
         with:
-          args: deploy --only hosting,functions:autoPurchase,functions:recommendProvider,functions:exportToGoogleSheets,functions:importFromGoogleSheets,functions:exportToExcel,functions:syncOdooFacturasScheduled,functions:syncOdooFacturasManual,firestore:rules,storage
+          args: deploy --only hosting,functions:autoPurchase,functions:recommendProvider,functions:exportToGoogleSheets,functions:importFromGoogleSheets,functions:exportToExcel,functions:syncOdooFacturasScheduled,functions:syncOdooFacturasManual,functions:syncOdooComprasScheduled,functions:syncOdooComprasManual,firestore:rules,storage
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
           PROJECT_ID: smv-brain
+
+      - name: Restore Next.js bin
+        if: always() && steps.firebase_credentials.outputs.available == 'true'
+        run: node scripts/patch-next-webpack.mjs restore
 
   deploy_rules_manual:
     name: Deploy Rules Only (manual)

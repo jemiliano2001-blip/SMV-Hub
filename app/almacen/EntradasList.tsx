@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useEntradas } from '@/lib/hooks/useAlmacen'
 import type { EntradaAlmacen } from '@/lib/schemas'
+import { fechaHoyLocal } from '@/lib/format'
 import { Plus, Trash2, Search } from 'lucide-react'
 
 type EstatusEntrada = EntradaAlmacen['estatus']
@@ -72,7 +73,7 @@ export default function EntradasList() {
   const [agregando, setAgregando] = useState(false)
 
   // Form state
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = fechaHoyLocal()
   const [fecha, setFecha] = useState(hoy)
   const [descripcion, setDescripcion] = useState('')
   const [cantidad, setCantidad] = useState('')

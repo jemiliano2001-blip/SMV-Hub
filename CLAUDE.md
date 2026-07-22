@@ -21,7 +21,7 @@ Módulos actuales:
   ítems, montos y moneda.
 - `/ordenes` — lista las órdenes con búsqueda de texto libre + filtros de estado por pill; detalle en modal; edición inline vía `OrdenFormModal`; bulk delete.
 - `/importar` — importación masiva por CSV con preview validado y carga por lotes a Firestore.
-- `/reportes` — reporte con KPIs, tabla agrupada con subtotales y export a PDF (vía `@media print` de Tailwind). Incluye envío de reportes por correo y órdenes recurrentes. Lógica pura en `lib/reportes.ts`; UI en `app/reportes/`.
+- `/reportes` — reporte con KPIs, tabla agrupada con subtotales y export a PDF (vía `@media print` de Tailwind). Incluye envío de reportes por correo y órdenes recurrentes. Lógica pura en `lib/reportes.ts`; UI en `app/reportes/`. Incluye `DashboardInteligenciaCompras.tsx` — dashboard de gasto/proveedores cruzando `useProveedores`, `useProveedoresInteligencia` y `useRequisicionesFlujo`.
 - `/reportes/contable` — cierre contable por lotes: agrupa órdenes pendientes en un
   `ReporteContableLote` (`lib/reportes-contables.ts`), traduce descripciones al español y
   sugiere/reasigna claves SAT en batch vía IA (`lib/reportes-contables-ia.ts` +
@@ -33,9 +33,21 @@ Módulos actuales:
 - `/claves-sat` — buscador de claves SAT (`BuscadorClavesSat.tsx`), complementa la sugerencia
   automática de `/nueva-compra`.
 - `/cotizaciones` — gestión de cotizaciones; importación por CSV, tabs de estado y listado.
+- `/proveedores` — catálogo de proveedores de herramienta (USA Tooling); FK opcional `proveedorId`
+  en órdenes/cotizaciones; inteligencia cruzada (precios históricos, lead time, scorecards) en
+  `lib/proveedores-inteligencia-cruzada.ts`. Centro de mando con paneles dedicados: compras Odoo
+  (`PanelComprasOdoo.tsx`), detección de proveedores fantasma (`PanelProveedoresFantasma.tsx`),
+  calculadora de landed price (`CalculadoraLandedPrice.tsx`) e inteligencia 360 (`PanelInteligencia360.tsx`).
 - `/requisiciones` — gestión de requisiciones (CRUD vía `lib/requisiciones.ts` + hook `useRequisiciones`).
+  Al crear una requisición, `SeccionRecomendacionInteligente.tsx` sugiere proveedor vía
+  `lib/motor-recomendador-proveedores.ts` — un motor de scoring local/cliente, **distinto** del
+  cliente Vertex AI en `lib/services/recommendation.ts` (ver `/proveedores` arriba). No confundir
+  ambos al modificar recomendaciones.
 - `/ordenes-servicio` — gestión de órdenes de servicio (CRUD vía `lib/ordenes-servicio.ts` + hook `useOrdenesServicio`).
-- `/almacen` — control de entradas y salidas de materiales y herramientas hacia piso.
+- `/almacen` — control de entradas y salidas de materiales y herramientas hacia piso. Tab
+  Reabastecimiento ROP (`TableroReabastecimientoHerramientas.tsx`, módulo `reabastecimiento-rop`)
+  corre sobre datos demo (`DEMO_ITEMS_RECOMPRA` en `lib/recompra-herramientas.ts`) — no está
+  conectado a Firestore todavía.
 - `/banos` — registros de tiempos de baño, conteos diarios y agregación de resumen mensual.
 - `/horas-extra` — tabla editable para seguimiento de horas extras semanales por departamento.
 - `/operadores` — catálogo de personal para auto-completar en módulos operativos.
@@ -73,6 +85,10 @@ npm run sat:import:phpcfdi  # importación desde el catálogo phpcfdi
 Hosting usa Turbopack por defecto, pero con `firebase-admin`/`firebase-functions` genera
 aliases con hash que la función SSR no resuelve en producción — no lo cambies a `next build`
 a secas (ver `next.config.ts` y `scripts/verificar-bundle-firebase.mjs`).
+
+Para deploy manual de Hosting (fuera de CI) usa `npm run deploy:hosting` — parchea el build a
+webpack antes de correr `firebase deploy --only hosting` (ver `scripts/firebase-deploy.mjs`);
+no uses `firebase deploy` a secas, falla por el mismo motivo que `next build` a secas.
 
 ### Cloud Functions (`functions/`)
 
@@ -135,6 +151,13 @@ GEMINI_API_KEY=
 ## Estructura del código
 
 - `app/` — páginas y componentes de Next.js (App Router)
+- `components/` — componentes compartidos fuera de `app/`: `components/ui/` son primitivas
+  shadcn/ui sobre Radix — prefiérelas antes de crear un botón/modal/dropdown a mano;
+  `BuscadorGlobalCommand.tsx` es el command palette global (Cmd+K, vía `cmdk`, montado en
+  `NavBar.tsx`); `AuthProvider.tsx` / `AppCheckProvider.tsx` inicializan contexto de Firebase
+  Auth / App Check; `ModalCamara.tsx` es el modal compartido de captura por cámara
+  (`getUserMedia`, switch frontal/trasera); `components/finanzas/` agrupa tablas/gráficas de
+  `/finanzas` (cuentas por pagar, flujo de caja, conciliación Odoo).
 - `app/api/extraer/` — Route Handler POST: recibe una imagen, devuelve `ExtraccionInvoice` (una factura)
 - `app/api/extraer-lote/` — Route Handler POST: recibe hasta 20 imágenes + `calidad=alta` (usa
   `gemini-3.1-pro-preview`) o sin el param (usa `gemini-3.5-flash`); devuelve `{ extracciones: ExtraccionInvoice[] }`
@@ -240,17 +263,16 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 }
 ```
 
-### El modelo de caché cambió — `use cache` reemplaza los route segment configs
+### El modelo de caché — `cacheComponents` NO está activo en este repo
 
-Con `cacheComponents: true` en `next.config.ts`, los viejos exports de configuración de
-segmento (`dynamic`, `revalidate`, `fetchCache`) se reemplazan por directivas:
+`next.config.ts` solo tiene `serverExternalPackages`; **no** hay `cacheComponents: true`. Las
+directivas `'use cache'`, `cacheLife(profile)` y `cacheTag(tag)` (que reemplazarían los viejos
+exports de configuración de segmento — `dynamic`, `revalidate`, `fetchCache`) quedan inertes si
+las escribes — no uses ese patrón a menos que primero actives `cacheComponents` en
+`next.config.ts`.
 
-- `'use cache'` — cachea un Server Component o función async
-- `cacheLife(profile)` — define el TTL (ej. `cacheLife('hours')`)
-- `cacheTag(tag)` — etiqueta para revalidación dirigida vía `revalidateTag()`
-
-Exports viejos como `export const dynamic = 'force-dynamic'` ya no son necesarios (todas las
-páginas son dinámicas por defecto).
+Todas las páginas ya son dinámicas por defecto en Next 16, así que
+`export const dynamic = 'force-dynamic'` no es necesario de todas formas.
 
 ### Navegación instantánea requiere `unstable_instant`
 
@@ -308,9 +330,3 @@ modelo de datos):
 1. Redacta primero el diseño en `docs/superpowers/specs/YYYY-MM-DD-*.md` (qué y por qué).
 2. Redacta un plan ejecutable task-by-task en `docs/superpowers/plans/YYYY-MM-DD-*.md`.
 3. Espera confirmación antes de modificar código de producción.
-
-## Deuda técnica conocida
-
-- En Windows aparecen `lib/firebase.ts` y `lib\firebase.ts` como entradas separadas por el
-  sistema de archivos case-insensitive. Consolidar en una limpieza dedicada (no mezclar con
-  cambios de features).

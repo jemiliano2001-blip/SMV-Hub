@@ -26,6 +26,9 @@ export type NuevaOrdenPayload = NuevaCompraForm & {
   linkProveedor?: string | null
   fechaEntrega?: string | null
   estado?: EstadoOrden
+  proveedorId?: string | null
+  cotizacionGanadoraId?: string | null
+  requisicionId?: string | null
 }
 
 export async function crearOrden(payload: NuevaOrdenPayload): Promise<string> {

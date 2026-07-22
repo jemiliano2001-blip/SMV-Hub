@@ -1,16 +1,22 @@
 import { z } from "zod"
-import { verificarAdmin } from "@/lib/api-auth"
+import { verificarSuperAdmin } from "@/lib/api-auth"
 import { listarUsuariosAdmin, crearUsuarioAdmin } from "@/lib/usuarios-admin"
-import { RolSchema } from "@/lib/schemas"
+import { ModuloIdSchema, RolSchema } from "@/lib/schemas"
 
 const NuevoUsuarioSchema = z.object({
   email: z.string().email(),
-  rol: RolSchema,
+  plantilla: RolSchema.optional(),
+  /** @deprecated Usar plantilla */
+  rol: RolSchema.optional(),
+  modulos: z.array(ModuloIdSchema).optional(),
+  esSuperAdmin: z.boolean().optional(),
   password: z.string().min(6).optional(),
+}).refine((d) => d.plantilla !== undefined || d.rol !== undefined, {
+  message: "Debe incluir plantilla o rol",
 })
 
 export async function GET(request: Request) {
-  const auth = await verificarAdmin(request)
+  const auth = await verificarSuperAdmin(request)
   if (!auth.ok) return auth.response
 
   try {
@@ -29,18 +35,20 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const auth = await verificarAdmin(request)
+  const auth = await verificarSuperAdmin(request)
   if (!auth.ok) return auth.response
 
   const body = await request.json().catch(() => null)
   const parseResult = NuevoUsuarioSchema.safeParse(body)
   if (!parseResult.success) {
-    return Response.json({ error: "Correo o rol inválido" }, { status: 400 })
+    return Response.json({ error: "Correo o plantilla inválidos" }, { status: 400 })
   }
 
   try {
+    const { plantilla, rol, ...rest } = parseResult.data
     const resultado = await crearUsuarioAdmin({
-      ...parseResult.data,
+      ...rest,
+      plantilla: plantilla ?? rol!,
       creadoPor: auth.email,
     })
     return Response.json(resultado, { status: 201 })

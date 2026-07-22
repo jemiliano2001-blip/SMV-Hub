@@ -18,13 +18,18 @@ const TABS = [
 export default function CajaChicaPage() {
   return (
     <AuthGuard>
-      <main className="min-h-screen bg-gray-50 flex flex-col print:bg-white">
-        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
+      <main className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans print:bg-white">
+        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-1">
           <Tabs defaultValue="movimientos">
-            <div className="mb-6 sm:mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 print:hidden">
+            <div className="mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-xl shadow-xs print:hidden">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Caja Chica</h1>
-                <p className="text-sm text-gray-500 mt-1">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base font-bold text-slate-900 tracking-tight">Caja Chica</h1>
+                  <span className="text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded">
+                    Efectivo y Gastos Menores
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
                   Control de efectivo, comprobantes y gastos menores
                 </p>
               </div>

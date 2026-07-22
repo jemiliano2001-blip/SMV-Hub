@@ -3,18 +3,16 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Camera, Loader2, Send, ShoppingCart, X } from 'lucide-react'
+import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
-import { useRol } from '@/lib/hooks/useRol'
+import { usePermisos } from '@/lib/hooks/useRol'
+import { tieneModulo } from '@/lib/roles'
 import { usePedidosAlmacen } from '@/lib/hooks/usePedidosAlmacen'
 import { subirImagenPedidoAlmacen } from '@/lib/storage'
 import { formatFechaHoraCorta } from '@/lib/format'
 import type { PedidoAlmacen } from '@/lib/schemas'
-
-const ESTADO_PILL: Record<PedidoAlmacen['estado'], string> = {
-  pendiente: 'bg-blue-100 text-blue-700',
-  comprado: 'bg-emerald-100 text-emerald-700',
-  cancelado: 'bg-gray-100 text-gray-500',
-}
+import { ModalCamara } from '@/components/ModalCamara'
 
 const ESTADO_LABEL: Record<PedidoAlmacen['estado'], string> = {
   pendiente: 'Pendiente',
@@ -24,15 +22,17 @@ const ESTADO_LABEL: Record<PedidoAlmacen['estado'], string> = {
 
 export default function PedidosAlmacenView() {
   const { usuario } = useUsuario()
-  const { rol } = useRol(authBypassActivo() ? null : usuario)
+  const { modulos, esSuperAdmin } = usePermisos(authBypassActivo() ? null : usuario)
   const { pedidos, loading, error, agregarPedido, cancelarPedido } = usePedidosAlmacen()
 
-  const puedeGestionar = rol === 'admin' || rol === 'compras'
+  // Gestores: quienes compran (módulo nueva-compra) o super-admin
+  const puedeGestionar = esSuperAdmin || tieneModulo(modulos, 'nueva-compra')
 
   const [descripcion, setDescripcion] = useState('')
   const [urgente, setUrgente] = useState(false)
   const [imagen, setImagen] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [isCamaraOpen, setIsCamaraOpen] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [errorCaptura, setErrorCaptura] = useState<string | null>(null)
   const [mensajeExito, setMensajeExito] = useState<string | null>(null)
@@ -46,14 +46,21 @@ export default function PedidosAlmacenView() {
     }
   }, [previewUrl])
 
-  function handleImagenChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
+  function handleFotoCapturada(file: File) {
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
     setImagen(file)
     setPreviewUrl(URL.createObjectURL(file))
   }
 
+  function handleImagenChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    handleFotoCapturada(file)
+    e.target.value = ''
+  }
+
   function quitarImagen() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
     setImagen(null)
     setPreviewUrl(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -87,6 +94,9 @@ export default function PedidosAlmacenView() {
           : {}),
       })
       setMensajeExito('Pedido guardado')
+      toast.success('Pedido de Almacén Guardado', {
+        description: `Se registró el pedido para "${texto.substring(0, 40)}..."`,
+      })
       setDescripcion('')
       setUrgente(false)
       quitarImagen()
@@ -94,6 +104,9 @@ export default function PedidosAlmacenView() {
     } catch (err) {
       console.error('Error guardando pedido de almacén:', err)
       setErrorCaptura('No se pudo guardar el pedido. Intenta de nuevo.')
+      toast.error('Error al registrar pedido', {
+        description: 'Verifica tu conexión e intenta de nuevo.',
+      })
     } finally {
       setEnviando(false)
     }
@@ -103,8 +116,10 @@ export default function PedidosAlmacenView() {
     if (!confirm('¿Cancelar este pedido?')) return
     try {
       await cancelarPedido(id)
+      toast.info('Pedido Cancelado')
     } catch (err) {
       console.error('Error cancelando pedido de almacén:', err)
+      toast.error('Error al cancelar pedido')
     }
   }
 
@@ -118,37 +133,47 @@ export default function PedidosAlmacenView() {
 
   function Tarjeta({ pedido }: { pedido: PedidoAlmacen }) {
     return (
-      <div className="flex gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="flex gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs hover:shadow-xs transition-all">
         {pedido.imagenUrl && (
           <a href={pedido.imagenUrl} target="_blank" rel="noreferrer" className="shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={pedido.imagenUrl}
               alt="Foto del pedido"
-              className="h-16 w-16 rounded-lg border border-gray-200 object-cover"
+              className="h-16 w-16 rounded-xl border border-slate-200 object-cover"
             />
           </a>
         )}
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-gray-900 break-words">{pedido.descripcion}</p>
+          <p className="text-sm font-bold text-slate-900 break-words">{pedido.descripcion}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             {pedido.urgente && (
-              <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
-                Urgente
-              </span>
+              <Badge variant="outline" className="bg-red-50 text-red-900 border-red-300 font-mono text-[10px] font-bold">
+                🚨 URGENTE
+              </Badge>
             )}
-            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${ESTADO_PILL[pedido.estado]}`}>
+            <Badge
+              variant="outline"
+              className={[
+                'font-mono text-[10px] font-bold uppercase',
+                pedido.estado === 'pendiente'
+                  ? 'bg-sky-50 text-[#0369A1] border-sky-200'
+                  : pedido.estado === 'comprado'
+                  ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
+                  : 'bg-slate-100 text-slate-600 border-slate-200',
+              ].join(' ')}
+            >
               {ESTADO_LABEL[pedido.estado]}
-            </span>
+            </Badge>
           </div>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-slate-500 font-mono">
             {pedido.solicitadoPorNombre} · {formatFechaHoraCorta(pedido.creadoEn)}
           </p>
           {puedeGestionar && pedido.estado === 'pendiente' && (
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2.5 flex flex-wrap gap-2">
               <Link
                 href={`/nueva-compra?pedidoId=${pedido.id}&descripcion=${encodeURIComponent(pedido.descripcion)}`}
-                className="inline-flex items-center gap-1 rounded-md bg-[#0369A1] px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-[#0284C7]"
+                className="inline-flex items-center gap-1 rounded-xl bg-[#0369A1] hover:bg-[#0284C7] active:scale-98 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition-all"
               >
                 <ShoppingCart className="h-3.5 w-3.5" />
                 Comprar ahora
@@ -156,7 +181,7 @@ export default function PedidosAlmacenView() {
               <button
                 type="button"
                 onClick={() => handleCancelar(pedido.id)}
-                className="rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-98 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs transition-all cursor-pointer"
               >
                 Cancelar
               </button>
@@ -231,8 +256,8 @@ export default function PedidosAlmacenView() {
           ) : (
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:border-[#0369A1]/50"
+              onClick={() => setIsCamaraOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:border-[#0369A1]/50 hover:bg-sky-50/50"
             >
               <Camera className="h-4 w-4" />
               Foto (opcional)
@@ -249,6 +274,13 @@ export default function PedidosAlmacenView() {
           </button>
         </div>
       </form>
+
+      <ModalCamara
+        isOpen={isCamaraOpen}
+        onClose={() => setIsCamaraOpen(false)}
+        onCapture={handleFotoCapturada}
+        titulo="Foto de Pedido de Almacén"
+      />
 
       {loading ? (
         <div className="h-24 animate-pulse rounded-lg bg-gray-100"></div>

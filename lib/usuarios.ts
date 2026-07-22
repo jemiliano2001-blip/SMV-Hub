@@ -1,19 +1,41 @@
 import { doc, getDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import { RolSchema, type Rol } from "@/lib/schemas"
+import type { ModuloId, Rol } from "@/lib/schemas"
 import { esCorreoBreakGlass } from "@/lib/authorized-emails"
+import {
+  esSuperAdminDesdeUsuarioLegacy,
+  modulosDePlantilla,
+  modulosDesdeUsuarioLegacy,
+  plantillaDesdeUsuarioLegacy,
+} from "@/lib/roles"
+
+export interface PermisosUsuario {
+  /** @deprecated Preferir plantilla + modulos. Alias de plantilla para compat. */
+  rol: Rol
+  plantilla: Rol
+  modulos: ModuloId[]
+  esSuperAdmin: boolean
+  activo: boolean
+}
 
 /**
- * Resuelve el rol de un usuario autenticado leyendo su propio documento en
- * Firestore. Devuelve null si no tiene acceso (documento inexistente,
- * desactivado, o rol inválido) — el llamador debe tratar null como "sin
- * autorización".
+ * Resuelve permisos de un usuario autenticado leyendo su documento en
+ * Firestore. Devuelve null si no tiene acceso (documento inexistente o
+ * desactivado). Break-glass → super-admin con plantilla admin completa.
  */
-export async function obtenerRolUsuario(
+export async function obtenerPermisosUsuario(
   uid: string,
   email: string | null | undefined
-): Promise<Rol | null> {
-  if (esCorreoBreakGlass(email)) return "admin"
+): Promise<PermisosUsuario | null> {
+  if (esCorreoBreakGlass(email)) {
+    return {
+      rol: "admin",
+      plantilla: "admin",
+      modulos: modulosDePlantilla("admin"),
+      esSuperAdmin: true,
+      activo: true,
+    }
+  }
 
   const snap = await getDoc(doc(db, "usuarios", uid))
   if (!snap.exists()) return null
@@ -21,6 +43,28 @@ export async function obtenerRolUsuario(
   const data = snap.data()
   if (data.activo !== true) return null
 
-  const rolParseado = RolSchema.safeParse(data.rol)
-  return rolParseado.success ? rolParseado.data : null
+  const plantilla = plantillaDesdeUsuarioLegacy(data)
+  if (!plantilla) return null
+
+  const modulos = modulosDesdeUsuarioLegacy(data)
+  const esSuperAdmin = esSuperAdminDesdeUsuarioLegacy(data)
+
+  return {
+    rol: plantilla,
+    plantilla,
+    modulos,
+    esSuperAdmin,
+    activo: true,
+  }
+}
+
+/**
+ * @deprecated Usar obtenerPermisosUsuario. Devuelve solo el rol/plantilla.
+ */
+export async function obtenerRolUsuario(
+  uid: string,
+  email: string | null | undefined
+): Promise<Rol | null> {
+  const perms = await obtenerPermisosUsuario(uid, email)
+  return perms?.plantilla ?? null
 }

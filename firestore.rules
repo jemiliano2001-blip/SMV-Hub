@@ -39,6 +39,41 @@ service cloud.firestore {
         );
     }
 
+    function docUsuario() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    // Módulos personalizados (modulos[]) con fallback a rol/plantilla legacy.
+    function tieneModulo(modulo) {
+      return exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
+        (
+          (docUsuario().keys().hasAny(['modulos']) && modulo in docUsuario().modulos) ||
+          (
+            !docUsuario().keys().hasAny(['modulos']) &&
+            (
+              (modulo == 'finanzas' && (docUsuario().rol == 'admin' || docUsuario().plantilla == 'admin')) ||
+              (modulo == 'caja-chica' && docUsuario().rol in ['admin', 'compras']) ||
+              (modulo == 'caja-chica' && docUsuario().plantilla in ['admin', 'compras']) ||
+              (modulo == 'auditoria' && (docUsuario().rol == 'admin' || docUsuario().plantilla == 'admin')) ||
+              (modulo == 'usuarios' && (docUsuario().rol == 'admin' || docUsuario().plantilla == 'admin')) ||
+              (modulo == 'nueva-compra' && docUsuario().rol in ['admin', 'compras']) ||
+              (modulo == 'nueva-compra' && docUsuario().plantilla in ['admin', 'compras']) ||
+              (modulo == 'pedidos-almacen' && docUsuario().rol in ['admin', 'compras', 'almacen']) ||
+              (modulo == 'pedidos-almacen' && docUsuario().plantilla in ['admin', 'compras', 'almacen'])
+            )
+          )
+        );
+    }
+
+    function esSuperAdminDoc() {
+      return exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
+        (
+          docUsuario().esSuperAdmin == true ||
+          docUsuario().rol == 'admin' ||
+          docUsuario().plantilla == 'admin'
+        );
+    }
+
     // ── Usuarios (roles y acceso, administrados desde /usuarios) ─────────────
 
     match /usuarios/{uid} {
@@ -249,22 +284,21 @@ service cloud.firestore {
 
     // ── Pedidos de almacén (captura móvil: "necesito que compres X") ────────
 
-    // Rol del usuario autenticado, leído de su doc en `usuarios`. Distinto de
-    // esAdminRol(): aquí se acepta una lista de roles, no solo admin.
+    // Rol legacy del usuario (compat docs sin modulos[]).
     function rolUsuario() {
       return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol;
     }
 
     function esPedidoAlmacenCreador() {
       return esUsuarioAutorizado() &&
-        (esCorreoBreakGlass() || rolUsuario() in ['admin', 'compras', 'almacen']);
+        (esCorreoBreakGlass() || tieneModulo('pedidos-almacen') || rolUsuario() in ['admin', 'compras', 'almacen']);
     }
 
     // Solo quien compra puede cambiar el estado del pedido o vincularlo a una
     // orden — el encargado de almacén únicamente crea, no gestiona el estado.
     function esPedidoAlmacenGestor() {
       return esUsuarioAutorizado() &&
-        (esCorreoBreakGlass() || rolUsuario() in ['admin', 'compras']);
+        (esCorreoBreakGlass() || tieneModulo('nueva-compra') || rolUsuario() in ['admin', 'compras']);
     }
 
     function pedidoAlmacenValido(d) {
@@ -393,17 +427,19 @@ service cloud.firestore {
     }
 
     match /caja_chica_movimientos/{movimientoId} {
-      allow read: if esUsuarioAutorizado();
+      allow read: if esUsuarioAutorizado() && (esCorreoBreakGlass() || tieneModulo('caja-chica'));
 
       allow create: if esUsuarioAutorizado()
+                    && (esCorreoBreakGlass() || tieneModulo('caja-chica'))
                     && movimientoCajaChicaValido(request.resource.data);
 
       allow update: if esUsuarioAutorizado()
+                    && (esCorreoBreakGlass() || tieneModulo('caja-chica'))
                     && movimientoCajaChicaValido(request.resource.data)
                     && request.resource.data.creadoEn == resource.data.creadoEn
                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
 
-      allow delete: if esUsuarioAutorizado();
+      allow delete: if esUsuarioAutorizado() && (esCorreoBreakGlass() || tieneModulo('caja-chica'));
     }
 
     // ── Reportes Contables ───────────────────────────────────────────────────
@@ -421,17 +457,17 @@ service cloud.firestore {
     }
 
     // ── Finanzas (espejo de solo lectura de facturación de clientes en Odoo) ─
-    // Más sensible que compras: restringido a admin, no a cualquier usuario
-    // activo. Nunca se escribe desde el navegador — solo el Cloud Function de
-    // sync vía Admin SDK, que ignora estas reglas.
+    // Más sensible que compras: requiere módulo finanzas o super-admin.
+    // Nunca se escribe desde el navegador — solo el Cloud Function de sync vía
+    // Admin SDK, que ignora estas reglas.
 
     function esAdminRol() {
-      return exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
+      return esSuperAdminDoc();
     }
 
     function esFinanzasAutorizado() {
-      return esUsuarioAutorizado() && (esCorreoBreakGlass() || esAdminRol());
+      return esUsuarioAutorizado() &&
+        (esCorreoBreakGlass() || tieneModulo('finanzas') || esSuperAdminDoc());
     }
 
     match /finanzas_facturas/{facturaId} {
@@ -479,11 +515,104 @@ service cloud.firestore {
     // ── Auditoría (Registro de acciones) ─────────────────────────────────────
     
     match /auditoria/{auditId} {
-      // Solo el admin puede leer el registro de auditoría
-      allow read: if esUsuarioAutorizado() && request.auth.token.email == 'jemiliano2001@gmail.com';
+      // Lectura: módulo auditoria, super-admin o break-glass
+      allow read: if esUsuarioAutorizado() &&
+        (esCorreoBreakGlass() || tieneModulo('auditoria') || esSuperAdminDoc());
       // Cualquier usuario del equipo puede generar un registro, pero no modificarlo ni borrarlo
       allow create: if esUsuarioAutorizado();
       allow update, delete: if false;
+    }
+
+    // ── Proveedores USA Tooling + inteligencia de compras ─────────────────────
+    // Audit trail inmutable: creadoEn es timestamp al crear y nunca se reescribe.
+    // La forma de los datos se valida con Zod en el cliente (lib/proveedores*.ts,
+    // lib/requisiciones-flujo.ts) antes de escribir; no se replica aquí porque hay
+    // merges parciales de un solo campo (p.ej. { ganadora }) que un esquema completo
+    // rechazaría. ponytail: solo se blinda la trazabilidad (regla crítica); la
+    // validación de tipos por campo queda deferida. Las cláusulas de inmutabilidad
+    // son las mismas que ya corren en prod para /ordenes y /cotizaciones.
+
+    match /proveedores/{proveedorId} {
+      allow read, delete: if esUsuarioAutorizado();
+      allow create: if esUsuarioAutorizado()
+                    && request.resource.data.creadoEn is timestamp;
+      allow update: if esUsuarioAutorizado()
+                    && request.resource.data.creadoEn == resource.data.creadoEn
+                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+    }
+
+    match /compras_proveedores/{compraId} {
+      allow read, delete: if esUsuarioAutorizado();
+      allow create: if esUsuarioAutorizado()
+                    && request.resource.data.creadoEn is timestamp;
+      allow update: if esUsuarioAutorizado()
+                    && request.resource.data.creadoEn == resource.data.creadoEn;
+    }
+
+    match /evaluaciones_proveedores/{evalId} {
+      allow read, delete: if esUsuarioAutorizado();
+      allow create: if esUsuarioAutorizado()
+                    && request.resource.data.creadoEn is timestamp;
+      allow update: if esUsuarioAutorizado()
+                    && request.resource.data.creadoEn == resource.data.creadoEn;
+    }
+
+    match /cotizaciones_comparador/{cotId} {
+      allow read, delete: if esUsuarioAutorizado();
+      allow create: if esUsuarioAutorizado()
+                    && request.resource.data.creadoEn is timestamp;
+      allow update: if esUsuarioAutorizado()
+                    && request.resource.data.creadoEn == resource.data.creadoEn;
+    }
+
+    match /cotizaciones_requisicion/{cotId} {
+      allow read, delete: if esUsuarioAutorizado();
+      allow create: if esUsuarioAutorizado()
+                    && request.resource.data.creadoEn is timestamp;
+      allow update: if esUsuarioAutorizado()
+                    && request.resource.data.creadoEn == resource.data.creadoEn;
+    }
+
+    // ── Compras Odoo (espejo solo lectura; escribe Admin SDK / Cloud Functions) ─
+
+    function esProveedoresAutorizado() {
+      return esUsuarioAutorizado() &&
+        (esCorreoBreakGlass() || tieneModulo('proveedores') || esSuperAdminDoc());
+    }
+
+    match /compras_odoo_po/{docId} {
+      allow read: if esProveedoresAutorizado();
+      allow write: if false;
+    }
+
+    match /compras_odoo_facturas/{docId} {
+      allow read: if esProveedoresAutorizado();
+      allow write: if false;
+    }
+
+    match /compras_odoo_items/{docId} {
+      allow read: if esProveedoresAutorizado();
+      allow write: if false;
+    }
+
+    match /compras_odoo_sync_state/{docId} {
+      allow read: if esProveedoresAutorizado();
+      allow write: if false;
+    }
+
+    match /categorias_producto/{catId} {
+      allow read: if esUsuarioAutorizado();
+      allow write: if false;
+    }
+
+    // Tipo de cambio y config global: lectura para todos autorizados;
+    // escritura solo admin (afecta rankings/recomendaciones de todo el equipo).
+    match /config_sistema/{configId} {
+      allow read: if esUsuarioAutorizado();
+      allow create, update: if esFinanzasAutorizado()
+        && request.resource.data.usdToMxn is number
+        && request.resource.data.usdToMxn > 0;
+      allow delete: if esFinanzasAutorizado();
     }
 
     // ── Todo lo demás: denegado por defecto ──────────────────────────────────

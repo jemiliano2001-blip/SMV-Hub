@@ -1,39 +1,59 @@
 import { z } from "zod"
-import { verificarAdmin } from "@/lib/api-auth"
+import { verificarSuperAdmin } from "@/lib/api-auth"
 import { actualizarUsuarioAdmin, eliminarUsuarioAdmin } from "@/lib/usuarios-admin"
-import { RolSchema } from "@/lib/schemas"
+import { ModuloIdSchema, RolSchema } from "@/lib/schemas"
 
 const CambiosUsuarioSchema = z
   .object({
+    plantilla: RolSchema.optional(),
+    /** @deprecated Usar plantilla */
     rol: RolSchema.optional(),
+    modulos: z.array(ModuloIdSchema).optional(),
+    esSuperAdmin: z.boolean().optional(),
     activo: z.boolean().optional(),
   })
-  .refine((c) => c.rol !== undefined || c.activo !== undefined, {
-    message: "Debe incluir rol y/o activo",
-  })
+  .refine(
+    (c) =>
+      c.plantilla !== undefined ||
+      c.rol !== undefined ||
+      c.modulos !== undefined ||
+      c.esSuperAdmin !== undefined ||
+      c.activo !== undefined,
+    { message: "Debe incluir al menos un campo a actualizar" }
+  )
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ uid: string }> }) {
-  const auth = await verificarAdmin(request)
+  const auth = await verificarSuperAdmin(request)
   if (!auth.ok) return auth.response
 
   const { uid } = await params
   const body = await request.json().catch(() => null)
   const parseResult = CambiosUsuarioSchema.safeParse(body)
   if (!parseResult.success) {
-    return Response.json({ error: "Debe incluir rol y/o activo" }, { status: 400 })
+    return Response.json({ error: "Datos de actualización inválidos" }, { status: 400 })
   }
 
   try {
-    await actualizarUsuarioAdmin(uid, parseResult.data)
+    const { plantilla, rol, ...rest } = parseResult.data
+    await actualizarUsuarioAdmin(uid, {
+      ...rest,
+      ...(plantilla !== undefined || rol !== undefined
+        ? { plantilla: plantilla ?? rol }
+        : {}),
+    })
     return Response.json({ ok: true })
   } catch (error: unknown) {
-    console.error("Error actualizando usuario:", error instanceof Error ? error.message : "error desconocido")
+    const msg = error instanceof Error ? error.message : "error desconocido"
+    if (msg.includes("último super-admin")) {
+      return Response.json({ error: msg }, { status: 400 })
+    }
+    console.error("Error actualizando usuario:", msg)
     return Response.json({ error: "No se pudo actualizar el usuario" }, { status: 500 })
   }
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ uid: string }> }) {
-  const auth = await verificarAdmin(request)
+  const auth = await verificarSuperAdmin(request)
   if (!auth.ok) return auth.response
 
   const { uid } = await params
@@ -45,7 +65,11 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ u
     await eliminarUsuarioAdmin(uid)
     return Response.json({ ok: true })
   } catch (error: unknown) {
-    console.error("Error eliminando usuario:", error instanceof Error ? error.message : "error desconocido")
+    const msg = error instanceof Error ? error.message : "error desconocido"
+    if (msg.includes("último super-admin")) {
+      return Response.json({ error: msg }, { status: 400 })
+    }
+    console.error("Error eliminando usuario:", msg)
     return Response.json({ error: "No se pudo eliminar el usuario" }, { status: 500 })
   }
 }

@@ -1,5 +1,5 @@
 import * as functions from 'firebase-functions';
-import { assertAuthorizedCallable, errorMessage } from './auth';
+import { assertAuthorizedCallable, errorMessage, esCorreoBreakGlass } from './auth';
 import { getDb } from './firestore-db';
 import { idsHuerfanos, mapearFacturaOdoo, type OdooFacturaRaw } from './odoo-mapeo';
 
@@ -31,21 +31,34 @@ const TAMANO_LOTE = 400; // límite de writeBatch de Firestore
 
 async function llamarOdoo<T>(url: string, service: string, method: string, args: unknown[]): Promise<T> {
   for (let intento = 1; intento <= 3; intento++) {
-    const res = await fetch(`${url}/jsonrpc`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', method: 'call', params: { service, method, args } }),
-    });
-    if (res.status >= 500 && intento < 3) {
-      await new Promise((r) => setTimeout(r, 1000 * 2 ** (intento - 1)));
-      continue;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    try {
+      const res = await fetch(`${url}/jsonrpc`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', method: 'call', params: { service, method, args } }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (res.status >= 500 && intento < 3) {
+        await new Promise((r) => setTimeout(r, 1000 * 2 ** (intento - 1)));
+        continue;
+      }
+      if (!res.ok) throw new Error(`Odoo HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
+      const json = await res.json();
+      if (json.error) throw new Error(`Odoo RPC error: ${JSON.stringify(json.error).slice(0, 500)}`);
+      return json.result as T;
+    } catch (err: unknown) {
+      clearTimeout(timeoutId);
+      if (intento < 3) {
+        await new Promise((r) => setTimeout(r, 1000 * 2 ** (intento - 1)));
+        continue;
+      }
+      throw err;
     }
-    if (!res.ok) throw new Error(`Odoo HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
-    const json = await res.json();
-    if (json.error) throw new Error(`Odoo RPC error: ${JSON.stringify(json.error).slice(0, 500)}`);
-    return json.result as T;
   }
-  throw new Error('Odoo: agotados los reintentos (5xx)');
+  throw new Error('Odoo: agotados los reintentos (5xx o timeout)');
 }
 
 // ponytail: sync completo (trae todas las facturas posteadas en cada corrida),
@@ -163,7 +176,7 @@ export const syncOdooFacturasManual = functions
   .https.onCall(async (_data, context) => {
     const email = await assertAuthorizedCallable(context);
     const usuarioSnap = await db.collection('usuarios').doc(context.auth!.uid).get();
-    const esBreakGlass = email === 'jemiliano2001@gmail.com';
+    const esBreakGlass = esCorreoBreakGlass(email);
     if (!esBreakGlass && usuarioSnap.data()?.rol !== 'admin') {
       throw new functions.https.HttpsError('permission-denied', 'Requiere rol admin.');
     }

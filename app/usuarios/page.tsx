@@ -2,12 +2,17 @@
 'use client'
 
 import { useState } from 'react'
-import { UserPlus, Copy, Check, AlertCircle, Trash2, KeyRound } from 'lucide-react'
+import { UserPlus, Copy, Check, AlertCircle, Trash2, KeyRound, Shield, Pencil } from 'lucide-react'
 import AuthGuard from '../AuthGuard'
 import { useUsuarios, type UsuarioAdmin } from '@/lib/hooks/useUsuarios'
-import type { Rol } from '@/lib/schemas'
+import type { ModuloId, Rol } from '@/lib/schemas'
+import {
+  GRUPOS_MODULOS,
+  esMatrizPersonalizada,
+  modulosDePlantilla,
+} from '@/lib/roles'
 
-const ROLES: Rol[] = ['admin', 'compras', 'diseno', 'almacen']
+const PLANTILLAS: Rol[] = ['admin', 'compras', 'diseno', 'almacen']
 
 function BannerPasswordTemporal({ password, onClose }: { password: string; onClose: () => void }) {
   const [copiado, setCopiado] = useState(false)
@@ -41,12 +46,75 @@ function BannerPasswordTemporal({ password, onClose }: { password: string; onClo
   )
 }
 
-function FormNuevoUsuario({ onCrear }: { onCrear: (email: string, rol: Rol, password?: string) => Promise<void> }) {
+function MatrizModulos({
+  modulos,
+  onChange,
+}: {
+  modulos: ModuloId[]
+  onChange: (m: ModuloId[]) => void
+}) {
+  const set = new Set(modulos)
+
+  function toggle(id: ModuloId) {
+    const next = new Set(set)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    onChange([...next])
+  }
+
+  return (
+    <div className="space-y-3 max-h-64 overflow-y-auto border border-slate-200 rounded-lg p-3 bg-slate-50">
+      {GRUPOS_MODULOS.map((grupo) => (
+        <div key={grupo.nombre}>
+          <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+            {grupo.nombre}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+            {grupo.modulos.map((m) => (
+              <label
+                key={m.id}
+                className="flex items-center gap-2 text-xs text-slate-800 cursor-pointer hover:bg-white rounded px-1.5 py-1"
+              >
+                <input
+                  type="checkbox"
+                  checked={set.has(m.id)}
+                  onChange={() => toggle(m.id)}
+                  className="rounded border-slate-300 text-[#0369A1] focus:ring-[#0369A1]"
+                />
+                {m.label}
+              </label>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function FormNuevoUsuario({
+  onCrear,
+}: {
+  onCrear: (input: {
+    email: string
+    plantilla: Rol
+    modulos: ModuloId[]
+    esSuperAdmin: boolean
+    password?: string
+  }) => Promise<void>
+}) {
   const [email, setEmail] = useState('')
-  const [rol, setRol] = useState<Rol>('compras')
+  const [plantilla, setPlantilla] = useState<Rol>('compras')
+  const [modulos, setModulos] = useState<ModuloId[]>(() => modulosDePlantilla('compras'))
+  const [esSuperAdmin, setEsSuperAdmin] = useState(false)
   const [password, setPassword] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  function handlePlantilla(p: Rol) {
+    setPlantilla(p)
+    setModulos(modulosDePlantilla(p))
+    if (p === 'admin') setEsSuperAdmin(true)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -57,9 +125,17 @@ function FormNuevoUsuario({ onCrear }: { onCrear: (email: string, rol: Rol, pass
     setEnviando(true)
     setError(null)
     try {
-      await onCrear(email, rol, password || undefined)
+      await onCrear({
+        email,
+        plantilla,
+        modulos,
+        esSuperAdmin,
+        password: password || undefined,
+      })
       setEmail('')
-      setRol('compras')
+      setPlantilla('compras')
+      setModulos(modulosDePlantilla('compras'))
+      setEsSuperAdmin(false)
       setPassword('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el usuario')
@@ -68,173 +144,216 @@ function FormNuevoUsuario({ onCrear }: { onCrear: (email: string, rol: Rol, pass
     }
   }
 
+  const personalizado = esMatrizPersonalizada(plantilla, modulos)
+
   return (
-    <form onSubmit={handleSubmit} className="p-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-end gap-3 shadow-xs">
-      <div className="flex-1 min-w-[220px]">
-        <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">Correo Electrónico</label>
-        <input
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="persona@gmail.com"
-          className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-[#0369A1]"
-        />
-      </div>
-      <div>
-        <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">Rol</label>
-        <select
-          value={rol}
-          onChange={(e) => setRol(e.target.value as Rol)}
-          className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white text-slate-900 focus:outline-none focus:border-[#0369A1]"
+    <form
+      onSubmit={handleSubmit}
+      className="p-4 bg-white rounded-xl border border-slate-200 space-y-3 shadow-xs"
+    >
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex-1 min-w-[220px]">
+          <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">
+            Correo Electrónico
+          </label>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="persona@gmail.com"
+            className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-[#0369A1]"
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">
+            Plantilla
+          </label>
+          <select
+            value={plantilla}
+            onChange={(e) => handlePlantilla(e.target.value as Rol)}
+            className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white text-slate-900 focus:outline-none focus:border-[#0369A1]"
+          >
+            {PLANTILLAS.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="min-w-[180px]">
+          <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">
+            Contraseña (Opcional)
+          </label>
+          <input
+            type="text"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="En blanco = temporal"
+            className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-[#0369A1]"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={enviando}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#0369A1] hover:bg-[#0284C7] text-white text-xs font-bold disabled:opacity-50 transition-colors active:scale-[0.98]"
         >
-          {ROLES.map((r) => (
-            <option key={r} value={r}>{r}</option>
-          ))}
-        </select>
+          <UserPlus className="h-3.5 w-3.5" />
+          {enviando ? 'Creando...' : 'Crear usuario'}
+        </button>
       </div>
-      <div className="min-w-[180px]">
-        <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">Contraseña (Opcional)</label>
-        <input
-          type="text"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="En blanco = temporal"
-          className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-[#0369A1]"
-        />
+
+      <div className="flex items-center gap-3">
+        <label className="flex items-center gap-2 text-xs text-slate-800 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={esSuperAdmin}
+            onChange={(e) => setEsSuperAdmin(e.target.checked)}
+            className="rounded border-slate-300 text-[#0369A1]"
+          />
+          <Shield className="h-3.5 w-3.5 text-rose-600" />
+          Super-admin (puede editar usuarios)
+        </label>
+        {personalizado && (
+          <span className="text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded">
+            PERSONALIZADO
+          </span>
+        )}
       </div>
-      <button
-        type="submit"
-        disabled={enviando}
-        className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#0369A1] hover:bg-[#0284C7] text-white text-xs font-bold disabled:opacity-50 transition-colors active:scale-[0.98]"
-      >
-        <UserPlus className="h-3.5 w-3.5" />
-        {enviando ? 'Creando...' : 'Crear usuario'}
-      </button>
-      {error && <p className="w-full text-xs font-mono text-rose-600 mt-1">{error}</p>}
+
+      <div>
+        <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+          Módulos
+        </p>
+        <MatrizModulos modulos={modulos} onChange={setModulos} />
+      </div>
+
+      {error && <p className="text-xs font-mono text-rose-600">{error}</p>}
     </form>
   )
 }
 
-function FilaUsuario({
+function ModalEditarPermisos({
   usuario,
-  onCambiarRol,
-  onCambiarActivo,
-  onResetearPassword,
-  onEliminar,
+  onGuardar,
+  onCerrar,
 }: {
   usuario: UsuarioAdmin
-  onCambiarRol: (uid: string, rol: Rol) => Promise<void>
-  onCambiarActivo: (uid: string, activo: boolean) => Promise<void>
-  onResetearPassword: (uid: string, password?: string) => Promise<void>
-  onEliminar: (uid: string) => Promise<void>
+  onGuardar: (cambios: {
+    plantilla: Rol
+    modulos: ModuloId[]
+    esSuperAdmin: boolean
+  }) => Promise<void>
+  onCerrar: () => void
 }) {
-  const [mostrarReset, setMostrarReset] = useState(false)
-  const [nuevaPassword, setNuevaPassword] = useState('')
-  const [errorReset, setErrorReset] = useState<string | null>(null)
+  const [plantilla, setPlantilla] = useState<Rol>(usuario.plantilla)
+  const [modulos, setModulos] = useState<ModuloId[]>(usuario.modulos)
+  const [esSuperAdmin, setEsSuperAdmin] = useState(usuario.esSuperAdmin)
+  const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  async function confirmarReset() {
-    if (nuevaPassword && nuevaPassword.length < 6) {
-      setErrorReset('Mínimo 6 caracteres')
-      return
-    }
-    await onResetearPassword(usuario.id, nuevaPassword || undefined)
-    setMostrarReset(false)
-    setNuevaPassword('')
-    setErrorReset(null)
+  function handlePlantilla(p: Rol) {
+    setPlantilla(p)
+    setModulos(modulosDePlantilla(p))
   }
 
-  function handleEliminar() {
-    if (window.confirm(`¿Eliminar a ${usuario.email}? Esto borra su acceso permanentemente.`)) {
-      onEliminar(usuario.id)
+  async function guardar() {
+    setGuardando(true)
+    setError(null)
+    try {
+      await onGuardar({ plantilla, modulos, esSuperAdmin })
+      onCerrar()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo guardar')
+    } finally {
+      setGuardando(false)
     }
   }
+
+  const personalizado = esMatrizPersonalizada(plantilla, modulos)
 
   return (
-    <tr className="border-b border-slate-100 hover:bg-slate-50 text-xs">
-      <td className="px-3.5 py-2.5 font-semibold text-slate-900">{usuario.email}</td>
-      <td className="px-3.5 py-2.5">
-        <select
-          value={usuario.rol}
-          onChange={(e) => onCambiarRol(usuario.id, e.target.value as Rol)}
-          className="text-xs rounded border border-slate-300 px-2 py-1 bg-white font-mono"
-        >
-          {ROLES.map((r) => (
-            <option key={r} value={r}>{r}</option>
-          ))}
-        </select>
-      </td>
-      <td className="px-3.5 py-2.5 text-slate-500 font-mono text-[11px]">{usuario.proveedor}</td>
-      <td className="px-3.5 py-2.5">
-        <button
-          onClick={() => onCambiarActivo(usuario.id, !usuario.activo)}
-          className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
-            usuario.activo ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'
-          }`}
-        >
-          {usuario.activo ? 'ACTIVO' : 'INACTIVO'}
-        </button>
-      </td>
-      <td className="px-3.5 py-2.5">
-        <div className="flex items-center justify-end gap-3 font-mono">
-          {usuario.proveedor === 'password' &&
-            (mostrarReset ? (
-              <div className="flex items-center gap-1">
-                <input
-                  type="text"
-                  autoFocus
-                  value={nuevaPassword}
-                  onChange={(e) => setNuevaPassword(e.target.value)}
-                  placeholder="Temporal..."
-                  className="w-28 px-2 py-1 text-xs rounded border border-slate-300"
-                />
-                <button onClick={confirmarReset} className="text-[11px] font-bold text-[#0369A1] hover:underline">
-                  OK
-                </button>
-                <button
-                  onClick={() => {
-                    setMostrarReset(false)
-                    setNuevaPassword('')
-                    setErrorReset(null)
-                  }}
-                  className="text-[11px] text-slate-400 hover:underline"
-                >
-                  X
-                </button>
-                {errorReset && <span className="text-[10px] text-rose-600">{errorReset}</span>}
-              </div>
-            ) : (
-              <button
-                onClick={() => setMostrarReset(true)}
-                className="flex items-center gap-1 text-[11px] font-bold text-[#0369A1] hover:underline"
-              >
-                <KeyRound className="h-3 w-3" />
-                Password
-              </button>
-            ))}
-          <button
-            onClick={handleEliminar}
-            className="flex items-center gap-1 text-[11px] font-bold text-rose-600 hover:underline"
-          >
-            <Trash2 className="h-3 w-3" />
-            Eliminar
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto p-4 space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">Editar permisos</h2>
+            <p className="text-xs text-slate-500 break-all">{usuario.email}</p>
+          </div>
+          <button onClick={onCerrar} className="text-xs text-slate-500 hover:underline">
+            Cerrar
           </button>
         </div>
-      </td>
-    </tr>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div>
+            <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">
+              Plantilla
+            </label>
+            <select
+              value={plantilla}
+              onChange={(e) => handlePlantilla(e.target.value as Rol)}
+              className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white"
+            >
+              {PLANTILLAS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </div>
+          <label className="flex items-center gap-2 text-xs text-slate-800 cursor-pointer mt-4">
+            <input
+              type="checkbox"
+              checked={esSuperAdmin}
+              onChange={(e) => setEsSuperAdmin(e.target.checked)}
+              className="rounded border-slate-300 text-[#0369A1]"
+            />
+            <Shield className="h-3.5 w-3.5 text-rose-600" />
+            Super-admin
+          </label>
+          {personalizado && (
+            <span className="mt-4 text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded">
+              PERSONALIZADO
+            </span>
+          )}
+        </div>
+
+        <MatrizModulos modulos={modulos} onChange={setModulos} />
+
+        {error && <p className="text-xs font-mono text-rose-600">{error}</p>}
+
+        <div className="flex justify-end gap-2 pt-1">
+          <button
+            type="button"
+            onClick={onCerrar}
+            className="px-3 py-1.5 text-xs text-slate-600 hover:underline"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            disabled={guardando}
+            onClick={guardar}
+            className="px-3.5 py-1.5 rounded-lg bg-[#0369A1] text-white text-xs font-bold disabled:opacity-50"
+          >
+            {guardando ? 'Guardando...' : 'Guardar'}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
-// Tarjeta para < md: mismos datos y acciones que la fila de tabla, sin scroll horizontal.
-function TarjetaUsuario({
+function AccionesUsuario({
   usuario,
-  onCambiarRol,
+  onEditar,
   onCambiarActivo,
   onResetearPassword,
   onEliminar,
 }: {
   usuario: UsuarioAdmin
-  onCambiarRol: (uid: string, rol: Rol) => Promise<void>
+  onEditar: () => void
   onCambiarActivo: (uid: string, activo: boolean) => Promise<void>
   onResetearPassword: (uid: string, password?: string) => Promise<void>
   onEliminar: (uid: string) => Promise<void>
@@ -261,76 +380,66 @@ function TarjetaUsuario({
   }
 
   return (
-    <div className="p-3.5 space-y-2.5 text-xs">
-      <div className="flex items-start justify-between gap-2">
-        <p className="font-semibold text-slate-900 break-all">{usuario.email}</p>
-        <button
-          onClick={() => onCambiarActivo(usuario.id, !usuario.activo)}
-          className={`shrink-0 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
-            usuario.activo ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'
-          }`}
-        >
-          {usuario.activo ? 'ACTIVO' : 'INACTIVO'}
-        </button>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <select
-          value={usuario.rol}
-          onChange={(e) => onCambiarRol(usuario.id, e.target.value as Rol)}
-          className="text-xs rounded border border-slate-300 px-2 py-1 bg-white font-mono"
-        >
-          {ROLES.map((r) => (
-            <option key={r} value={r}>{r}</option>
-          ))}
-        </select>
-        <span className="text-slate-500 font-mono text-[11px]">{usuario.proveedor}</span>
-      </div>
-
-      <div className="flex items-center gap-3 pt-2 border-t border-slate-50 font-mono">
-        {usuario.proveedor === 'password' &&
-          (mostrarReset ? (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <input
-                type="text"
-                autoFocus
-                value={nuevaPassword}
-                onChange={(e) => setNuevaPassword(e.target.value)}
-                placeholder="Temporal..."
-                className="w-28 px-2 py-1 text-xs rounded border border-slate-300"
-              />
-              <button onClick={confirmarReset} className="text-[11px] font-bold text-[#0369A1] hover:underline">
-                OK
-              </button>
-              <button
-                onClick={() => {
-                  setMostrarReset(false)
-                  setNuevaPassword('')
-                  setErrorReset(null)
-                }}
-                className="text-[11px] text-slate-400 hover:underline"
-              >
-                X
-              </button>
-              {errorReset && <span className="text-[10px] text-rose-600 w-full">{errorReset}</span>}
-            </div>
-          ) : (
-            <button
-              onClick={() => setMostrarReset(true)}
-              className="flex items-center gap-1 text-[11px] font-bold text-[#0369A1] hover:underline"
-            >
-              <KeyRound className="h-3 w-3" />
-              Password
+    <div className="flex flex-wrap items-center gap-3 font-mono">
+      <button
+        onClick={onEditar}
+        className="flex items-center gap-1 text-[11px] font-bold text-[#0369A1] hover:underline"
+      >
+        <Pencil className="h-3 w-3" />
+        Permisos
+      </button>
+      {usuario.proveedor === 'password' &&
+        (mostrarReset ? (
+          <div className="flex items-center gap-1">
+            <input
+              type="text"
+              autoFocus
+              value={nuevaPassword}
+              onChange={(e) => setNuevaPassword(e.target.value)}
+              placeholder="Temporal..."
+              className="w-28 px-2 py-1 text-xs rounded border border-slate-300"
+            />
+            <button onClick={confirmarReset} className="text-[11px] font-bold text-[#0369A1] hover:underline">
+              OK
             </button>
-          ))}
-        <button
-          onClick={handleEliminar}
-          className="flex items-center gap-1 text-[11px] font-bold text-rose-600 hover:underline"
-        >
-          <Trash2 className="h-3 w-3" />
-          Eliminar
-        </button>
-      </div>
+            <button
+              onClick={() => {
+                setMostrarReset(false)
+                setNuevaPassword('')
+                setErrorReset(null)
+              }}
+              className="text-[11px] text-slate-400 hover:underline"
+            >
+              X
+            </button>
+            {errorReset && <span className="text-[10px] text-rose-600">{errorReset}</span>}
+          </div>
+        ) : (
+          <button
+            onClick={() => setMostrarReset(true)}
+            className="flex items-center gap-1 text-[11px] font-bold text-[#0369A1] hover:underline"
+          >
+            <KeyRound className="h-3 w-3" />
+            Password
+          </button>
+        ))}
+      <button
+        onClick={() => onCambiarActivo(usuario.id, !usuario.activo)}
+        className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+          usuario.activo
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            : 'bg-slate-100 text-slate-500 border-slate-200'
+        }`}
+      >
+        {usuario.activo ? 'ACTIVO' : 'INACTIVO'}
+      </button>
+      <button
+        onClick={handleEliminar}
+        className="flex items-center gap-1 text-[11px] font-bold text-rose-600 hover:underline"
+      >
+        <Trash2 className="h-3 w-3" />
+        Eliminar
+      </button>
     </div>
   )
 }
@@ -342,27 +451,34 @@ function UsuariosContent() {
     error,
     fetchUsuarios,
     crearUsuario,
-    cambiarRol,
+    actualizarUsuario,
     cambiarActivo,
     resetearPassword,
     eliminarUsuario,
   } = useUsuarios()
   const [passwordTemporal, setPasswordTemporal] = useState<string | null>(null)
   const [accionError, setAccionError] = useState<string | null>(null)
+  const [editando, setEditando] = useState<UsuarioAdmin | null>(null)
 
-  async function handleCrear(email: string, rol: Rol, password?: string) {
-    const tempPassword = await crearUsuario(email, rol, password)
+  async function handleCrear(input: {
+    email: string
+    plantilla: Rol
+    modulos: ModuloId[]
+    esSuperAdmin: boolean
+    password?: string
+  }) {
+    const tempPassword = await crearUsuario(input)
     if (tempPassword) setPasswordTemporal(tempPassword)
   }
 
-  async function handleCambiarRol(uid: string, rol: Rol) {
+  async function handleGuardarPermisos(cambios: {
+    plantilla: Rol
+    modulos: ModuloId[]
+    esSuperAdmin: boolean
+  }) {
+    if (!editando) return
     setAccionError(null)
-    try {
-      await cambiarRol(uid, rol)
-    } catch (err) {
-      console.error('Error cambiando rol:', err)
-      setAccionError('No se pudo cambiar el rol. Intenta de nuevo.')
-    }
+    await actualizarUsuario(editando.id, cambios)
   }
 
   async function handleCambiarActivo(uid: string, activo: boolean) {
@@ -371,7 +487,7 @@ function UsuariosContent() {
       await cambiarActivo(uid, activo)
     } catch (err) {
       console.error('Error cambiando acceso:', err)
-      setAccionError('No se pudo cambiar el acceso. Intenta de nuevo.')
+      setAccionError(err instanceof Error ? err.message : 'No se pudo cambiar el acceso.')
     }
   }
 
@@ -392,7 +508,7 @@ function UsuariosContent() {
       await eliminarUsuario(uid)
     } catch (err) {
       console.error('Error eliminando usuario:', err)
-      setAccionError(err instanceof Error ? err.message : 'No se pudo eliminar el usuario. Intenta de nuevo.')
+      setAccionError(err instanceof Error ? err.message : 'No se pudo eliminar el usuario.')
     }
   }
 
@@ -403,11 +519,11 @@ function UsuariosContent() {
           <div className="flex items-center gap-2">
             <h1 className="text-base font-bold text-slate-900 tracking-tight">Usuarios y Matriz de Permisos</h1>
             <span className="text-[10px] font-mono font-bold bg-rose-50 text-rose-800 border border-rose-200 px-1.5 py-0.5 rounded">
-              Seguridad Admin
+              Super-admin
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Administra credenciales de acceso y asignación de roles para el personal.
+            Asigna módulos por persona. Las plantillas solo rellenan los checkboxes.
           </p>
         </div>
 
@@ -422,7 +538,7 @@ function UsuariosContent() {
               <p className="text-rose-700 font-medium">{error || accionError}</p>
               {error && (
                 <button
-                  onClick={fetchUsuarios}
+                  onClick={() => fetchUsuarios()}
                   className="mt-1 text-xs font-bold text-rose-800 underline hover:text-rose-900"
                 >
                   Reintentar
@@ -434,57 +550,117 @@ function UsuariosContent() {
 
         <FormNuevoUsuario onCrear={handleCrear} />
 
-        <div className="md:hidden bg-white rounded-xl border border-slate-200 divide-y divide-slate-100 shadow-xs">
-          {loading ? (
-            <p className="px-4 py-6 text-center text-xs font-mono text-slate-500">Cargando usuarios...</p>
-          ) : usuarios.length === 0 ? (
-            <p className="px-4 py-6 text-center text-xs font-mono text-slate-500">Sin usuarios registrados.</p>
-          ) : (
-            usuarios.map((u) => (
-              <TarjetaUsuario
-                key={u.id}
-                usuario={u}
-                onCambiarRol={handleCambiarRol}
-                onCambiarActivo={handleCambiarActivo}
-                onResetearPassword={handleResetPassword}
-                onEliminar={handleEliminar}
-              />
-            ))
-          )}
-        </div>
-
-        <div className="hidden md:block bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-xs">
-          <table className="w-full text-xs text-left whitespace-nowrap">
-            <thead className="bg-slate-50 text-slate-600 font-mono text-[11px] uppercase tracking-wider border-b border-slate-200">
-              <tr>
-                <th className="px-3.5 py-2.5">Correo</th>
-                <th className="px-3.5 py-2.5">Rol Asignado</th>
-                <th className="px-3.5 py-2.5">Proveedor</th>
-                <th className="px-3.5 py-2.5">Estado</th>
-                <th className="px-3.5 py-2.5 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading ? (
-                <tr><td colSpan={5} className="px-4 py-6 text-center text-xs font-mono text-slate-500">Cargando usuarios...</td></tr>
-              ) : usuarios.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-6 text-center text-xs font-mono text-slate-500">Sin usuarios registrados.</td></tr>
-              ) : (
-                usuarios.map((u) => (
-                  <FilaUsuario
-                    key={u.id}
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+          <div className="md:hidden divide-y divide-slate-100">
+            {loading ? (
+              <p className="px-4 py-6 text-center text-xs font-mono text-slate-500">Cargando usuarios...</p>
+            ) : usuarios.length === 0 ? (
+              <p className="px-4 py-6 text-center text-xs font-mono text-slate-500">Sin usuarios registrados.</p>
+            ) : (
+              usuarios.map((u) => (
+                <div key={u.id} className="p-3.5 space-y-2 text-xs">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold text-slate-900 break-all">{u.email}</p>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {u.esSuperAdmin && (
+                        <span className="text-[9px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200 px-1 py-0.5 rounded">
+                          SA
+                        </span>
+                      )}
+                      {esMatrizPersonalizada(u.plantilla, u.modulos) && (
+                        <span className="text-[9px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1 py-0.5 rounded">
+                          CUSTOM
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-slate-500 font-mono text-[11px]">
+                    Plantilla: {u.plantilla} · {u.proveedor} · {u.modulos.length} módulos
+                  </p>
+                  <AccionesUsuario
                     usuario={u}
-                    onCambiarRol={handleCambiarRol}
+                    onEditar={() => setEditando(u)}
                     onCambiarActivo={handleCambiarActivo}
                     onResetearPassword={handleResetPassword}
                     onEliminar={handleEliminar}
                   />
-                ))
-              )}
-            </tbody>
-          </table>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-xs text-left whitespace-nowrap">
+              <thead className="bg-slate-50 text-slate-600 font-mono text-[11px] uppercase tracking-wider border-b border-slate-200">
+                <tr>
+                  <th className="px-3.5 py-2.5">Correo</th>
+                  <th className="px-3.5 py-2.5">Plantilla</th>
+                  <th className="px-3.5 py-2.5">Módulos</th>
+                  <th className="px-3.5 py-2.5">Proveedor</th>
+                  <th className="px-3.5 py-2.5 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-6 text-center text-xs font-mono text-slate-500">
+                      Cargando usuarios...
+                    </td>
+                  </tr>
+                ) : usuarios.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-6 text-center text-xs font-mono text-slate-500">
+                      Sin usuarios registrados.
+                    </td>
+                  </tr>
+                ) : (
+                  usuarios.map((u) => (
+                    <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50 text-xs">
+                      <td className="px-3.5 py-2.5 font-semibold text-slate-900">
+                        <div className="flex items-center gap-1.5">
+                          {u.email}
+                          {u.esSuperAdmin && (
+                            <span className="text-[9px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200 px-1 py-0.5 rounded">
+                              SA
+                            </span>
+                          )}
+                          {esMatrizPersonalizada(u.plantilla, u.modulos) && (
+                            <span className="text-[9px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1 py-0.5 rounded">
+                              CUSTOM
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3.5 py-2.5 font-mono">{u.plantilla}</td>
+                      <td className="px-3.5 py-2.5 text-slate-500 font-mono">{u.modulos.length}</td>
+                      <td className="px-3.5 py-2.5 text-slate-500 font-mono text-[11px]">{u.proveedor}</td>
+                      <td className="px-3.5 py-2.5">
+                        <div className="flex justify-end">
+                          <AccionesUsuario
+                            usuario={u}
+                            onEditar={() => setEditando(u)}
+                            onCambiarActivo={handleCambiarActivo}
+                            onResetearPassword={handleResetPassword}
+                            onEliminar={handleEliminar}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
+
+      {editando && (
+        <ModalEditarPermisos
+          usuario={editando}
+          onGuardar={handleGuardarPermisos}
+          onCerrar={() => setEditando(null)}
+        />
+      )}
     </main>
   )
 }

@@ -37,6 +37,7 @@ vi.mock("@/lib/firebase-admin", () => ({
     collection: vi.fn(() => ({
       doc: mockDoc,
       orderBy: mockOrderBy,
+      get: mockCollectionGet,
     })),
   },
 }))
@@ -68,7 +69,13 @@ describe("obtenerUsuarioAdmin", () => {
 
   it("devuelve rol admin para el correo break-glass sin consultar Firestore", async () => {
     const info = await obtenerUsuarioAdmin("uid-1", CORREO_ADMIN_BREAK_GLASS)
-    expect(info).toEqual({ rol: "admin", activo: true })
+    expect(info).toMatchObject({
+      rol: "admin",
+      plantilla: "admin",
+      esSuperAdmin: true,
+      activo: true,
+    })
+    expect(info?.modulos).toContain("finanzas")
     expect(mockGet).not.toHaveBeenCalled()
   })
 
@@ -84,7 +91,14 @@ describe("obtenerUsuarioAdmin", () => {
       data: () => ({ rol: "compras", activo: true }),
     })
     const info = await obtenerUsuarioAdmin("uid-3", "compras@ejemplo.com")
-    expect(info).toEqual({ rol: "compras", activo: true })
+    expect(info).toMatchObject({
+      rol: "compras",
+      plantilla: "compras",
+      activo: true,
+      esSuperAdmin: false,
+    })
+    expect(info?.modulos).toContain("nueva-compra")
+    expect(info?.modulos).toContain("reabastecimiento-rop")
   })
 
   it("devuelve activo:false si el documento tiene activo:false", async () => {
@@ -93,7 +107,7 @@ describe("obtenerUsuarioAdmin", () => {
       data: () => ({ rol: "compras", activo: false }),
     })
     const info = await obtenerUsuarioAdmin("uid-4", "compras@ejemplo.com")
-    expect(info).toEqual({ rol: "compras", activo: false })
+    expect(info).toMatchObject({ rol: "compras", activo: false })
   })
 
   it("devuelve null si el rol guardado no es válido", () => {
@@ -134,6 +148,8 @@ describe("crearUsuarioAdmin", () => {
       expect.objectContaining({
         email: "nuevo@ejemplo.com",
         rol: "compras",
+        plantilla: "compras",
+        esSuperAdmin: false,
         activo: true,
         proveedor: "password",
         creadoPor: "jemiliano2001@gmail.com",
@@ -141,6 +157,8 @@ describe("crearUsuarioAdmin", () => {
         actualizadoEn: expect.any(Date),
       })
     )
+    const payload = mockSet.mock.calls[0][0] as { modulos: string[] }
+    expect(payload.modulos).toContain("reabastecimiento-rop")
     expect(resultado.uid).toBe("uid-nuevo")
     expect(resultado.tempPassword).toHaveLength(16)
   })
@@ -175,14 +193,25 @@ describe("crearUsuarioAdmin", () => {
 describe("actualizarUsuarioAdmin", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockDoc.mockReturnValue({ update: mockUpdate })
+    mockDoc.mockReturnValue({ get: mockGet, update: mockUpdate, delete: mockDelete })
+    mockGet.mockResolvedValue({
+      exists: true,
+      data: () => ({ rol: "compras", plantilla: "compras", activo: true, esSuperAdmin: false }),
+    })
+    mockCollectionGet.mockResolvedValue({ docs: [] })
   })
 
-  it("actualiza el rol en Firestore sin tocar Auth ni claims", async () => {
+  it("actualiza la plantilla en Firestore sin tocar Auth ni claims", async () => {
     await actualizarUsuarioAdmin("uid-1", { rol: "diseno" })
     expect(mockUpdateUser).not.toHaveBeenCalled()
     expect(mockSetCustomUserClaims).not.toHaveBeenCalled()
-    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ rol: "diseno" }))
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        rol: "diseno",
+        plantilla: "diseno",
+        modulos: expect.arrayContaining(["cotizaciones"]),
+      })
+    )
   })
 
   it("al desactivar, deshabilita la cuenta en Auth, apaga el claim y activo:false en Firestore", async () => {
@@ -197,6 +226,24 @@ describe("actualizarUsuarioAdmin", () => {
     expect(mockUpdateUser).toHaveBeenCalledWith("uid-1", { disabled: false })
     expect(mockSetCustomUserClaims).toHaveBeenCalledWith("uid-1", { smvHubActivo: true })
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ activo: true }))
+  })
+
+  it("bloquea quitar el último super-admin activo", async () => {
+    mockGet.mockResolvedValue({
+      exists: true,
+      data: () => ({ rol: "admin", plantilla: "admin", activo: true, esSuperAdmin: true }),
+    })
+    mockCollectionGet.mockResolvedValue({
+      docs: [
+        {
+          id: "uid-1",
+          data: () => ({ rol: "admin", activo: true, esSuperAdmin: true }),
+        },
+      ],
+    })
+    await expect(actualizarUsuarioAdmin("uid-1", { esSuperAdmin: false })).rejects.toThrow(
+      /último super-admin/
+    )
   })
 })
 
@@ -222,7 +269,12 @@ describe("resetearPasswordAdmin", () => {
 describe("eliminarUsuarioAdmin", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockDoc.mockReturnValue({ delete: mockDelete })
+    mockDoc.mockReturnValue({ get: mockGet, delete: mockDelete })
+    mockGet.mockResolvedValue({
+      exists: true,
+      data: () => ({ rol: "compras", activo: true, esSuperAdmin: false }),
+    })
+    mockCollectionGet.mockResolvedValue({ docs: [] })
   })
 
   it("elimina la cuenta de Auth y el documento de Firestore", async () => {
@@ -271,7 +323,14 @@ describe("listarUsuariosAdmin", () => {
 
     const usuarios = await listarUsuariosAdmin()
     expect(usuarios).toHaveLength(1)
-    expect(usuarios[0]).toMatchObject({ id: "uid-1", email: "compras@ejemplo.com", rol: "compras" })
+    expect(usuarios[0]).toMatchObject({
+      id: "uid-1",
+      email: "compras@ejemplo.com",
+      rol: "compras",
+      plantilla: "compras",
+      esSuperAdmin: false,
+    })
+    expect(usuarios[0].modulos).toContain("nueva-compra")
     expect(usuarios[0].creadoEn).toEqual(ahora)
     expect(usuarios[0].actualizadoEn).toEqual(ahora)
   })

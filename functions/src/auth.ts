@@ -7,6 +7,10 @@ import { getDb } from './firestore-db';
  */
 const CORREO_ADMIN_BREAK_GLASS = 'jemiliano2001@gmail.com';
 
+export function esCorreoBreakGlass(email: string): boolean {
+  return email === CORREO_ADMIN_BREAK_GLASS;
+}
+
 /** Verifica App Check en callables. Activar enforcement en Firebase Console → App Check. */
 export function assertAppCheckCallable(context: functions.https.CallableContext): void {
   const enforce = process.env.APP_CHECK_ENFORCE !== 'false';
@@ -19,7 +23,7 @@ export function assertAppCheckCallable(context: functions.https.CallableContext)
 }
 
 async function usuarioActivo(uid: string, email: string): Promise<boolean> {
-  if (email === CORREO_ADMIN_BREAK_GLASS) return true;
+  if (esCorreoBreakGlass(email)) return true;
   // Usuarios viven en la base nombrada `compras-americanas`, no en "(default)".
   const snap = await getDb().collection('usuarios').doc(uid).get();
   return snap.exists && snap.data()?.activo === true;

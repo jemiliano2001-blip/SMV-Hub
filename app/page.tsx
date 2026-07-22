@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import LogoSMV from '@/app/LogoSMV'
 import PedidoAlmacenBadge from '@/app/pedidos-almacen/PedidoAlmacenBadge'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
-import { useRol } from '@/lib/hooks/useRol'
+import { usePermisos } from '@/lib/hooks/useRol'
 import { tienePermiso } from '@/lib/roles'
 import type { Rol } from '@/lib/schemas'
 import Link from 'next/link'
@@ -13,6 +13,7 @@ import {
   Archive,
   ArrowRight,
   BarChart3,
+  Building2,
   ClipboardCheck,
   ClipboardList,
   Clock,
@@ -28,7 +29,6 @@ import {
   ShoppingCart,
   Timer,
   TrendingUp,
-  Upload,
   UserCog,
   Users,
   Wallet,
@@ -78,14 +78,6 @@ const NAV_CARDS: readonly TarjetaNavegacion[] = [
     tags: ['ordenes', 'historial', 'compras', 'proveedores'],
   },
   {
-    href: '/importar',
-    icon: Upload,
-    label: 'Importar masivo',
-    desc: 'Carga masiva de comprobantes mediante formato CSV.',
-    grupo: 'compras',
-    tags: ['importar', 'csv', 'excel', 'masivo'],
-  },
-  {
     href: '/cotizaciones',
     icon: FileSearch,
     label: 'Cotizaciones',
@@ -100,6 +92,14 @@ const NAV_CARDS: readonly TarjetaNavegacion[] = [
     desc: 'Catálogo y buscador de claves de productos del SAT.',
     grupo: 'compras',
     tags: ['sat', 'cfdi', 'claves', 'impuestos'],
+  },
+  {
+    href: '/proveedores',
+    icon: Building2,
+    label: 'Proveedores (USA Tooling)',
+    desc: 'Catálogo de proveedores de endmills, insertos y herramental económico.',
+    grupo: 'compras',
+    tags: ['proveedores', 'usa', 'endmills', 'insertos', 'tooling', 'barato', 'compras'],
   },
   {
     href: '/reportes',
@@ -316,7 +316,7 @@ const NOMBRE_ROL: Record<Rol, string> = {
 export default function Home() {
   const { usuario, cargando: cargandoUsuario } = useUsuario()
   const bypassActivo = authBypassActivo()
-  const { rol, cargando: cargandoRol } = useRol(bypassActivo ? null : usuario)
+  const { plantilla: rol, modulos, esSuperAdmin, cargando: cargandoRol } = usePermisos(bypassActivo ? null : usuario)
   const cargando = cargandoUsuario || cargandoRol
 
   const [busqueda, setBusqueda] = useState('')
@@ -340,12 +340,14 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  // Filtrado estrictamente por permisos según rol de usuario
+  // Filtrado estrictamente por permisos según módulos del usuario
   const tarjetasVisibles = useMemo(() => {
-    return NAV_CARDS.filter(
-      (tarjeta) => bypassActivo || tienePermiso(rol, tarjeta.href)
-    )
-  }, [rol, bypassActivo])
+    return NAV_CARDS.filter((tarjeta) => {
+      if (bypassActivo) return true
+      if (tarjeta.href === '/usuarios') return esSuperAdmin
+      return tienePermiso(modulos, tarjeta.href)
+    })
+  }, [modulos, esSuperAdmin, bypassActivo])
 
   // Filtrado dinámico por texto en tiempo real
   const tarjetasFiltradas = useMemo(() => {

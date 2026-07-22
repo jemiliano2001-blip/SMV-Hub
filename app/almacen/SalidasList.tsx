@@ -3,6 +3,7 @@ import { useSalidas } from '@/lib/hooks/useAlmacen'
 import { useOperadores } from '@/lib/hooks/useOperadores'
 import { Plus, Trash2, Search } from 'lucide-react'
 import type { SalidaAlmacen } from '@/lib/schemas'
+import { fechaHoyLocal } from '@/lib/format'
 
 type SalidaCardProps = {
   s: SalidaAlmacen
@@ -43,7 +44,7 @@ export default function SalidasList() {
   const [agregando, setAgregando] = useState(false)
 
   // Form state
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = fechaHoyLocal()
   const [fecha, setFecha] = useState(hoy)
   const [herramienta, setHerramienta] = useState('')
   const [cantidad, setCantidad] = useState(1)

@@ -1,9 +1,8 @@
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · tone: utilitario · scope: finanzas */
-'use client'
+"use client"
 
 import AuthGuard from "@/app/AuthGuard"
-import { useMemo, useState } from "react"
-import { Loader2, AlertCircle, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Loader2, AlertCircle, AlertTriangle, TrendingUp, TrendingDown, DollarSign, Wallet, RefreshCw } from "lucide-react"
 import { useFinanzasFacturas } from "@/lib/hooks/useFinanzasFacturas"
 import {
   monedasPresentes,
@@ -19,12 +18,25 @@ import {
   mesAnteriorStr,
   type DeltaKpi,
 } from "@/lib/finanzas"
+import { listarFacturasProveedor, type FacturaProveedor } from "@/lib/finanzas-ap"
+import { calcularFlujoCaja } from "@/lib/flujo-caja"
+import { conciliarComprasConOdoo } from "@/lib/conciliaciones-odoo"
+import { TablaCuentasPorPagar } from "@/components/finanzas/TablaCuentasPorPagar"
+import { GraficaFlujoCaja } from "@/components/finanzas/GraficaFlujoCaja"
+import { TablaConciliacionOdoo } from "@/components/finanzas/TablaConciliacionOdoo"
+import type { OrdenCompra } from "@/lib/schemas"
+import { collection, getDocs, query, orderBy } from "firebase/firestore"
+import { db } from "@/lib/firebase"
+import { makeDateConverter } from "@/lib/firestore-helpers"
 import { detectarAnomaliasFinancieras, type AnomaliaFinanciera } from "@/lib/finanzas-anomalias"
 import { formatPrecio } from "@/lib/format"
+import { Badge } from "@/components/ui/badge"
 import FinanzasNav from "@/app/finanzas/FinanzasNav"
 import BannerSync from "@/app/finanzas/BannerSync"
 import SelectorMes from "@/app/finanzas/SelectorMes"
 import GraficaTendencia from "@/app/finanzas/GraficaTendencia"
+
+type TabFinanzas = "ar" | "ap" | "flujo" | "conciliacion"
 
 function DeltaBadge({ delta }: { delta: DeltaKpi }) {
   if (delta.porcentaje === null) {
@@ -33,15 +45,18 @@ function DeltaBadge({ delta }: { delta: DeltaKpi }) {
   const positivo = delta.porcentaje >= 0
   const Icono = positivo ? TrendingUp : TrendingDown
   return (
-    <span
-      className={`inline-flex items-center gap-1 text-xs font-mono font-medium ${
-        positivo ? "text-emerald-600" : "text-rose-600"
+    <Badge
+      variant="outline"
+      className={`inline-flex items-center gap-1 text-[10px] font-mono font-bold ${
+        positivo
+          ? "bg-emerald-50 text-emerald-900 border-emerald-300"
+          : "bg-rose-50 text-rose-900 border-rose-300"
       }`}
     >
       <Icono className="h-3 w-3" />
       {positivo ? "+" : ""}
       {delta.porcentaje.toFixed(1)}% vs. mes anterior
-    </span>
+    </Badge>
   )
 }
 
@@ -57,11 +72,11 @@ function KpiCard({
   delta?: DeltaKpi
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs hover:shadow-xs transition-all space-y-1">
       <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">{titulo}</p>
-      <p className="text-lg sm:text-xl font-bold font-mono text-slate-900 tabular-nums leading-tight break-words">{valor}</p>
-      {delta && <div className="mt-1"><DeltaBadge delta={delta} /></div>}
-      {subtitulo && <p className="text-[11px] text-slate-400 mt-1">{subtitulo}</p>}
+      <p className="text-xl sm:text-2xl font-black font-mono text-slate-900 tabular-nums leading-tight break-words">{valor}</p>
+      {delta && <div className="pt-1"><DeltaBadge delta={delta} /></div>}
+      {subtitulo && <p className="text-[11px] text-slate-400 font-medium">{subtitulo}</p>}
     </div>
   )
 }
@@ -116,9 +131,35 @@ function AlertasFinancieras({ alertas }: { alertas: AnomaliaFinanciera[] }) {
   )
 }
 
+const ordenCompraConverter = makeDateConverter<OrdenCompra>()
+
 function ResumenFinanzas() {
   const { facturas, estadoSync, loading, error, recargar } = useFinanzasFacturas()
+  const [tabActiva, setTabActiva] = useState<TabFinanzas>("ar")
   const [monedaActiva, setMonedaActiva] = useState<string | null>(null)
+
+  const [facturasAP, setFacturasAP] = useState<FacturaProveedor[]>([])
+  const [ordenesLocales, setOrdenesLocales] = useState<OrdenCompra[]>([])
+  const [cargandoAP, setCargandoAP] = useState(true)
+
+  useEffect(() => {
+    async function cargarAPyOrdenes() {
+      try {
+        const apDocs = await listarFacturasProveedor()
+        setFacturasAP(apDocs)
+
+        const ordenesSnap = await getDocs(
+          query(collection(db, "ordenes").withConverter(ordenCompraConverter), orderBy("creadoEn", "desc"))
+        )
+        setOrdenesLocales(ordenesSnap.docs.map((d) => d.data()))
+      } catch (e) {
+        console.error("Error cargando AP u órdenes:", e)
+      } finally {
+        setCargandoAP(false)
+      }
+    }
+    cargarAPyOrdenes()
+  }, [])
 
   const monedas = useMemo(() => monedasPresentes(facturas), [facturas])
   const moneda = monedaActiva ?? monedas[0] ?? "MXN"
@@ -154,6 +195,16 @@ function ResumenFinanzas() {
     [facturasMoneda, desdeAnio, hastaAnio]
   )
 
+  const resumenFlujo = useMemo(
+    () => calcularFlujoCaja(facturas, facturasAP, moneda),
+    [facturas, facturasAP, moneda]
+  )
+
+  const resumenConciliacion = useMemo(
+    () => conciliarComprasConOdoo(ordenesLocales, facturasAP),
+    [ordenesLocales, facturasAP]
+  )
+
   if (loading && facturas.length === 0) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -177,6 +228,7 @@ function ResumenFinanzas() {
 
   return (
     <div className="space-y-4">
+      {/* Banner & Selector de Moneda */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <BannerSync estadoSync={estadoSync} onSincronizado={recargar} />
         {monedas.length > 1 && (
@@ -196,56 +248,166 @@ function ResumenFinanzas() {
         )}
       </div>
 
-      <div>
-        <div className="flex items-center justify-between mb-2.5">
-          <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700">Facturación del mes</h2>
-          <SelectorMes value={mesSeleccionado} onChange={setMesSeleccionado} />
+      {/* Tabs Principales de Finanzas 360° */}
+      <div className="flex gap-2 border-b border-slate-200 pb-2">
+        <button
+          onClick={() => setTabActiva("ar")}
+          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
+            tabActiva === "ar"
+              ? "bg-[#0369A1] text-white shadow-xs"
+              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+          }`}
+        >
+          <DollarSign className="w-4 h-4" />
+          Cuentas por Cobrar (AR)
+        </button>
+
+        <button
+          onClick={() => setTabActiva("ap")}
+          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
+            tabActiva === "ap"
+              ? "bg-[#0369A1] text-white shadow-xs"
+              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+          }`}
+        >
+          <Wallet className="w-4 h-4" />
+          Cuentas por Pagar (AP)
+        </button>
+
+        <button
+          onClick={() => setTabActiva("flujo")}
+          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
+            tabActiva === "flujo"
+              ? "bg-[#0369A1] text-white shadow-xs"
+              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+          }`}
+        >
+          <TrendingUp className="w-4 h-4" />
+          Flujo de Caja Proyectado
+        </button>
+
+        <button
+          onClick={() => setTabActiva("conciliacion")}
+          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
+            tabActiva === "conciliacion"
+              ? "bg-[#0369A1] text-white shadow-xs"
+              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+          }`}
+        >
+          <RefreshCw className="w-4 h-4" />
+          Conciliación Compras
+        </button>
+      </div>
+
+      {/* Contenido según la pestaña activa */}
+      {tabActiva === "ar" && (
+        <div className="space-y-4">
+          <div>
+            <div className="flex items-center justify-between mb-2.5">
+              <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700">Facturación del mes</h2>
+              <SelectorMes value={mesSeleccionado} onChange={setMesSeleccionado} />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <KpiCard titulo="Facturación" valor={formatPrecio(kpisMes.facturacionTotal, moneda)} subtitulo="Neto de notas de crédito" delta={deltasMes.facturacionTotal} />
+              <KpiCard titulo="Subtotal" valor={formatPrecio(kpisMes.subtotal, moneda)} delta={deltasMes.subtotal} />
+              <KpiCard titulo="IVA" valor={formatPrecio(kpisMes.impuestos, moneda)} delta={deltasMes.impuestos} />
+              <KpiCard titulo="Facturas" valor={String(kpisMes.numFacturas)} subtitulo={`${kpisMes.numNotasCredito} notas de crédito`} delta={deltasMes.numFacturas} />
+            </div>
+          </div>
+
+          <AlertasFinancieras alertas={alertas} />
+
+          <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5">
+            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-3">
+              Tendencia de facturación — últimos 12 meses ({moneda})
+            </h2>
+            <GraficaTendencia serie={serie12Meses} moneda={moneda} />
+          </div>
+
+          <div>
+            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-2.5">Acumulado del año</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <KpiCard titulo="Facturación" valor={formatPrecio(kpisAnio.facturacionTotal, moneda)} subtitulo="Neto de notas de crédito" />
+              <KpiCard titulo="Subtotal" valor={formatPrecio(kpisAnio.subtotal, moneda)} />
+              <KpiCard titulo="IVA" valor={formatPrecio(kpisAnio.impuestos, moneda)} />
+              <KpiCard titulo="Clientes" valor={String(kpisAnio.numClientes)} />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5">
+            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-3">Top clientes del año</h2>
+            {topClientes.length === 0 ? (
+              <p className="text-xs text-slate-500 py-4 text-center font-mono">Sin facturación registrada este año.</p>
+            ) : (
+              <table className="w-full text-xs">
+                <tbody>
+                  {topClientes.map((g) => (
+                    <tr key={g.cliente} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                      <td className="py-2 pr-3 font-semibold text-slate-800">{g.cliente}</td>
+                      <td className="py-2 pr-3 text-right font-mono font-bold text-slate-900 tabular-nums">{formatPrecio(g.total, moneda)}</td>
+                      <td className="py-2 text-right font-mono text-slate-500 w-20 tabular-nums">{g.pctDelTotal.toFixed(1)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <KpiCard titulo="Facturación" valor={formatPrecio(kpisMes.facturacionTotal, moneda)} subtitulo="Neto de notas de crédito" delta={deltasMes.facturacionTotal} />
-          <KpiCard titulo="Subtotal" valor={formatPrecio(kpisMes.subtotal, moneda)} delta={deltasMes.subtotal} />
-          <KpiCard titulo="IVA" valor={formatPrecio(kpisMes.impuestos, moneda)} delta={deltasMes.impuestos} />
-          <KpiCard titulo="Facturas" valor={String(kpisMes.numFacturas)} subtitulo={`${kpisMes.numNotasCredito} notas de crédito`} delta={deltasMes.numFacturas} />
+      )}
+
+      {tabActiva === "ap" && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5">
+            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-3">
+              Cuentas por Pagar a Proveedores (AP - Odoo)
+            </h2>
+            {cargandoAP ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-5 w-5 animate-spin text-[#0369A1] mr-2" />
+                <span className="text-xs font-mono text-slate-600">Cargando facturas de proveedor…</span>
+              </div>
+            ) : (
+              <TablaCuentasPorPagar facturas={facturasAP} />
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      <AlertasFinancieras alertas={alertas} />
-
-      <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5">
-        <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-3">
-          Tendencia de facturación — últimos 12 meses ({moneda})
-        </h2>
-        <GraficaTendencia serie={serie12Meses} moneda={moneda} />
-      </div>
-
-      <div>
-        <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-2.5">Acumulado del año</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <KpiCard titulo="Facturación" valor={formatPrecio(kpisAnio.facturacionTotal, moneda)} subtitulo="Neto de notas de crédito" />
-          <KpiCard titulo="Subtotal" valor={formatPrecio(kpisAnio.subtotal, moneda)} />
-          <KpiCard titulo="IVA" valor={formatPrecio(kpisAnio.impuestos, moneda)} />
-          <KpiCard titulo="Clientes" valor={String(kpisAnio.numClientes)} />
+      {tabActiva === "flujo" && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5">
+            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-3">
+              Proyección de Flujo de Caja (AR vs AP)
+            </h2>
+            {cargandoAP ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-5 w-5 animate-spin text-[#0369A1] mr-2" />
+                <span className="text-xs font-mono text-slate-600">Calculando proyección de liquidez…</span>
+              </div>
+            ) : (
+              <GraficaFlujoCaja resumen={resumenFlujo} moneda={moneda} />
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5">
-        <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-3">Top clientes del año</h2>
-        {topClientes.length === 0 ? (
-          <p className="text-xs text-slate-500 py-4 text-center font-mono">Sin facturación registrada este año.</p>
-        ) : (
-          <table className="w-full text-xs">
-            <tbody>
-              {topClientes.map((g) => (
-                <tr key={g.cliente} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                  <td className="py-2 pr-3 font-semibold text-slate-800">{g.cliente}</td>
-                  <td className="py-2 pr-3 text-right font-mono font-bold text-slate-900 tabular-nums">{formatPrecio(g.total, moneda)}</td>
-                  <td className="py-2 text-right font-mono text-slate-500 w-20 tabular-nums">{g.pctDelTotal.toFixed(1)}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {tabActiva === "conciliacion" && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5">
+            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-3">
+              Conciliación Automática: Compras SMV Hub vs Odoo
+            </h2>
+            {cargandoAP ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-5 w-5 animate-spin text-[#0369A1] mr-2" />
+                <span className="text-xs font-mono text-slate-600">Analizando discrepancias y emparejamiento…</span>
+              </div>
+            ) : (
+              <TablaConciliacionOdoo resumen={resumenConciliacion} />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -258,13 +420,13 @@ export default function FinanzasPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-base font-bold text-slate-900 tracking-tight">Finanzas y Cobranza</h1>
+                <h1 className="text-base font-bold text-slate-900 tracking-tight">Finanzas y Cobranza 360°</h1>
                 <span className="text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded">
                   Odoo Mirror
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Métricas de facturación de clientes y estado de cuentas por cobrar.
+                Cuentas por cobrar (AR), Cuentas por pagar (AP), Flujo de caja y Conciliación de compras.
               </p>
             </div>
             <FinanzasNav />

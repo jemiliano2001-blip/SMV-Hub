@@ -196,6 +196,7 @@ export function mapearFilaCotizacion(
       proveedor,
       descripcion,
       numeroParte: get("numeroParte") || null,
+      llavePieza: null as string | null, // se genera en crearCotizacionesLote
       cantidad,
       precioUnitario,
       moneda,

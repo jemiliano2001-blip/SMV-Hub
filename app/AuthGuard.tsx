@@ -3,18 +3,20 @@
 import { useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { authBypassActivo, useUsuario } from "@/lib/auth"
-import { useRol } from "@/lib/hooks/useRol"
+import { usePermisos } from "@/lib/hooks/useRol"
 import { tienePermiso } from "@/lib/roles"
 
 // Protege rutas: solo renderiza children cuando hay usuario autenticado y con
-// rol válido. Mientras carga muestra un placeholder; si no hay sesión o rol,
-// redirige a /login o /.
+// módulos válidos. Mientras carga muestra un placeholder; si no hay sesión o
+// permiso, redirige a /login o /.
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { usuario, cargando: cargandoAuth } = useUsuario()
-  const { rol, cargando: cargandoRol } = useRol(authBypassActivo() ? null : usuario)
+  const { modulos, esSuperAdmin, cargando: cargandoPermisos } = usePermisos(
+    authBypassActivo() ? null : usuario
+  )
   const router = useRouter()
   const pathname = usePathname()
-  const cargando = cargandoAuth || cargandoRol
+  const cargando = cargandoAuth || cargandoPermisos
 
   useEffect(() => {
     if (!cargando) {
@@ -23,11 +25,22 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         return
       }
 
-      if (!tienePermiso(rol, pathname)) {
+      // En bypass de auth (dev) no aplicamos la matriz de módulos.
+      if (authBypassActivo()) return
+
+      // /usuarios solo super-admin (además del módulo en la matriz)
+      if (pathname === "/usuarios" || pathname.startsWith("/usuarios/")) {
+        if (!esSuperAdmin) {
+          router.replace("/")
+          return
+        }
+      }
+
+      if (!tienePermiso(modulos, pathname)) {
         router.replace("/")
       }
     }
-  }, [cargando, usuario, rol, router, pathname])
+  }, [cargando, usuario, modulos, esSuperAdmin, router, pathname])
 
   if (cargando || !usuario) {
     return (
