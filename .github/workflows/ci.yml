@@ -18,6 +18,9 @@ on:
           - full
           - rules-only
 
+permissions:
+  contents: read
+
 jobs:
   build_and_test:
     name: Build, Lint & Test
@@ -172,12 +175,16 @@ jobs:
 
       - name: Deploy to Firebase (hosting, functions, rules, storage)
         if: steps.firebase_credentials.outputs.available == 'true'
-        uses: w9jds/firebase-action@master
-        with:
-          args: deploy --only hosting,functions:autoPurchase,functions:recommendProvider,functions:exportToGoogleSheets,functions:importFromGoogleSheets,functions:exportToExcel,functions:syncOdooFacturasScheduled,functions:syncOdooFacturasManual,functions:syncOdooComprasScheduled,functions:syncOdooComprasManual,firestore:rules,storage
+        shell: bash
         env:
-          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
-          PROJECT_ID: smv-brain
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        run: |
+          credentials_path="$RUNNER_TEMP/firebase-key.json"
+          trap 'rm -f "$credentials_path"' EXIT
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_KEY" > "$credentials_path"
+          chmod 600 "$credentials_path"
+          export GOOGLE_APPLICATION_CREDENTIALS="$credentials_path"
+          npx --yes firebase-tools@15.24.0 deploy --project smv-brain --only hosting,functions:syncOdooFacturasScheduled,functions:syncOdooFacturasManual,functions:syncOdooComprasScheduled,functions:syncOdooComprasManual,firestore:rules,storage
 
       - name: Restore Next.js bin
         if: always() && steps.firebase_credentials.outputs.available == 'true'
@@ -207,9 +214,13 @@ jobs:
 
       - name: Deploy Firestore and Storage rules
         if: steps.firebase_credentials.outputs.available == 'true'
-        uses: w9jds/firebase-action@master
-        with:
-          args: deploy --only firestore:rules,storage
+        shell: bash
         env:
-          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
-          PROJECT_ID: smv-brain
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        run: |
+          credentials_path="$RUNNER_TEMP/firebase-key.json"
+          trap 'rm -f "$credentials_path"' EXIT
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_KEY" > "$credentials_path"
+          chmod 600 "$credentials_path"
+          export GOOGLE_APPLICATION_CREDENTIALS="$credentials_path"
+          npx --yes firebase-tools@15.24.0 deploy --project smv-brain --only firestore:rules,storage
