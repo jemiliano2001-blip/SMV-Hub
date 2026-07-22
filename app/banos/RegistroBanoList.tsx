@@ -251,8 +251,8 @@ export default function RegistroBanoList() {
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
             En el baño ({enCurso.length})
           </h3>
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <table className="w-full text-sm text-left">
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+            <table className="min-w-[560px] w-full text-left text-xs">
               <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-2">Operador</th>
@@ -304,8 +304,8 @@ export default function RegistroBanoList() {
             <span className="w-2 h-2 rounded-full bg-gray-300"></span>
             Completados hoy ({terminados.length})
           </h3>
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <table className="w-full text-sm text-left">
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+            <table className="min-w-[560px] w-full text-left text-xs">
               <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-2">Operador</th>

@@ -48,11 +48,11 @@ export default function CabeceraReporte({
 
   return (
     <>
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 print:mb-3 print:pb-3 print:border-0 print:bg-[#111111] print:text-white">
-        <div className="flex items-center gap-4">
+      <div className="mb-4 flex flex-col gap-3 border-b border-slate-200 pb-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between print:mb-3 print:pb-3 print:border-0 print:bg-[#111111] print:text-white">
+        <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-xl font-bold text-gray-900 print:hidden">{titulo}</h1>
-            <p className="text-sm text-gray-500 print:hidden">{subtitulo}</p>
+            <h1 className="text-base font-bold text-slate-900 print:hidden">{titulo}</h1>
+            <p className="text-xs text-slate-500 print:hidden">{subtitulo}</p>
             <div className="hidden print:block">
               <p className="text-[11px] font-bold uppercase tracking-widest">SMV Maquinados</p>
               <p className="text-[8px] text-gray-400 mt-0.5 tracking-wide">S.A. de C.V.</p>
@@ -70,25 +70,25 @@ export default function CabeceraReporte({
           <p>Generado el {generadoEl}</p>
         </div>
 
-        <div className="no-print flex items-center gap-4">
+        <div className="no-print flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
           <Image
             src="/smv-logo.png"
             alt="SMV"
             width={92}
             height={32}
-            className="object-contain"
+            className="mr-auto hidden object-contain sm:block"
             priority
           />
           <button
             onClick={() => setModalAbierto(true)}
-            className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            className="flex min-h-9 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 sm:flex-none"
           >
             <Mail className="h-4 w-4" />
             Enviar
           </button>
           <button
             onClick={handleImprimir}
-            className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            className="flex min-h-9 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 sm:flex-none"
           >
             ⬇ Guardar PDF
           </button>

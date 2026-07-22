@@ -37,15 +37,15 @@ export default function FiltrosReporte({
   onMoneda,
   ocultarAgrupar,
 }: Props) {
-  const btnBase = "px-3 py-1.5 text-sm rounded-md font-medium transition-colors"
-  const btnActive = "bg-blue-600 text-white"
-  const btnInactive = "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-  const inputCls = "rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+  const btnBase = "shrink-0 rounded-md px-3 py-1.5 text-xs font-bold transition-colors"
+  const btnActive = "bg-[#0369A1] text-white"
+  const btnInactive = "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+  const inputCls = "min-w-0 rounded-md border border-slate-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#0369A1]"
 
   return (
-    <div className="flex flex-wrap gap-3 items-end mb-6 no-print">
+    <div className="no-print mb-4 flex flex-wrap items-end gap-3 sm:mb-6">
       {/* Presets de periodo */}
-      <div className="flex gap-2">
+      <div className="flex w-full gap-2 overflow-x-auto sm:w-auto">
         <button
           className={`${btnBase} ${presetTipo === "semana" ? btnActive : btnInactive}`}
           onClick={() => onPreset("semana")}
@@ -61,17 +61,19 @@ export default function FiltrosReporte({
       </div>
 
       {/* Rango personalizado */}
-      <div className="flex gap-2 items-center">
+      <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
         <input
           type="date"
-          className={inputCls}
+          aria-label="Fecha inicial"
+          className={`${inputCls} flex-1 sm:flex-none`}
           value={toInputDate(desde)}
           onChange={(e) => onDesde(new Date(e.target.value + "T00:00:00"))}
         />
-        <span className="text-gray-400 text-sm">—</span>
+        <span className="text-xs text-slate-400">—</span>
         <input
           type="date"
-          className={inputCls}
+          aria-label="Fecha final"
+          className={`${inputCls} flex-1 sm:flex-none`}
           value={toInputDate(hasta)}
           onChange={(e) => onHasta(new Date(e.target.value + "T23:59:59"))}
         />

@@ -1286,11 +1286,11 @@ function ProveedoresContent() {
         />
 
         {/* Navegación por Pestañas Principales */}
-        <div className="flex items-center gap-1.5 border border-slate-200 bg-white p-1.5 rounded-xl shadow-2xs text-xs font-bold">
+        <div className="flex items-center gap-1.5 overflow-x-auto border border-slate-200 bg-white p-1.5 rounded-xl shadow-2xs text-xs font-bold">
           <button
             type="button"
             onClick={() => setSeccion('proveedores')}
-            className={`px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all ${
+            className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5 transition-all ${
               seccion === 'proveedores'
                 ? 'bg-[#0369A1] text-white shadow-xs font-extrabold'
                 : 'text-slate-600 hover:bg-slate-50'
@@ -1302,7 +1302,7 @@ function ProveedoresContent() {
           <button
             type="button"
             onClick={() => setSeccion('comparar')}
-            className={`px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all ${
+            className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5 transition-all ${
               seccion === 'comparar'
                 ? 'bg-[#0369A1] text-white shadow-xs font-extrabold'
                 : 'text-slate-600 hover:bg-slate-50'
@@ -1314,7 +1314,7 @@ function ProveedoresContent() {
           <button
             type="button"
             onClick={() => setSeccion('inteligencia')}
-            className={`px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all ${
+            className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5 transition-all ${
               seccion === 'inteligencia'
                 ? 'bg-[#0369A1] text-white shadow-xs font-extrabold'
                 : 'text-slate-600 hover:bg-slate-50'
