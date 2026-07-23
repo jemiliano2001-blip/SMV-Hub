@@ -29,8 +29,10 @@ function obtenerAdminApp(): App {
   return initializeApp({
     projectId:
       process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+      process.env.FIREBASE_PROJECT_ID ||
       process.env.GCLOUD_PROJECT ||
-      process.env.GCP_PROJECT,
+      process.env.GCP_PROJECT ||
+      "smv-brain-dev",
   })
 }
 

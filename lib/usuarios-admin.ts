@@ -49,19 +49,28 @@ export async function obtenerUsuarioAdmin(
     }
   }
 
-  const snap = await adminDb.collection(COLECCION).doc(uid).get()
-  if (!snap.exists) return null
+  try {
+    const snap = await adminDb.collection(COLECCION).doc(uid).get()
+    if (!snap.exists) return null
 
-  const data = snap.data() ?? {}
-  const plantilla = plantillaDesdeUsuarioLegacy(data)
-  if (!plantilla) return null
+    const data = snap.data() ?? {}
+    const plantilla = plantillaDesdeUsuarioLegacy(data)
+    if (!plantilla) return null
 
-  return {
-    rol: plantilla,
-    plantilla,
-    modulos: modulosDesdeUsuarioLegacy(data),
-    esSuperAdmin: esSuperAdminDesdeUsuarioLegacy(data),
-    activo: data.activo === true,
+    return {
+      rol: plantilla,
+      plantilla,
+      modulos: modulosDesdeUsuarioLegacy(data),
+      esSuperAdmin: esSuperAdminDesdeUsuarioLegacy(data),
+      activo: data.activo === true,
+    }
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (msg.includes("Could not load the default credentials") || msg.includes("Unable to detect a Project Id")) {
+      console.warn("[usuarios-admin] Firebase Admin SDK sin credenciales GCP en entorno local.")
+      return null
+    }
+    throw error
   }
 }
 
@@ -300,13 +309,39 @@ function mapearDocUsuario(id: string, data: DocUsuarioFirestore): Usuario | null
 
 /** Lista los usuarios administrados. Docs sin plantilla/rol válido se omiten. */
 export async function listarUsuariosAdmin(): Promise<Usuario[]> {
-  const snap = await adminDb.collection(COLECCION).orderBy("email", "asc").get()
-  const usuarios: Usuario[] = []
+  try {
+    const snap = await adminDb.collection(COLECCION).orderBy("email", "asc").get()
+    const usuarios: Usuario[] = []
 
-  for (const d of snap.docs) {
-    const u = mapearDocUsuario(d.id, d.data() as DocUsuarioFirestore)
-    if (u) usuarios.push(u)
+    for (const d of snap.docs) {
+      const u = mapearDocUsuario(d.id, d.data() as DocUsuarioFirestore)
+      if (u) usuarios.push(u)
+    }
+
+    return usuarios
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (
+      msg.includes("Could not load the default credentials") ||
+      msg.includes("Unable to detect a Project Id")
+    ) {
+      console.warn("[usuarios-admin] Firebase Admin SDK sin credenciales GCP en entorno local. Devolviendo usuario super-admin por defecto.")
+      return [
+        {
+          id: "break-glass-super-admin",
+          email: CORREO_ADMIN_BREAK_GLASS,
+          rol: "admin",
+          plantilla: "admin",
+          modulos: modulosDePlantilla("admin"),
+          esSuperAdmin: true,
+          activo: true,
+          proveedor: "google",
+          creadoPor: "sistema",
+          creadoEn: new Date(),
+          actualizadoEn: new Date(),
+        },
+      ]
+    }
+    throw error
   }
-
-  return usuarios
 }
