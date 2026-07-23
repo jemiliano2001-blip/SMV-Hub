@@ -11,6 +11,7 @@ import {
   esMatrizPersonalizada,
   modulosDePlantilla,
 } from '@/lib/roles'
+import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 
 const PLANTILLAS: Rol[] = ['admin', 'compras', 'diseno', 'almacen']
 
@@ -358,6 +359,7 @@ function AccionesUsuario({
   onResetearPassword: (uid: string, password?: string) => Promise<void>
   onEliminar: (uid: string) => Promise<void>
 }) {
+  const confirmar = useConfirmDialog()
   const [mostrarReset, setMostrarReset] = useState(false)
   const [nuevaPassword, setNuevaPassword] = useState('')
   const [errorReset, setErrorReset] = useState<string | null>(null)
@@ -373,10 +375,14 @@ function AccionesUsuario({
     setErrorReset(null)
   }
 
-  function handleEliminar() {
-    if (window.confirm(`¿Eliminar a ${usuario.email}? Esto borra su acceso permanentemente.`)) {
-      onEliminar(usuario.id)
-    }
+  async function handleEliminar() {
+    const aceptado = await confirmar({
+      title: 'Eliminar acceso de usuario',
+      description: `Se eliminará a ${usuario.email} y perderá su acceso permanentemente.`,
+      confirmLabel: 'Eliminar acceso',
+      variant: 'destructive',
+    })
+    if (aceptado) await onEliminar(usuario.id)
   }
 
   return (

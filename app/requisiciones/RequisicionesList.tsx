@@ -26,6 +26,8 @@ import RequisicionFormModal from './RequisicionFormModal'
 import { useRequisicionesFlujo } from '@/lib/hooks/useRequisicionesFlujo'
 import NuevaRequisicionModal from './NuevaRequisicionModal'
 import DetalleRequisicionModal from './DetalleRequisicionModal'
+import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
+import { toast } from 'sonner'
 import { Zap, Plus, ArrowRight, Eye, Layers } from 'lucide-react'
 
 export const SOLICITANTES = ['Lorena/Stock', 'Salvador', 'Oscar', 'Pantoja', 'Rojo']
@@ -268,16 +270,25 @@ function RequisicionCard({
 }
 
 export default function RequisicionesList() {
+  const confirmar = useConfirmDialog()
   const {
     requisiciones,
     loading,
+    cargandoMas,
+    cargandoCompleto,
+    coleccionCompleta,
+    hayMas,
+    totalRequisiciones,
     error,
     fetchRequisiciones,
+    cargarMas,
+    cargarTodas,
     agregarRequisicion,
     actualizarEstado,
     borrarRequisicion,
     borrarRequisicionesLote,
     editarRequisicion,
+    addOrUpdateRequisicion,
   } = useRequisiciones()
 
   const {
@@ -287,7 +298,11 @@ export default function RequisicionesList() {
     generarOC,
     obtenerCotizaciones,
     agregarCotizacion,
-  } = useRequisicionesFlujo()
+  } = useRequisicionesFlujo({
+    requisiciones,
+    recargar: fetchRequisiciones,
+    guardarLocal: addOrUpdateRequisicion,
+  })
 
   const [tabVista, setTabVista] = useState<'flujo' | 'tabla'>('flujo')
   const [tipoActivo, setTipoActivo] = useState<TipoRequisicion>('general')
@@ -404,7 +419,13 @@ export default function RequisicionesList() {
   }
 
   async function handleEliminar(id: string, desc: string) {
-    if (!confirm(`¿Eliminar "${desc.slice(0, 60)}"?`)) return
+    const aceptado = await confirmar({
+      title: 'Eliminar requisición',
+      description: `Se eliminará “${desc.slice(0, 60)}”.`,
+      confirmLabel: 'Eliminar',
+      variant: 'destructive',
+    })
+    if (!aceptado) return
     await borrarRequisicion(id)
   }
 
@@ -426,16 +447,21 @@ export default function RequisicionesList() {
 
   async function handleDeleteMultiple() {
     if (selectedIds.size === 0) return
-    if (window.confirm(`¿Estás seguro de que deseas eliminar ${selectedIds.size} requisiciones seleccionadas?`)) {
-      setIsDeletingBulk(true)
-      const success = await borrarRequisicionesLote(Array.from(selectedIds))
-      if (success) {
-        setSelectedIds(new Set())
-      } else {
-        alert('No se pudieron eliminar las requisiciones. Por favor, intenta de nuevo.')
-      }
-      setIsDeletingBulk(false)
+    const aceptado = await confirmar({
+      title: 'Eliminar requisiciones seleccionadas',
+      description: `Se eliminarán ${selectedIds.size} requisiciones y esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar requisiciones',
+      variant: 'destructive',
+    })
+    if (!aceptado) return
+    setIsDeletingBulk(true)
+    const success = await borrarRequisicionesLote(Array.from(selectedIds))
+    if (success) {
+      setSelectedIds(new Set())
+    } else {
+      toast.error('No se pudieron eliminar las requisiciones. Intenta de nuevo.')
     }
+    setIsDeletingBulk(false)
   }
 
   function handleFormSaved() {
@@ -443,10 +469,19 @@ export default function RequisicionesList() {
     fetchRequisiciones()
   }
 
+  function prepararHistorialCompleto() {
+    if (!coleccionCompleta) {
+      void cargarTodas().catch(() => undefined)
+    }
+  }
+
   const chip = (activo: boolean, onClick: () => void, label: string) => (
     <button
       key={label}
-      onClick={onClick}
+      onClick={() => {
+        prepararHistorialCompleto()
+        onClick()
+      }}
       className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
         activo
           ? 'bg-blue-600 text-white'
@@ -474,10 +509,13 @@ export default function RequisicionesList() {
             ].join(' ')}
           >
             <Zap className="h-4 w-4 text-amber-400" />
-            Flujo de Compras End-to-End ({todasFlujo.length})
+            Flujo de Compras End-to-End ({totalRequisiciones})
           </button>
           <button
-            onClick={() => setTabVista('tabla')}
+            onClick={() => {
+              setTabVista('tabla')
+              prepararHistorialCompleto()
+            }}
             className={[
               'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2',
               tabVista === 'tabla'
@@ -503,11 +541,30 @@ export default function RequisicionesList() {
       {/* VISTA 1: FLUJO DE COMPRAS END-TO-END */}
       {tabVista === 'flujo' && (
         <div className="space-y-6">
+          {loading && (
+            <div className="flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-14 text-sm text-slate-500">
+              <Loader2 className="h-5 w-5 animate-spin text-sky-600" />
+              Cargando requisiciones…
+            </div>
+          )}
+
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+              <p className="font-semibold text-red-800">No se pudo cargar el flujo de requisiciones.</p>
+              <p className="mt-1">{error}</p>
+              <button onClick={fetchRequisiciones} className="mt-3 font-semibold underline">
+                Reintentar
+              </button>
+            </div>
+          )}
+
+          {!loading && !error && (
+            <>
           {/* KPI STATS */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Solicitudes</span>
-              <p className="text-xl font-extrabold text-slate-900 font-mono">{todasFlujo.length}</p>
+              <p className="text-xl font-extrabold text-slate-900 font-mono">{totalRequisiciones}</p>
             </div>
             <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-2xs space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700">En Cotización</span>
@@ -612,6 +669,24 @@ export default function RequisicionesList() {
               )
             })}
           </div>
+
+          {hayMas && (
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-slate-200 bg-white p-4">
+              <p className="text-xs text-slate-500">
+                Mostrando {todasFlujo.length} de {totalRequisiciones} requisiciones
+              </p>
+              <button
+                onClick={cargarMas}
+                disabled={cargandoMas}
+                className="inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-100 disabled:opacity-60"
+              >
+                {cargandoMas && <Loader2 className="h-4 w-4 animate-spin" />}
+                {cargandoMas ? 'Cargando…' : 'Cargar más requisiciones'}
+              </button>
+            </div>
+          )}
+            </>
+          )}
         </div>
       )}
 
@@ -623,7 +698,14 @@ export default function RequisicionesList() {
             {(['general', 'automatizacion'] as const).map((t) => (
               <button
                 key={t}
-                onClick={() => { setTipoActivo(t); setFiltroEstado('todos'); setFiltroEmpresa(''); setBusqueda(''); setSelectedIds(new Set()) }}
+                onClick={() => {
+                  prepararHistorialCompleto()
+                  setTipoActivo(t)
+                  setFiltroEstado('todos')
+                  setFiltroEmpresa('')
+                  setBusqueda('')
+                  setSelectedIds(new Set())
+                }}
                 className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${
                   tipoActivo === t
                     ? 'bg-white text-gray-900 shadow-sm'
@@ -822,6 +904,7 @@ export default function RequisicionesList() {
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
+            onFocus={prepararHistorialCompleto}
             placeholder={isAuto
               ? 'Buscar por descripción, proveedor, parte #, OT, nota…'
               : 'Buscar por descripción, solicitante, tienda…'}
@@ -829,8 +912,13 @@ export default function RequisicionesList() {
           />
           <div className="flex items-center gap-3">
             <p className="text-xs text-gray-500">
-              {filtradas.length} de {requisiciones.length} requisiciones
+              {filtradas.length} coincidencias · {requisiciones.length} de {totalRequisiciones} cargadas
             </p>
+            {cargandoCompleto && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-700">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Preparando historial completo…
+              </span>
+            )}
             {selectedIds.size > 0 && (
               <button
                 onClick={handleDeleteMultiple}
@@ -1115,6 +1203,19 @@ export default function RequisicionesList() {
                   onEliminar={handleEliminar}
                 />
               ))}
+            </div>
+          )}
+
+          {hayMas && !cargandoCompleto && (
+            <div className="flex justify-center border-t border-gray-100 p-4">
+              <button
+                onClick={cargarMas}
+                disabled={cargandoMas}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+              >
+                {cargandoMas && <Loader2 className="h-4 w-4 animate-spin" />}
+                {cargandoMas ? 'Cargando…' : `Cargar más (${requisiciones.length} de ${totalRequisiciones})`}
+              </button>
             </div>
           )}
         </div>

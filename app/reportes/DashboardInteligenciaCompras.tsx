@@ -13,12 +13,12 @@ import {
 } from 'lucide-react'
 import { useProveedores } from '@/lib/hooks/useProveedores'
 import { useProveedoresInteligencia } from '@/lib/hooks/useProveedoresInteligencia'
-import { useRequisicionesFlujo } from '@/lib/hooks/useRequisicionesFlujo'
+import { useRequisiciones } from '@/lib/hooks/useRequisiciones'
 
 export default function DashboardInteligenciaCompras() {
   const { todosProveedores } = useProveedores()
   const { todasCompras, evaluaciones } = useProveedoresInteligencia()
-  const { todasRequisiciones } = useRequisicionesFlujo()
+  const { requisiciones: todasRequisiciones } = useRequisiciones({ completoInicial: true })
 
   const [monedaFiltro, setMonedaFiltro] = useState<'TODAS' | 'USD' | 'MXN'>('TODAS')
 

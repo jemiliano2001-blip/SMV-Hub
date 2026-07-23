@@ -112,16 +112,22 @@ export function generarMensajeWhatsApp(
   const provTexto = proveedor ? ` en *${proveedor}*` : ""
   const totalTexto = orden.total ? ` por *${orden.moneda || 'USD'} $${orden.total}*` : ""
 
-  let mensaje = `*Notificación de Compra (EUA)*\n\nBuen día, se pidió ${itemsTexto}${destinoTexto}${provTexto}${totalTexto}.`
-
-  // Adjunta el link directo del comprobante/screenshot/foto/pdf para vista previa en WhatsApp
-  if (orden.imagenUrl) {
-    mensaje += `\n\n📄 *Comprobante / Foto / PDF:* ${orden.imagenUrl}`
-  }
-
-  return mensaje
+  return `*Notificación de Compra (EUA)*\n\nBuen día, se pidió ${itemsTexto}${destinoTexto}${provTexto}${totalTexto}.`
 }
 
 export function obtenerUrlWhatsApp(mensaje: string): string {
   return `https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`
+}
+
+/**
+ * Copia el texto limpio de la orden al portapapeles.
+ * Al presionar Ctrl+V en el grupo de WhatsApp Web, se pega el texto de la orden.
+ */
+export async function copiarOrdenAlPortapapeles(mensaje: string): Promise<void> {
+  if (typeof window === "undefined" || !navigator.clipboard) return
+  try {
+    await navigator.clipboard.writeText(mensaje)
+  } catch (err) {
+    console.warn("[copiarOrdenAlPortapapeles] No se pudo copiar al portapapeles:", err)
+  }
 }

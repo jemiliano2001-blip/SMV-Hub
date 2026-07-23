@@ -4,6 +4,7 @@ import { useOperadores } from '@/lib/hooks/useOperadores'
 import { Plus, Trash2, Search } from 'lucide-react'
 import type { SalidaAlmacen } from '@/lib/schemas'
 import { fechaHoyLocal } from '@/lib/format'
+import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 
 type SalidaCardProps = {
   s: SalidaAlmacen
@@ -37,6 +38,7 @@ function SalidaCard({ s, onEliminar }: SalidaCardProps) {
 }
 
 export default function SalidasList() {
+  const confirmar = useConfirmDialog()
   const { salidas, loading: loadingSalidas, error, agregarSalida, borrarSalida } = useSalidas()
   const { activos: operadoresActivos, loading: loadingOps } = useOperadores()
 
@@ -80,7 +82,13 @@ export default function SalidasList() {
   }
 
   async function handleEliminar(id: string, desc: string) {
-    if (!confirm(`¿Eliminar la salida de "${desc}"?`)) return
+    const aceptado = await confirmar({
+      title: 'Eliminar salida de almacén',
+      description: `Se eliminará la salida de “${desc}”.`,
+      confirmLabel: 'Eliminar',
+      variant: 'destructive',
+    })
+    if (!aceptado) return
     try {
       await borrarSalida(id)
     } catch (err) {

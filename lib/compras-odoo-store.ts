@@ -99,6 +99,11 @@ function aNormalizado(item: CompraOdooItem): CompraOdooItemNormalizado {
     unidad: item.unidad,
     esRfq: item.esRfq,
     origen: "odoo",
+    odooCategoria: item.odooCategoria ?? null,
+    odooUom: item.odooUom ?? null,
+    odooCostoEstandar: item.odooCostoEstandar ?? null,
+    odooRefInterna: item.odooRefInterna ?? null,
+    clasificadoPorIa: item.clasificadoPorIa ?? false,
   }
 }
 

@@ -8,9 +8,10 @@ import {
   orderBy,
   where,
 } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { db, getClienteAuth } from "@/lib/firebase"
 import type { MovimientoCajaChica } from "@/lib/schemas"
 import { makeDateConverter, actualizarDocumento } from "@/lib/firestore-helpers"
+import { registrarAuditoria } from "@/lib/auditoria"
 
 const movimientoConverter = makeDateConverter<MovimientoCajaChica>()
 const cajaChicaRef = () => collection(db, "caja_chica_movimientos").withConverter(movimientoConverter)
@@ -41,6 +42,10 @@ export async function crearMovimientoCajaChica(payload: NuevoMovimientoCajaPaylo
     creadoEn: ahora,
     actualizadoEn: ahora,
   } as MovimientoCajaChica)
+
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, "CREAR", "caja_chica_movimientos", ref.id, `Registró movimiento de caja chica (${payload.tipo}): $${payload.monto} - ${payload.descripcion}`)
+
   return ref.id
 }
 
@@ -49,8 +54,12 @@ export async function actualizarMovimientoCajaChica(
   cambios: Partial<Omit<MovimientoCajaChica, "id" | "creadoEn">>
 ): Promise<void> {
   await actualizarDocumento("caja_chica_movimientos", id, cambios as Record<string, unknown>)
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, "EDITAR", "caja_chica_movimientos", id, `Actualizó movimiento de caja chica: ${Object.keys(cambios).join(', ')}`)
 }
 
 export async function eliminarMovimientoCajaChica(id: string): Promise<void> {
   await deleteDoc(doc(db, "caja_chica_movimientos", id))
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, "BORRAR", "caja_chica_movimientos", id, "Eliminó movimiento de caja chica")
 }

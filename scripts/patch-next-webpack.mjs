@@ -9,16 +9,49 @@
  *   node scripts/patch-next-webpack.mjs apply
  *   node scripts/patch-next-webpack.mjs restore
  */
-import { copyFileSync, existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs"
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs"
 import { join } from "node:path"
 
 const NEXT_BIN = join(process.cwd(), "node_modules", "next", "dist", "bin", "next")
 const BACKUP = `${NEXT_BIN}.smv-webpack-bak`
+const CACHE_HOLD_ROOT = join(process.cwd(), ".smv-firebase-cache")
+const CACHE_HOLD = join(CACHE_HOLD_ROOT, "webpack")
+const NEXT_CACHE = join(process.cwd(), ".next", "cache", "webpack")
 const INJECT_MARKER = "SMV Hub: force webpack for Firebase Hosting deploys"
 const INJECT = `
 // ${INJECT_MARKER}
-if (process.argv.includes("build") && !process.argv.includes("--webpack") && !process.argv.includes("--turbopack")) {
+const smvFirebaseBuild = process.argv.includes("build");
+if (smvFirebaseBuild && !process.argv.includes("--webpack") && !process.argv.includes("--turbopack")) {
   process.argv.push("--webpack");
+}
+if (smvFirebaseBuild) {
+  process.on("exit", () => {
+    try {
+      const smvFs = require("node:fs");
+      const smvPath = require("node:path");
+      const smvCacheRoot = smvPath.join(process.cwd(), ".smv-firebase-cache");
+      const smvHeldCache = smvPath.join(smvCacheRoot, "webpack");
+      const smvNextCache = smvPath.join(process.cwd(), ".next", "cache", "webpack");
+      smvFs.rmSync(smvHeldCache, { recursive: true, force: true });
+      if (smvFs.existsSync(smvNextCache)) {
+        smvFs.mkdirSync(smvCacheRoot, { recursive: true });
+        smvFs.renameSync(smvNextCache, smvHeldCache);
+      }
+      smvFs.rmSync(smvPath.join(process.cwd(), ".next", "dev"), { recursive: true, force: true });
+      console.log("→ caché webpack apartada y .next/dev retirado antes del empaquetado de Firebase");
+    } catch (error) {
+      console.warn("No se pudo retirar la caché webpack:", error);
+    }
+  });
 }
 `
 
@@ -40,6 +73,13 @@ function apply() {
 }
 
 function restore() {
+  if (existsSync(CACHE_HOLD)) {
+    mkdirSync(join(process.cwd(), ".next", "cache"), { recursive: true })
+    rmSync(NEXT_CACHE, { recursive: true, force: true })
+    renameSync(CACHE_HOLD, NEXT_CACHE)
+    rmSync(CACHE_HOLD_ROOT, { recursive: true, force: true })
+    console.log("→ caché webpack restaurada para el siguiente build incremental")
+  }
   if (!existsSync(BACKUP)) {
     console.log("→ no hay backup de next bin (nada que restaurar)")
     return

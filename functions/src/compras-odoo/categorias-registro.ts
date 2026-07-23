@@ -10,6 +10,8 @@ export type CategoriaProductoDef = {
   /** Prefijos UNSPSC de 2 dígitos (claveProdServ SAT). */
   divisionesSat: string[]
   palabrasClave: string[]
+  /** Patrones de nombre de categoría Odoo (product.category) que mapean a esta familia. */
+  odooPatrones?: string[]
 }
 
 /** Seed. Extensible sin tocar resolverCategoriaProducto. */
@@ -24,7 +26,9 @@ export const CATEGORIAS_PRODUCTO_REGISTRO: CategoriaProductoDef[] = [
       "rod", "acero", "inox", "inoxidable", "aluminio", "laton", "latón", "bronce",
       "cobre", "barra", "varilla", "lamina", "lámina", "placa", "tubo", "perfil",
       "fierro", "hierro", "hr", "cr", "cold rolled", "hot rolled",
+      "solera", "angulo", "ángulo", "canal", "viga", "ptr", "redondo",
     ],
+    odooPatrones: ["metal", "acero", "aluminio", "fierro", "hierro", "laton", "bronce", "cobre", "steel", "iron"],
   },
   {
     id: "tools",
@@ -36,6 +40,7 @@ export const CATEGORIAS_PRODUCTO_REGISTRO: CategoriaProductoDef[] = [
       "inserto", "portaherramienta", "tooling", "cutting", "chuck", "countersink",
       "tornillo", "tuerca", "arandela", "rodamiento", "bearing",
     ],
+    odooPatrones: ["herramienta", "tooling", "tool", "consumible", "ferreteria", "tornilleria"],
   },
   {
     id: "plastics",
@@ -46,6 +51,7 @@ export const CATEGORIAS_PRODUCTO_REGISTRO: CategoriaProductoDef[] = [
       "ptfe", "teflon", "teflón", "pvc", "abs", "polycarbonate", "policarbonato",
       "acrylic", "acrilico", "acrílico", "hdpe", "ldpe", "polyethylene", "polietileno",
     ],
+    odooPatrones: ["plastico", "plastic", "nylon", "acetal", "polimero"],
   },
   {
     id: "office",
@@ -56,6 +62,7 @@ export const CATEGORIAS_PRODUCTO_REGISTRO: CategoriaProductoDef[] = [
       "lapiz", "lápiz", "pencil", "grapadora", "stapler", "clip", "sobre", "envelope",
       "impresora", "printer", "oficina", "office", "resma", "cuaderno", "notebook",
     ],
+    odooPatrones: ["oficina", "office", "papeleria", "stationery"],
   },
   {
     id: "medical",
@@ -67,6 +74,7 @@ export const CATEGORIAS_PRODUCTO_REGISTRO: CategoriaProductoDef[] = [
       "antiséptico", "botiquin", "botiquín", "cura", "pastilla", "jarabe", "suero",
       "guantes latex", "guantes de latex", "cubrebocas", "tapabocas",
     ],
+    odooPatrones: ["medicina", "medical", "farmacia", "botiquin"],
   },
   {
     id: "otros",
@@ -80,10 +88,12 @@ export type ResolverCategoriaInput = {
   claveProdServ?: string | null
   descripcion?: string | null
   registro?: CategoriaProductoDef[]
+  /** Nombre de la categoría Odoo (product.category) del producto. */
+  odooCategoria?: string | null
 }
 
 /**
- * Resuelve categoría por división SAT → keywords (match más largo) → `otros`.
+ * Resuelve categoría por división SAT → odooCategoria → keywords (match más largo) → `otros`.
  */
 export function resolverCategoriaProducto(input: ResolverCategoriaInput): string {
   const registro = input.registro ?? CATEGORIAS_PRODUCTO_REGISTRO
@@ -94,6 +104,18 @@ export function resolverCategoriaProducto(input: ResolverCategoriaInput): string
     for (const cat of registro) {
       if (cat.id === "otros") continue
       if (cat.divisionesSat.includes(division)) return cat.id
+    }
+  }
+
+  // Señal de categoría Odoo (ej. "Metal / Acero" → metals)
+  const odooCat = (input.odooCategoria ?? "").toLowerCase().normalize("NFD").replace(/\p{M}/gu, "")
+  if (odooCat) {
+    for (const cat of registro) {
+      if (cat.id === "otros" || !cat.odooPatrones?.length) continue
+      for (const patron of cat.odooPatrones) {
+        const patronNorm = patron.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "")
+        if (odooCat.includes(patronNorm)) return cat.id
+      }
     }
   }
 

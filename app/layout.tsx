@@ -5,6 +5,8 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { AppCheckProvider } from "@/components/AppCheckProvider";
 import NavBar from "@/app/NavBar";
 import { Toaster } from "@/components/ui/sonner";
+import { WebVitals } from "@/app/_components/WebVitals";
+import { ConfirmDialogProvider } from "@/components/ConfirmDialogProvider";
 
 const firaCode = Fira_Code({
   variable: "--font-fira-code",
@@ -33,11 +35,14 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${firaSans.variable} ${firaCode.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
+        <WebVitals />
         <AppCheckProvider>
           <AuthProvider>
-            <NavBar />
-            {children}
-            <Toaster />
+            <ConfirmDialogProvider>
+              <NavBar />
+              {children}
+              <Toaster />
+            </ConfirmDialogProvider>
           </AuthProvider>
         </AppCheckProvider>
       </body>

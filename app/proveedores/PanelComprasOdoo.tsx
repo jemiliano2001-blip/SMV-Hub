@@ -5,6 +5,10 @@ import { useComprasOdoo } from '@/lib/hooks/useComprasOdoo'
 import { Badge } from '@/components/ui/badge'
 import { formatPrecio } from '@/lib/format'
 import { CATEGORIAS_PRODUCTO_REGISTRO, FAMILIAS_CON_RANGO } from '@/lib/compras-odoo'
+import PanelClasificacionIA from './PanelClasificacionIA'
+import ComparadorPreciosInsumos from './components/ComparadorPreciosInsumos'
+import DrawerPresupuestoInsumos from './components/DrawerPresupuestoInsumos'
+import { usePresupuestoInsumos } from '@/lib/hooks/usePresupuestoInsumos'
 
 function formatFecha(d: Date | null): string {
   if (!d) return 'Nunca'
@@ -31,6 +35,7 @@ export default function PanelComprasOdoo({
     cargando,
     sincronizando,
     error,
+    recargar,
     sincronizarAhora,
     familia,
     setFamilia,
@@ -44,6 +49,19 @@ export default function PanelComprasOdoo({
     medidas,
     rango,
   } = useComprasOdoo()
+
+  const {
+    partidas,
+    agregarPartida,
+    removerPartida,
+    actualizarCantidad,
+    cambiarProveedorPartida,
+    limpiarPresupuesto,
+    totalMxn,
+    totalUsd,
+    totalPartidas,
+    exportarAExcel,
+  } = usePresupuestoInsumos()
 
   const porCategoria = items.reduce<Record<string, number>>((acc, it) => {
     acc[it.categoriaId] = (acc[it.categoriaId] ?? 0) + 1
@@ -123,6 +141,13 @@ export default function PanelComprasOdoo({
           </div>
         )}
       </div>
+
+      <PanelClasificacionIA items={items} onActualizado={recargar} />
+
+      <ComparadorPreciosInsumos
+        items={items}
+        onAgregarAPresupuesto={agregarPartida}
+      />
 
       <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-4">
         <div className="flex items-center gap-2">
@@ -254,13 +279,27 @@ export default function PanelComprasOdoo({
                   <tr key={it.id} className="border-t border-slate-100 hover:bg-slate-50">
                     <td className="px-3 py-1.5 font-mono">{it.fuente}</td>
                     <td className="px-3 py-1.5 font-mono">{it.referenciaDoc}</td>
-                    <td className="px-3 py-1.5 max-w-[220px] truncate" title={it.descripcion}>
-                      {it.descripcion}
+                    <td className="px-3 py-1.5 max-w-[220px]">
+                      <p className="truncate font-medium text-slate-900" title={it.descripcion}>
+                        {it.descripcion}
+                      </p>
+                      {it.odooCategoria && (
+                        <p className="text-[9px] text-slate-400 font-mono truncate" title={it.odooCategoria}>
+                          Odoo: {it.odooCategoria}
+                        </p>
+                      )}
                     </td>
                     <td className="px-3 py-1.5">
-                      <Badge variant="outline" className="text-[10px] font-mono">
-                        {it.categoriaId}
-                      </Badge>
+                      <div className="flex items-center gap-1">
+                        <Badge variant="outline" className="text-[10px] font-mono">
+                          {it.categoriaId}
+                        </Badge>
+                        {it.clasificadoPorIa && (
+                          <Badge className="bg-sky-100 text-sky-800 border-sky-200 text-[9px] px-1 py-0 font-bold">
+                            🤖 IA
+                          </Badge>
+                        )}
+                      </div>
                     </td>
                     <td className="px-3 py-1.5 font-mono">
                       {it.claveProdServ ?? (it.satPendiente ? '—' : '')}
@@ -278,6 +317,19 @@ export default function PanelComprasOdoo({
           </table>
         </div>
       </div>
+
+      <DrawerPresupuestoInsumos
+        partidas={partidas}
+        totalMxn={totalMxn}
+        totalUsd={totalUsd}
+        totalPartidas={totalPartidas}
+        onActualizarCantidad={actualizarCantidad}
+        onRemoverPartida={removerPartida}
+        onCambiarProveedor={cambiarProveedorPartida}
+        onLimpiarTodo={limpiarPresupuesto}
+        onExportarAExcel={exportarAExcel}
+        todosLosItems={items}
+      />
     </div>
   )
 }

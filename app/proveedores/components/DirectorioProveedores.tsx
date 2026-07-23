@@ -13,13 +13,15 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import TarjetaProveedor from './TarjetaProveedor'
 import type { Proveedor, CategoriaProveedor } from '@/lib/schemas'
-import type { OrdenamientoProveedor } from '@/lib/hooks/useProveedores'
+import type { OrdenamientoProveedor } from '@/lib/proveedores/directorio'
 
 type CategoriaFiltro = CategoriaProveedor | 'todas'
 
 interface DirectorioProveedoresProps {
   proveedores: Proveedor[]
   cargando: boolean
+  error: string | null
+  onRetry: () => void
   busqueda: string
   onBusquedaChange: (query: string) => void
   categoriaFiltro: CategoriaFiltro
@@ -30,11 +32,17 @@ interface DirectorioProveedoresProps {
   onEditProveedor: (proveedor: Proveedor) => void
   proveedoresPrimarios?: Set<string>
   proveedoresBackup?: Set<string>
+  hayMas?: boolean
+  cargandoMas?: boolean
+  totalMercado?: number
+  onCargarMas?: () => void
 }
 
 export default function DirectorioProveedores({
   proveedores,
   cargando,
+  error,
+  onRetry,
   busqueda,
   onBusquedaChange,
   categoriaFiltro,
@@ -45,6 +53,10 @@ export default function DirectorioProveedores({
   onEditProveedor,
   proveedoresPrimarios = new Set(),
   proveedoresBackup = new Set(),
+  hayMas = false,
+  cargandoMas = false,
+  totalMercado,
+  onCargarMas,
 }: DirectorioProveedoresProps) {
   const [vista, setVista] = useState<'grid' | 'tabla'>('grid')
 
@@ -82,15 +94,18 @@ export default function DirectorioProveedores({
                 onChange={(e) => onOrdenamientoChange(e.target.value as OrdenamientoProveedor)}
                 className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#0369A1]"
               >
-                <option value="calificacion_desc">Calificación (Mayor → Menor)</option>
-                <option value="nombre_asc">Nombre (A → Z)</option>
-                <option value="lead_time_asc">Lead Time (Más rápido)</option>
+                <option value="nombre">Nombre (A → Z)</option>
+                <option value="calificacion">Calificación (Mayor → Menor)</option>
+                <option value="leadTime">Lead Time (Más rápido)</option>
               </select>
             </div>
 
             <div className="flex items-center p-1 bg-slate-100 rounded-lg border border-slate-200">
               <button
+                type="button"
                 onClick={() => setVista('grid')}
+                aria-label="Mostrar proveedores en tarjetas"
+                aria-pressed={vista === 'grid'}
                 className={`p-1.5 rounded-md transition-all ${
                   vista === 'grid'
                     ? 'bg-white text-[#0369A1] shadow-2xs font-bold'
@@ -101,7 +116,10 @@ export default function DirectorioProveedores({
                 <LayoutGrid className="w-4 h-4" />
               </button>
               <button
+                type="button"
                 onClick={() => setVista('tabla')}
+                aria-label="Mostrar proveedores en tabla"
+                aria-pressed={vista === 'tabla'}
                 className={`p-1.5 rounded-md transition-all ${
                   vista === 'tabla'
                     ? 'bg-white text-[#0369A1] shadow-2xs font-bold'
@@ -119,6 +137,7 @@ export default function DirectorioProveedores({
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
           {categoriasNav.map((cat) => (
             <button
+              type="button"
               key={cat.id}
               onClick={() => onCategoriaChange(cat.id)}
               className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all ${
@@ -134,7 +153,19 @@ export default function DirectorioProveedores({
       </div>
 
       {/* Estado Carga o Vacío */}
-      {cargando ? (
+      {error ? (
+        <div className="rounded-2xl border border-rose-200 bg-white px-6 py-12 text-center" role="alert">
+          <h3 className="text-base font-bold text-slate-900">No pudimos cargar los proveedores</h3>
+          <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">{error}</p>
+          <Button
+            type="button"
+            onClick={onRetry}
+            className="mt-5 min-h-10 bg-[#0369A1] hover:bg-[#075985]"
+          >
+            Intentar nuevamente
+          </Button>
+        </div>
+      ) : cargando ? (
         <div className="py-20 text-center space-y-3">
           <div className="inline-block w-8 h-8 border-4 border-[#0369A1] border-t-transparent rounded-full animate-spin"></div>
           <p className="text-sm text-slate-500 font-medium">Cargando directorio de proveedores...</p>
@@ -187,6 +218,7 @@ export default function DirectorioProveedores({
                 >
                   <td className="p-3.5 font-bold text-slate-900">
                     <button
+                      type="button"
                       onClick={() => onSelectProveedor(prov)}
                       className="hover:text-[#0369A1] transition-colors text-left"
                     >
@@ -264,6 +296,29 @@ export default function DirectorioProveedores({
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {!error && !cargando && proveedores.length > 0 && (
+        <div className="flex flex-col items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 sm:flex-row">
+          <p className="text-xs font-medium text-slate-500" aria-live="polite">
+            Mostrando <span className="font-bold text-slate-800">{proveedores.length}</span>
+            {typeof totalMercado === 'number' && (
+              <> de <span className="font-bold text-slate-800">{totalMercado}</span></>
+            )}{' '}
+            proveedores
+          </p>
+          {hayMas && onCargarMas && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCargarMas}
+              disabled={cargandoMas}
+              className="min-h-10 min-w-32 border-slate-300 text-xs font-bold text-[#0369A1]"
+            >
+              {cargandoMas ? 'Cargando…' : 'Cargar más'}
+            </Button>
+          )}
         </div>
       )}
     </div>

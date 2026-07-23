@@ -13,6 +13,9 @@ node_modules/
 
 # testing
 /coverage
+/playwright-report
+/test-results
+/playwright/.auth
 
 # next.js
 /.next/
@@ -35,6 +38,7 @@ functions/firebase-debug.log
 
 # firebase build
 .firebase/
+.smv-firebase-cache/
 
 # env files (can opt-in for committing if needed)
 .env*

@@ -178,7 +178,7 @@ describe("crearUsuarioAdmin", () => {
     expect(resultado.tempPassword).toBeNull()
   })
 
-  it("sincroniza el claim smvHubActivo para las reglas de Storage", async () => {
+  it("sincroniza estado y módulos en los claims usados por Storage", async () => {
     mockCreateUser.mockResolvedValue({ uid: "uid-nuevo" })
     await crearUsuarioAdmin({
       email: "nuevo@ejemplo.com",
@@ -186,7 +186,10 @@ describe("crearUsuarioAdmin", () => {
       creadoPor: "jemiliano2001@gmail.com",
     })
 
-    expect(mockSetCustomUserClaims).toHaveBeenCalledWith("uid-nuevo", { smvHubActivo: true })
+    expect(mockSetCustomUserClaims).toHaveBeenCalledWith("uid-nuevo", {
+      smvHubActivo: true,
+      smvHubModulos: expect.arrayContaining(["caja-chica", "proveedores"]),
+    })
   })
 })
 
@@ -201,10 +204,13 @@ describe("actualizarUsuarioAdmin", () => {
     mockCollectionGet.mockResolvedValue({ docs: [] })
   })
 
-  it("actualiza la plantilla en Firestore sin tocar Auth ni claims", async () => {
+  it("actualiza la plantilla en Firestore y sincroniza sus módulos en Auth", async () => {
     await actualizarUsuarioAdmin("uid-1", { rol: "diseno" })
     expect(mockUpdateUser).not.toHaveBeenCalled()
-    expect(mockSetCustomUserClaims).not.toHaveBeenCalled()
+    expect(mockSetCustomUserClaims).toHaveBeenCalledWith("uid-1", {
+      smvHubActivo: true,
+      smvHubModulos: expect.arrayContaining(["cotizaciones", "requisiciones"]),
+    })
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         rol: "diseno",
@@ -217,14 +223,20 @@ describe("actualizarUsuarioAdmin", () => {
   it("al desactivar, deshabilita la cuenta en Auth, apaga el claim y activo:false en Firestore", async () => {
     await actualizarUsuarioAdmin("uid-1", { activo: false })
     expect(mockUpdateUser).toHaveBeenCalledWith("uid-1", { disabled: true })
-    expect(mockSetCustomUserClaims).toHaveBeenCalledWith("uid-1", { smvHubActivo: false })
+    expect(mockSetCustomUserClaims).toHaveBeenCalledWith("uid-1", {
+      smvHubActivo: false,
+      smvHubModulos: expect.arrayContaining(["caja-chica"]),
+    })
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ activo: false }))
   })
 
   it("al reactivar, habilita la cuenta en Auth, prende el claim y activo:true en Firestore", async () => {
     await actualizarUsuarioAdmin("uid-1", { activo: true })
     expect(mockUpdateUser).toHaveBeenCalledWith("uid-1", { disabled: false })
-    expect(mockSetCustomUserClaims).toHaveBeenCalledWith("uid-1", { smvHubActivo: true })
+    expect(mockSetCustomUserClaims).toHaveBeenCalledWith("uid-1", {
+      smvHubActivo: true,
+      smvHubModulos: expect.arrayContaining(["caja-chica"]),
+    })
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ activo: true }))
   })
 
@@ -244,6 +256,15 @@ describe("actualizarUsuarioAdmin", () => {
     await expect(actualizarUsuarioAdmin("uid-1", { esSuperAdmin: false })).rejects.toThrow(
       /último super-admin/
     )
+  })
+
+  it("retira caja chica del claim cuando el admin quita ese módulo", async () => {
+    await actualizarUsuarioAdmin("uid-1", { modulos: ["cotizaciones"] })
+
+    expect(mockSetCustomUserClaims).toHaveBeenCalledWith("uid-1", {
+      smvHubActivo: true,
+      smvHubModulos: ["cotizaciones"],
+    })
   })
 })
 

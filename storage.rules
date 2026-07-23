@@ -29,6 +29,14 @@ service firebase.storage {
              (esCorreoBreakGlass() || request.auth.token.smvHubActivo == true);
     }
 
+    // Los permisos por módulo se estampan como custom claims porque Storage no
+    // puede consultar la base Firestore nombrada "compras-americanas".
+    function tieneModulo(modulo) {
+      return esCorreoBreakGlass() ||
+             (request.auth.token.smvHubModulos is list &&
+              modulo in request.auth.token.smvHubModulos);
+    }
+
     // Imágenes de órdenes: solo usuarios autorizados.
     match /ordenes/{imagen=**} {
       allow read: if esUsuarioAutorizado();
@@ -51,9 +59,10 @@ service firebase.storage {
 
     // Comprobantes de caja chica: solo usuarios autorizados.
     match /caja-chica/{archivo=**} {
-      allow read: if esUsuarioAutorizado();
+      allow read: if esUsuarioAutorizado() && tieneModulo('caja-chica');
 
       allow write: if esUsuarioAutorizado()
+                   && tieneModulo('caja-chica')
                    && request.resource.size < 10 * 1024 * 1024
                    && (request.resource.contentType.matches('image/.*')
                        || request.resource.contentType == 'application/pdf');

@@ -10,6 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
     "sat:import": "node scripts/importar-catalogo-sat.mjs",
     "sat:import:phpcfdi": "node scripts/importar-catalogo-sat-phpcfdi.mjs",
     "verify:firebase-ssr": "node scripts/verificar-bundle-firebase.mjs",
@@ -40,6 +42,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

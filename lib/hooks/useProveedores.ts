@@ -7,8 +7,9 @@ import {
   type NuevoProveedorPayload,
 } from "@/lib/proveedores"
 import type { Proveedor, CategoriaProveedor, EstatusProveedor, TipoProveedor } from "@/lib/schemas"
+import type { OrdenamientoProveedor } from "@/lib/proveedores/directorio"
 
-export type OrdenamientoProveedor = "nombre" | "calificacion" | "leadTime" | "barato" | "prioridad"
+export type { OrdenamientoProveedor } from "@/lib/proveedores/directorio"
 
 export function useProveedores() {
   const [proveedores, setProveedores] = useState<Proveedor[]>([])

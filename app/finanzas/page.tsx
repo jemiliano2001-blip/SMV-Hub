@@ -249,10 +249,10 @@ function ResumenFinanzas() {
       </div>
 
       {/* Tabs Principales de Finanzas 360° */}
-      <div className="flex gap-2 border-b border-slate-200 pb-2">
+      <div className="-mx-4 flex gap-2 overflow-x-auto border-b border-slate-200 px-4 pb-2 sm:mx-0 sm:px-0">
         <button
           onClick={() => setTabActiva("ar")}
-          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
+          className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
             tabActiva === "ar"
               ? "bg-[#0369A1] text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
@@ -264,7 +264,7 @@ function ResumenFinanzas() {
 
         <button
           onClick={() => setTabActiva("ap")}
-          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
+          className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
             tabActiva === "ap"
               ? "bg-[#0369A1] text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
@@ -276,7 +276,7 @@ function ResumenFinanzas() {
 
         <button
           onClick={() => setTabActiva("flujo")}
-          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
+          className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
             tabActiva === "flujo"
               ? "bg-[#0369A1] text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
@@ -288,7 +288,7 @@ function ResumenFinanzas() {
 
         <button
           onClick={() => setTabActiva("conciliacion")}
-          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
+          className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
             tabActiva === "conciliacion"
               ? "bg-[#0369A1] text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"

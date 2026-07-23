@@ -19,6 +19,7 @@ interface HeaderCentroMandoProps {
   totalProveedores: number
   totalUSA: number
   totalMexico: number
+  sinMercado?: number
   mercadoActivo: 'usa' | 'mexico'
   onMercadoChange: (mercado: 'usa' | 'mexico') => void
   onNuevoProveedor: () => void
@@ -34,6 +35,7 @@ export default function HeaderCentroMando({
   totalProveedores,
   totalUSA,
   totalMexico,
+  sinMercado = 0,
   mercadoActivo,
   onMercadoChange,
   onNuevoProveedor,
@@ -47,8 +49,8 @@ export default function HeaderCentroMando({
   return (
     <div className="space-y-4">
       {/* Banner Principal / Hero Light Theme */}
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 md:p-7 shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+      <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           {/* Título & Subtítulo */}
           <div className="space-y-1.5 max-w-2xl">
             <div className="flex items-center gap-2 flex-wrap">
@@ -59,11 +61,11 @@ export default function HeaderCentroMando({
                 USD ↔ MXN Sync
               </Badge>
             </div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
-              <Building2 className="w-7 h-7 text-[#0369A1] shrink-0" />
+            <h1 className="flex items-center gap-2 text-base font-extrabold tracking-tight text-slate-900 sm:text-lg">
+              <Building2 className="h-5 w-5 shrink-0 text-[#0369A1]" />
               Inteligencia de Compras & Proveedores
             </h1>
-            <p className="text-slate-500 text-sm leading-relaxed">
+            <p className="text-xs leading-relaxed text-slate-500">
               Directorio de proveedores USA & México, comparador de cotizaciones en tiempo real, matriz primario/backup y scorecards 360° para taller CNC y automatización.
             </p>
           </div>
@@ -99,40 +101,45 @@ export default function HeaderCentroMando({
         </div>
 
         {/* Tarjetas KPI Internas */}
-        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3.5 pt-5 border-t border-slate-100">
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+        <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 md:grid-cols-4">
+          <div className="space-y-1 rounded-lg border border-slate-200/80 bg-slate-50 p-2.5">
             <div className="flex items-center justify-between text-xs text-slate-500 font-bold">
               <span>Fuentes Activas</span>
               <Globe className="w-4 h-4 text-[#0369A1]" />
             </div>
-            <div className="text-xl font-extrabold text-slate-900">
-              {totalProveedores} <span className="text-xs font-normal text-slate-500">({totalUSA} USA / {totalMexico} MX)</span>
+            <div className="text-lg font-extrabold text-slate-900">
+              {totalProveedores}{' '}
+              <span className="text-xs font-normal text-slate-500">
+                ({totalUSA} USA / {totalMexico} MX{sinMercado > 0 ? ` / ${sinMercado} legado` : ''})
+              </span>
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+          <div className="space-y-1 rounded-lg border border-slate-200/80 bg-slate-50 p-2.5">
             <div className="flex items-center justify-between text-xs text-slate-500 font-bold">
               <span>Lead Time Promedio</span>
               <Clock className="w-4 h-4 text-sky-600" />
             </div>
-            <div className="text-xl font-extrabold text-slate-900">
+            <div className="text-lg font-extrabold text-slate-900">
               {leadTimePromedio} <span className="text-xs font-normal text-slate-500">días hábiles</span>
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+          <div className="space-y-1 rounded-lg border border-slate-200/80 bg-slate-50 p-2.5">
             <div className="flex items-center justify-between text-xs text-slate-500 font-bold">
               <span>Scorecard 360°</span>
               <Award className="w-4 h-4 text-amber-500" />
             </div>
-            <div className="text-xl font-extrabold text-slate-900 flex items-center gap-1">
+            <div className="flex items-center gap-1 text-lg font-extrabold text-slate-900">
               ⭐ {scorecardPromedio.toFixed(1)} <span className="text-xs font-normal text-slate-500">/ 5.0</span>
             </div>
           </div>
 
-          <div
+          <button
+            type="button"
             onClick={onAbrirMantenimiento}
-            className={`p-3.5 rounded-xl border space-y-1 cursor-pointer transition-all ${
+            disabled={!onAbrirMantenimiento}
+            className={`w-full space-y-1 rounded-lg border p-2.5 text-left transition-all disabled:cursor-default ${
               proveedoresFantasmaCount > 0
                 ? 'bg-amber-50 border-amber-200 text-amber-900 hover:bg-amber-100/80'
                 : 'bg-slate-50 border-slate-200/80 text-slate-700'
@@ -146,40 +153,44 @@ export default function HeaderCentroMando({
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
               )}
             </div>
-            <div className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+            <div className="flex items-center gap-2 text-lg font-extrabold text-slate-900">
               {proveedoresFantasmaCount > 0 ? (
                 <span className="text-amber-700">{proveedoresFantasmaCount} por vincular</span>
               ) : (
                 <span className="text-emerald-700 text-sm font-bold">100% Vinculados</span>
               )}
             </div>
-          </div>
+          </button>
         </div>
       </div>
 
       {/* Selector de Mercado (USA vs México) */}
-      <div className="flex items-center justify-between bg-white p-2 rounded-xl border border-slate-200 shadow-xs">
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg">
+      <div className="flex items-center justify-between overflow-x-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xs">
+        <div className="flex w-max items-center gap-1.5 rounded-lg bg-slate-100 p-1">
           <button
+            type="button"
             onClick={() => onMercadoChange('usa')}
-            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-2 ${
+            aria-pressed={mercadoActivo === 'usa'}
+            className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-bold transition-all ${
               mercadoActivo === 'usa'
                 ? 'bg-white text-[#0369A1] shadow-xs border border-slate-200'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            🇺🇸 USA Tooling ({totalUSA})
+            🇺🇸 USA Tooling ({totalUSA}{sinMercado > 0 ? '+' : ''})
           </button>
 
           <button
+            type="button"
             onClick={() => onMercadoChange('mexico')}
-            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-2 ${
+            aria-pressed={mercadoActivo === 'mexico'}
+            className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-bold transition-all ${
               mercadoActivo === 'mexico'
                 ? 'bg-white text-emerald-800 shadow-xs border border-slate-200'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            🇲🇽 Proveedores México ({totalMexico})
+            🇲🇽 Proveedores México ({totalMexico}{sinMercado > 0 ? '+' : ''})
           </button>
         </div>
 

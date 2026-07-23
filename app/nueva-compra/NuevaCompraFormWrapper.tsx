@@ -8,7 +8,7 @@ import { crearOrden } from '@/lib/ordenes'
 import { marcarPedidoAlmacenComprado } from '@/lib/pedidos-almacen'
 import type { NuevaCompraForm as FormData } from '@/lib/schemas'
 import { sincronizarCamposLegacyOrden } from '@/lib/schemas'
-import { generarMensajeWhatsApp, obtenerUrlWhatsApp } from '@/lib/ordenes-display'
+import { generarMensajeWhatsApp, copiarOrdenAlPortapapeles, LINK_GRUPO_WHATSAPP } from '@/lib/ordenes-display'
 
 export default function NuevaCompraFormWrapper({
   pedidoId,
@@ -51,8 +51,12 @@ export default function NuevaCompraFormWrapper({
           creadoEn: new Date(),
           actualizadoEn: new Date(),
         })
-        const url = obtenerUrlWhatsApp(msg)
-        window.open(url, '_blank')
+        try {
+          await copiarOrdenAlPortapapeles(msg)
+        } catch (err) {
+          console.warn('[nueva-compra] no se pudo copiar al portapapeles:', err)
+        }
+        window.open(LINK_GRUPO_WHATSAPP, '_blank')
       }
 
       router.push('/ordenes')

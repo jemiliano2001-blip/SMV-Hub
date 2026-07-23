@@ -16,6 +16,9 @@ vi.mock("@/lib/usuarios-admin", () => ({
   resetearPasswordAdmin: mockResetear,
   eliminarUsuarioAdmin: mockEliminar,
 }))
+vi.mock("@/lib/auditoria-server", () => ({
+  registrarAuditoriaServer: vi.fn(),
+}))
 
 import { PATCH, DELETE } from "@/app/api/usuarios/[uid]/route"
 import { POST as resetPassword } from "@/app/api/usuarios/[uid]/reset-password/route"

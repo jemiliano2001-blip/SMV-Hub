@@ -2,6 +2,7 @@ import { z } from "zod"
 import { verificarSuperAdmin } from "@/lib/api-auth"
 import { actualizarUsuarioAdmin, eliminarUsuarioAdmin } from "@/lib/usuarios-admin"
 import { ModuloIdSchema, RolSchema } from "@/lib/schemas"
+import { registrarAuditoriaServer } from "@/lib/auditoria-server"
 
 const CambiosUsuarioSchema = z
   .object({
@@ -35,12 +36,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ui
 
   try {
     const { plantilla, rol, ...rest } = parseResult.data
+    const campos = Object.keys(parseResult.data)
     await actualizarUsuarioAdmin(uid, {
       ...rest,
       ...(plantilla !== undefined || rol !== undefined
         ? { plantilla: plantilla ?? rol }
         : {}),
     })
+
+    await registrarAuditoriaServer(
+      auth.email,
+      "EDITAR",
+      "usuarios",
+      uid,
+      `Actualizó usuario ${uid} (campos: ${campos.join(", ")})`
+    )
+
     return Response.json({ ok: true })
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "error desconocido"
@@ -63,6 +74,13 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ u
 
   try {
     await eliminarUsuarioAdmin(uid)
+    await registrarAuditoriaServer(
+      auth.email,
+      "BORRAR",
+      "usuarios",
+      uid,
+      `Eliminó usuario ${uid}`
+    )
     return Response.json({ ok: true })
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "error desconocido"

@@ -19,7 +19,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import AuthGuard from '@/app/AuthGuard'
-import { useProveedores } from '@/lib/hooks/useProveedores'
+import { useDirectorioProveedores } from '@/lib/hooks/useDirectorioProveedores'
 import { useProveedoresInteligencia } from '@/lib/hooks/useProveedoresInteligencia'
 import type {
   Proveedor,
@@ -1077,8 +1077,13 @@ function ProveedoresContent() {
 
   const {
     proveedores,
-    todosProveedores,
+    catalogoCompleto,
     cargando: cargandoProv,
+    cargandoMas,
+    cargandoCatalogo,
+    error: errorProv,
+    hayMas,
+    resumen: resumenProveedores,
     busqueda,
     setBusqueda,
     filtroCategoria,
@@ -1088,7 +1093,12 @@ function ProveedoresContent() {
     crearProveedor,
     editarProveedor,
     eliminarProveedor,
-  } = useProveedores()
+    cargarMas,
+    cargarCatalogoCompleto,
+    recargar: recargarProveedores,
+  } = useDirectorioProveedores({ mercado: region })
+
+  const todosProveedores = useMemo(() => catalogoCompleto ?? [], [catalogoCompleto])
 
   const {
     todasCompras,
@@ -1129,40 +1139,17 @@ function ProveedoresContent() {
     }
   }, [region, seccion])
 
-  function esProveedorMexico(p: Proveedor): boolean {
-    if (p.mercado === "mexico") return true
-    if (p.mercado === "usa") return false
-    const pais = (p.pais ?? "")
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/\p{M}/gu, "")
-    if (/mexico|\bmx\b/.test(pais)) return true
-    if (p.moneda === "MXN") return true
-    // Import Odoo sin país US explícito
-    if (
-      typeof p.odooPartnerId === "number" &&
-      p.odooPartnerId > 0 &&
-      !/estados unidos|united states|\busa\b/.test(pais)
-    ) {
-      return true
-    }
-    return false
-  }
+  useEffect(() => {
+    const requiereCatalogo = seccion !== 'proveedores' || modalPOAbierto
+    if (!requiereCatalogo || catalogoCompleto || cargandoCatalogo) return
+    void cargarCatalogoCompleto().catch((err) => {
+      console.error('No se pudo cargar el catálogo completo de proveedores:', err)
+      toast.error('No se pudo preparar el catálogo completo')
+    })
+  }, [cargarCatalogoCompleto, cargandoCatalogo, catalogoCompleto, modalPOAbierto, seccion])
 
-  const catalogoRegion = todosProveedores.filter((p) =>
-    region === 'mexico' ? esProveedorMexico(p) : !esProveedorMexico(p)
-  )
-  const proveedoresRegionFiltrados = proveedores.filter((p) =>
-    region === 'mexico' ? esProveedorMexico(p) : !esProveedorMexico(p)
-  )
-  // ponytail: en México sin búsqueda se muestran solo los 12 con más órdenes Odoo
-  const proveedoresRegion =
-    region === 'mexico' && !busqueda.trim()
-      ? [...proveedoresRegionFiltrados]
-          .sort((a, b) => (b.ordenesOdoo ?? 0) - (a.ordenesOdoo ?? 0))
-          .slice(0, 12)
-      : proveedoresRegionFiltrados
-  const totalProveedoresRegion = catalogoRegion.length
+  const catalogoRegion = todosProveedores.filter((p) => p.mercado === region)
+  const totalProveedoresRegion = resumenProveedores[region]
 
   async function handleComparadorDesdeHistorico() {
     if (!conceptoHistorico.trim()) {
@@ -1171,12 +1158,13 @@ function ProveedoresContent() {
     }
     setCargandoHistorico(true)
     try {
+      const catalogo = await cargarCatalogoCompleto()
       const historico = await listarCotizaciones()
       const ofertas = ofertasDesdeHistorico(
         conceptoHistorico.trim(),
         conceptoHistorico.trim(),
         historico,
-        todosProveedores
+        catalogo
       )
       if (ofertas.length === 0) {
         toast.error('No hay cotizaciones históricas que coincidan')
@@ -1243,11 +1231,23 @@ function ProveedoresContent() {
     }
   }
 
-  const totalProveedores = totalProveedoresRegion
+  const totalProveedores = resumenProveedores.total
 
   function abrirNuevo() {
     setProveedorEditar(null)
     setModalFormAbierto(true)
+  }
+
+  async function abrirReportePO() {
+    const toastId = toast.loading('Preparando catálogo para el reporte…')
+    try {
+      await cargarCatalogoCompleto()
+      toast.dismiss(toastId)
+      setModalPOAbierto(true)
+    } catch (err) {
+      console.error(err)
+      toast.error('No se pudo preparar el reporte PO', { id: toastId })
+    }
   }
 
   function abrirEditar(p: Proveedor) {
@@ -1259,9 +1259,13 @@ function ProveedoresContent() {
     if (!idEliminar) return
     try {
       await eliminarProveedor(idEliminar)
+      toast.success('Proveedor eliminado')
       if (proveedorDetalle?.id === idEliminar) {
         setProveedorDetalle(null)
       }
+    } catch (err) {
+      console.error(err)
+      toast.error('No se pudo eliminar el proveedor')
     } finally {
       setIdEliminar(null)
     }
@@ -1273,12 +1277,13 @@ function ProveedoresContent() {
         {/* Cabecera Principal y Centro de Mando Hero */}
         <HeaderCentroMando
           totalProveedores={totalProveedores}
-          totalUSA={todosProveedores.filter((p) => !esProveedorMexico(p)).length}
-          totalMexico={todosProveedores.filter((p) => esProveedorMexico(p)).length}
+          totalUSA={resumenProveedores.usa}
+          totalMexico={resumenProveedores.mexico}
+          sinMercado={resumenProveedores.sinMercado}
           mercadoActivo={region}
           onMercadoChange={(r) => setRegion(r)}
           onNuevoProveedor={abrirNuevo}
-          onGenerarPDF={() => setModalPOAbierto(true)}
+          onGenerarPDF={() => void abrirReportePO()}
           onAbrirCalculadora={() => setCalculadoraAbierta(true)}
           proveedoresFantasmaCount={0}
           leadTimePromedio={3.5}
@@ -1286,23 +1291,23 @@ function ProveedoresContent() {
         />
 
         {/* Navegación por Pestañas Principales */}
-        <div className="flex items-center gap-1.5 border border-slate-200 bg-white p-1.5 rounded-xl shadow-2xs text-xs font-bold">
+        <div className="flex items-center gap-1.5 overflow-x-auto border border-slate-200 bg-white p-1.5 rounded-xl shadow-2xs text-xs font-bold">
           <button
             type="button"
             onClick={() => setSeccion('proveedores')}
-            className={`px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all ${
+            className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5 transition-all ${
               seccion === 'proveedores'
                 ? 'bg-[#0369A1] text-white shadow-xs font-extrabold'
                 : 'text-slate-600 hover:bg-slate-50'
             }`}
           >
-            <Building2 className="h-4 w-4" /> Directorio Proveedores ({totalProveedoresRegion})
+            <Building2 className="h-4 w-4" /> Directorio Proveedores ({totalProveedoresRegion}{resumenProveedores.sinMercado > 0 ? '+' : ''})
           </button>
 
           <button
             type="button"
             onClick={() => setSeccion('comparar')}
-            className={`px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all ${
+            className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5 transition-all ${
               seccion === 'comparar'
                 ? 'bg-[#0369A1] text-white shadow-xs font-extrabold'
                 : 'text-slate-600 hover:bg-slate-50'
@@ -1314,7 +1319,7 @@ function ProveedoresContent() {
           <button
             type="button"
             onClick={() => setSeccion('inteligencia')}
-            className={`px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all ${
+            className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5 transition-all ${
               seccion === 'inteligencia'
                 ? 'bg-[#0369A1] text-white shadow-xs font-extrabold'
                 : 'text-slate-600 hover:bg-slate-50'
@@ -1327,8 +1332,14 @@ function ProveedoresContent() {
         {/* PESTAÑA 1: DIRECTORIO DE PROVEEDORES */}
         {seccion === 'proveedores' && (
           <DirectorioProveedores
-            proveedores={proveedoresRegion}
+            proveedores={proveedores}
             cargando={cargandoProv}
+            cargandoMas={cargandoMas}
+            error={errorProv}
+            hayMas={hayMas}
+            totalMercado={resumenProveedores.sinMercado === 0 ? totalProveedoresRegion : undefined}
+            onRetry={() => void recargarProveedores()}
+            onCargarMas={() => void cargarMas()}
             busqueda={busqueda}
             onBusquedaChange={setBusqueda}
             categoriaFiltro={filtroCategoria}
@@ -1577,7 +1588,12 @@ function ProveedoresContent() {
         )}
 
         {/* PESTAÑA 3: INTELIGENCIA 360° & CONTINGENCIA */}
-        {seccion === 'inteligencia' && (
+        {seccion === 'inteligencia' && cargandoCatalogo && (
+          <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-sm font-medium text-slate-500">
+            Preparando el catálogo para Inteligencia 360°…
+          </div>
+        )}
+        {seccion === 'inteligencia' && !cargandoCatalogo && catalogoCompleto && (
           <PanelInteligencia360
             proveedores={catalogoRegion}
             scorecards={scorecardsAuto}
@@ -1616,20 +1632,24 @@ function ProveedoresContent() {
           onGuardar={async (payload) => {
             if (proveedorEditar) {
               await editarProveedor(proveedorEditar.id, payload)
+              toast.success('Proveedor actualizado')
             } else {
               await crearProveedor({ ...payload, mercado: region })
+              toast.success('Proveedor creado')
             }
           }}
           proveedorEdicion={proveedorEditar}
         />
 
         {/* Modal Generar PO Imprimible */}
-        <GenerarPOModal
-          abierto={modalPOAbierto}
-          onClose={() => setModalPOAbierto(false)}
-          proveedores={todosProveedores}
-          onCrearCompra={crearCompra}
-        />
+        {catalogoCompleto && (
+          <GenerarPOModal
+            abierto={modalPOAbierto}
+            onClose={() => setModalPOAbierto(false)}
+            proveedores={catalogoCompleto}
+            onCrearCompra={crearCompra}
+          />
+        )}
 
         {/* Modal Scorecard Evaluacion */}
         {proveedorScorecard && (

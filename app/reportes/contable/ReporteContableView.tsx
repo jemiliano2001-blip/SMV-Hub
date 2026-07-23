@@ -16,6 +16,8 @@ import { extraerEntradasHistorialSat } from "@/lib/sat/sugerir-clave"
 import { Loader2, AlertCircle, FileSpreadsheet, Printer, Sparkles, CheckCircle2, History, RefreshCw } from "lucide-react"
 import * as XLSX from "xlsx"
 import { listarLotesContables, crearLoteContable, type ReporteContableLote } from "@/lib/reportes-contables"
+import { useConfirmDialog } from "@/components/ConfirmDialogProvider"
+import { toast } from "sonner"
 
 const MSG_ERROR = "No se pudieron cargar las órdenes. Verifica tu conexión."
 
@@ -47,6 +49,7 @@ async function leerRespuestaProcesamiento(res: Response): Promise<RespuestaProce
 }
 
 export default function ReporteContableView() {
+  const confirmar = useConfirmDialog()
   const [ordenes, setOrdenes] = useState<OrdenCompra[]>([])
   const [lotes, setLotes] = useState<ReporteContableLote[]>([])
   
@@ -146,11 +149,16 @@ export default function ReporteContableView() {
     ).length
     if (chunks.length === 0 || total === 0) return
 
-    if (!confirm(`Esto completará mediante IA ${total} líneas sin descripción simplificada o clave SAT. ¿Continuar?`)) return
+    const aceptado = await confirmar({
+      title: "Completar líneas mediante IA",
+      description: `Se procesarán ${total} líneas sin descripción simplificada o clave SAT.`,
+      confirmLabel: "Procesar líneas",
+    })
+    if (!aceptado) return
 
     const user = getClienteAuth().currentUser
     if (!user) {
-      alert("Tu sesión expiró. Inicia sesión de nuevo para continuar.")
+      toast.error("Tu sesión expiró. Inicia sesión de nuevo para continuar.")
       return
     }
 
@@ -217,16 +225,21 @@ export default function ReporteContableView() {
   const handleGuardarLote = async () => {
     if (ordenesFiltradas.length === 0) return
     const ids = ordenesFiltradas.map(o => o.id)
-    if (!confirm(`¿Estás seguro de cerrar este reporte con ${ids.length} órdenes y enviarlo al historial?`)) return
+    const aceptado = await confirmar({
+      title: "Cerrar reporte contable",
+      description: `Se cerrará el reporte con ${ids.length} órdenes y se enviará al historial.`,
+      confirmLabel: "Cerrar reporte",
+    })
+    if (!aceptado) return
     
     setGuardandoLote(true)
     try {
       await crearLoteContable(ids, lineasTodas.length)
-      alert("Lote generado y guardado en el historial con éxito.")
+      toast.success("Lote generado y guardado en el historial.")
       await cargar()
       setTab("pendientes") // Quedarse en pendientes (que ahora estará vacía)
     } catch (error) {
-      alert("Error al guardar lote: " + mensajeError(error))
+      toast.error("Error al guardar lote: " + mensajeError(error))
     } finally {
       setGuardandoLote(false)
     }

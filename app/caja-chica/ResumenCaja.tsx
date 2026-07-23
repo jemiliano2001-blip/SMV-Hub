@@ -5,8 +5,11 @@ import { useState, useMemo, useEffect } from 'react'
 import { useCajaChica } from '@/lib/hooks/useCajaChica'
 import { Wallet, TrendingDown, CreditCard, AlertTriangle, Settings, PiggyBank, Save, RefreshCw } from 'lucide-react'
 import { fechaHoyLocal } from '@/lib/format'
+import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
+import { toast } from 'sonner'
 
 export default function ResumenCaja() {
+  const confirmar = useConfirmDialog()
   const [periodo, setPeriodo] = useState(() => {
     const hoy = new Date()
     return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`
@@ -77,13 +80,16 @@ export default function ResumenCaja() {
 
   const handleCorteReabastecimiento = async () => {
     if (totalSalidas <= 0) {
-      alert("No hay gastos registrados para reembolsar en este periodo.")
+      toast.info("No hay gastos registrados para reembolsar en este periodo.")
       return
     }
-    
-    if (!confirm(`¿Estás seguro de registrar un Reabastecimiento Automático por ${formatearDinero(totalSalidas)}?\n\nEsto asume que ya vas a entregar tu reporte a finanzas para que te devuelvan el dinero gastado.`)) {
-      return
-    }
+
+    const aceptado = await confirmar({
+      title: 'Registrar reabastecimiento automático',
+      description: `Se registrará un reabastecimiento por ${formatearDinero(totalSalidas)}.\n\nConfirma que entregarás el reporte a Finanzas para solicitar el reembolso.`,
+      confirmLabel: 'Registrar reabastecimiento',
+    })
+    if (!aceptado) return
     
     setIsCorteLoading(true)
     try {
@@ -102,10 +108,10 @@ export default function ResumenCaja() {
         ivaEstimado: 0,
         verificado: true
       })
-      alert('¡Corte y reabastecimiento registrado exitosamente!\n\nVe a la pestaña de "Reportes" para descargar tu PDF/Excel y entregarlo a Finanzas.')
+      toast.success('Corte y reabastecimiento registrado. Descarga el reporte para Finanzas.')
     } catch (error) {
       console.error(error)
-      alert('Ocurrió un error al registrar el reabastecimiento.')
+      toast.error('Ocurrió un error al registrar el reabastecimiento.')
     } finally {
       setIsCorteLoading(false)
     }

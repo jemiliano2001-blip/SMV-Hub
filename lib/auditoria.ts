@@ -25,3 +25,6 @@ export async function registrarAuditoria(
     console.error('Error al registrar auditoría:', error)
   }
 }
+
+
+

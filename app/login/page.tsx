@@ -98,7 +98,10 @@ function LoginForm() {
 
         {/* Error Message */}
         {mensajeError && (
-          <div className="mb-6 p-4 bg-red-50 rounded-lg flex items-start gap-3 border border-red-100">
+          <div
+            className="mb-6 p-4 bg-red-50 rounded-lg flex items-start gap-3 border border-red-100"
+            role="alert"
+          >
             <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
             <p className="text-sm text-red-700">{mensajeError}</p>
           </div>
@@ -106,6 +109,7 @@ function LoginForm() {
 
         {/* Google Sign-In */}
         <button
+          type="button"
           onClick={handleLoginGoogle}
           disabled={loadingGoogle || loadingPassword}
           className="w-full flex items-center justify-center gap-3 bg-[#0F172A] hover:bg-[#1E293B] text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -121,7 +125,7 @@ function LoginForm() {
         {/* Separator */}
         <div className="flex items-center gap-3 my-6">
           <div className="h-px flex-1 bg-[#E2E8F0]" />
-          <span className="text-xs text-[#94A3B8]">o con tu usuario</span>
+          <span className="text-xs text-[#64748B]">o con tu usuario</span>
           <div className="h-px flex-1 bg-[#E2E8F0]" />
         </div>
 
@@ -130,6 +134,7 @@ function LoginForm() {
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#94A3B8]" />
             <input
+              aria-label="Correo electrónico"
               type="email"
               required
               autoComplete="username"
@@ -142,6 +147,7 @@ function LoginForm() {
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#94A3B8]" />
             <input
+              aria-label="Contraseña"
               type="password"
               required
               autoComplete="current-password"
@@ -165,7 +171,7 @@ function LoginForm() {
 
       </div>
 
-      <p className="mt-8 text-xs text-[#94A3B8]">
+      <p className="mt-8 text-xs text-[#64748B]">
         Acceso restringido · SMV Maquinados
       </p>
     </main>

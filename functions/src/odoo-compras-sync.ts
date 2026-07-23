@@ -141,6 +141,62 @@ async function cargarClavesSatProducto(
   return mapa
 }
 
+/** Metadata enriquecida de producto Odoo: categoría, UdM, costo, referencia. */
+type MetadataProducto = {
+  categoriaId: number
+  categoriaNombre: string
+  uomNombre: string | null
+  costoEstandar: number | null
+  refInterna: string | null
+}
+
+async function cargarMetadataProducto(
+  execute: ExecuteKw,
+  productIds: number[]
+): Promise<Map<number, MetadataProducto>> {
+  const mapa = new Map<number, MetadataProducto>()
+  const unicos = [...new Set(productIds.filter((id) => id > 0))]
+  if (unicos.length === 0) return mapa
+
+  // Leer categorías de producto
+  const categoriasRaw = await execute<
+    { id: number; name: string; complete_name?: string }[]
+  >("product.category", "search_read", [[]], {
+    fields: ["id", "name", "complete_name"],
+  })
+  const categoriaPorId = new Map<number, string>()
+  for (const c of categoriasRaw) {
+    categoriaPorId.set(c.id, c.complete_name ?? c.name)
+  }
+
+  // Leer productos con metadata
+  for (let i = 0; i < unicos.length; i += 200) {
+    const chunk = unicos.slice(i, i + 200)
+    const productos = await execute<
+      {
+        id: number
+        categ_id: [number, string] | false
+        uom_id: [number, string] | false
+        standard_price: number
+        default_code: string | false
+      }[]
+    >("product.product", "search_read", [[["id", "in", chunk]]], {
+      fields: ["id", "categ_id", "uom_id", "standard_price", "default_code"],
+    })
+    for (const p of productos) {
+      const categId = p.categ_id ? p.categ_id[0] : 0
+      mapa.set(p.id, {
+        categoriaId: categId,
+        categoriaNombre: categoriaPorId.get(categId) ?? (p.categ_id ? p.categ_id[1] : ""),
+        uomNombre: p.uom_id ? p.uom_id[1] : null,
+        costoEstandar: typeof p.standard_price === "number" ? p.standard_price : null,
+        refInterna: typeof p.default_code === "string" && p.default_code ? p.default_code : null,
+      })
+    }
+  }
+  return mapa
+}
+
 async function escribirLotes(
   coleccion: string,
   docs: { id: string; data: Record<string, unknown> }[],
@@ -399,14 +455,29 @@ async function sincronizarComprasOdoo(): Promise<{
     if (l.product_id) productIds.push(l.product_id[0])
   }
   const clavesSat = await cargarClavesSatProducto(execute, productIds)
+  const metadataProducto = await cargarMetadataProducto(execute, productIds)
 
   for (const l of lineasPorId.values()) {
     const pid = l.product_id ? l.product_id[0] : 0
     l.clave_prod_serv = clavesSat.get(pid) ?? null
+    const meta = metadataProducto.get(pid)
+    if (meta) {
+      l._odooCategoria = meta.categoriaNombre
+      l._odooUom = meta.uomNombre
+      l._odooCostoEstandar = meta.costoEstandar
+      l._odooRefInterna = meta.refInterna
+    }
   }
   for (const l of invLineasPorId.values()) {
     const pid = l.product_id ? l.product_id[0] : 0
     l.clave_prod_serv = clavesSat.get(pid) ?? null
+    const meta = metadataProducto.get(pid)
+    if (meta) {
+      l._odooCategoria = meta.categoriaNombre
+      l._odooUom = meta.uomNombre
+      l._odooCostoEstandar = meta.costoEstandar
+      l._odooRefInterna = meta.refInterna
+    }
   }
 
   for (const po of posRaw) {

@@ -4,13 +4,13 @@ import {
   ordenTieneSatPendiente,
   itemSatPendiente,
   generarMensajeWhatsApp,
-  obtenerUrlWhatsApp,
+  copiarOrdenAlPortapapeles,
   LINK_GRUPO_WHATSAPP,
 } from '@/lib/ordenes-display'
 import WhatsAppIcon from '@/components/WhatsAppIcon'
 import { normalizarClaveProdServ } from '@/lib/sat/normalizar'
 import type { OrdenCompra } from '@/lib/schemas'
-import { Calendar, CheckCircle2, Edit2, ExternalLink, Tags, Trash2, X, XCircle, Users } from 'lucide-react'
+import { Calendar, CheckCircle2, Edit2, ExternalLink, Tags, Trash2, X, XCircle } from 'lucide-react'
 import OrdenBadgeEstado from './OrdenBadgeEstado'
 import { useState } from 'react'
 
@@ -38,23 +38,11 @@ export default function OrdenDetallesModal({
   const handleNotificarWhatsApp = async () => {
     const msg = generarMensajeWhatsApp(orden)
     try {
-      await navigator.clipboard.writeText(msg)
+      await copiarOrdenAlPortapapeles(msg)
       setCopiado(true)
       setTimeout(() => setCopiado(false), 3000)
     } catch {
       // Ignorar fallo de portapapeles si no hay contexto seguro
-    }
-    window.open(obtenerUrlWhatsApp(msg), '_blank')
-  }
-
-  const handleAbrirGrupoWhatsApp = async () => {
-    const msg = generarMensajeWhatsApp(orden)
-    try {
-      await navigator.clipboard.writeText(msg)
-      setCopiado(true)
-      setTimeout(() => setCopiado(false), 3000)
-    } catch {
-      // Ignorar
     }
     window.open(LINK_GRUPO_WHATSAPP, '_blank')
   }
@@ -262,19 +250,10 @@ export default function OrdenDetallesModal({
             <button
               onClick={handleNotificarWhatsApp}
               className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-bold shadow-xs transition-colors active:scale-[0.98]"
-              title="Copia el mensaje con link al comprobante y abre WhatsApp"
+              title="Copia el mensaje con link al comprobante y abre el grupo de WhatsApp"
             >
               <WhatsAppIcon className="h-3.5 w-3.5 text-white shrink-0" />
-              {copiado ? '¡Mensaje Copiado!' : 'Notificar por WhatsApp'}
-            </button>
-
-            <button
-              onClick={handleAbrirGrupoWhatsApp}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 px-3 py-1.5 text-xs font-bold transition-colors active:scale-[0.98]"
-              title="Abre el enlace directo del Grupo de WhatsApp SMV"
-            >
-              <Users className="h-3.5 w-3.5 text-emerald-700" />
-              Ir al Grupo de WhatsApp
+              {copiado ? '¡Mensaje Copiado y Abriendo Grupo!' : 'Notificar por WhatsApp'}
             </button>
 
             {ordenTieneSatPendiente(orden) && (

@@ -12,6 +12,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { rol, cargando: cargandoRol } = useRol(authBypassActivo() ? null : usuario)
   const router = useRouter()
   const pathname = usePathname()
+  const esLogin = pathname === '/login'
 
   const usuarioNoAutorizado =
     !cargando &&
@@ -43,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [usuario, cargando, cargandoRol, router, pathname, usuarioNoAutorizado])
 
-  if (cargando || (!!usuario && !authBypassActivo() && cargandoRol) || usuarioNoAutorizado) {
+  if (!esLogin && (cargando || (!!usuario && !authBypassActivo() && cargandoRol) || usuarioNoAutorizado)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0369A1]"></div>

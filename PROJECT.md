@@ -15,7 +15,7 @@ el identificador técnico `compras-americanas`.)
 ## 🗺️ Code Layout
 
 - `app/` - Componentes de interfaz de usuario de Next.js, rutas y Server Actions.
-  - Subdirectorios por módulo: `/almacen`, `/auditoria`, `/banos`, `/caja-chica`, `/claves-sat`, `/cotizaciones`, `/finanzas`, `/horas-extra`, `/importar`, `/login`, `/nueva-compra`, `/operadores`, `/ordenes`, `/ordenes-servicio`, `/reportes` (incl. `/reportes/contable`), `/requisiciones`, `/usuarios`.
+  - Subdirectorios por módulo: `/almacen`, `/auditoria`, `/banos`, `/caja-chica`, `/claves-sat`, `/cotizaciones`, `/finanzas`, `/horas-extra`, `/login`, `/nueva-compra`, `/operadores`, `/ordenes`, `/ordenes-servicio`, `/proveedores`, `/reportes` (incl. `/reportes/contable`), `/requisiciones`, `/usuarios`.
 - `lib/` - Funciones utilitarias puras, esquemas de Zod (`schemas.ts`), helpers de Firestore y lógica de negocio.
 - `lib/hooks/` - Custom React hooks para fetching y mutación interactiva con la base de datos (e.g. `useBanos.ts`, `useOrdenes.ts`).
 - `tests/` - Archivos de prueba para Vitest (mayormente lógica pura).
@@ -27,7 +27,7 @@ el identificador técnico `compras-americanas`.)
 |---|---|---|---|
 | 1 | Baseline & ESLint Fixes | Arreglo de la base de código inicial y chequeos estrictos | ✅ DONE |
 | 2 | `/ordenes` | Listado, edición inline, detalles y tracking en vivo de OCs | ✅ DONE |
-| 3 | `/importar` | Subida de CSV (McMaster/Grainger), validación por filas y carga batch | ✅ DONE |
+| 3 | Importación masiva legacy | La ruta `/importar` fue retirada; los parsers compartidos siguen soportando Nueva Compra y Cotizaciones | 🗑️ RETIRED |
 | 4 | Vitest Suite | Expansión de test suite para lógica pura de `lib/` | ✅ DONE |
 | 5 | Migración de Excel Operativo | Creación de módulos de `/almacen`, `/banos`, `/horas-extra` y `/operadores` con reportes automáticos | ✅ DONE |
 | 6 | Auditoría Continua | Verificación de que todos los tests, lints y builds pasen sin advertencias | ✅ DONE |

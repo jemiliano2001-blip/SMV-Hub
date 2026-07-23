@@ -6,7 +6,6 @@ import {
   setDoc,
   query,
   where,
-  orderBy,
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore"
@@ -55,61 +54,6 @@ function formatearFecha(fecha: unknown): string {
   return String(fecha)
 }
 
-// ── REQUISICIONES FLUIDAS Y COMPLETAS ────────────────────────────────────────
-
-export async function obtenerRequisicionesFlujo(): Promise<Requisicion[]> {
-  try {
-    const snap = await getDocs(query(collection(db, COLECCION_REQUISICIONES), orderBy("creadoEn", "desc")))
-    if (snap.empty) {
-      return await inicializarRequisicionesSemilla()
-    }
-    return snap.docs.map((d) => {
-      const data = d.data()
-      return {
-        id: d.id,
-        folio: data.folio || `REQ-${d.id.substring(0, 6).toUpperCase()}`,
-        tipo: data.tipo || "general",
-        solicitante: data.solicitante || "Taller CNC",
-        departamento: data.departamento || "Maquinados",
-        prioridadFlujo: (data.prioridadFlujo as PrioridadFlujo) || "media",
-        estatusFlujo: (data.estatusFlujo as EstatusRequisicionFlujo) || "enviada",
-        estado: data.estado || "en_proceso",
-        fechaPedido: data.fechaPedido || fechaHoyLocal(),
-        tienda: data.tienda || null,
-        descripcion: data.descripcion || (data.items && data.items[0]?.descripcion) || "Solicitud de herramientas",
-        link: data.link || null,
-        cantidad: data.cantidad || null,
-        prioridad: data.prioridad || "3-5 dias",
-        empresa: data.empresa || "Taller",
-        ordenServicio: data.ordenServicio || null,
-        parteNumero: data.parteNumero || null,
-        fechaEntregaEst: data.fechaEntregaEst || null,
-        recibio: data.recibio || null,
-        revisionFinanzas: data.revisionFinanzas || null,
-        nota: data.nota || null,
-        motivoJustificacion: data.motivoJustificacion || "",
-        items: Array.isArray(data.items) ? data.items : [],
-        proveedorGanadorId: data.proveedorGanadorId || null,
-        proveedorGanadorNombre: data.proveedorGanadorNombre || null,
-        motivoSeleccion: data.motivoSeleccion || null,
-        fechaDecision: data.fechaDecision || null,
-        usuarioDecision: data.usuarioDecision || null,
-        aprobacionRequerida: data.aprobacionRequerida === true,
-        aprobador: data.aprobador || null,
-        estatusAprobacion: data.estatusAprobacion || "pendiente",
-        fechaAprobacion: data.fechaAprobacion || null,
-        ordenCompraFolio: data.ordenCompraFolio || null,
-        ordenCompraId: data.ordenCompraId || null,
-        creadoEn: formatearFecha(data.creadoEn),
-        actualizadoEn: formatearFecha(data.actualizadoEn),
-      } as unknown as Requisicion
-    })
-  } catch (err) {
-    console.error("Error al obtener requisiciones flujo:", err)
-    return DEMO_REQUISICIONES
-  }
-}
-
 export async function crearRequisicionFlujo(payload: NuevaRequisicionFlujoPayload): Promise<Requisicion> {
   const docRef = doc(collection(db, COLECCION_REQUISICIONES))
   const ahora = new Date()
@@ -150,9 +94,9 @@ export async function crearRequisicionFlujo(payload: NuevaRequisicionFlujoPayloa
   return {
     id: docRef.id,
     ...nuevaData,
-    creadoEn: ahora.toISOString(),
-    actualizadoEn: ahora.toISOString(),
-  } as unknown as Requisicion
+    creadoEn: ahora,
+    actualizadoEn: ahora,
+  } as Requisicion
 }
 
 // ── COTIZACIONES POR REQUISICIÓN ─────────────────────────────────────────────

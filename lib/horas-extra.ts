@@ -10,9 +10,10 @@ import {
   writeBatch,
   type Unsubscribe,
 } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { db, getClienteAuth } from "@/lib/firebase"
 import type { HorasExtra, Departamento } from "@/lib/schemas"
 import { makeDateConverter, actualizarDocumento } from "@/lib/firestore-helpers"
+import { registrarAuditoria } from "@/lib/auditoria"
 
 const horasExtraConverter = makeDateConverter<HorasExtra>()
 const horasExtraRef = () => collection(db, "horas-extra").withConverter(horasExtraConverter)
@@ -77,6 +78,10 @@ export async function crearHorasExtra(payload: NuevaHorasExtraPayload): Promise<
     creadoEn: ahora,
     actualizadoEn: ahora,
   } as HorasExtra)
+
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, "CREAR", "horas-extra", ref.id, `Registró horas extra para ${payload.empleado} (${payload.departamento})`)
+
   return ref.id
 }
 
@@ -95,6 +100,9 @@ export async function crearHorasExtraLote(
     } as HorasExtra)
   }
   await batch.commit()
+
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, "CREAR", "horas-extra", "LOTE", `Registró ${payloads.length} registros de horas extra`)
 }
 
 export async function actualizarHorasExtra(
@@ -102,8 +110,12 @@ export async function actualizarHorasExtra(
   cambios: Partial<Omit<HorasExtra, "id" | "creadoEn">>
 ): Promise<void> {
   await actualizarDocumento("horas-extra", id, cambios as Record<string, unknown>)
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, "EDITAR", "horas-extra", id, `Actualizó horas extra: ${Object.keys(cambios).join(', ')}`)
 }
 
 export async function eliminarHorasExtra(id: string): Promise<void> {
   await deleteDoc(doc(db, "horas-extra", id))
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, "BORRAR", "horas-extra", id, "Eliminó horas extra")
 }

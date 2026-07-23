@@ -1,4 +1,4 @@
-// Estampa el custom claim `smvHubActivo` (usado por storage.rules) a todos los
+// Estampa los custom claims usados por storage.rules a todos los
 // usuarios existentes de la colección `usuarios`. Idempotente: se puede correr
 // las veces que haga falta. Necesario solo para cuentas creadas antes de que
 // lib/usuarios-admin.ts sincronizara el claim automáticamente (o creadas desde
@@ -43,6 +43,10 @@ console.log(`Documentos en usuarios/: ${snap.size}`)
 for (const doc of snap.docs) {
   const data = doc.data()
   const activo = data.activo === true
+  const plantilla = data.plantilla ?? data.rol
+  const modulos = Array.isArray(data.modulos)
+    ? data.modulos.filter((modulo) => typeof modulo === "string")
+    : (["admin", "compras"].includes(plantilla) ? ["caja-chica"] : [])
 
   let cuenta
   try {
@@ -55,10 +59,13 @@ for (const doc of snap.docs) {
   const providers = cuenta.providerData.map((p) => p.providerId).join(", ") || "(ninguno)"
   const claimsAntes = JSON.stringify(cuenta.customClaims ?? {})
 
-  await auth.setCustomUserClaims(doc.id, { smvHubActivo: activo })
+  await auth.setCustomUserClaims(doc.id, {
+    smvHubActivo: activo,
+    smvHubModulos: modulos,
+  })
 
   console.log(
-    `✓ ${data.email} | rol=${data.rol} activo=${activo} | providers=[${providers}] | claims antes=${claimsAntes} → {smvHubActivo:${activo}} | disabled=${cuenta.disabled}`
+    `✓ ${data.email} | rol=${data.rol} activo=${activo} | modulos=${modulos.length} | providers=[${providers}] | claims antes=${claimsAntes} → claims SMV actualizados | disabled=${cuenta.disabled}`
   )
 }
 

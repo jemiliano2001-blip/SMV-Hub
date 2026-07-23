@@ -1,15 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.syncOdooComprasManual = exports.syncOdooComprasScheduled = exports.syncOdooFacturasManual = exports.syncOdooFacturasScheduled = exports.exportToExcel = exports.importFromGoogleSheets = exports.exportToGoogleSheets = exports.recommendProvider = exports.autoPurchase = void 0;
-var autoPurchase_1 = require("./autoPurchase");
-Object.defineProperty(exports, "autoPurchase", { enumerable: true, get: function () { return autoPurchase_1.autoPurchase; } });
-var recommendation_1 = require("./recommendation");
-Object.defineProperty(exports, "recommendProvider", { enumerable: true, get: function () { return recommendation_1.recommendProvider; } });
-var sheetsSync_1 = require("./sheetsSync");
-Object.defineProperty(exports, "exportToGoogleSheets", { enumerable: true, get: function () { return sheetsSync_1.exportToGoogleSheets; } });
-Object.defineProperty(exports, "importFromGoogleSheets", { enumerable: true, get: function () { return sheetsSync_1.importFromGoogleSheets; } });
-var excelSync_1 = require("./excelSync");
-Object.defineProperty(exports, "exportToExcel", { enumerable: true, get: function () { return excelSync_1.exportToExcel; } });
+exports.syncOdooComprasManual = exports.syncOdooComprasScheduled = exports.syncOdooFacturasManual = exports.syncOdooFacturasScheduled = void 0;
 var odooSync_1 = require("./odooSync");
 Object.defineProperty(exports, "syncOdooFacturasScheduled", { enumerable: true, get: function () { return odooSync_1.syncOdooFacturasScheduled; } });
 Object.defineProperty(exports, "syncOdooFacturasManual", { enumerable: true, get: function () { return odooSync_1.syncOdooFacturasManual; } });

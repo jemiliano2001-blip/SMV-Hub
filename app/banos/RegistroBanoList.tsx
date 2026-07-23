@@ -9,6 +9,7 @@ import {
 } from '@/lib/format'
 import { resolverOperadorActivo } from '@/lib/banos-captura'
 import { Plus, Trash2, Check, Search } from 'lucide-react'
+import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 
 const BANOS: Bano[] = ['Baño #1', 'Baño #2', 'CNC', 'Automatizacion']
 
@@ -26,6 +27,7 @@ function getInitials(name: string) {
 }
 
 export default function RegistroBanoList() {
+  const confirmar = useConfirmDialog()
   const { registros, loading: loadingBanos, error, registrarEntrada, registrarLlegada, borrarRegistro } = useBanos()
   const { activos: operadoresActivos, loading: loadingOps } = useOperadores()
 
@@ -104,7 +106,13 @@ export default function RegistroBanoList() {
   }
 
   async function handleEliminar(id: string, op: string) {
-    if (!confirm(`¿Eliminar el registro de ${op}?`)) return
+    const aceptado = await confirmar({
+      title: 'Eliminar registro de baño',
+      description: `Se eliminará el registro de ${op}.`,
+      confirmLabel: 'Eliminar',
+      variant: 'destructive',
+    })
+    if (!aceptado) return
     try {
       await borrarRegistro(id)
     } catch (err) {
@@ -251,8 +259,8 @@ export default function RegistroBanoList() {
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
             En el baño ({enCurso.length})
           </h3>
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <table className="w-full text-sm text-left">
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+            <table className="min-w-[560px] w-full text-left text-xs">
               <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-2">Operador</th>
@@ -304,8 +312,8 @@ export default function RegistroBanoList() {
             <span className="w-2 h-2 rounded-full bg-gray-300"></span>
             Completados hoy ({terminados.length})
           </h3>
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <table className="w-full text-sm text-left">
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+            <table className="min-w-[560px] w-full text-left text-xs">
               <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-2">Operador</th>
