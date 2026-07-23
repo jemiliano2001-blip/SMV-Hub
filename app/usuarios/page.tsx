@@ -256,6 +256,7 @@ function ModalEditarPermisos({
   function handlePlantilla(p: Rol) {
     setPlantilla(p)
     setModulos(modulosDePlantilla(p))
+    if (p === 'admin') setEsSuperAdmin(true)
   }
 
   async function guardar() {
@@ -385,6 +386,19 @@ function AccionesUsuario({
     if (aceptado) await onEliminar(usuario.id)
   }
 
+  async function handleToggleActivo() {
+    const activar = !usuario.activo
+    const aceptado = await confirmar({
+      title: activar ? 'Activar usuario' : 'Desactivar usuario',
+      description: activar
+        ? `${usuario.email} volverá a tener acceso a SMV Hub.`
+        : `${usuario.email} perderá acceso a SMV Hub de inmediato.`,
+      confirmLabel: activar ? 'Activar' : 'Desactivar',
+      variant: activar ? 'default' : 'destructive',
+    })
+    if (aceptado) await onCambiarActivo(usuario.id, activar)
+  }
+
   return (
     <div className="flex flex-wrap items-center gap-3 font-mono">
       <button
@@ -430,7 +444,7 @@ function AccionesUsuario({
           </button>
         ))}
       <button
-        onClick={() => onCambiarActivo(usuario.id, !usuario.activo)}
+        onClick={handleToggleActivo}
         className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
           usuario.activo
             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'

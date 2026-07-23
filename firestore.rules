@@ -66,11 +66,13 @@ service cloud.firestore {
     }
 
     function esSuperAdminDoc() {
+      // Si el documento ya trae el campo explícito, manda sobre el fallback legado
+      // (permite revocar super-admin a un usuario con rol/plantilla "admin").
       return exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
         (
-          docUsuario().esSuperAdmin == true ||
-          docUsuario().rol == 'admin' ||
-          docUsuario().plantilla == 'admin'
+          ('esSuperAdmin' in docUsuario() && docUsuario().esSuperAdmin == true) ||
+          (!('esSuperAdmin' in docUsuario()) &&
+            (docUsuario().rol == 'admin' || docUsuario().plantilla == 'admin'))
         );
     }
 
@@ -442,6 +444,28 @@ service cloud.firestore {
       allow delete: if esUsuarioAutorizado() && (esCorreoBreakGlass() || tieneModulo('caja-chica'));
     }
 
+    // Fondo fijo compartido de caja chica (antes solo en localStorage del navegador).
+    match /caja_chica_config/{configId} {
+      allow read: if esUsuarioAutorizado() && (esCorreoBreakGlass() || tieneModulo('caja-chica'));
+      allow create, update: if esUsuarioAutorizado()
+                    && (esCorreoBreakGlass() || tieneModulo('caja-chica'))
+                    && request.resource.data.fondoFijo is number
+                    && request.resource.data.fondoFijo >= 0;
+      allow delete: if esUsuarioAutorizado() && (esCorreoBreakGlass() || tieneModulo('caja-chica'));
+    }
+
+    // Historial de arqueos (conteo físico vs saldo teórico) de caja chica.
+    match /caja_chica_arqueos/{arqueoId} {
+      allow read: if esUsuarioAutorizado() && (esCorreoBreakGlass() || tieneModulo('caja-chica'));
+      allow create: if esUsuarioAutorizado()
+                    && (esCorreoBreakGlass() || tieneModulo('caja-chica'))
+                    && request.resource.data.efectivoFisico is number
+                    && request.resource.data.saldoTeorico is number
+                    && request.resource.data.diferencia is number
+                    && request.resource.data.creadoEn is timestamp;
+      allow update, delete: if false;
+    }
+
     // ── Reportes Contables ───────────────────────────────────────────────────
 
     function reporteContableValido(d) {
@@ -539,6 +563,12 @@ service cloud.firestore {
       allow update: if esUsuarioAutorizado()
                     && request.resource.data.creadoEn == resource.data.creadoEn
                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+    }
+
+    // Matriz de proveedor primario/backup por categoría (antes solo en useState local).
+    match /proveedores_matriz_backup/{docId} {
+      allow read, create, update: if esUsuarioAutorizado();
+      allow delete: if esUsuarioAutorizado();
     }
 
     match /compras_proveedores/{compraId} {

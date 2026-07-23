@@ -87,16 +87,14 @@ export default function NavBar() {
       links: g.links.filter((l) => bypass || tienePermiso(modulos, l.href)),
     })).filter((g) => g.links.length > 0)
 
-    if (bypass || esSuperAdmin) {
-      grupos.push({
-        nombre: 'Administración',
-        links: [
-          { href: '/usuarios', label: 'Usuarios y roles' },
-          ...(bypass || tienePermiso(modulos, '/auditoria')
-            ? [{ href: '/auditoria', label: 'Bitácora de auditoría' }]
-            : []),
-        ],
-      })
+    const linksAdmin = [
+      ...(bypass || esSuperAdmin ? [{ href: '/usuarios', label: 'Usuarios y roles' }] : []),
+      ...(bypass || esSuperAdmin || tienePermiso(modulos, '/auditoria')
+        ? [{ href: '/auditoria', label: 'Bitácora de auditoría' }]
+        : []),
+    ]
+    if (linksAdmin.length > 0) {
+      grupos.push({ nombre: 'Administración', links: linksAdmin })
     }
 
     return grupos

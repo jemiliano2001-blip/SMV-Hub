@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   setDoc,
   updateDoc,
@@ -581,4 +582,27 @@ export async function inicializarProveedoresSemilla(): Promise<Proveedor[]> {
     })
   }
   return creados
+}
+
+// ── Matriz de proveedor primario/backup por categoría (antes solo en useState) ──
+
+const COLECCION_MATRIZ_BACKUP = "proveedores_matriz_backup"
+const DOC_MATRIZ_BACKUP = "matriz"
+
+export type MatrizBackupProveedores = Record<string, { primarioId: string; backupId: string }>
+
+export async function obtenerMatrizBackupProveedores(): Promise<MatrizBackupProveedores> {
+  const snap = await getDoc(doc(db, COLECCION_MATRIZ_BACKUP, DOC_MATRIZ_BACKUP))
+  if (!snap.exists()) return {}
+  const data = snap.data()
+  return (data.mapeo as MatrizBackupProveedores) ?? {}
+}
+
+export async function guardarMatrizBackupProveedores(mapeo: MatrizBackupProveedores): Promise<void> {
+  await setDoc(doc(db, COLECCION_MATRIZ_BACKUP, DOC_MATRIZ_BACKUP), {
+    mapeo,
+    actualizadoEn: serverTimestamp(),
+  })
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, "EDITAR", COLECCION_MATRIZ_BACKUP, DOC_MATRIZ_BACKUP, "Actualizó la matriz de proveedor primario/backup por categoría")
 }

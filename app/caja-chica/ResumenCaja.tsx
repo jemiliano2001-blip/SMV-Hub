@@ -7,6 +7,7 @@ import { Wallet, TrendingDown, CreditCard, AlertTriangle, Settings, PiggyBank, S
 import { fechaHoyLocal } from '@/lib/format'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { toast } from 'sonner'
+import { obtenerFondoFijoCajaChica, guardarFondoFijoCajaChica } from '@/lib/caja-chica'
 
 export default function ResumenCaja() {
   const confirmar = useConfirmDialog()
@@ -19,27 +20,32 @@ export default function ResumenCaja() {
   const [isEditingFondo, setIsEditingFondo] = useState(false)
   const [fondoInput, setFondoInput] = useState('')
   const [isCorteLoading, setIsCorteLoading] = useState(false)
+  const [guardandoFondo, setGuardandoFondo] = useState(false)
 
-  // Sincroniza con localStorage (sistema externo) en el montaje. No se puede
-  // leer en el render inicial: `window` no existe en el render de servidor y
-  // leerlo ahí rompería la hidratación (el texto cambiaría entre servidor y
-  // cliente). `fondoFijo` también se edita localmente (guardarFondoFijo), así
-  // que no es un candidato para useSyncExternalStore.
+  // El fondo fijo vive en Firestore (antes solo en localStorage: cada dispositivo
+  // veía un límite distinto y perdía la alerta de "80% consumido").
   useEffect(() => {
-    const saved = localStorage.getItem('smv_caja_chica_fondo_fijo')
-    if (saved) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setFondoFijo(Number(saved))
-      setFondoInput(saved)
-    }
+    obtenerFondoFijoCajaChica()
+      .then((valor) => {
+        setFondoFijo(valor)
+        setFondoInput(valor > 0 ? String(valor) : '')
+      })
+      .catch((err) => console.error('Error cargando fondo fijo:', err))
   }, [])
 
-  const guardarFondoFijo = () => {
+  const guardarFondoFijo = async () => {
     const val = Number(fondoInput)
-    if (!isNaN(val) && val >= 0) {
+    if (isNaN(val) || val < 0) return
+    setGuardandoFondo(true)
+    try {
+      await guardarFondoFijoCajaChica(val)
       setFondoFijo(val)
-      localStorage.setItem('smv_caja_chica_fondo_fijo', val.toString())
       setIsEditingFondo(false)
+    } catch (err) {
+      console.error('Error guardando fondo fijo:', err)
+      toast.error('No se pudo guardar el fondo fijo. Intenta de nuevo.')
+    } finally {
+      setGuardandoFondo(false)
     }
   }
 
@@ -171,7 +177,7 @@ export default function ResumenCaja() {
                         placeholder="Ej: 5000"
                       />
                     </div>
-                    <button onClick={guardarFondoFijo} className="bg-[#0369A1] text-white p-1 rounded hover:bg-[#0284C7] transition-colors">
+                    <button onClick={guardarFondoFijo} disabled={guardandoFondo} className="bg-[#0369A1] text-white p-1 rounded hover:bg-[#0284C7] transition-colors disabled:opacity-50">
                       <Save className="h-3.5 w-3.5" />
                     </button>
                   </div>

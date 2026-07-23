@@ -223,18 +223,25 @@ export default function ReporteContableView() {
   }
 
   const handleGuardarLote = async () => {
-    if (ordenesFiltradas.length === 0) return
-    const ids = ordenesFiltradas.map(o => o.id)
+    if (lineas.length === 0) return
+    // Solo se cierran las órdenes de la moneda activa (monedaActiva): son las únicas
+    // que aparecen en el Excel/tabla que se le entrega a la contadora.
+    const ids = [...new Set(lineas.map((l) => l.ordenId))]
+    const otrasMonedasPendientes = monedas.filter((m) => m !== monedaActiva)
     const aceptado = await confirmar({
       title: "Cerrar reporte contable",
-      description: `Se cerrará el reporte con ${ids.length} órdenes y se enviará al historial.`,
+      description:
+        `Se cerrará el reporte con ${ids.length} órdenes en ${monedaActiva} y se enviará al historial.` +
+        (otrasMonedasPendientes.length > 0
+          ? ` Las órdenes en ${otrasMonedasPendientes.join(", ")} seguirán pendientes — ciérralas por separado cambiando la moneda activa.`
+          : ""),
       confirmLabel: "Cerrar reporte",
     })
     if (!aceptado) return
-    
+
     setGuardandoLote(true)
     try {
-      await crearLoteContable(ids, lineasTodas.length)
+      await crearLoteContable(ids, lineas.length)
       toast.success("Lote generado y guardado en el historial.")
       await cargar()
       setTab("pendientes") // Quedarse en pendientes (que ahora estará vacía)
@@ -441,7 +448,7 @@ export default function ReporteContableView() {
                    </button>
                 )}
                 
-                {tab === "pendientes" && ordenesFiltradas.length > 0 && (
+                {tab === "pendientes" && lineas.length > 0 && (
                   <button
                     onClick={handleGuardarLote}
                     disabled={guardandoLote || procesandoIa}

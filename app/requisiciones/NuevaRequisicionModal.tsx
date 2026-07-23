@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Trash2, ShieldCheck, Sparkles, ShoppingCart } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import type { PrioridadFlujo } from '@/lib/schemas'
+import type { PrioridadFlujo, CategoriaProveedor } from '@/lib/schemas'
 import { fechaHoyLocal } from '@/lib/format'
 import type { NuevaRequisicionFlujoPayload } from '@/lib/requisiciones-flujo'
 import { useProveedores } from '@/lib/hooks/useProveedores'
@@ -364,11 +364,13 @@ export default function NuevaRequisicionModal({ abierto, onClose, onCrear }: Pro
                         className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-slate-50 font-medium"
                       >
                         <option value="">-- Sin sugerencia inicial --</option>
-                        {todosProveedores.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.nombre} ({p.tipoProveedor === 'barato' ? '$ Económico' : p.tipoProveedor === 'premium' ? '$$$ Premium' : '$ Estándar'})
-                          </option>
-                        ))}
+                        {todosProveedores
+                          .filter((p) => p.categorias.includes(it.categoria as CategoriaProveedor) || p.categorias.includes('otros'))
+                          .map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.nombre} ({p.tipoProveedor === 'barato' ? '$ Económico' : p.tipoProveedor === 'premium' ? '$$$ Premium' : '$ Estándar'})
+                            </option>
+                          ))}
                       </select>
                     </div>
 

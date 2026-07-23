@@ -8,6 +8,7 @@ import {
   detectarProveedoresFantasma,
   backfillProveedorIdEnOrdenes,
   backfillProveedorIdEnCotizaciones,
+  vincularProveedorManual,
   type ProveedorFantasma,
   type ResultadoBackfill,
 } from '@/lib/proveedores-vinculacion'
@@ -22,6 +23,25 @@ export default function PanelProveedoresFantasma({ catalogo }: Props) {
   const [backfillOrd, setBackfillOrd] = useState<ResultadoBackfill | null>(null)
   const [backfillCot, setBackfillCot] = useState<ResultadoBackfill | null>(null)
   const [ejecutando, setEjecutando] = useState<string | null>(null)
+  const [seleccionVinculo, setSeleccionVinculo] = useState<Record<string, string>>({})
+  const [vinculando, setVinculando] = useState<string | null>(null)
+
+  async function vincularManualmente(f: ProveedorFantasma) {
+    const proveedorId = seleccionVinculo[`${f.origen}-${f.nombreLibre}`]
+    if (!proveedorId) return
+    const coleccion = f.origen === 'orden' ? 'ordenes' : 'cotizaciones'
+    setVinculando(f.nombreLibre)
+    try {
+      await Promise.all(f.idsDocs.map((docId) => vincularProveedorManual(coleccion, docId, proveedorId)))
+      toast.success(`"${f.nombreLibre}" vinculado (${f.idsDocs.length} ${coleccion}).`)
+      await escanear()
+    } catch (err) {
+      console.error(err)
+      toast.error('No se pudo vincular manualmente.')
+    } finally {
+      setVinculando(null)
+    }
+  }
 
   async function escanear() {
     setCargando(true)
@@ -150,11 +170,14 @@ export default function PanelProveedoresFantasma({ catalogo }: Props) {
                 <th className="text-left px-3 py-2 font-semibold">Origen</th>
                 <th className="text-right px-3 py-2 font-semibold">Docs</th>
                 <th className="text-left px-3 py-2 font-semibold">Sugerencia catálogo</th>
+                <th className="text-left px-3 py-2 font-semibold">Vincular manualmente</th>
               </tr>
             </thead>
             <tbody>
-              {fantasmas.map((f) => (
-                <tr key={`${f.origen}-${f.nombreLibre}`} className="border-t border-slate-100">
+              {fantasmas.map((f) => {
+                const key = `${f.origen}-${f.nombreLibre}`
+                return (
+                <tr key={key} className="border-t border-slate-100">
                   <td className="px-3 py-2 font-medium text-slate-900">
                     <AlertTriangle className="inline h-3 w-3 text-amber-500 mr-1" />
                     {f.nombreLibre}
@@ -166,8 +189,32 @@ export default function PanelProveedoresFantasma({ catalogo }: Props) {
                       ? `${f.sugerenciaCatalogo.nombre} (${f.sugerenciaCatalogo.id})`
                       : '—'}
                   </td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-1.5">
+                      <select
+                        value={seleccionVinculo[key] ?? ''}
+                        onChange={(e) => setSeleccionVinculo((prev) => ({ ...prev, [key]: e.target.value }))}
+                        className="rounded-md border border-slate-200 px-2 py-1 text-xs"
+                      >
+                        <option value="">Elegir proveedor…</option>
+                        {catalogo.map((p) => (
+                          <option key={p.id} value={p.id}>{p.nombre}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => vincularManualmente(f)}
+                        disabled={!seleccionVinculo[key] || vinculando === f.nombreLibre}
+                        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-md bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40"
+                      >
+                        {vinculando === f.nombreLibre ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3" />}
+                        Vincular
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </div>

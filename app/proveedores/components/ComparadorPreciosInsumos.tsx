@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { formatPrecio } from '@/lib/format'
 import { aMXN, aUSD, TIPO_CAMBIO_DEFAULT_USD_MXN } from '@/lib/tipo-cambio'
 import type { CompraOdooItem } from '@/lib/schemas'
-import { CATEGORIAS_PRODUCTO_REGISTRO } from '@/lib/compras-odoo'
+import { CATEGORIAS_PRODUCTO_REGISTRO, obtenerCategoriaDef } from '@/lib/compras-odoo'
 
 type Props = {
   items: CompraOdooItem[]
@@ -271,7 +271,7 @@ export default function ComparadorPreciosInsumos({
                     <td className="px-3 py-2">
                       <div className="flex flex-col gap-0.5">
                         <Badge variant="outline" className="w-fit text-[10px] font-mono">
-                          {it.categoriaId}
+                          {obtenerCategoriaDef(it.categoriaId)?.etiqueta ?? it.categoriaId}
                         </Badge>
 
                         {(it.tipoInsumo || it.tipoMetal) && (

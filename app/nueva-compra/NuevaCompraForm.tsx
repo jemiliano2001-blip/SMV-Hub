@@ -354,22 +354,14 @@ export default function NuevaCompraForm({
     return () => document.removeEventListener('paste', onPaste)
   }, [imagen, procesarArchivoFactura])
 
+  // Solo quita el archivo/preview de la factura. No toca los campos ya capturados
+  // por el usuario o extraídos por la IA — quitar la imagen no debe perder esos datos.
   function clearImage() {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     setImagen(null)
     setPreviewUrl(null)
-    setExtraido(false)
     setErrorExtraccion(null)
     setDuplicadoDetectado(null)
-    reset({
-      moneda: 'USD',
-      items: [{ ...ITEM_VACIO }],
-      requisitor: '',
-      ordenTrabajo: '',
-      empresa: '',
-      cuentaCargo: '',
-      destino: '',
-    })
   }
 
   async function onSubmit(data: NuevaCompraForm) {
@@ -528,7 +520,10 @@ export default function NuevaCompraForm({
 
           <div>
             <label className={cls.label}>Moneda</label>
-            <input {...register('moneda')} className={cls.input} placeholder="USD" disabled={extrayendo} />
+            <select {...register('moneda')} className={cls.input} disabled={extrayendo}>
+              <option value="USD">USD</option>
+              <option value="MXN">MXN</option>
+            </select>
           </div>
 
           <div>

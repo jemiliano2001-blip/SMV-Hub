@@ -18,7 +18,7 @@ import {
   mesAnteriorStr,
   type DeltaKpi,
 } from "@/lib/finanzas"
-import { listarFacturasProveedor, type FacturaProveedor } from "@/lib/finanzas-ap"
+import { listarFacturasProveedor, calcularKpisAP, agruparPorProveedorAP, type FacturaProveedor } from "@/lib/finanzas-ap"
 import { calcularFlujoCaja } from "@/lib/flujo-caja"
 import { conciliarComprasConOdoo } from "@/lib/conciliaciones-odoo"
 import { TablaCuentasPorPagar } from "@/components/finanzas/TablaCuentasPorPagar"
@@ -195,6 +195,16 @@ function ResumenFinanzas() {
     [facturasMoneda, desdeAnio, hastaAnio]
   )
 
+  const facturasAPMoneda = useMemo(
+    () => facturasAP.filter((f) => f.moneda === moneda),
+    [facturasAP, moneda]
+  )
+  const kpisAP = useMemo(() => calcularKpisAP(facturasAPMoneda), [facturasAPMoneda])
+  const topProveedoresAP = useMemo(
+    () => agruparPorProveedorAP(facturasAPMoneda).slice(0, 5),
+    [facturasAPMoneda]
+  )
+
   const resumenFlujo = useMemo(
     () => calcularFlujoCaja(facturas, facturasAP, moneda),
     [facturas, facturasAP, moneda]
@@ -357,19 +367,64 @@ function ResumenFinanzas() {
 
       {tabActiva === "ap" && (
         <div className="space-y-4">
-          <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5">
-            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-3">
-              Cuentas por Pagar a Proveedores (AP - Odoo)
-            </h2>
-            {cargandoAP ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-5 w-5 animate-spin text-[#0369A1] mr-2" />
-                <span className="text-xs font-mono text-slate-600">Cargando facturas de proveedor…</span>
+          {cargandoAP ? (
+            <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5 flex items-center justify-center py-12">
+              <Loader2 className="h-5 w-5 animate-spin text-[#0369A1] mr-2" />
+              <span className="text-xs font-mono text-slate-600">Cargando facturas de proveedor…</span>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <KpiCard titulo="Total por Pagar" valor={formatPrecio(kpisAP.totalPorPagar, moneda)} />
+                <KpiCard titulo="Facturas Pendientes" valor={String(kpisAP.numFacturasPendientes)} />
+                <KpiCard titulo="Proveedores con Saldo" valor={String(kpisAP.numProveedoresConSaldo)} />
+                <KpiCard
+                  titulo="Vencido +90 días"
+                  valor={formatPrecio(kpisAP.aging.mas90Dias, moneda)}
+                  subtitulo={`Al día: ${formatPrecio(kpisAP.aging.alDia, moneda)}`}
+                />
               </div>
-            ) : (
-              <TablaCuentasPorPagar facturas={facturasAP} />
-            )}
-          </div>
+
+              {topProveedoresAP.length > 0 && (
+                <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5">
+                  <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-3">
+                    Top Proveedores por Saldo Pendiente
+                  </h2>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                        <tr>
+                          <th className="py-2 pr-3">Proveedor</th>
+                          <th className="py-2 pr-3 text-right">Facturas Pendientes</th>
+                          <th className="py-2 pr-3 text-right">Total por Pagar</th>
+                          <th className="py-2 pr-3 text-right">% del Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {topProveedoresAP.map((g) => (
+                          <tr key={g.proveedor}>
+                            <td className="py-2 pr-3 font-medium text-slate-800">{g.proveedor}</td>
+                            <td className="py-2 pr-3 text-right font-mono">{g.facturasPendientes}</td>
+                            <td className="py-2 pr-3 text-right font-mono font-bold text-slate-900 tabular-nums">
+                              {formatPrecio(g.totalPorPagar, moneda)}
+                            </td>
+                            <td className="py-2 pr-3 text-right font-mono text-slate-500">{g.pctDelTotal.toFixed(1)}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5">
+                <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-3">
+                  Cuentas por Pagar a Proveedores (AP - Odoo) — {moneda}
+                </h2>
+                <TablaCuentasPorPagar facturas={facturasAPMoneda} />
+              </div>
+            </>
+          )}
         </div>
       )}
 

@@ -5,7 +5,7 @@ import { Search, Download } from 'lucide-react'
 export default function CuentaDiaria() {
   const [mes, setMes] = useState(() => new Date().toISOString().slice(0, 7)) // YYYY-MM
   
-  const { registros, loading, error } = useBanos(mes)
+  const { registros, loading, error, fetchRegistros } = useBanos(mes)
 
   // Calcular la tabla pivot
   const pivot = useMemo(() => {
@@ -44,7 +44,12 @@ export default function CuentaDiaria() {
   const [busqueda, setBusqueda] = useState('')
 
   if (error) {
-    return <div className="text-red-600 bg-red-50 p-4 rounded-lg text-sm">{error}</div>
+    return (
+      <div className="text-red-600 bg-red-50 border border-red-200 p-4 rounded-lg text-sm space-y-2">
+        <p>{error}</p>
+        <button onClick={fetchRegistros} className="font-semibold underline hover:no-underline">Reintentar</button>
+      </div>
+    )
   }
 
   const operadoresFiltrados = pivot.operadores.filter(op =>

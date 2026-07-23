@@ -39,7 +39,7 @@ function SalidaCard({ s, onEliminar }: SalidaCardProps) {
 
 export default function SalidasList() {
   const confirmar = useConfirmDialog()
-  const { salidas, loading: loadingSalidas, error, agregarSalida, borrarSalida } = useSalidas()
+  const { salidas, loading: loadingSalidas, error, fetchSalidas, agregarSalida, borrarSalida } = useSalidas()
   const { activos: operadoresActivos, loading: loadingOps } = useOperadores()
 
   const [busqueda, setBusqueda] = useState('')
@@ -101,7 +101,12 @@ export default function SalidasList() {
   }
 
   if (error) {
-    return <div className="text-red-600 bg-red-50 p-4 rounded-lg text-sm">{error}</div>
+    return (
+      <div className="text-red-600 bg-red-50 border border-red-200 p-4 rounded-lg text-sm space-y-2">
+        <p>{error}</p>
+        <button onClick={fetchSalidas} className="font-semibold underline hover:no-underline">Reintentar</button>
+      </div>
+    )
   }
 
   return (

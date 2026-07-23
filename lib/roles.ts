@@ -66,7 +66,10 @@ export const GRUPOS_MODULOS: { nombre: string; modulos: { id: ModuloId; label: s
     nombre: "Administración",
     modulos: [
       { id: "auditoria", label: "Auditoría" },
-      { id: "usuarios", label: "Usuarios (ver)" },
+      // Sin efecto real: /usuarios se gatea 100% por esSuperAdmin, no por este módulo
+      // (ver AuthGuard.tsx y NavBar.tsx). Se deja marcable por retrocompatibilidad de
+      // datos existentes, pero la etiqueta lo deja claro para no confundir al armar la matriz.
+      { id: "usuarios", label: "Usuarios (sin efecto — el acceso real es por Super-admin)" },
     ],
   },
 ]
@@ -269,8 +272,11 @@ export function esSuperAdminDesdeUsuarioLegacy(data: {
   rol?: unknown
   plantilla?: unknown
 }): boolean {
-  if (data.esSuperAdmin === true) return true
-  // Migración: admins legacy son super-admin
+  // Si el documento ya tiene el campo explícito (true o false), manda sobre
+  // cualquier fallback — permite revocar super-admin a un usuario con
+  // plantilla/rol "admin" sin que este fallback lo ignore.
+  if (typeof data.esSuperAdmin === "boolean") return data.esSuperAdmin
+  // Migración: documentos legacy sin el campo esSuperAdmin, con plantilla/rol admin.
   if (data.rol === "admin" || data.plantilla === "admin") return true
   return false
 }

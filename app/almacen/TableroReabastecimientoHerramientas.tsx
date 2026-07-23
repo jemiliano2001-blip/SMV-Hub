@@ -9,24 +9,19 @@ import {
   Clock,
   ShoppingCart,
   Search,
-  Check,
 } from 'lucide-react'
-import { toast } from 'sonner'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import {
   DEMO_ITEMS_RECOMPRA,
-  convertirSugerenciaEnRequisicion,
   type ItemRecompra,
 } from '@/lib/recompra-herramientas'
 
 export default function TableroReabastecimientoHerramientas() {
-  const [items, setItems] = useState<ItemRecompra[]>(DEMO_ITEMS_RECOMPRA)
+  const [items] = useState<ItemRecompra[]>(DEMO_ITEMS_RECOMPRA)
   const [busqueda, setBusqueda] = useState('')
   const [filtroCategoria, setFiltroCategoria] = useState<string>('TODAS')
   const [filtroEstatus, setFiltroEstatus] = useState<string>('TODOS')
-  const [procesandoItem, setProcesandoItem] = useState<string | null>(null)
-  const [exitoItem, setExitoItem] = useState<{ id: string; reqId: string } | null>(null)
 
   // Filtrar items
   const itemsFiltrados = useMemo(() => {
@@ -51,28 +46,6 @@ export default function TableroReabastecimientoHerramientas() {
   const inversionEstimadaUSD = items
     .filter((i) => i.estatusRecompra !== 'monitorear')
     .reduce((acc, curr) => acc + curr.cantidadSugerida * curr.costoEstimadoUSD, 0)
-
-  // 1-Click Crear Requisición con Sonner Toast Feedback
-  const handleCrearRequisicion = async (item: ItemRecompra) => {
-    setProcesandoItem(item.id)
-    try {
-      const res = await convertirSugerenciaEnRequisicion(item)
-      setExitoItem({ id: item.id, reqId: res.id })
-      setItems((prev) =>
-        prev.map((i) => (i.id === item.id ? { ...i, revisionRealizada: true } : i))
-      )
-      toast.success(`Requisición generada exitosamente`, {
-        description: `Se creó la solicitud para ${item.nombre} (${item.cantidadSugerida} ${item.unidad}) a favor de ${item.proveedorPreferidoNombre}.`,
-      })
-    } catch (err) {
-      console.error(err)
-      toast.error('Error al generar requisición', {
-        description: 'No se pudo registrar la solicitud en Firestore.',
-      })
-    } finally {
-      setProcesandoItem(null)
-    }
-  }
 
   return (
     <div className="space-y-6 font-sans">
@@ -279,23 +252,17 @@ export default function TableroReabastecimientoHerramientas() {
                         </span>
                       </td>
 
-                      {/* Acción 1-Click con Tactile Feedback */}
+                      {/* Este tablero corre sobre datos de demostración (DEMO_ITEMS_RECOMPRA), no
+                          conectados a Firestore todavía — deshabilitado para no generar
+                          requisiciones reales con proveedores/cantidades inventados. */}
                       <td className="px-5 py-4 text-right">
-                        {exitoItem?.id === item.id ? (
-                          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-300 shadow-2xs">
-                            <Check className="h-3.5 w-3.5 text-emerald-600" /> Requisición Generada
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={procesandoItem === item.id}
-                            onClick={() => handleCrearRequisicion(item)}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#0369A1] hover:bg-[#0284C7] active:scale-98 disabled:bg-slate-300 text-white font-bold text-[11px] rounded-xl shadow-xs transition-all cursor-pointer"
-                          >
-                            <ShoppingCart className="h-3.5 w-3.5" />
-                            {procesandoItem === item.id ? 'Creando...' : '1-Click Requisición'}
-                          </button>
-                        )}
+                        <span
+                          title="El tablero ROP aún corre sobre datos de demostración; se habilitará cuando se conecte a inventario real."
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 text-slate-400 font-bold text-[11px] rounded-xl border border-slate-200 cursor-not-allowed"
+                        >
+                          <ShoppingCart className="h-3.5 w-3.5" />
+                          Disponible próximamente
+                        </span>
                       </td>
                     </tr>
                   )

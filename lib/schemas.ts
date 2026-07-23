@@ -249,6 +249,10 @@ export const CotizacionRequisicionSchema = z.object({
       cantidad: z.number(),
       precioUnitario: z.number(),
       subtotal: z.number(),
+      /** Categoría del item original de la requisición (endmills/insertos/tooling/...); se
+       * usa al generar la OC para alimentar la inteligencia de proveedores con la categoría
+       * real en vez de un valor fijo. */
+      categoria: z.string().optional(),
     })
   ).default([]),
   ganadora: z.boolean().default(false),
@@ -517,6 +521,7 @@ export const MovimientoCajaChicaSchema = z.object({
   costoReal: z.number().min(0),
   ivaEstimado: z.number().min(0),
   verificado: z.boolean().default(false),
+  anulado: z.boolean().optional(),
   archivoUrl: z.string().nullable().optional(),
   archivoNombre: z.string().nullable().optional(),
   archivoPath: z.string().nullable().optional(),

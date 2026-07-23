@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useEntradas } from '@/lib/hooks/useAlmacen'
+import { useOperadores } from '@/lib/hooks/useOperadores'
 import type { EntradaAlmacen } from '@/lib/schemas'
 import { fechaHoyLocal } from '@/lib/format'
 import { Plus, Trash2, Search } from 'lucide-react'
@@ -69,7 +70,7 @@ function EntradaCard({ e, onCycleEstatus, onEliminar }: EntradaCardProps) {
 
 export default function EntradasList() {
   const confirmar = useConfirmDialog()
-  const { entradas, loading, error, agregarEntrada, editarEntrada, borrarEntrada } = useEntradas()
+  const { entradas, loading, error, fetchEntradas, agregarEntrada, editarEntrada, borrarEntrada } = useEntradas()
 
   const [busqueda, setBusqueda] = useState('')
   const [agregando, setAgregando] = useState(false)
@@ -82,6 +83,7 @@ export default function EntradasList() {
   const [cargoA, setCargoA] = useState('Stock')
   const [recibio, setRecibio] = useState('')
   const [estatus, setEstatus] = useState<EstatusEntrada>('entregado')
+  const { activos: operadoresActivos } = useOperadores()
 
   const filtradas = entradas.filter((e) => {
     if (!busqueda) return true
@@ -143,7 +145,12 @@ export default function EntradasList() {
   }
 
   if (error) {
-    return <div className="text-red-600 bg-red-50 p-4 rounded-lg text-sm">{error}</div>
+    return (
+      <div className="text-red-600 bg-red-50 border border-red-200 p-4 rounded-lg text-sm space-y-2">
+        <p>{error}</p>
+        <button onClick={fetchEntradas} className="font-semibold underline hover:no-underline">Reintentar</button>
+      </div>
+    )
   }
 
   return (
@@ -208,13 +215,17 @@ export default function EntradasList() {
         </div>
         <div className="w-32">
           <label className="block text-xs font-medium text-gray-500 mb-1">Recibió</label>
-          <input
-            type="text"
+          <select
             required
             value={recibio}
             onChange={(e) => setRecibio(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1]"
-          />
+            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:border-[#0369A1]"
+          >
+            <option value="" disabled>Seleccionar...</option>
+            {operadoresActivos.map((op) => (
+              <option key={op.id} value={op.nombre}>{op.nombre}</option>
+            ))}
+          </select>
         </div>
         <div className="w-32">
           <label className="block text-xs font-medium text-gray-500 mb-1">Estatus</label>

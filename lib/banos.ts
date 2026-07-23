@@ -9,9 +9,10 @@ import {
   where,
   onSnapshot,
 } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { db, getClienteAuth } from "@/lib/firebase"
 import type { RegistroBano } from "@/lib/schemas"
 import { makeDateConverter, actualizarDocumento } from "@/lib/firestore-helpers"
+import { registrarAuditoria } from "@/lib/auditoria"
 
 const banoConverter = makeDateConverter<RegistroBano>()
 const banosRef = () => collection(db, "registros-bano").withConverter(banoConverter)
@@ -76,6 +77,8 @@ export async function crearRegistroBano(payload: NuevoRegistroBanoPayload): Prom
     creadoEn: ahora,
     actualizadoEn: ahora,
   } as RegistroBano)
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, "CREAR", "registros-bano", ref.id, `Registró baño de ${payload.operador} (${payload.bano})`)
   return ref.id
 }
 
@@ -84,8 +87,12 @@ export async function actualizarRegistroBano(
   cambios: Partial<Omit<RegistroBano, "id" | "creadoEn">>
 ): Promise<void> {
   await actualizarDocumento("registros-bano", id, cambios as Record<string, unknown>)
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, "EDITAR", "registros-bano", id, `Actualizó registro de baño: ${Object.keys(cambios).join(', ')}`)
 }
 
 export async function eliminarRegistroBano(id: string): Promise<void> {
   await deleteDoc(doc(db, "registros-bano", id))
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, "BORRAR", "registros-bano", id, "Eliminó registro de baño")
 }

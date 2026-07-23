@@ -12,6 +12,7 @@ import {
   type CategoriaProductoDef,
   type CompraOdooItemNormalizado,
 } from "@/lib/compras-odoo"
+import { CATEGORIAS_PRODUCTO_REGISTRO as CATEGORIAS_PRODUCTO_REGISTRO_FUNCTIONS } from "../functions/src/compras-odoo/categorias-registro"
 import {
   itemsDesdeFacturaCrudo,
   itemsDesdePoCrudo,
@@ -20,6 +21,15 @@ import {
   type OdooPoRaw,
   type OdooVendorBillRaw,
 } from "../functions/src/odoo-compras-mapeo"
+
+describe("paridad del registro de categorias (lib/ vs functions/)", () => {
+  it("lib/compras-odoo y functions/src/compras-odoo definen el mismo registro", () => {
+    // ponytail: registro duplicado a mano entre app y Cloud Function; este test es el
+    // guardrail minimo para que una categoria agregada en un solo lado no rompa el
+    // filtro del comparador de precios en silencio.
+    expect(CATEGORIAS_PRODUCTO_REGISTRO).toEqual(CATEGORIAS_PRODUCTO_REGISTRO_FUNCTIONS)
+  })
+})
 
 describe("resolverCategoriaProducto", () => {
   it("categoriza por división SAT (metals / tools / plastics)", () => {

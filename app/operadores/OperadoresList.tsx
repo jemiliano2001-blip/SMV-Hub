@@ -2,8 +2,11 @@
 
 import { useState } from 'react'
 import { useOperadores } from '@/lib/hooks/useOperadores'
+import { departamentoDesdeArea } from '@/lib/operadores-departamento'
 import type { Area, Operador } from '@/lib/schemas'
 import { Plus, Search, UserCheck, UserX, Download, Check, X } from 'lucide-react'
+
+const SIN_HORAS_EXTRA_TITULO = 'Esta área no participa en horas extra (no tiene departamento equivalente en /horas-extra)'
 
 function getInitials(name: string) {
   return name.trim().split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
@@ -91,6 +94,11 @@ function OperadorCard({
                 <option key={a.value} value={a.value}>{a.label}</option>
               ))}
             </select>
+            {!departamentoDesdeArea(op.area) && (
+              <p className="mt-0.5 text-[10px] text-gray-400" title={SIN_HORAS_EXTRA_TITULO}>
+                No aplica a horas extra
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -112,6 +120,7 @@ export default function OperadoresList() {
     operadores,
     loading,
     error,
+    fetchOperadores,
     agregarOperador,
     editarOperador,
     toggleActivo,
@@ -221,8 +230,9 @@ export default function OperadoresList() {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
-        {error}
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm space-y-2">
+        <p>{error}</p>
+        <button onClick={fetchOperadores} className="font-semibold underline hover:no-underline">Reintentar</button>
       </div>
     )
   }
@@ -419,6 +429,11 @@ export default function OperadoresList() {
                         <option key={a.value} value={a.value}>{a.label}</option>
                       ))}
                     </select>
+                    {!departamentoDesdeArea(op.area) && (
+                      <p className="mt-0.5 text-[10px] text-gray-400" title={SIN_HORAS_EXTRA_TITULO}>
+                        No aplica a horas extra
+                      </p>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button

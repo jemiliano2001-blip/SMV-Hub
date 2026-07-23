@@ -640,6 +640,10 @@ export default function RequisicionesList() {
                         <span>Herramientas solicitadas:</span>
                         <strong className="text-slate-900">{req.items?.length || 1} ítem(s)</strong>
                       </div>
+                      <div className="flex items-center justify-between">
+                        <span>Atraso:</span>
+                        <CeldaAtraso r={req} hoy={hoy} isAuto={req.tipo === 'automatizacion'} />
+                      </div>
                     </div>
 
                     {req.proveedorGanadorNombre && (

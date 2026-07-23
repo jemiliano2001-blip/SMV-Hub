@@ -172,8 +172,12 @@ export default function OrdenesServicioList() {
   const {
     ordenes,
     loading,
+    cargandoMas,
+    hayMas,
+    totalOrdenes,
     error,
     fetchOrdenes,
+    cargarMas,
     agregarOrden,
     actualizarEstatus,
     borrarOrden,
@@ -465,7 +469,7 @@ export default function OrdenesServicioList() {
           />
           <div className="flex items-center gap-3">
             <p className="text-xs text-gray-500">
-              {filtradas.length} de {ordenes.length} órdenes
+              {filtradas.length} de {ordenes.length} cargadas ({totalOrdenes} en total)
             </p>
             {selectedIds.size > 0 && (
               <button
@@ -659,6 +663,19 @@ export default function OrdenesServicioList() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {!loading && !error && hayMas && (
+        <div className="flex justify-center">
+          <button
+            onClick={cargarMas}
+            disabled={cargandoMas}
+            className="inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-100 disabled:opacity-60"
+          >
+            {cargandoMas && <Loader2 className="h-4 w-4 animate-spin" />}
+            {cargandoMas ? 'Cargando…' : 'Cargar más órdenes de servicio'}
+          </button>
         </div>
       )}
 

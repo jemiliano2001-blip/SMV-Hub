@@ -16,8 +16,14 @@ import type {
   CotizacionRequisicion,
   EstatusRequisicionFlujo,
   PrioridadFlujo,
+  CategoriaProveedor,
 } from "@/lib/schemas"
-import { CotizacionRequisicionSchema } from "@/lib/schemas"
+import { CotizacionRequisicionSchema, CategoriaProveedorSchema } from "@/lib/schemas"
+
+function aCategoriaProveedor(valor: string | undefined): CategoriaProveedor {
+  const parsed = CategoriaProveedorSchema.safeParse(valor)
+  return parsed.success ? parsed.data : "endmills"
+}
 import { crearOrden } from "@/lib/ordenes"
 import { crearCompraProveedor } from "@/lib/proveedores-inteligencia"
 import { getClienteAuth } from "@/lib/firebase"
@@ -130,7 +136,7 @@ export async function obtenerCotizacionesRequisicion(requisicionId: string): Pro
     })
   } catch (err) {
     console.error("Error al obtener cotizaciones de requisición:", err)
-    return DEMO_COTIZACIONES.filter((c) => c.requisicionId === requisicionId)
+    throw err
   }
 }
 
@@ -271,7 +277,8 @@ export async function generarOrdenCompraDesdeRequisicion(
       numeroOrden: folioOC,
       fecha: hoy,
       producto: it.descripcion,
-      categoria: "endmills",
+      // Fallback "endmills" solo para cotizaciones creadas antes de propagar la categoría real.
+      categoria: aCategoriaProveedor(it.categoria),
       marca: cotizacionGanadora.proveedorNombre,
       cantidad: it.cantidad,
       precioUnitario: it.precioUnitario,

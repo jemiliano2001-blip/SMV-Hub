@@ -28,7 +28,7 @@ function getInitials(name: string) {
 
 export default function RegistroBanoList() {
   const confirmar = useConfirmDialog()
-  const { registros, loading: loadingBanos, error, registrarEntrada, registrarLlegada, borrarRegistro } = useBanos()
+  const { registros, loading: loadingBanos, error, fetchRegistros, registrarEntrada, registrarLlegada, borrarRegistro } = useBanos()
   const { activos: operadoresActivos, loading: loadingOps } = useOperadores()
 
   const [agregando, setAgregando] = useState(false)
@@ -125,7 +125,12 @@ export default function RegistroBanoList() {
   }
 
   if (error) {
-    return <div className="text-red-600 bg-red-50 p-4 rounded-lg text-sm">{error}</div>
+    return (
+      <div className="text-red-600 bg-red-50 border border-red-200 p-4 rounded-lg text-sm space-y-2">
+        <p>{error}</p>
+        <button onClick={fetchRegistros} className="font-semibold underline hover:no-underline">Reintentar</button>
+      </div>
+    )
   }
 
   const registrosHoy = registros.filter(r => r.fecha === fechaHoy)

@@ -1,9 +1,9 @@
 'use client'
 
 import LogoSMV from "@/app/LogoSMV"
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { iniciarSesionConGoogle, iniciarSesionConEmailYPassword, cerrarSesion } from '@/lib/auth'
+import { iniciarSesionConGoogle, iniciarSesionConEmailYPassword, cerrarSesion, useUsuario } from '@/lib/auth'
 import { obtenerRolUsuario } from '@/lib/usuarios'
 import { LogIn, AlertCircle, Mail, Lock } from 'lucide-react'
 
@@ -37,6 +37,13 @@ function LoginForm() {
   const [correo, setCorreo] = useState('')
   const [password, setPassword] = useState('')
   const router = useRouter()
+  const { usuario, cargando: cargandoSesion } = useUsuario()
+
+  useEffect(() => {
+    if (!cargandoSesion && usuario) {
+      router.replace('/')
+    }
+  }, [cargandoSesion, usuario, router])
 
   const mensajeError = error ?? errorDesdeQuery
 
@@ -77,6 +84,14 @@ function LoginForm() {
     } finally {
       setLoadingPassword(false)
     }
+  }
+
+  if (cargandoSesion || usuario) {
+    return (
+      <main className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0369A1]" />
+      </main>
+    )
   }
 
   return (

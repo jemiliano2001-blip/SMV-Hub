@@ -69,13 +69,18 @@ export function conciliarComprasConOdoo(
       odooProcesadas.add(facturaMatch.id)
       const montoLocal = orden.total || 0
       const montoOdoo = facturaMatch.total || 0
-      const diferenciaMonto = Math.abs(montoLocal - montoOdoo)
-      const porcentajeDesviacion = montoOdoo > 0 ? (diferenciaMonto / montoOdoo) * 100 : 0
+      const monedasCoinciden = orden.moneda === facturaMatch.moneda
+      const diferenciaMonto = monedasCoinciden ? Math.abs(montoLocal - montoOdoo) : 0
+      const porcentajeDesviacion = monedasCoinciden && montoOdoo > 0 ? (diferenciaMonto / montoOdoo) * 100 : 0
 
       let estatus: EstatusConciliacion = "conciliado_exacto"
       let alertaInconsistencia: string | null = null
 
-      if (porcentajeDesviacion > umbralDesviacionPct) {
+      if (!monedasCoinciden) {
+        estatus = "desviacion_precio"
+        totalDesviaciones++
+        alertaInconsistencia = `Monedas distintas: SMV Hub registra ${orden.moneda} ($${montoLocal.toFixed(2)}) y Odoo registra ${facturaMatch.moneda} ($${montoOdoo.toFixed(2)}) — verifica manualmente, no son comparables directamente`
+      } else if (porcentajeDesviacion > umbralDesviacionPct) {
         estatus = "desviacion_precio"
         totalDesviaciones++
         alertaInconsistencia = `Diferencia de $${diferenciaMonto.toFixed(2)} ${orden.moneda} (${porcentajeDesviacion.toFixed(1)}%) entre SMV Hub ($${montoLocal.toFixed(2)}) y Odoo ($${montoOdoo.toFixed(2)})`

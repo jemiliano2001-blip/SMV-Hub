@@ -33,8 +33,16 @@ export default function DashboardInteligenciaCompras() {
     return todasCompras.filter((c) => c.moneda === 'MXN').reduce((acc, curr) => acc + (curr.costoTotal || 0), 0)
   }, [todasCompras])
 
-  const totalComprasCount = todasCompras.length || 1
-  const ticketPromedioUSD = gastoUSD / totalComprasCount
+  const comprasUSDCount = useMemo(() => todasCompras.filter((c) => (c.moneda ?? 'USD') === 'USD').length, [todasCompras])
+  const ticketPromedioUSD = comprasUSDCount > 0 ? gastoUSD / comprasUSDCount : 0
+
+  // El filtro de moneda solo distingue USD/MXN; "TODAS" usa USD (la moneda por defecto
+  // de las compras del taller) para no mezclar montos de distinta moneda en un mismo total.
+  const monedaActiva = monedaFiltro === 'TODAS' ? 'USD' : monedaFiltro
+  const comprasEnMonedaActiva = useMemo(
+    () => todasCompras.filter((c) => (c.moneda ?? 'USD') === monedaActiva),
+    [todasCompras, monedaActiva]
+  )
 
   // ¿Cuánto estamos tardando en comprar?
   const leadTimePromedio = useMemo(() => {
@@ -108,7 +116,7 @@ export default function DashboardInteligenciaCompras() {
       otros: 0,
     }
 
-    todasCompras.forEach((c) => {
+    comprasEnMonedaActiva.forEach((c) => {
       const cat = c.categoria || 'otros'
       map[cat] = (map[cat] || 0) + (c.costoTotal || 0)
     })
@@ -120,12 +128,12 @@ export default function DashboardInteligenciaCompras() {
       monto,
       porcentaje: Math.round((monto / totalGasto) * 100),
     })).sort((a, b) => b.monto - a.monto)
-  }, [todasCompras])
+  }, [comprasEnMonedaActiva])
 
   // ¿Qué proveedores están rindiendo mejor?
   const proveedoresRendimiento = useMemo(() => {
     return todosProveedores.map((p) => {
-      const comprasProv = todasCompras.filter((c) => c.proveedorId === p.id || c.proveedorNombre.toLowerCase().includes(p.nombre.toLowerCase()))
+      const comprasProv = comprasEnMonedaActiva.filter((c) => c.proveedorId === p.id || c.proveedorNombre.toLowerCase().includes(p.nombre.toLowerCase()))
       const gastoProv = comprasProv.reduce((acc, c) => acc + (c.costoTotal || 0), 0)
       const evalProv = evaluaciones.find((e) => e.proveedorId === p.id)
       const score = evalProv ? evalProv.promedioGeneral : p.calificacion || 4.0
@@ -140,7 +148,7 @@ export default function DashboardInteligenciaCompras() {
         cumplimiento: score >= 4.5 ? 'Excelente (98%)' : score >= 3.8 ? 'Bueno (92%)' : 'Regular (84%)',
       }
     }).sort((a, b) => b.score - a.score)
-  }, [todosProveedores, todasCompras, evaluaciones])
+  }, [todosProveedores, comprasEnMonedaActiva, evaluaciones])
 
   return (
     <div className="space-y-6 font-sans">
@@ -270,7 +278,7 @@ export default function DashboardInteligenciaCompras() {
                   <div className="flex justify-between font-medium text-slate-700">
                     <span>{cat.categoria}</span>
                     <span className="font-mono font-bold text-slate-900">
-                      ${cat.monto.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD ({cat.porcentaje}%)
+                      ${cat.monto.toLocaleString('en-US', { minimumFractionDigits: 2 })} {monedaActiva} ({cat.porcentaje}%)
                     </span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
@@ -313,7 +321,7 @@ export default function DashboardInteligenciaCompras() {
                       <td className="px-3 py-2 font-bold text-slate-900 font-sans">{prov.nombre}</td>
                       <td className="px-3 py-2 text-slate-600 text-[11px] font-sans">{prov.tipo}</td>
                       <td className="px-3 py-2 font-bold text-slate-900">
-                        ${prov.gastoTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                        ${prov.gastoTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })} {monedaActiva}
                       </td>
                       <td className="px-3 py-2 font-bold text-amber-600">
                         ⭐ {prov.score.toFixed(1)} / 5.0

@@ -1,10 +1,24 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useCajaChica } from '@/lib/hooks/useCajaChica'
-import { Calculator, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react'
+import { Calculator, CheckCircle2, AlertTriangle, XCircle, Save } from 'lucide-react'
+import { crearArqueoCaja, listarArqueosCaja, type ArqueoCaja as ArqueoCajaRegistro } from '@/lib/caja-chica'
+import { toast } from 'sonner'
 
 export default function ArqueoCaja() {
   const { movimientos, loading } = useCajaChica() // Sin periodo para traer todo el histórico
   const [efectivoReal, setEfectivoReal] = useState<string>('')
+  const [guardando, setGuardando] = useState(false)
+  const [historial, setHistorial] = useState<ArqueoCajaRegistro[]>([])
+
+  const cargarHistorial = useCallback(() => {
+    listarArqueosCaja()
+      .then((data) => setHistorial(data.slice(0, 5)))
+      .catch((err) => console.error('Error cargando historial de arqueos:', err))
+  }, [])
+
+  useEffect(() => {
+    cargarHistorial()
+  }, [cargarHistorial])
 
   const saldoTeorico = useMemo(() => {
     let entradas = 0
@@ -22,6 +36,28 @@ export default function ArqueoCaja() {
 
   const efectivoNum = parseFloat(efectivoReal) || 0
   const diferencia = efectivoNum - saldoTeorico
+
+  async function guardarArqueo() {
+    setGuardando(true)
+    try {
+      const hoy = new Date()
+      const periodo = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`
+      await crearArqueoCaja({
+        periodo,
+        efectivoFisico: efectivoNum,
+        saldoTeorico,
+        diferencia,
+      })
+      toast.success('Arqueo guardado en el historial.')
+      setEfectivoReal('')
+      cargarHistorial()
+    } catch (err) {
+      console.error('Error guardando arqueo:', err)
+      toast.error('No se pudo guardar el arqueo. Intenta de nuevo.')
+    } finally {
+      setGuardando(false)
+    }
+  }
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto py-6">
@@ -99,16 +135,44 @@ export default function ArqueoCaja() {
                   
                   {efectivoReal !== '' && diferencia !== 0 && (
                     <p className="mt-2 text-xs text-rose-600">
-                      Hay una diferencia entre los movimientos registrados y el dinero físico. 
+                      Hay una diferencia entre los movimientos registrados y el dinero físico.
                       Verifica si falta capturar algún gasto o recarga.
                     </p>
                   )}
                 </div>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={guardarArqueo}
+              disabled={efectivoReal === '' || guardando}
+              className="w-full flex items-center justify-center gap-2 bg-[#0369A1] hover:bg-[#0284C7] disabled:opacity-50 text-white font-bold py-2.5 rounded-lg transition-colors"
+            >
+              <Save className="h-4 w-4" />
+              {guardando ? 'Guardando...' : 'Guardar Arqueo'}
+            </button>
           </>
         )}
       </div>
+
+      {historial.length > 0 && (
+        <div className="bg-white border border-gray-100 p-6 rounded-xl shadow-sm">
+          <h3 className="text-sm font-bold text-gray-900 mb-3">Últimos Arqueos</h3>
+          <div className="divide-y divide-gray-100">
+            {historial.map((a) => (
+              <div key={a.id} className="flex justify-between items-center py-2 text-sm">
+                <span className="text-gray-500 font-mono text-xs">
+                  {a.creadoEn.toLocaleDateString('es-MX')} · {a.creadoPor}
+                </span>
+                <span className={`font-bold font-mono ${a.diferencia === 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                  {a.diferencia > 0 ? '+' : ''}{formatearDinero(a.diferencia)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

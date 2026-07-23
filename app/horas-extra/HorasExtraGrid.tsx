@@ -42,6 +42,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio }: Props) {
     registros,
     loading,
     error,
+    fetchRegistros,
     agregarRegistro,
     editarDias,
     borrarRegistro,
@@ -256,7 +257,12 @@ export default function HorasExtraGrid({ departamento, semanaInicio }: Props) {
   }
 
   if (error) {
-    return <div className="text-red-600 bg-red-50 p-4 rounded-lg text-sm">{error}</div>
+    return (
+      <div className="text-red-600 bg-red-50 border border-red-200 p-4 rounded-lg text-sm space-y-2">
+        <p>{error}</p>
+        <button onClick={fetchRegistros} className="font-semibold underline hover:no-underline">Reintentar</button>
+      </div>
+    )
   }
 
   return (

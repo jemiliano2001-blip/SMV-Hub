@@ -98,12 +98,16 @@ export function aplanarLineas(ordenes: OrdenCompra[]): Linea[] {
 
     const ordenSubtotal = orden.items.reduce((s, item) => s + (item.total ?? 0), 0)
     const impuestos = orden.impuestos ?? 0
+    const envio = orden.envio ?? 0
 
     orden.items.forEach((item, itemIndex) => {
       const subLinea = item.total ?? 0
       const propTax = ordenSubtotal > 0
         ? impuestos * (subLinea / ordenSubtotal)
         : impuestos / orden.items.length
+      const propEnvio = ordenSubtotal > 0
+        ? envio * (subLinea / ordenSubtotal)
+        : envio / orden.items.length
       lineas.push({
         ...baseOrden,
         itemIndex,
@@ -113,7 +117,7 @@ export function aplanarLineas(ordenes: OrdenCompra[]): Linea[] {
         cantidad: item.cantidad,
         precioUnitario: item.precioUnitario,
         subtotal: subLinea,
-        total: subLinea + propTax,
+        total: subLinea + propTax + propEnvio,
         requisitor: resolverCampoItem(item, orden, "requisitor"),
         cuentaCargo: resolverCampoItem(item, orden, "cuentaCargo"),
         destino: resolverDestinoItem(item, orden),

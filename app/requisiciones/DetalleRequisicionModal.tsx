@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { fechaHoyLocal } from '@/lib/format'
 import {
   CheckCircle2,
@@ -58,6 +58,7 @@ export default function DetalleRequisicionModal({
   const { evaluaciones, todasCompras } = useProveedoresInteligencia()
   const [cotizaciones, setCotizaciones] = useState<CotizacionRequisicion[]>([])
   const [cargandoCot, setCargandoCot] = useState(false)
+  const [errorCot, setErrorCot] = useState<string | null>(null)
 
   // Sub-modales y formularios
   const [mostrarFormCot, setMostrarFormCot] = useState(false)
@@ -98,17 +99,25 @@ export default function DetalleRequisicionModal({
       })
   }, [abierto, todasCompras])
 
+  const cargarCotizaciones = useCallback((requisicionId: string) => {
+    setCargandoCot(true)
+    setErrorCot(null)
+    obtenerCotizaciones(requisicionId)
+      .then((res) => setCotizaciones(res))
+      .catch((err) => {
+        console.error(err)
+        setErrorCot('No se pudieron cargar las cotizaciones. Intenta de nuevo.')
+      })
+      .finally(() => setCargandoCot(false))
+  }, [obtenerCotizaciones])
+
   useEffect(() => {
     if (requisicion && abierto) {
       // Carga al abrir el modal: spinner inmediato intencional, no una cascada.
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCargandoCot(true)
-      obtenerCotizaciones(requisicion.id)
-        .then((res) => setCotizaciones(res))
-        .catch((err) => console.error(err))
-        .finally(() => setCargandoCot(false))
+      cargarCotizaciones(requisicion.id)
     }
-  }, [requisicion, abierto, obtenerCotizaciones])
+  }, [requisicion, abierto, cargarCotizaciones])
 
   const cotizacionGanadora = useMemo(() => {
     return cotizaciones.find((c) => c.ganadora) || null
@@ -212,6 +221,7 @@ export default function DetalleRequisicionModal({
           cantidad: it.cantidad,
           precioUnitario: subtotalCot / (it.cantidad || 1),
           subtotal: subtotalCot,
+          categoria: it.categoria,
         })),
         ganadora: false,
       })
@@ -334,10 +344,18 @@ export default function DetalleRequisicionModal({
               </span>
               <p className="text-slate-800 font-semibold flex items-center gap-1.5">
                 <ShieldCheck className="h-4 w-4 text-purple-600" />
-                {requisicion.aprobador || 'Ing. Francisco Pantoja'}
+                {requisicion.aprobador || 'Sin asignar'}
               </p>
-              <span className="inline-block text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                Estatus: {requisicion.estatusAprobacion?.toUpperCase() || 'APROBADA'}
+              <span
+                className={`inline-block text-[10px] font-bold font-mono px-2 py-0.5 rounded ${
+                  requisicion.estatusAprobacion === 'aprobada'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : requisicion.estatusAprobacion === 'rechazada'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-amber-100 text-amber-800'
+                }`}
+              >
+                Estatus: {requisicion.estatusAprobacion?.toUpperCase() || 'PENDIENTE'}
               </span>
             </div>
           </div>
@@ -548,6 +566,17 @@ export default function DetalleRequisicionModal({
             {/* TARJETAS DE COTIZACIÓN EN COMPARADOR */}
             {cargandoCot ? (
               <p className="text-xs text-slate-500 py-4">Cargando cotizaciones...</p>
+            ) : errorCot ? (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-center text-xs text-red-700 space-y-2">
+                <p>{errorCot}</p>
+                <button
+                  type="button"
+                  onClick={() => requisicion && cargarCotizaciones(requisicion.id)}
+                  className="font-bold underline hover:no-underline"
+                >
+                  Reintentar
+                </button>
+              </div>
             ) : rankingCotizaciones.length === 0 ? (
               <div className="p-6 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-center text-xs text-slate-500">
                 Aún no hay cotizaciones registradas para esta requisición. Haz clic en <strong>+ Capturar Cotización</strong> para comparar proveedores.

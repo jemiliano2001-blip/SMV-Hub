@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from "react"
-import { AlertCircle, Loader2, Search } from "lucide-react"
+import { AlertCircle, Check, Copy, Loader2, Search } from "lucide-react"
 import { getClienteAuth } from "@/lib/firebase"
 
 type SatSearchResponse = {
@@ -31,6 +31,13 @@ export default function BuscadorClavesSat() {
   const [data, setData] = useState<SatSearchResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [claveCopiada, setClaveCopiada] = useState<string | null>(null)
+
+  async function copiarClave(clave: string) {
+    await navigator.clipboard.writeText(clave)
+    setClaveCopiada(clave)
+    setTimeout(() => setClaveCopiada((actual) => (actual === clave ? null : actual)), 1500)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -157,6 +164,21 @@ export default function BuscadorClavesSat() {
                       <span className="rounded bg-blue-100 px-2 py-0.5 font-mono text-sm font-semibold text-blue-800">
                         {entry.clave}
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => copiarClave(entry.clave)}
+                        className="inline-flex items-center gap-1 rounded border border-gray-300 px-2 py-0.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
+                      >
+                        {claveCopiada === entry.clave ? (
+                          <>
+                            <Check className="h-3 w-3 text-emerald-600" /> Copiada
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3" /> Copiar
+                          </>
+                        )}
+                      </button>
                       <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
                         score {score}
                       </span>

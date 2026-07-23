@@ -21,6 +21,7 @@ import {
 import AuthGuard from '@/app/AuthGuard'
 import { useDirectorioProveedores } from '@/lib/hooks/useDirectorioProveedores'
 import { useProveedoresInteligencia } from '@/lib/hooks/useProveedoresInteligencia'
+import { useOrdenes } from '@/lib/hooks/useOrdenes'
 import type {
   Proveedor,
   CategoriaProveedor,
@@ -631,25 +632,30 @@ function GenerarPOModal({
   const total = subtotal + fleteUSD
 
   async function handlePrintAndSave() {
-    if (prov) {
-      await onCrearCompra({
-        proveedorId: prov.id,
-        proveedorNombre: prov.nombre,
-        numeroOrden,
-        fecha: fechaHoyLocal(),
-        producto,
-        categoria,
-        marca: marca || prov.marcas[0] || '',
-        cantidad,
-        precioUnitario,
-        moneda: 'USD',
-        costoTotal: total,
-        leadTimeRealDias,
-        notas,
-      })
+    try {
+      if (prov) {
+        await onCrearCompra({
+          proveedorId: prov.id,
+          proveedorNombre: prov.nombre,
+          numeroOrden,
+          fecha: fechaHoyLocal(),
+          producto,
+          categoria,
+          marca: marca || prov.marcas[0] || '',
+          cantidad,
+          precioUnitario,
+          moneda: 'USD',
+          costoTotal: total,
+          leadTimeRealDias,
+          notas,
+        })
+      }
+      window.print()
+      onClose()
+    } catch (err) {
+      console.error(err)
+      toast.error('No se pudo guardar la orden de compra. Intenta de nuevo.')
     }
-    window.print()
-    onClose()
   }
 
   return (
@@ -1111,6 +1117,12 @@ function ProveedoresContent() {
     sincronizarOrdenes,
   } = useProveedoresInteligencia()
 
+  // Historial completo de órdenes para los scorecards automáticos (necesitan todas, no solo la página inicial).
+  const { ordenes: ordenesScorecard, cargarTodas: cargarTodasOrdenes } = useOrdenes()
+  useEffect(() => {
+    void cargarTodasOrdenes()
+  }, [cargarTodasOrdenes])
+
   const [modalFormAbierto, setModalFormAbierto] = useState(false)
   const [modalPOAbierto, setModalPOAbierto] = useState(false)
   const [proveedorEditar, setProveedorEditar] = useState<Proveedor | null>(null)
@@ -1211,8 +1223,8 @@ function ProveedoresContent() {
   const [guardandoScorecards, setGuardandoScorecards] = useState(false)
 
   const scorecardsAuto = useMemo(() => {
-    return generarScorecardsDesdeOrdenes([], todasCompras, todosProveedores)
-  }, [todasCompras, todosProveedores])
+    return generarScorecardsDesdeOrdenes(ordenesScorecard, todasCompras, todosProveedores)
+  }, [ordenesScorecard, todasCompras, todosProveedores])
 
   async function handleGenerarScorecards() {
     if (scorecardsAuto.length === 0) {

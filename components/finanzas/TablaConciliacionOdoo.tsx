@@ -129,20 +129,23 @@ export function TablaConciliacionOdoo({ resumen }: TablaConciliacionOdooProps) {
                 </td>
               </tr>
             ) : (
-              itemsFiltrados.map((it) => (
+              itemsFiltrados.map((it) => {
+                const monedaLocal = it.ordenCompraLocal?.moneda ?? "USD"
+                const monedaOdoo = it.facturaOdoo?.moneda ?? "USD"
+                return (
                 <tr key={it.id} className="hover:bg-slate-50/80 transition-colors">
                   <td className="px-4 py-3 font-mono font-semibold text-slate-900">{it.folio}</td>
                   <td className="px-4 py-3 text-slate-700 font-medium">{it.proveedor}</td>
                   <td className="px-4 py-3 text-right font-mono text-slate-800 tabular-nums">
-                    {it.montoLocal > 0 ? formatPrecio(it.montoLocal, "USD") : "—"}
+                    {it.montoLocal > 0 ? formatPrecio(it.montoLocal, monedaLocal) : "—"}
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-slate-800 tabular-nums">
-                    {it.montoOdoo > 0 ? formatPrecio(it.montoOdoo, "USD") : "—"}
+                    {it.montoOdoo > 0 ? formatPrecio(it.montoOdoo, monedaOdoo) : "—"}
                   </td>
                   <td className="px-4 py-3 text-right font-mono font-bold tabular-nums">
                     {it.diferenciaMonto > 0 ? (
                       <span className={it.porcentajeDesviacion > 2 ? "text-amber-700" : "text-slate-600"}>
-                        {formatPrecio(it.diferenciaMonto, "USD")}
+                        {formatPrecio(it.diferenciaMonto, monedaLocal)}
                       </span>
                     ) : (
                       <span className="text-slate-400">$0.00</span>
@@ -174,7 +177,8 @@ export function TablaConciliacionOdoo({ resumen }: TablaConciliacionOdooProps) {
                     {it.alertaInconsistencia || <span className="text-slate-400">Sin observaciones</span>}
                   </td>
                 </tr>
-              ))
+                )
+              })
             )}
           </tbody>
         </table>

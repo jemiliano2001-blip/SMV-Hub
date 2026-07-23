@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Award,
   CheckCircle2,
@@ -8,12 +8,14 @@ import {
   Zap,
   Layers,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import PanelProveedoresFantasma from '@/app/proveedores/PanelProveedoresFantasma'
 import PanelComprasOdoo from '@/app/proveedores/PanelComprasOdoo'
 import type { Proveedor, CategoriaProveedor } from '@/lib/schemas'
 import type { ScorecardAutomatica } from '@/lib/proveedores-inteligencia-cruzada'
+import { obtenerMatrizBackupProveedores, guardarMatrizBackupProveedores } from '@/lib/proveedores'
 
 interface PanelInteligencia360Props {
   proveedores: Proveedor[]
@@ -28,7 +30,8 @@ export default function PanelInteligencia360({
   onGenerarScorecards,
   guardandoScorecards,
 }: PanelInteligencia360Props) {
-  // Feature C State: Mapeo de Categoría -> { primarioId, backupId }
+  // Feature C: Mapeo de Categoría -> { primarioId, backupId }, persistido en Firestore
+  // (antes solo en useState — se perdía al recargar la página).
   const [mapeoBackup, setMapeoBackup] = useState<Record<string, { primarioId: string; backupId: string }>>({
     endmills: { primarioId: '', backupId: '' },
     insertos: { primarioId: '', backupId: '' },
@@ -36,6 +39,24 @@ export default function PanelInteligencia360({
     consumibles: { primarioId: '', backupId: '' },
     otros: { primarioId: '', backupId: '' },
   })
+
+  useEffect(() => {
+    obtenerMatrizBackupProveedores()
+      .then((guardado) => {
+        if (Object.keys(guardado).length > 0) {
+          setMapeoBackup((prev) => ({ ...prev, ...guardado }))
+        }
+      })
+      .catch((err) => console.error('Error cargando matriz de backup de proveedores:', err))
+  }, [])
+
+  function actualizarYGuardarMapeo(nuevo: Record<string, { primarioId: string; backupId: string }>) {
+    setMapeoBackup(nuevo)
+    guardarMatrizBackupProveedores(nuevo).catch((err) => {
+      console.error('Error guardando matriz de backup de proveedores:', err)
+      toast.error('No se pudo guardar la matriz de proveedor primario/backup.')
+    })
+  }
 
   const categoriasLista: { id: CategoriaProveedor; titulo: string; descripcion: string }[] = [
     { id: 'endmills', titulo: 'Endmills (Cortadores Solidos CNC)', descripcion: 'Carburo sólido, aluminio y aleaciones exóticas' },
@@ -50,17 +71,17 @@ export default function PanelInteligencia360({
   }
 
   const handleSeleccionarPrimario = (cat: string, id: string) => {
-    setMapeoBackup((prev) => ({
-      ...prev,
-      [cat]: { ...prev[cat], primarioId: id },
-    }))
+    actualizarYGuardarMapeo({
+      ...mapeoBackup,
+      [cat]: { ...mapeoBackup[cat], primarioId: id },
+    })
   }
 
   const handleSeleccionarBackup = (cat: string, id: string) => {
-    setMapeoBackup((prev) => ({
-      ...prev,
-      [cat]: { ...prev[cat], backupId: id },
-    }))
+    actualizarYGuardarMapeo({
+      ...mapeoBackup,
+      [cat]: { ...mapeoBackup[cat], backupId: id },
+    })
   }
 
   return (

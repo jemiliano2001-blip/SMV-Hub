@@ -11,6 +11,7 @@ export default function AuditoriaPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [logs, setLogs] = useState<any[]>([])
   const [cargando, setCargando] = useState(true)
+  const [errorLogs, setErrorLogs] = useState<string | null>(null)
 
   // Filtros
   const [filtroUsuario, setFiltroUsuario] = useState<string>('TODOS')
@@ -21,19 +22,22 @@ export default function AuditoriaPage() {
 
   async function fetchLogs() {
     setCargando(true)
+    setErrorLogs(null)
     try {
       const q = query(collection(db, 'auditoria'), orderBy('fechaHora', 'desc'), limit(limiteLogs))
       const snapshot = await getDocs(q)
       setLogs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
     } catch (error) {
       console.error('Error fetching logs:', error)
+      setErrorLogs('No se pudo cargar la bitácora de auditoría. Intenta de nuevo.')
     } finally {
       setCargando(false)
     }
   }
 
   useEffect(() => {
-    fetchLogs()
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchLogs()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [limiteLogs])
 
@@ -103,7 +107,7 @@ export default function AuditoriaPage() {
                   Seguridad Logs
                 </span>
                 <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
-                  Super-Admin Access
+                  Acceso restringido
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
@@ -222,6 +226,11 @@ export default function AuditoriaPage() {
           <div className="md:hidden bg-white rounded-xl shadow-xs border border-slate-200 divide-y divide-slate-100">
             {cargando ? (
               <p className="px-4 py-6 text-center text-xs font-mono text-slate-500">Cargando bitácora...</p>
+            ) : errorLogs ? (
+              <div className="px-4 py-6 text-center text-xs font-mono text-red-600 space-y-2">
+                <p>{errorLogs}</p>
+                <button onClick={fetchLogs} className="font-semibold underline hover:no-underline">Reintentar</button>
+              </div>
             ) : logsFiltrados.length === 0 ? (
               <p className="px-4 py-6 text-center text-xs font-mono text-slate-500">No hay registros que coincidan con los filtros.</p>
             ) : (
@@ -272,6 +281,13 @@ export default function AuditoriaPage() {
                   {cargando ? (
                     <tr>
                       <td colSpan={6} className="px-4 py-6 text-center text-xs font-mono text-slate-500">Cargando bitácora...</td>
+                    </tr>
+                  ) : errorLogs ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-6 text-center text-xs font-mono text-red-600">
+                        <p>{errorLogs}</p>
+                        <button onClick={fetchLogs} className="mt-1 font-semibold underline hover:no-underline">Reintentar</button>
+                      </td>
                     </tr>
                   ) : logsFiltrados.length === 0 ? (
                     <tr>

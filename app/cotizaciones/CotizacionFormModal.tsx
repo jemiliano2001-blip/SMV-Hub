@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Loader2, X } from 'lucide-react'
-import type { Cotizacion, EstatusCotizacion, Ubicacion } from '@/lib/schemas'
+import type { Cotizacion, EstatusCotizacion, Ubicacion, Proveedor } from '@/lib/schemas'
 import type { NuevaCotizacionPayload } from '@/lib/cotizaciones'
-import { crearCotizacion, actualizarCotizacion } from '@/lib/cotizaciones'
+import { crearCotizacion, actualizarCotizacion, claveDedupCotizacion, clavesExistentes } from '@/lib/cotizaciones'
+import { obtenerProveedores } from '@/lib/proveedores'
 
 interface Props {
   cotizacionBase?: Cotizacion
@@ -26,6 +27,7 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
     estatus: (cotizacionBase?.estatus || 'cotizado') as EstatusCotizacion,
     ubicacion: (cotizacionBase?.ubicacion || 'USA') as Ubicacion,
     proveedor: cotizacionBase?.proveedor || '',
+    proveedorId: cotizacionBase?.proveedorId || null as string | null,
     descripcion: cotizacionBase?.descripcion || '',
     numeroParte: cotizacionBase?.numeroParte || '',
     cantidad: cotizacionBase?.cantidad?.toString() || '',
@@ -35,6 +37,18 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
     link: cotizacionBase?.link || '',
     notas: cotizacionBase?.notas || '',
   })
+
+  const [catalogoProveedores, setCatalogoProveedores] = useState<Proveedor[]>([])
+  useEffect(() => {
+    obtenerProveedores()
+      .then(setCatalogoProveedores)
+      .catch((err) => console.error('Error cargando catálogo de proveedores:', err))
+  }, [])
+
+  function handleProveedorChange(nombre: string) {
+    const match = catalogoProveedores.find((p) => p.nombre === nombre)
+    setFormData({ ...formData, proveedor: nombre, proveedorId: match?.id ?? null })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,6 +62,7 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
         estatus: formData.estatus,
         ubicacion: formData.ubicacion,
         proveedor: formData.proveedor,
+        proveedorId: formData.proveedorId,
         descripcion: formData.descripcion,
         numeroParte: formData.numeroParte || null,
         cantidad: formData.cantidad ? Number(formData.cantidad) : null,
@@ -63,6 +78,13 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
         await actualizarCotizacion(cotizacionBase.id, payload)
         onSaved({ ...cotizacionBase, ...payload, id: cotizacionBase.id, actualizadoEn: new Date() } as Cotizacion)
       } else {
+        const claveNueva = claveDedupCotizacion(payload)
+        const existentes = await clavesExistentes()
+        if (existentes.has(claveNueva)) {
+          setError('Ya existe una cotización con el mismo proveedor, descripción, no. de parte y fecha.')
+          setLoading(false)
+          return
+        }
         const id = await crearCotizacion(payload)
         onSaved({ ...payload, id, creadoEn: new Date(), actualizadoEn: new Date() } as Cotizacion)
       }
@@ -123,7 +145,19 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Proveedor *</label>
-                <input required value={formData.proveedor} onChange={e => setFormData({ ...formData, proveedor: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                <input
+                  required
+                  list="catalogo-proveedores-cotizacion"
+                  value={formData.proveedor}
+                  onChange={e => handleProveedorChange(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+                  placeholder="Escribe o elige del catálogo"
+                />
+                <datalist id="catalogo-proveedores-cotizacion">
+                  {catalogoProveedores.map((p) => (
+                    <option key={p.id} value={p.nombre} />
+                  ))}
+                </datalist>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">No. de parte</label>

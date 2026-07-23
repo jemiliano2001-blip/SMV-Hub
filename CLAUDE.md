@@ -50,6 +50,9 @@ Módulos actuales:
 - `/operadores` — catálogo de personal para auto-completar en módulos operativos.
 - `/usuarios` — administración de accesos y roles (solo `admin`); lógica en `lib/usuarios.ts` /
   `lib/usuarios-admin.ts`.
+- `/pedidos-almacen` — captura rápida de pedidos desde piso (encargado de almacén); CRUD en
+  `lib/pedidos-almacen.ts`, colección Firestore propia `pedidos-almacen`; gated por módulo
+  `pedidos-almacen` (`admin`/`compras`/`almacen`), no requiere el módulo base `almacen`.
 - `/auditoria` — pantalla exclusiva de auditoría (`lib/auditoria.ts`).
 - `/login` — página de inicio de sesión con Google Sign-In; redirige al home si ya hay sesión.
 
@@ -68,6 +71,8 @@ npm run lint           # ESLint
 npm test               # corre la suite de Vitest una vez
 npm run test:watch     # Vitest en modo watch
 npm run test:coverage  # Vitest con reporte de cobertura
+npm run test:e2e        # Playwright: pruebas de accesibilidad (axe-core) sobre login/proveedores
+npm run test:e2e:headed # igual, con navegador visible
 
 # Correr un solo archivo de pruebas (la mayoría de los archivos en tests/ reflejan 1:1 los
 # módulos de lib/, pero también hay tests de Route Handlers como extraer-route.test.ts):
