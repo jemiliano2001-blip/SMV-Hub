@@ -3,6 +3,7 @@ import { useEntradas } from '@/lib/hooks/useAlmacen'
 import type { EntradaAlmacen } from '@/lib/schemas'
 import { fechaHoyLocal } from '@/lib/format'
 import { Plus, Trash2, Search } from 'lucide-react'
+import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 
 type EstatusEntrada = EntradaAlmacen['estatus']
 
@@ -67,6 +68,7 @@ function EntradaCard({ e, onCycleEstatus, onEliminar }: EntradaCardProps) {
 }
 
 export default function EntradasList() {
+  const confirmar = useConfirmDialog()
   const { entradas, loading, error, agregarEntrada, editarEntrada, borrarEntrada } = useEntradas()
 
   const [busqueda, setBusqueda] = useState('')
@@ -114,7 +116,13 @@ export default function EntradasList() {
   }
 
   async function handleEliminar(id: string, desc: string) {
-    if (!confirm(`¿Eliminar la entrada de "${desc}"?`)) return
+    const aceptado = await confirmar({
+      title: 'Eliminar entrada de almacén',
+      description: `Se eliminará la entrada de “${desc}”.`,
+      confirmLabel: 'Eliminar',
+      variant: 'destructive',
+    })
+    if (!aceptado) return
     try {
       await borrarEntrada(id)
     } catch (err) {

@@ -24,6 +24,7 @@ import {
   Check,
   Loader2,
 } from 'lucide-react'
+import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 
 interface Props {
   departamento: Departamento
@@ -36,6 +37,7 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 const FIN_DE_SEMANA = new Set<DiaSemana>(['sabado', 'domingo'])
 
 export default function HorasExtraGrid({ departamento, semanaInicio }: Props) {
+  const confirmar = useConfirmDialog()
   const {
     registros,
     loading,
@@ -229,7 +231,13 @@ export default function HorasExtraGrid({ departamento, semanaInicio }: Props) {
   }
 
   async function handleEliminar(id: string, nombre: string) {
-    if (!confirm(`¿Remover a ${nombre} de esta semana?`)) return
+    const aceptado = await confirmar({
+      title: 'Remover registro semanal',
+      description: `Se removerá a ${nombre} de esta semana.`,
+      confirmLabel: 'Remover',
+      variant: 'destructive',
+    })
+    if (!aceptado) return
     try {
       await borrarRegistro(id)
     } catch (err) {

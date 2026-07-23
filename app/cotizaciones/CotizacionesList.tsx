@@ -13,6 +13,8 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import type { Cotizacion, EstatusCotizacion } from '@/lib/schemas'
+import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
+import { toast } from 'sonner'
 import { formatPrecio, formatFecha } from '@/lib/format'
 import {
   filtrarCotizaciones,
@@ -108,6 +110,7 @@ function CotizacionCard({ c, selected, onToggleSelect, onEditar }: CotizacionCar
 }
 
 export default function CotizacionesList() {
+  const confirmar = useConfirmDialog()
   const {
     cotizaciones,
     loading,
@@ -228,16 +231,21 @@ export default function CotizacionesList() {
 
   const handleDeleteMultiple = async () => {
     if (selectedIds.size === 0) return
-    if (window.confirm(`¿Estás seguro de que deseas eliminar ${selectedIds.size} cotizaciones seleccionadas?`)) {
-      setIsDeletingBulk(true)
-      const success = await handleEliminarLote(Array.from(selectedIds))
-      if (success) {
-        setSelectedIds(new Set())
-      } else {
-        alert('No se pudieron eliminar las cotizaciones. Por favor, intenta de nuevo.')
-      }
-      setIsDeletingBulk(false)
+    const aceptado = await confirmar({
+      title: 'Eliminar cotizaciones seleccionadas',
+      description: `Se eliminarán ${selectedIds.size} cotizaciones y esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar cotizaciones',
+      variant: 'destructive',
+    })
+    if (!aceptado) return
+    setIsDeletingBulk(true)
+    const success = await handleEliminarLote(Array.from(selectedIds))
+    if (success) {
+      setSelectedIds(new Set())
+    } else {
+      toast.error('No se pudieron eliminar las cotizaciones. Intenta de nuevo.')
     }
+    setIsDeletingBulk(false)
   }
 
   const handleFormSaved = (cotizacionGuardada: Cotizacion) => {

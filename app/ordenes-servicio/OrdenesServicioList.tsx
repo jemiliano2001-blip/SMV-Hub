@@ -16,6 +16,8 @@ import {
   truncarNota,
 } from '@/lib/ordenes-servicio-helpers'
 import OrdenServicioFormModal from './OrdenServicioFormModal'
+import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
+import { toast } from 'sonner'
 
 type FormState = {
   descripcion: string
@@ -166,6 +168,7 @@ function OrdenServicioCard({ o, selected, onToggleSelect, onCambioEstatus, onEdi
 }
 
 export default function OrdenesServicioList() {
+  const confirmar = useConfirmDialog()
   const {
     ordenes,
     loading,
@@ -252,7 +255,13 @@ export default function OrdenesServicioList() {
   }
 
   async function handleEliminar(id: string, desc: string) {
-    if (!confirm(`¿Eliminar "${desc.slice(0, 60)}"?`)) return
+    const aceptado = await confirmar({
+      title: 'Eliminar orden de servicio',
+      description: `Se eliminará “${desc.slice(0, 60)}”.`,
+      confirmLabel: 'Eliminar',
+      variant: 'destructive',
+    })
+    if (!aceptado) return
     await borrarOrden(id)
   }
 
@@ -274,16 +283,21 @@ export default function OrdenesServicioList() {
 
   async function handleDeleteMultiple() {
     if (selectedIds.size === 0) return
-    if (window.confirm(`¿Estás seguro de que deseas eliminar ${selectedIds.size} órdenes de servicio seleccionadas?`)) {
-      setIsDeletingBulk(true)
-      const success = await borrarOrdenesServicioLote(Array.from(selectedIds))
-      if (success) {
-        setSelectedIds(new Set())
-      } else {
-        alert('No se pudieron eliminar las órdenes. Por favor, intenta de nuevo.')
-      }
-      setIsDeletingBulk(false)
+    const aceptado = await confirmar({
+      title: 'Eliminar órdenes de servicio',
+      description: `Se eliminarán ${selectedIds.size} órdenes de servicio seleccionadas.`,
+      confirmLabel: 'Eliminar órdenes',
+      variant: 'destructive',
+    })
+    if (!aceptado) return
+    setIsDeletingBulk(true)
+    const success = await borrarOrdenesServicioLote(Array.from(selectedIds))
+    if (success) {
+      setSelectedIds(new Set())
+    } else {
+      toast.error('No se pudieron eliminar las órdenes. Intenta de nuevo.')
     }
+    setIsDeletingBulk(false)
   }
 
   function handleFormSaved() {

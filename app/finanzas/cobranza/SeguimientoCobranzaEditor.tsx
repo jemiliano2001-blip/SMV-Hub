@@ -6,6 +6,7 @@ import type {
   SeguimientoCobranza,
   SeguimientoCobranzaInput,
 } from "@/lib/schemas"
+import { useConfirmDialog } from "@/components/ConfirmDialogProvider"
 
 type Props = {
   facturaId: string
@@ -22,6 +23,7 @@ export default function SeguimientoCobranzaEditor({
   onGuardar,
   onEliminar,
 }: Props) {
+  const confirmar = useConfirmDialog()
   const [nota, setNota] = useState(seguimiento?.nota ?? "")
   const [promesaPagoFecha, setPromesaPagoFecha] = useState(
     seguimiento?.promesaPagoFecha ?? ""
@@ -58,9 +60,13 @@ export default function SeguimientoCobranzaEditor({
   }
 
   async function eliminar() {
-    if (!window.confirm("¿Eliminar por completo este seguimiento de cobranza?")) {
-      return
-    }
+    const aceptado = await confirmar({
+      title: "Eliminar seguimiento de cobranza",
+      description: "Se eliminarán la nota, la promesa de pago y el estado de disputa.",
+      confirmLabel: "Eliminar seguimiento",
+      variant: "destructive",
+    })
+    if (!aceptado) return
     setGuardando(true)
     setError(null)
     setMensaje(null)

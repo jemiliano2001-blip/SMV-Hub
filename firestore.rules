@@ -576,27 +576,32 @@ service cloud.firestore {
     // ── Compras Odoo (espejo solo lectura; escribe Admin SDK / Cloud Functions) ─
 
     function esProveedoresAutorizado() {
-      return esUsuarioAutorizado() &&
-        (esCorreoBreakGlass() || tieneModulo('proveedores') || esSuperAdminDoc());
+      return esUsuarioAutorizado();
     }
 
     match /compras_odoo_po/{docId} {
-      allow read: if esProveedoresAutorizado();
+      allow read: if esUsuarioAutorizado();
       allow write: if false;
     }
 
     match /compras_odoo_facturas/{docId} {
-      allow read: if esProveedoresAutorizado();
+      allow read: if esUsuarioAutorizado();
       allow write: if false;
     }
 
     match /compras_odoo_items/{docId} {
-      allow read: if esProveedoresAutorizado();
-      allow write: if false;
+      allow read: if esUsuarioAutorizado();
+      allow update: if esUsuarioAutorizado();
+      allow create, delete: if false;
+    }
+
+    match /clasificacion_ia_mapeos/{mapeoId} {
+      allow read: if esUsuarioAutorizado();
+      allow create, update, delete: if esUsuarioAutorizado();
     }
 
     match /compras_odoo_sync_state/{docId} {
-      allow read: if esProveedoresAutorizado();
+      allow read: if esUsuarioAutorizado();
       allow write: if false;
     }
 
@@ -613,6 +618,13 @@ service cloud.firestore {
         && request.resource.data.usdToMxn is number
         && request.resource.data.usdToMxn > 0;
       allow delete: if esFinanzasAutorizado();
+    }
+
+    // ── Configuraciones generales (Sincronización de Cotizaciones, etc.) ──────
+
+    match /configuraciones/{configId} {
+      allow read, create, update: if esUsuarioAutorizado();
+      allow delete: if esUsuarioAutorizado();
     }
 
     // ── Todo lo demás: denegado por defecto ──────────────────────────────────

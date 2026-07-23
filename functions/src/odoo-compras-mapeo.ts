@@ -21,6 +21,11 @@ export type OdooPoLineRaw = {
   price_subtotal: number
   /** Clave SAT si el producto la trae vía read adicional. */
   clave_prod_serv?: string | false | null
+  /** Metadata enriquecida por el sync. */
+  _odooCategoria?: string | null
+  _odooUom?: string | null
+  _odooCostoEstandar?: number | null
+  _odooRefInterna?: string | null
 }
 
 export type OdooPoRaw = {
@@ -48,6 +53,11 @@ export type OdooInvoiceLineRaw = {
   price_subtotal: number
   display_type?: string | false
   clave_prod_serv?: string | false | null
+  /** Metadata enriquecida por el sync. */
+  _odooCategoria?: string | null
+  _odooUom?: string | null
+  _odooCostoEstandar?: number | null
+  _odooRefInterna?: string | null
 }
 
 export type OdooVendorBillRaw = {
@@ -92,6 +102,10 @@ export type PoCrudoNormalizado = {
     subtotal: number
     productOdooId: number | null
     claveProdServ: string | null
+    odooCategoria: string | null
+    odooUom: string | null
+    odooCostoEstandar: number | null
+    odooRefInterna: string | null
   }[]
   origen: "odoo"
   sincronizadoEn: Date
@@ -123,6 +137,10 @@ export type FacturaProveedorCrudoNormalizado = {
     subtotal: number
     productOdooId: number | null
     claveProdServ: string | null
+    odooCategoria: string | null
+    odooUom: string | null
+    odooCostoEstandar: number | null
+    odooRefInterna: string | null
   }[]
   origen: "odoo"
   sincronizadoEn: Date
@@ -175,6 +193,10 @@ export function mapearPoOdoo(raw: OdooPoRaw, ahora: Date = new Date()): PoCrudoN
       subtotal: l.price_subtotal,
       productOdooId: l.product_id ? l.product_id[0] : null,
       claveProdServ: claveOrNull(l.clave_prod_serv),
+      odooCategoria: l._odooCategoria ?? null,
+      odooUom: l._odooUom ?? null,
+      odooCostoEstandar: l._odooCostoEstandar ?? null,
+      odooRefInterna: l._odooRefInterna ?? null,
     })),
     origen: "odoo",
     sincronizadoEn: ahora,
@@ -215,6 +237,10 @@ export function mapearFacturaProveedorOdoo(
       subtotal: l.price_subtotal,
       productOdooId: l.product_id ? l.product_id[0] : null,
       claveProdServ: claveOrNull(l.clave_prod_serv),
+      odooCategoria: l._odooCategoria ?? null,
+      odooUom: l._odooUom ?? null,
+      odooCostoEstandar: l._odooCostoEstandar ?? null,
+      odooRefInterna: l._odooRefInterna ?? null,
     })),
     origen: "odoo",
     sincronizadoEn: ahora,
@@ -240,6 +266,10 @@ export function itemsDesdePoCrudo(po: PoCrudoNormalizado): CompraOdooItemNormali
       claveProdServ: l.claveProdServ,
       productOdooId: l.productOdooId,
       esRfq: po.esRfq,
+      odooCategoria: l.odooCategoria,
+      odooUom: l.odooUom,
+      odooCostoEstandar: l.odooCostoEstandar,
+      odooRefInterna: l.odooRefInterna,
     })
   )
 }
@@ -265,6 +295,10 @@ export function itemsDesdeFacturaCrudo(
       origenPo: factura.origenPo,
       productOdooId: l.productOdooId,
       esRfq: false,
+      odooCategoria: l.odooCategoria,
+      odooUom: l.odooUom,
+      odooCostoEstandar: l.odooCostoEstandar,
+      odooRefInterna: l.odooRefInterna,
     })
   )
 }

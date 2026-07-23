@@ -19,6 +19,7 @@ interface HeaderCentroMandoProps {
   totalProveedores: number
   totalUSA: number
   totalMexico: number
+  sinMercado?: number
   mercadoActivo: 'usa' | 'mexico'
   onMercadoChange: (mercado: 'usa' | 'mexico') => void
   onNuevoProveedor: () => void
@@ -34,6 +35,7 @@ export default function HeaderCentroMando({
   totalProveedores,
   totalUSA,
   totalMexico,
+  sinMercado = 0,
   mercadoActivo,
   onMercadoChange,
   onNuevoProveedor,
@@ -106,7 +108,10 @@ export default function HeaderCentroMando({
               <Globe className="w-4 h-4 text-[#0369A1]" />
             </div>
             <div className="text-lg font-extrabold text-slate-900">
-              {totalProveedores} <span className="text-xs font-normal text-slate-500">({totalUSA} USA / {totalMexico} MX)</span>
+              {totalProveedores}{' '}
+              <span className="text-xs font-normal text-slate-500">
+                ({totalUSA} USA / {totalMexico} MX{sinMercado > 0 ? ` / ${sinMercado} legado` : ''})
+              </span>
             </div>
           </div>
 
@@ -130,9 +135,11 @@ export default function HeaderCentroMando({
             </div>
           </div>
 
-          <div
+          <button
+            type="button"
             onClick={onAbrirMantenimiento}
-            className={`cursor-pointer space-y-1 rounded-lg border p-2.5 transition-all ${
+            disabled={!onAbrirMantenimiento}
+            className={`w-full space-y-1 rounded-lg border p-2.5 text-left transition-all disabled:cursor-default ${
               proveedoresFantasmaCount > 0
                 ? 'bg-amber-50 border-amber-200 text-amber-900 hover:bg-amber-100/80'
                 : 'bg-slate-50 border-slate-200/80 text-slate-700'
@@ -153,7 +160,7 @@ export default function HeaderCentroMando({
                 <span className="text-emerald-700 text-sm font-bold">100% Vinculados</span>
               )}
             </div>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -161,25 +168,29 @@ export default function HeaderCentroMando({
       <div className="flex items-center justify-between overflow-x-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xs">
         <div className="flex w-max items-center gap-1.5 rounded-lg bg-slate-100 p-1">
           <button
+            type="button"
             onClick={() => onMercadoChange('usa')}
+            aria-pressed={mercadoActivo === 'usa'}
             className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-bold transition-all ${
               mercadoActivo === 'usa'
                 ? 'bg-white text-[#0369A1] shadow-xs border border-slate-200'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            🇺🇸 USA Tooling ({totalUSA})
+            🇺🇸 USA Tooling ({totalUSA}{sinMercado > 0 ? '+' : ''})
           </button>
 
           <button
+            type="button"
             onClick={() => onMercadoChange('mexico')}
+            aria-pressed={mercadoActivo === 'mexico'}
             className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-bold transition-all ${
               mercadoActivo === 'mexico'
                 ? 'bg-white text-emerald-800 shadow-xs border border-slate-200'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            🇲🇽 Proveedores México ({totalMexico})
+            🇲🇽 Proveedores México ({totalMexico}{sinMercado > 0 ? '+' : ''})
           </button>
         </div>
 

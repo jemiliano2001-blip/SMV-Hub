@@ -8,6 +8,11 @@ import {
   query,
   where,
   orderBy,
+  limit,
+  startAfter,
+  getCountFromServer,
+  type QueryConstraint,
+  type QueryDocumentSnapshot,
 } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import type { OrdenCompra, NuevaCompraForm, EstadoOrden, ItemFactura } from "@/lib/schemas"
@@ -67,6 +72,44 @@ export async function crearOrdenesLote(
 export async function listarOrdenes(): Promise<OrdenCompra[]> {
   const snap = await getDocs(query(ordenesRef(), orderBy("creadoEn", "desc")))
   return snap.docs.map((d) => d.data())
+}
+
+export type CursorOrdenes = QueryDocumentSnapshot<OrdenCompra>
+
+export interface PaginaOrdenes {
+  items: OrdenCompra[]
+  siguienteCursor: CursorOrdenes | null
+  hayMas: boolean
+}
+
+function normalizarTamanoPagina(tamano: number): number {
+  if (!Number.isFinite(tamano)) return 50
+  return Math.min(100, Math.max(1, Math.trunc(tamano)))
+}
+
+export async function obtenerPaginaOrdenes(
+  tamano = 50,
+  cursor?: CursorOrdenes | null
+): Promise<PaginaOrdenes> {
+  const tamanoSeguro = normalizarTamanoPagina(tamano)
+  const restricciones: QueryConstraint[] = [orderBy("creadoEn", "desc")]
+  if (cursor) restricciones.push(startAfter(cursor))
+  restricciones.push(limit(tamanoSeguro + 1))
+
+  const snapshot = await getDocs(query(ordenesRef(), ...restricciones))
+  const hayMas = snapshot.docs.length > tamanoSeguro
+  const documentos = snapshot.docs.slice(0, tamanoSeguro)
+
+  return {
+    items: documentos.map((documento) => documento.data()),
+    siguienteCursor: hayMas ? documentos.at(-1) ?? null : null,
+    hayMas,
+  }
+}
+
+export async function contarOrdenes(): Promise<number> {
+  const snapshot = await getCountFromServer(ordenesRef())
+  return snapshot.data().count
 }
 
 export async function obtenerOrden(id: string): Promise<OrdenCompra | null> {

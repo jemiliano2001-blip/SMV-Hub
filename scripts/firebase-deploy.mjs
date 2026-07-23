@@ -28,6 +28,14 @@ if (firebaseArgs.length === 0) {
 
 runPatch("apply")
 
+const nodeOptions = process.env.NODE_OPTIONS || ""
+const deployEnv = {
+  ...process.env,
+  NODE_OPTIONS: /--max[_-]old[_-]space[_-]size/i.test(nodeOptions)
+    ? nodeOptions
+    : `${nodeOptions} --max_old_space_size=4096`.trim(),
+}
+
 let restaurado = false
 function restaurarUnaVez() {
   if (restaurado) return
@@ -57,7 +65,7 @@ const child = spawn("firebase", firebaseArgs, {
   stdio: "inherit",
   shell: true,
   cwd: process.cwd(),
-  env: process.env,
+  env: deployEnv,
 })
 
 child.on("error", (err) => {

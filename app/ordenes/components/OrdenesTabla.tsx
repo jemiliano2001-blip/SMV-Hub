@@ -9,7 +9,8 @@ import {
   ordenTieneSatPendiente,
   displayOGuion,
   generarMensajeWhatsApp,
-  obtenerUrlWhatsApp,
+  copiarOrdenAlPortapapeles,
+  LINK_GRUPO_WHATSAPP,
 } from '@/lib/ordenes-display'
 import OrdenBadgeEstado from './OrdenBadgeEstado'
 import WhatsAppIcon from '@/components/WhatsAppIcon'
@@ -31,6 +32,7 @@ interface OrdenesTablaProps {
   onApproveClick: (id: string, e: React.MouseEvent) => void;
   onRejectClick: (id: string, e: React.MouseEvent) => void;
   onDeleteClick: (id: string, e: React.MouseEvent) => void;
+  onPrepararFiltros: () => void;
 }
 
 export default function OrdenesTabla({
@@ -48,6 +50,7 @@ export default function OrdenesTabla({
   onApproveClick,
   onRejectClick,
   onDeleteClick,
+  onPrepararFiltros,
 }: OrdenesTablaProps) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden font-sans">
@@ -68,6 +71,7 @@ export default function OrdenesTabla({
                 <select 
                   value={colFiltros.proveedor} 
                   onChange={e => setColFiltros({...colFiltros, proveedor: e.target.value})}
+                  onFocus={onPrepararFiltros}
                   className="mt-1.5 block w-full max-w-[130px] text-[11px] font-normal border border-slate-300 rounded p-1 bg-white text-slate-900 focus:outline-none focus:border-[#0369A1]"
                 >
                   <option value="">Todos</option>
@@ -79,6 +83,7 @@ export default function OrdenesTabla({
                 <select 
                   value={colFiltros.requisitor} 
                   onChange={e => setColFiltros({...colFiltros, requisitor: e.target.value})}
+                  onFocus={onPrepararFiltros}
                   className="mt-1.5 block w-full max-w-[100px] text-[11px] font-normal border border-slate-300 rounded p-1 bg-white text-slate-900 focus:outline-none focus:border-[#0369A1]"
                 >
                   <option value="">Todos</option>
@@ -91,6 +96,7 @@ export default function OrdenesTabla({
                 <select 
                   value={colFiltros.empresa} 
                   onChange={e => setColFiltros({...colFiltros, empresa: e.target.value})}
+                  onFocus={onPrepararFiltros}
                   className="mt-1.5 block w-full max-w-[100px] text-[11px] font-normal border border-slate-300 rounded p-1 bg-white text-slate-900 focus:outline-none focus:border-[#0369A1]"
                 >
                   <option value="">Todos</option>
@@ -102,6 +108,7 @@ export default function OrdenesTabla({
                 <select 
                   value={colFiltros.cuentaCargo} 
                   onChange={e => setColFiltros({...colFiltros, cuentaCargo: e.target.value})}
+                  onFocus={onPrepararFiltros}
                   className="mt-1.5 block w-full max-w-[130px] text-[11px] font-normal border border-slate-300 rounded p-1 bg-white text-slate-900 focus:outline-none focus:border-[#0369A1]"
                 >
                   <option value="">Todos</option>
@@ -190,14 +197,14 @@ export default function OrdenesTabla({
                         e.stopPropagation()
                         const msg = generarMensajeWhatsApp(orden)
                         try {
-                          await navigator.clipboard.writeText(msg)
+                          await copiarOrdenAlPortapapeles(msg)
                         } catch {
                           // Ignorar
                         }
-                        window.open(obtenerUrlWhatsApp(msg), '_blank')
+                        window.open(LINK_GRUPO_WHATSAPP, '_blank')
                       }}
                       className="p-1 text-[#0369A1] hover:text-emerald-600 rounded hover:bg-emerald-50 transition-colors"
-                      title="Notificar por WhatsApp (copia texto + link de foto/PDF)"
+                      title="Notificar por WhatsApp (copia texto al portapapeles y abre el grupo)"
                     >
                       <WhatsAppIcon className="h-4 w-4" />
                     </button>

@@ -10,6 +10,9 @@ import {
   deleteDoc,
   query,
   orderBy,
+  limit,
+  startAfter,
+  getCountFromServer,
   Timestamp,
   type DocumentReference,
   type QuerySnapshot,
@@ -21,6 +24,8 @@ import {
   crearOrden,
   crearOrdenesLote,
   listarOrdenes,
+  obtenerPaginaOrdenes,
+  contarOrdenes,
   obtenerOrden,
   actualizarOrden,
   eliminarOrden,
@@ -88,6 +93,9 @@ vi.mock("firebase/firestore", () => {
     deleteDoc: vi.fn(),
     query: vi.fn(() => mockQueryRef),
     orderBy: vi.fn((field, direction) => ({ field, direction })),
+    limit: vi.fn((cantidad) => ({ cantidad })),
+    startAfter: vi.fn((cursor) => ({ cursor })),
+    getCountFromServer: vi.fn(),
     writeBatch: vi.fn(() => mockBatch),
     Timestamp: MockTimestamp,
     serverTimestamp: vi.fn(),
@@ -225,6 +233,47 @@ describe("lib/ordenes CRUD operations", () => {
       expect(query).toHaveBeenCalledWith(mockCollectionRef, { field: "creadoEn", direction: "desc" })
       expect(getDocs).toHaveBeenCalledWith(mockQueryRef)
       expect(result).toEqual([mockOrdenData1, mockOrdenData2])
+    })
+  })
+
+  describe("paginación de órdenes", () => {
+    it("usa límite más uno para detectar y devolver el cursor siguiente", async () => {
+      const docs = [
+        { id: "orden-1", data: () => ({ id: "orden-1", proveedor: "A" }) },
+        { id: "orden-2", data: () => ({ id: "orden-2", proveedor: "B" }) },
+        { id: "orden-3", data: () => ({ id: "orden-3", proveedor: "C" }) },
+      ]
+      vi.mocked(getDocs).mockResolvedValue({ docs } as unknown as QuerySnapshot)
+
+      const pagina = await obtenerPaginaOrdenes(2)
+
+      expect(orderBy).toHaveBeenCalledWith("creadoEn", "desc")
+      expect(limit).toHaveBeenCalledWith(3)
+      expect(pagina.items.map((orden) => orden.id)).toEqual(["orden-1", "orden-2"])
+      expect(pagina.hayMas).toBe(true)
+      expect(pagina.siguienteCursor).toBe(docs[1])
+    })
+
+    it("continúa después del cursor y cierra la última página", async () => {
+      const cursor = { id: "cursor", data: () => ({ id: "cursor" }) } as unknown as QueryDocumentSnapshot
+      vi.mocked(getDocs).mockResolvedValue({
+        docs: [{ id: "final", data: () => ({ id: "final", proveedor: "Final" }) }],
+      } as unknown as QuerySnapshot)
+
+      const pagina = await obtenerPaginaOrdenes(50, cursor as never)
+
+      expect(startAfter).toHaveBeenCalledWith(cursor)
+      expect(pagina.hayMas).toBe(false)
+      expect(pagina.siguienteCursor).toBeNull()
+    })
+
+    it("cuenta órdenes sin descargar la colección", async () => {
+      vi.mocked(getCountFromServer).mockResolvedValue({
+        data: () => ({ count: 137 }),
+      } as unknown as Awaited<ReturnType<typeof getCountFromServer>>)
+
+      await expect(contarOrdenes()).resolves.toBe(137)
+      expect(getCountFromServer).toHaveBeenCalledTimes(1)
     })
   })
 

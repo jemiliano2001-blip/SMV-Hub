@@ -6,6 +6,11 @@ import {
   getDocs,
   query,
   orderBy,
+  limit,
+  startAfter,
+  getCountFromServer,
+  type QueryConstraint,
+  type QueryDocumentSnapshot,
 } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import type { Requisicion } from "@/lib/schemas"
@@ -22,6 +27,44 @@ export type NuevaRequisicionPayload = Omit<Requisicion, "id" | "creadoEn" | "act
 export async function listarRequisiciones(): Promise<Requisicion[]> {
   const snap = await getDocs(query(requisicionesRef(), orderBy("creadoEn", "desc")))
   return snap.docs.map((d) => d.data())
+}
+
+export type CursorRequisiciones = QueryDocumentSnapshot<Requisicion>
+
+export interface PaginaRequisiciones {
+  items: Requisicion[]
+  siguienteCursor: CursorRequisiciones | null
+  hayMas: boolean
+}
+
+function normalizarTamanoPagina(tamano: number): number {
+  if (!Number.isFinite(tamano)) return 50
+  return Math.min(100, Math.max(1, Math.trunc(tamano)))
+}
+
+export async function obtenerPaginaRequisiciones(
+  tamano = 50,
+  cursor?: CursorRequisiciones | null
+): Promise<PaginaRequisiciones> {
+  const tamanoSeguro = normalizarTamanoPagina(tamano)
+  const restricciones: QueryConstraint[] = [orderBy("creadoEn", "desc")]
+  if (cursor) restricciones.push(startAfter(cursor))
+  restricciones.push(limit(tamanoSeguro + 1))
+
+  const snapshot = await getDocs(query(requisicionesRef(), ...restricciones))
+  const hayMas = snapshot.docs.length > tamanoSeguro
+  const documentos = snapshot.docs.slice(0, tamanoSeguro)
+
+  return {
+    items: documentos.map((documento) => documento.data()),
+    siguienteCursor: hayMas ? documentos.at(-1) ?? null : null,
+    hayMas,
+  }
+}
+
+export async function contarRequisiciones(): Promise<number> {
+  const snapshot = await getCountFromServer(requisicionesRef())
+  return snapshot.data().count
 }
 
 export async function crearRequisicion(payload: NuevaRequisicionPayload): Promise<string> {

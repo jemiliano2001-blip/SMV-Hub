@@ -9,6 +9,7 @@ import {
 } from '@/lib/format'
 import { resolverOperadorActivo } from '@/lib/banos-captura'
 import { Plus, Trash2, Check, Search } from 'lucide-react'
+import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 
 const BANOS: Bano[] = ['Baño #1', 'Baño #2', 'CNC', 'Automatizacion']
 
@@ -26,6 +27,7 @@ function getInitials(name: string) {
 }
 
 export default function RegistroBanoList() {
+  const confirmar = useConfirmDialog()
   const { registros, loading: loadingBanos, error, registrarEntrada, registrarLlegada, borrarRegistro } = useBanos()
   const { activos: operadoresActivos, loading: loadingOps } = useOperadores()
 
@@ -104,7 +106,13 @@ export default function RegistroBanoList() {
   }
 
   async function handleEliminar(id: string, op: string) {
-    if (!confirm(`¿Eliminar el registro de ${op}?`)) return
+    const aceptado = await confirmar({
+      title: 'Eliminar registro de baño',
+      description: `Se eliminará el registro de ${op}.`,
+      confirmLabel: 'Eliminar',
+      variant: 'destructive',
+    })
+    if (!aceptado) return
     try {
       await borrarRegistro(id)
     } catch (err) {

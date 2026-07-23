@@ -856,6 +856,16 @@ export const CompraOdooItemSchema = z.object({
   unidad: z.string().nullable(),
   esRfq: z.boolean(),
   origen: z.literal("odoo"),
+  /** Categoría del producto en Odoo (jerárquica). */
+  odooCategoria: z.string().nullable().optional().default(null),
+  /** Unidad de medida Odoo. */
+  odooUom: z.string().nullable().optional().default(null),
+  /** Costo estándar Odoo. */
+  odooCostoEstandar: z.number().nullable().optional().default(null),
+  /** Referencia interna Odoo. */
+  odooRefInterna: z.string().nullable().optional().default(null),
+  /** Re-clasificado por IA (Gemini). */
+  clasificadoPorIa: z.boolean().optional().default(false),
   sincronizadoEn: z.date(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),

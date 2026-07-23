@@ -20,7 +20,6 @@ Módulos actuales:
 - `/nueva-compra` — captura una compra; sube la imagen de la factura y la IA extrae proveedor,
   ítems, montos y moneda.
 - `/ordenes` — lista las órdenes con búsqueda de texto libre + filtros de estado por pill; detalle en modal; edición inline vía `OrdenFormModal`; bulk delete.
-- `/importar` — importación masiva por CSV con preview validado y carga por lotes a Firestore.
 - `/reportes` — reporte con KPIs, tabla agrupada con subtotales y export a PDF (vía `@media print` de Tailwind). Incluye envío de reportes por correo y órdenes recurrentes. Lógica pura en `lib/reportes.ts`; UI en `app/reportes/`. Incluye `DashboardInteligenciaCompras.tsx` — dashboard de gasto/proveedores cruzando `useProveedores`, `useProveedoresInteligencia` y `useRequisicionesFlujo`.
 - `/reportes/contable` — cierre contable por lotes: agrupa órdenes pendientes en un
   `ReporteContableLote` (`lib/reportes-contables.ts`), traduce descripciones al español y
@@ -40,9 +39,7 @@ Módulos actuales:
   calculadora de landed price (`CalculadoraLandedPrice.tsx`) e inteligencia 360 (`PanelInteligencia360.tsx`).
 - `/requisiciones` — gestión de requisiciones (CRUD vía `lib/requisiciones.ts` + hook `useRequisiciones`).
   Al crear una requisición, `SeccionRecomendacionInteligente.tsx` sugiere proveedor vía
-  `lib/motor-recomendador-proveedores.ts` — un motor de scoring local/cliente, **distinto** del
-  cliente Vertex AI en `lib/services/recommendation.ts` (ver `/proveedores` arriba). No confundir
-  ambos al modificar recomendaciones.
+  `lib/motor-recomendador-proveedores.ts`, un motor de scoring local/cliente y transparente.
 - `/ordenes-servicio` — gestión de órdenes de servicio (CRUD vía `lib/ordenes-servicio.ts` + hook `useOrdenesServicio`).
 - `/almacen` — control de entradas y salidas de materiales y herramientas hacia piso. Tab
   Reabastecimiento ROP (`TableroReabastecimientoHerramientas.tsx`, módulo `reabastecimiento-rop`)
@@ -170,7 +167,7 @@ GEMINI_API_KEY=
   - `scrape.ts` — parseo puro de precios/datos extraídos (`parsePrice`, `priceSchema`)
   - `ordenes.ts` — CRUD sobre la colección `ordenes`; `crearOrdenesLote()` usa `writeBatch` en chunks de 400
   - `requisiciones.ts`, `ordenes-servicio.ts` — CRUD de requisiciones y órdenes de servicio
-  - `importar.ts` — parseo de CSV y validación de filas antes de la carga masiva
+  - `importar.ts` — helpers compartidos de parseo/validación que siguen usando Nueva Compra y Cotizaciones; la ruta legacy `/importar` fue retirada
   - `cotizaciones.ts` — CRUD sobre la colección `cotizaciones`
   - `cotizaciones-importar.ts` — parseo de CSV de cotizaciones; reutiliza helpers de `importar.ts`
   - `firestore-helpers.ts` — `makeDateConverter()` y utilidades compartidas de conversión Firestore
@@ -183,12 +180,11 @@ GEMINI_API_KEY=
     para `/reportes/contable`
   - `firebase.ts`, `auth.ts`, `storage.ts` — inicialización de Firebase y utilidades
   - `hooks/` — hooks de datos por módulo (`useOrdenes`, `useCotizaciones`, `useRequisiciones`, `useOrdenesServicio`)
-  - `services/recommendation.ts` — cliente del lado del cliente que llama a la Cloud Function `recommendProvider` (Vertex AI) para sugerir el mejor proveedor dado SKU + lista de suppliers con precio y lead time
-- `functions/` — Cloud Functions de Firebase (TypeScript en `functions/src/`): `autoPurchase`,
-  `recommendProvider` (Vertex AI), sync con Google Sheets (`sheetsSync`), Excel (`excelSync`) y
-  Odoo (`odooSync` + `odoo-mapeo.ts` — primer uso de Secret Manager vía `runWith({ secrets })`
-  en este repo), `auth.ts` (middleware de autenticación compartido). Build/deploy aparte de la
-  app Next.js.
+  - `services/compras-odoo-sync.ts` / `services/finanzas-sync.ts` — clientes autenticados para ejecutar sincronizaciones manuales con Odoo
+- `functions/` — Cloud Functions de Firebase (TypeScript en `functions/src/`): sincronización de
+  facturas y compras con Odoo (`odooSync.ts`, `odoo-compras-sync.ts` y sus mapeos), base Firestore
+  nombrada y middleware de autenticación compartido. Las Functions genéricas antiguas de compra,
+  recomendación, Sheets y Excel fueron retiradas. Build/deploy aparte de la app Next.js.
 - `tests/` — pruebas de Vitest; la mayoría prueban lógica pura de `lib/` sin Firebase real, pero
   `extraer-route.test.ts` y `extraer-lote.test.ts` testean los Route Handlers mockeando fetch/Gemini,
   y `lib-ordenes.test.ts` / `ordenes.test.ts` cubren la capa CRUD de Firestore
@@ -308,19 +304,17 @@ Firebase v12 puede tener breaking changes respecto a v9/v10. Revisa los docs en
 
 El acceso se controla con Google Sign-In vía `lib/auth.ts` (`useUsuario`) y `app/AuthGuard.tsx`.
 
-Modo debug: en desarrollo (`next dev`) se omite el login por defecto para agilizar las
-pruebas locales — `useUsuario` devuelve un usuario simulado y no se contacta Firebase Auth.
-En producción **siempre** se exige sesión. Control con `NEXT_PUBLIC_DEV_AUTH_BYPASS`:
-`"true"` fuerza el bypass, `"false"` lo desactiva (exige login incluso en dev), sin definir
-deja el comportamiento por defecto (bypass solo fuera de producción).
+En desarrollo y producción se exige sesión real por defecto. El bypass es exclusivamente opt-in
+para pruebas visuales sin acceso real a Firestore: `NEXT_PUBLIC_DEV_AUTH_BYPASS=true` devuelve un
+usuario simulado solo fuera de producción. Sin definir la variable, o con `false`, se usa Firebase
+Auth real. En producción el bypass siempre está desactivado.
 
 ### Roles y permisos
 
-Además de la sesión, cada usuario tiene un `Rol` (`admin`|`compras`|`diseno`|`almacen`,
-`lib/schemas.ts`). `lib/roles.ts` define `PERMISOS_POR_ROL` (rutas base permitidas por rol) y
-`tienePermiso(rol, pathname)`; `AuthGuard.tsx` bloquea la navegación y `NavBar.tsx` oculta los
-enlaces según el rol. `/finanzas`, `/auditoria` y `/usuarios` son exclusivos de `admin` —
-mantener sincronizado con `firestore.rules`.
+Además de la sesión, cada usuario tiene `modulos[]`, una `plantilla` como atajo de selección y
+`esSuperAdmin`. `lib/roles.ts` resuelve permisos por módulo; `AuthGuard.tsx` bloquea la navegación
+y `NavBar.tsx` oculta enlaces. `/usuarios` requiere super-admin y los módulos sensibles también
+se validan en Firestore Rules. Mantener cliente, claims y reglas sincronizados.
 
 ## Flujo de planeación
 

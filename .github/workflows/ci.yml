@@ -21,27 +21,79 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: smv-hub-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build_and_test:
-    name: Build, Lint & Test
+    name: Quality & Firebase Deploy
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.deploy_target == 'full'
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '22'
           cache: 'npm'
 
+      - name: Determine Firebase deploy targets
+        id: deploy_targets
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          base_sha="${{ github.event.before }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ -z "$base_sha" ] || [[ "$base_sha" =~ ^0+$ ]] || ! git cat-file -e "$base_sha^{commit}"; then
+            targets="$(node scripts/firebase-deploy-targets.mjs --full)"
+          else
+            targets="$(git diff --name-only "$base_sha" "$GITHUB_SHA" | node scripts/firebase-deploy-targets.mjs)"
+          fi
+
+          echo "targets=$targets" >> "$GITHUB_OUTPUT"
+          if [[ "$targets" == *"functions:"* ]]; then
+            echo "need_functions=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "need_functions=false" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ "$targets" == *"hosting"* ]]; then
+            echo "need_hosting=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "need_hosting=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [ -n "$targets" ]; then
+            echo "Deploy selectivo: $targets"
+          else
+            echo "Sin cambios que requieran deploy de Firebase."
+          fi
+
+      - name: Check Firebase deploy credentials
+        id: firebase_credentials
+        if: github.event_name != 'pull_request' && steps.deploy_targets.outputs.targets != ''
+        shell: bash
+        env:
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT_KEY" ]; then
+            echo "::warning::FIREBASE_SERVICE_ACCOUNT_KEY is not configured; skipping GitHub Firebase deploy."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install Frontend Dependencies
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit
 
       - name: Install Functions Dependencies
+        if: github.event_name == 'pull_request' || steps.deploy_targets.outputs.need_functions == 'true'
         working-directory: ./functions
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit
 
       - name: Run ESLint
         run: npm run lint
@@ -50,9 +102,15 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Run Unit Tests
+        if: github.event_name != 'pull_request'
+        run: npm run test
+
+      - name: Run Unit Tests with Coverage
+        if: github.event_name == 'pull_request'
         run: npm run test:coverage
 
       - name: Build Next.js App
+        if: github.event_name == 'pull_request' || (steps.deploy_targets.outputs.need_hosting == 'true' && steps.firebase_credentials.outputs.available != 'true')
         run: npm run build
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
@@ -66,97 +124,40 @@ jobs:
           NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ secrets.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}
 
       - name: Build Firebase Functions
+        if: github.event_name == 'pull_request' || steps.deploy_targets.outputs.need_functions == 'true'
         working-directory: ./functions
         run: npm run build
 
-  lighthouse_audit:
-    name: Lighthouse Performance Audit
-    runs-on: ubuntu-latest
-    needs: build_and_test
-    continue-on-error: true
-    
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Build Next.js App
-        run: npm run build
-        env:
-          NODE_OPTIONS: "--max_old_space_size=4096"
-          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
-          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
-          NEXT_PUBLIC_FIREBASE_PROJECT_ID: smv-brain
-          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
-          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
-          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
-          NEXT_PUBLIC_FIRESTORE_DATABASE_ID: compras-americanas
-          NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ secrets.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}
+      # Lighthouse reutiliza el build del PR. En producción no retrasa el deploy
+      # ni repite npm ci + next build en un segundo runner.
+      - name: Install Lighthouse CI
+        if: github.event_name == 'pull_request'
+        run: npm install --global @lhci/cli
 
       - name: Run Lighthouse CI
-        run: |
-          npm install -g @lhci/cli
-          lhci autorun
-        env:
-          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        run: lhci autorun
 
       - name: Upload Lighthouse report
-        if: always()
+        if: always() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: lighthouse-report
           path: .lighthouseci
           if-no-files-found: warn
 
-  deploy:
-    name: Deploy to Firebase
-    runs-on: ubuntu-latest
-    needs: build_and_test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      # Firebase Frameworks ejecuta su propio next build. No se hace un build
+      # previo en main para evitar compilar la aplicación dos veces.
+      - name: Patch Next.js bin for webpack deploy
+        if: steps.firebase_credentials.outputs.available == 'true' && steps.deploy_targets.outputs.need_hosting == 'true'
+        run: node scripts/patch-next-webpack.mjs apply
 
-      - name: Check Firebase deploy credentials
-        id: firebase_credentials
+      - name: Deploy changed targets to Firebase
+        if: steps.firebase_credentials.outputs.available == 'true'
         shell: bash
         env:
           FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
-        run: |
-          if [ -z "$FIREBASE_SERVICE_ACCOUNT_KEY" ]; then
-            echo "::warning::FIREBASE_SERVICE_ACCOUNT_KEY is not configured; skipping GitHub Firebase deploy. Deploy locally with Firebase CLI or add the repo secret."
-            echo "available=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup Node.js
-        if: steps.firebase_credentials.outputs.available == 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: 'npm'
-
-      - name: Install All Dependencies
-        if: steps.firebase_credentials.outputs.available == 'true'
-        run: |
-          npm ci
-          cd functions && npm ci
-
-      - name: Build Project
-        if: steps.firebase_credentials.outputs.available == 'true'
-        run: |
-          npm run build
-          cd functions && npm run build
-        env:
           NODE_OPTIONS: "--max_old_space_size=4096"
           NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
           NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
@@ -166,29 +167,22 @@ jobs:
           NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
           NEXT_PUBLIC_FIRESTORE_DATABASE_ID: compras-americanas
           NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ secrets.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}
-
-      # Force webpack: Firebase frameworksBackend runs `next build` without flags;
-      # Next 16 defaults to Turbopack, which breaks firebase-admin in the SSR function.
-      - name: Patch Next.js bin for webpack deploy
-        if: steps.firebase_credentials.outputs.available == 'true'
-        run: node scripts/patch-next-webpack.mjs apply
-
-      - name: Deploy to Firebase (hosting, functions, rules, storage)
-        if: steps.firebase_credentials.outputs.available == 'true'
-        shell: bash
-        env:
-          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
         run: |
           credentials_path="$RUNNER_TEMP/firebase-key.json"
           trap 'rm -f "$credentials_path"' EXIT
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT_KEY" > "$credentials_path"
           chmod 600 "$credentials_path"
           export GOOGLE_APPLICATION_CREDENTIALS="$credentials_path"
-          npx --yes firebase-tools@15.24.0 deploy --project smv-brain --only hosting,functions:syncOdooFacturasScheduled,functions:syncOdooFacturasManual,functions:syncOdooComprasScheduled,functions:syncOdooComprasManual,firestore:rules,storage
+          npx --yes firebase-tools@15.24.0 deploy --project smv-brain --only "${{ steps.deploy_targets.outputs.targets }}"
 
       - name: Restore Next.js bin
-        if: always() && steps.firebase_credentials.outputs.available == 'true'
+        if: always() && steps.firebase_credentials.outputs.available == 'true' && steps.deploy_targets.outputs.need_hosting == 'true'
         run: node scripts/patch-next-webpack.mjs restore
+
+      - name: Report skipped deploy
+        if: github.event_name != 'pull_request' && steps.deploy_targets.outputs.targets == ''
+        run: |
+          echo "El cambio sólo afecta documentación, pruebas o configuración de CI."
 
   deploy_rules_manual:
     name: Deploy Rules Only (manual)

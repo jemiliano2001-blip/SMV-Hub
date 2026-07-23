@@ -1,6 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
 import {
-  obtenerRequisicionesFlujo,
   crearRequisicionFlujo,
   obtenerCotizacionesRequisicion,
   agregarCotizacionRequisicion,
@@ -10,55 +8,22 @@ import {
 } from "@/lib/requisiciones-flujo"
 import type { Requisicion, CotizacionRequisicion } from "@/lib/schemas"
 
-export function useRequisicionesFlujo() {
-  const [requisiciones, setRequisiciones] = useState<Requisicion[]>([])
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+interface UseRequisicionesFlujoOptions {
+  requisiciones: Requisicion[]
+  recargar: () => Promise<void>
+  guardarLocal: (requisicion: Requisicion) => void
+}
 
-  // Filtros
-  const [busqueda, setBusqueda] = useState("")
-  const [filtroEstatus, setFiltroEstatus] = useState<string>("todos")
-  const [filtroPrioridad, setFiltroPrioridad] = useState<string>("todos")
-  const [filtroDepartamento, setFiltroDepartamento] = useState<string>("todos")
-
-  const cargarRequisiciones = useCallback(async () => {
-    setCargando(true)
-    setError(null)
-    try {
-      const data = await obtenerRequisicionesFlujo()
-      setRequisiciones(data)
-    } catch (err) {
-      console.error("Error al cargar requisiciones:", err)
-      setError("No se pudieron cargar las requisiciones.")
-    } finally {
-      setCargando(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    // Carga inicial: falso positivo (en montaje cargando ya es true, sin cascada).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void cargarRequisiciones()
-  }, [cargarRequisiciones])
-
-  const requisicionesFiltradas = requisiciones.filter((r) => {
-    const q = busqueda.toLowerCase().trim()
-    const descMatch = r.descripcion?.toLowerCase().includes(q)
-    const folioMatch = r.folio?.toLowerCase().includes(q)
-    const solMatch = r.solicitante?.toLowerCase().includes(q)
-    const matchesBusqueda = !q || descMatch || folioMatch || solMatch
-
-    const matchesEstatus = filtroEstatus === "todos" || r.estatusFlujo === filtroEstatus || r.estado === filtroEstatus
-    const matchesPrioridad = filtroPrioridad === "todos" || r.prioridadFlujo === filtroPrioridad || r.prioridad === filtroPrioridad
-    const matchesDepto = filtroDepartamento === "todos" || r.departamento === filtroDepartamento || r.empresa === filtroDepartamento
-
-    return matchesBusqueda && matchesEstatus && matchesPrioridad && matchesDepto
-  })
+export function useRequisicionesFlujo({
+  requisiciones,
+  recargar,
+  guardarLocal,
+}: UseRequisicionesFlujoOptions) {
 
   async function handleCrearRequisicion(payload: NuevaRequisicionFlujoPayload) {
     try {
       const nueva = await crearRequisicionFlujo(payload)
-      setRequisiciones((prev) => [nueva, ...prev])
+      guardarLocal(nueva)
       return nueva
     } catch (err) {
       console.error("Error al crear requisición:", err)
@@ -74,7 +39,7 @@ export function useRequisicionesFlujo() {
   ) {
     try {
       await seleccionarProveedorGanador(requisicionId, cotizacionId, motivoSeleccion, usuario)
-      await cargarRequisiciones()
+      await recargar()
     } catch (err) {
       console.error("Error al seleccionar ganador:", err)
       throw err
@@ -96,7 +61,7 @@ export function useRequisicionesFlujo() {
         fechaEntregaEstimada,
         notasInternas
       )
-      await cargarRequisiciones()
+      await recargar()
       return res
     } catch (err) {
       console.error("Error al generar Orden de Compra:", err)
@@ -104,24 +69,20 @@ export function useRequisicionesFlujo() {
     }
   }
 
+  async function handleAgregarCotizacion(
+    payload: Omit<CotizacionRequisicion, "id" | "creadoEn">
+  ) {
+    const cotizacion = await agregarCotizacionRequisicion(payload)
+    await recargar()
+    return cotizacion
+  }
+
   return {
-    requisiciones: requisicionesFiltradas,
     todasRequisiciones: requisiciones,
-    cargando,
-    error,
-    busqueda,
-    setBusqueda,
-    filtroEstatus,
-    setFiltroEstatus,
-    filtroPrioridad,
-    setFiltroPrioridad,
-    filtroDepartamento,
-    setFiltroDepartamento,
-    recargar: cargarRequisiciones,
     crearRequisicion: handleCrearRequisicion,
     seleccionarGanador: handleSeleccionarGanador,
     generarOC: handleGenerarOC,
     obtenerCotizaciones: obtenerCotizacionesRequisicion,
-    agregarCotizacion: agregarCotizacionRequisicion,
+    agregarCotizacion: handleAgregarCotizacion,
   }
 }

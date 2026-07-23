@@ -41,6 +41,7 @@ export function getClienteAuth(): Auth {
 let analyticsInstance: Analytics | null = null
 export async function getClienteAnalytics(): Promise<Analytics | null> {
   if (typeof window === "undefined") return null
+  if (!firebaseConfig.measurementId) return null
   if (analyticsInstance) return analyticsInstance
   if (!(await isAnalyticsSupported())) return null
   analyticsInstance = getAnalytics(firebaseApp)

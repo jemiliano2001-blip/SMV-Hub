@@ -13,6 +13,7 @@ import { subirImagenPedidoAlmacen } from '@/lib/storage'
 import { formatFechaHoraCorta } from '@/lib/format'
 import type { PedidoAlmacen } from '@/lib/schemas'
 import { ModalCamara } from '@/components/ModalCamara'
+import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 
 const ESTADO_LABEL: Record<PedidoAlmacen['estado'], string> = {
   pendiente: 'Pendiente',
@@ -21,6 +22,7 @@ const ESTADO_LABEL: Record<PedidoAlmacen['estado'], string> = {
 }
 
 export default function PedidosAlmacenView() {
+  const confirmar = useConfirmDialog()
   const { usuario } = useUsuario()
   const { modulos, esSuperAdmin } = usePermisos(authBypassActivo() ? null : usuario)
   const { pedidos, loading, error, agregarPedido, cancelarPedido } = usePedidosAlmacen()
@@ -113,7 +115,13 @@ export default function PedidosAlmacenView() {
   }
 
   async function handleCancelar(id: string) {
-    if (!confirm('¿Cancelar este pedido?')) return
+    const aceptado = await confirmar({
+      title: 'Cancelar pedido de almacén',
+      description: 'El pedido quedará marcado como cancelado.',
+      confirmLabel: 'Cancelar pedido',
+      variant: 'destructive',
+    })
+    if (!aceptado) return
     try {
       await cancelarPedido(id)
       toast.info('Pedido Cancelado')

@@ -9,6 +9,7 @@ import { crearOrden, actualizarOrden } from '@/lib/ordenes'
 import { getClienteAuth } from '@/lib/firebase'
 
 import { normalizarClaveProdServ } from '@/lib/sat/normalizar'
+import { toast } from 'sonner'
 
 type ItemForm = {
   descripcion: string
@@ -86,7 +87,7 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
   const handleScrape = async (index: number) => {
     const url = formData.items[index].url
     if (!url) {
-      alert('Ingresa una URL válida primero.')
+      toast.info('Ingresa una URL válida primero.')
       return
     }
     

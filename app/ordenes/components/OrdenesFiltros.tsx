@@ -19,6 +19,7 @@ interface OrdenesFiltrosProps {
   onRejectMultiple: () => void;
   isDeletingBulk: boolean;
   onDeleteMultiple: () => void;
+  onPrepararFiltros: () => void;
 }
 
 export default function OrdenesFiltros({
@@ -39,6 +40,7 @@ export default function OrdenesFiltros({
   onRejectMultiple,
   isDeletingBulk,
   onDeleteMultiple,
+  onPrepararFiltros,
 }: OrdenesFiltrosProps) {
   return (
     <>
@@ -52,6 +54,7 @@ export default function OrdenesFiltros({
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
+              onFocus={onPrepararFiltros}
               placeholder="Buscar por proveedor, factura, requisitor, empresa, ítem..."
               className="w-full pl-9 pr-9 py-2 text-sm rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 hover:border-gray-400 transition-all duration-200"
             />

@@ -7,11 +7,12 @@ import {
   query,
   orderBy,
 } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { db, getClienteAuth } from "@/lib/firebase"
 import type { OrdenServicio } from "@/lib/schemas"
 import { makeDateConverter, actualizarDocumento, eliminarLote } from "@/lib/firestore-helpers"
 import { normalizarOrdenServicioDesdeFirestore } from "@/lib/ordenes-servicio-helpers"
 import type { FirestoreDataConverter, QueryDocumentSnapshot } from "firebase/firestore"
+import { registrarAuditoria } from "@/lib/auditoria"
 
 const baseConverter = makeDateConverter<OrdenServicio>()
 const ordenServicioConverter: FirestoreDataConverter<OrdenServicio> = {
@@ -38,6 +39,10 @@ export async function crearOrdenServicio(payload: NuevaOrdenServicioPayload): Pr
     creadoEn: ahora,
     actualizadoEn: ahora,
   } as OrdenServicio)
+
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, "CREAR", "ordenes-servicio", ref.id, `Creó orden de servicio para ${payload.requisitor || "requisitor sin nombre"}`)
+
   return ref.id
 }
 
@@ -46,12 +51,19 @@ export async function actualizarOrdenServicio(
   cambios: Partial<Omit<OrdenServicio, "id" | "creadoEn">>
 ): Promise<void> {
   await actualizarDocumento("ordenes-servicio", id, cambios as Record<string, unknown>)
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, "EDITAR", "ordenes-servicio", id, `Actualizó orden de servicio: ${Object.keys(cambios).join(', ')}`)
 }
 
 export async function eliminarOrdenServicio(id: string): Promise<void> {
   await deleteDoc(doc(db, "ordenes-servicio", id))
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, "BORRAR", "ordenes-servicio", id, "Eliminó orden de servicio")
 }
 
 export async function eliminarOrdenesServicioLote(ids: string[]): Promise<number> {
-  return eliminarLote("ordenes-servicio", ids)
+  const res = await eliminarLote("ordenes-servicio", ids)
+  const user = getClienteAuth().currentUser
+  await registrarAuditoria(user?.email, "BORRAR", "ordenes-servicio", "LOTE", `Eliminó ${ids.length} órdenes de servicio`)
+  return res
 }

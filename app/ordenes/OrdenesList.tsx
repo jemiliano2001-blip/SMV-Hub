@@ -17,13 +17,22 @@ import { useOrdenes } from '@/lib/hooks/useOrdenes'
 import OrdenesFiltros from './components/OrdenesFiltros'
 import OrdenesTabla from './components/OrdenesTabla'
 import OrdenDetallesModal from './components/OrdenDetallesModal'
+import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
+import { toast } from 'sonner'
 
 export default function OrdenesList() {
+  const confirmar = useConfirmDialog()
   const {
     ordenes,
     loading,
+    cargandoMas,
+    cargandoCompleto,
+    hayMas,
+    totalOrdenes,
     error,
     fetchOrdenes,
+    cargarMas,
+    cargarTodas,
     handleEliminar,
     handleCambiarEstado,
     handleCambiarEstadoLote,
@@ -120,15 +129,20 @@ export default function OrdenesList() {
 
   const onDeleteClick = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (window.confirm('¿Estás seguro de que deseas eliminar esta orden de compra?')) {
-      const success = await handleEliminar(id)
-      if (success) {
-        if (selectedOrden?.id === id) {
-          setSelectedOrden(null)
-        }
-      } else {
-        alert('No se pudo eliminar la orden. Por favor, intenta de nuevo.')
+    const aceptado = await confirmar({
+      title: 'Eliminar orden de compra',
+      description: 'La orden se eliminará de la lista y esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar orden',
+      variant: 'destructive',
+    })
+    if (!aceptado) return
+    const success = await handleEliminar(id)
+    if (success) {
+      if (selectedOrden?.id === id) {
+        setSelectedOrden(null)
       }
+    } else {
+      toast.error('No se pudo eliminar la orden. Intenta de nuevo.')
     }
   }
 
@@ -137,7 +151,7 @@ export default function OrdenesList() {
     if (success) {
       setSelectedOrden((prev) => (prev && prev.id === id ? { ...prev, estado } : prev))
     } else {
-      alert('No se pudo actualizar el estado. Por favor, intenta de nuevo.')
+      toast.error('No se pudo actualizar el estado. Intenta de nuevo.')
     }
   }
 
@@ -148,7 +162,13 @@ export default function OrdenesList() {
 
   const onRejectClick = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!window.confirm('¿Rechazar esta orden de compra?')) return
+    const aceptado = await confirmar({
+      title: 'Rechazar orden de compra',
+      description: 'La orden quedará marcada como rechazada.',
+      confirmLabel: 'Rechazar orden',
+      variant: 'destructive',
+    })
+    if (!aceptado) return
     await onChangeEstadoClick(id, 'rechazada')
   }
 
@@ -171,19 +191,24 @@ export default function OrdenesList() {
 
   const handleDeleteMultiple = async () => {
     if (selectedIds.size === 0) return
-    if (window.confirm(`¿Estás seguro de que deseas eliminar ${selectedIds.size} órdenes seleccionadas?`)) {
-      setIsDeletingBulk(true)
-      const success = await handleEliminarLote(Array.from(selectedIds))
-      if (success) {
-        if (selectedOrden && selectedIds.has(selectedOrden.id)) {
-          setSelectedOrden(null)
-        }
-        setSelectedIds(new Set())
-      } else {
-        alert('No se pudieron eliminar las órdenes. Por favor, intenta de nuevo.')
+    const aceptado = await confirmar({
+      title: 'Eliminar órdenes seleccionadas',
+      description: `Se eliminarán ${selectedIds.size} órdenes y esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar órdenes',
+      variant: 'destructive',
+    })
+    if (!aceptado) return
+    setIsDeletingBulk(true)
+    const success = await handleEliminarLote(Array.from(selectedIds))
+    if (success) {
+      if (selectedOrden && selectedIds.has(selectedOrden.id)) {
+        setSelectedOrden(null)
       }
-      setIsDeletingBulk(false)
+      setSelectedIds(new Set())
+    } else {
+      toast.error('No se pudieron eliminar las órdenes. Intenta de nuevo.')
     }
+    setIsDeletingBulk(false)
   }
 
   const handleFormSaved = (ordenGuardada: OrdenCompra) => {
@@ -211,7 +236,12 @@ export default function OrdenesList() {
 
   const handleApproveMultiple = async () => {
     if (seleccionPendientes.length === 0) return
-    if (!window.confirm(`¿Aprobar ${seleccionPendientes.length} órdenes seleccionadas?`)) return
+    const aceptado = await confirmar({
+      title: 'Aprobar órdenes seleccionadas',
+      description: `Se aprobarán ${seleccionPendientes.length} órdenes pendientes.`,
+      confirmLabel: 'Aprobar órdenes',
+    })
+    if (!aceptado) return
     setIsChangingEstadoBulk(true)
     const ids = seleccionPendientes.map((o) => o.id)
     const success = await handleCambiarEstadoLote(ids, 'aprobada')
@@ -220,20 +250,20 @@ export default function OrdenesList() {
         setSelectedOrden((prev) => (prev ? { ...prev, estado: 'aprobada' } : prev))
       }
     } else {
-      alert('No se pudieron aprobar las órdenes. Por favor, intenta de nuevo.')
+      toast.error('No se pudieron aprobar las órdenes. Intenta de nuevo.')
     }
     setIsChangingEstadoBulk(false)
   }
 
   const handleRejectMultiple = async () => {
     if (seleccionPendientes.length === 0) return
-    if (
-      !window.confirm(
-        `¿Rechazar ${seleccionPendientes.length} órdenes seleccionadas? Las órdenes quedarán marcadas como rechazadas.`
-      )
-    ) {
-      return
-    }
+    const aceptado = await confirmar({
+      title: 'Rechazar órdenes seleccionadas',
+      description: `${seleccionPendientes.length} órdenes quedarán marcadas como rechazadas.`,
+      confirmLabel: 'Rechazar órdenes',
+      variant: 'destructive',
+    })
+    if (!aceptado) return
     setIsChangingEstadoBulk(true)
     const ids = seleccionPendientes.map((o) => o.id)
     const success = await handleCambiarEstadoLote(ids, 'rechazada')
@@ -242,18 +272,25 @@ export default function OrdenesList() {
         setSelectedOrden((prev) => (prev ? { ...prev, estado: 'rechazada' } : prev))
       }
     } else {
-      alert('No se pudieron rechazar las órdenes. Por favor, intenta de nuevo.')
+      toast.error('No se pudieron rechazar las órdenes. Intenta de nuevo.')
     }
     setIsChangingEstadoBulk(false)
   }
 
-  const abrirSugerirSat = (ordenesTarget: OrdenCompra[]) => {
+  const abrirSugerirSat = async (ordenesTarget: OrdenCompra[]) => {
     const conPendientes = ordenesTarget.filter(ordenTieneSatPendiente)
     if (conPendientes.length === 0) {
-      alert('Las órdenes seleccionadas ya tienen clave SAT en todos sus ítems.')
+      toast.info('Las órdenes seleccionadas ya tienen clave SAT en todos sus ítems.')
       return
     }
-    setSatModalOrdenes(conPendientes)
+    const toastId = toast.loading('Preparando historial para sugerencias SAT…')
+    try {
+      await cargarTodas()
+      toast.dismiss(toastId)
+      setSatModalOrdenes(conPendientes)
+    } catch {
+      toast.error('No se pudo preparar el historial SAT', { id: toastId })
+    }
   }
 
   const handleSatApplied = (ordenesActualizadas: OrdenCompra[]) => {
@@ -317,21 +354,32 @@ export default function OrdenesList() {
         query={query}
         setQuery={setQuery}
         estadoFiltro={estadoFiltro}
-        setEstadoFiltro={setEstadoFiltro}
+        setEstadoFiltro={(estado) => {
+          setEstadoFiltro(estado)
+          if (estado !== 'todos') void cargarTodas()
+        }}
         hayFiltrosActivos={hayFiltrosActivos}
         ordenesFiltradasLength={ordenesFiltradas.length}
-        ordenesTotalLength={ordenes.length}
+        ordenesTotalLength={totalOrdenes}
         limpiarFiltros={limpiarFiltros}
         selectedIdsSize={selectedIds.size}
         seleccionConSatPendienteLength={seleccionConSatPendiente.length}
-        onSugerirSat={() => abrirSugerirSat(seleccionConSatPendiente)}
+        onSugerirSat={() => void abrirSugerirSat(seleccionConSatPendiente)}
         seleccionPendientesLength={seleccionPendientes.length}
         isChangingEstadoBulk={isChangingEstadoBulk}
         onApproveMultiple={handleApproveMultiple}
         onRejectMultiple={handleRejectMultiple}
         isDeletingBulk={isDeletingBulk}
         onDeleteMultiple={handleDeleteMultiple}
+        onPrepararFiltros={() => void cargarTodas()}
       />
+
+      {cargandoCompleto && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs font-medium text-sky-800" role="status">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Preparando todas las órdenes para aplicar filtros completos…
+        </div>
+      )}
 
       {ordenesFiltradas.length > 0 && (
         <OrdenesTabla 
@@ -349,7 +397,27 @@ export default function OrdenesList() {
           onApproveClick={onApproveClick}
           onRejectClick={onRejectClick}
           onDeleteClick={onDeleteClick}
+          onPrepararFiltros={() => void cargarTodas()}
         />
+      )}
+
+      {!cargandoCompleto && ordenesFiltradas.length > 0 && (
+        <div className="mt-3 flex flex-col items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 sm:flex-row">
+          <p className="text-xs font-medium text-slate-500" aria-live="polite">
+            Mostrando <span className="font-bold text-slate-800">{ordenesFiltradas.length}</span> de{' '}
+            <span className="font-bold text-slate-800">{totalOrdenes}</span> órdenes
+          </p>
+          {hayMas && (
+            <button
+              type="button"
+              onClick={() => void cargarMas()}
+              disabled={cargandoMas}
+              className="min-h-10 min-w-32 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-[#0369A1] hover:bg-slate-50 disabled:opacity-50"
+            >
+              {cargandoMas ? 'Cargando…' : 'Cargar más'}
+            </button>
+          )}
+        </div>
       )}
 
       {selectedOrden && (
@@ -360,7 +428,7 @@ export default function OrdenesList() {
           onDelete={(e) => onDeleteClick(selectedOrden.id, e)}
           onApprove={() => onChangeEstadoClick(selectedOrden.id, 'aprobada')}
           onReject={() => onChangeEstadoClick(selectedOrden.id, 'rechazada')}
-          onSugerirSat={() => abrirSugerirSat([selectedOrden])}
+          onSugerirSat={() => void abrirSugerirSat([selectedOrden])}
         />
       )}
 

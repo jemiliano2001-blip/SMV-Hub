@@ -97,6 +97,11 @@ async function traducirDescripciones(descripciones: string[]): Promise<string[]>
 
   if (!res.ok) {
     const detalle = (await res.text()).slice(0, 500)
+    if (detalle.includes("API_KEY_INVALID") || detalle.includes("API key not valid")) {
+      throw new ErrorIA(
+        "La API Key de Gemini configurada no es válida (API_KEY_INVALID). Genera una clave activa en Google AI Studio (https://aistudio.google.com/app/apikey) y actualiza GEMINI_API_KEY en tu archivo .env.local"
+      )
+    }
     throw new ErrorIA(`Gemini respondió HTTP ${res.status}: ${detalle}`)
   }
 

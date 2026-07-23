@@ -233,7 +233,7 @@ describe("generarMensajeWhatsApp", () => {
     )
   })
 
-  it("adjunta el link de la imagen cuando la orden tiene comprobante", () => {
+  it("mantiene el texto limpio sin URLs aunque la orden tenga comprobante", () => {
     const msg = generarMensajeWhatsApp({
       ...makeOrden({
         proveedor: "McMaster-Carr",
@@ -245,7 +245,7 @@ describe("generarMensajeWhatsApp", () => {
       imagenUrl: "https://storage.example.com/factura.jpg",
     })
     expect(msg).toBe(
-      "*Notificación de Compra (EUA)*\n\nBuen día, se pidió servo motor para *taller* en *McMaster-Carr* por *USD $10*.\n\n📄 *Comprobante / Foto / PDF:* https://storage.example.com/factura.jpg"
+      "*Notificación de Compra (EUA)*\n\nBuen día, se pidió servo motor para *taller* en *McMaster-Carr* por *USD $10*."
     )
   })
 })

@@ -14,7 +14,7 @@ When configuring or updating Gemini models, ALWAYS refer to [https://ai.google.d
 - Keep Antigravity, Claude, and gstack skills available in Cursor via junction sync into `~/.cursor/skills/` (script: `~/.cursor/sync-skills.ps1`).
 - In `/ordenes`, hide ID and Orden de trabajo from the main table; keep them in the detail/edit modal.
 - In `/banos`, prefer operator search with datalist over a button grid; auto-fill date and entry time on capture (no manual date/time inputs).
-- Do not surface `/importar` ("Importar masivo") in home or nav — unused; keep it out of dashboard cards and module templates unless explicitly re-enabled.
+- `/importar` ("Importar masivo") fue retirado por decisión del propietario; no recrear la ruta ni mostrarla en home/nav. Los helpers compartidos de `lib/importar.ts` permanecen porque Nueva Compra y Cotizaciones los reutilizan.
 - In `/almacen`, almacén staff should only see Entradas/Salidas; Reabastecimiento ROP (prices/recompra) is for compras — gate with module `reabastecimiento-rop`, not the base `almacen` module.
 
 ## Learned Workspace Facts

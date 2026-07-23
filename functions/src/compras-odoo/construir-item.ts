@@ -29,6 +29,14 @@ export type LineaCompraInput = {
   productOdooId?: number | null
   esRfq?: boolean
   registroCategorias?: CategoriaProductoDef[]
+  /** Categoría de producto en Odoo (product.category name). */
+  odooCategoria?: string | null
+  /** Unidad de medida en Odoo (product.uom name). */
+  odooUom?: string | null
+  /** Costo estándar del producto en Odoo (standard_price). */
+  odooCostoEstandar?: number | null
+  /** Referencia interna del producto en Odoo (default_code). */
+  odooRefInterna?: string | null
 }
 
 export type CompraOdooItemNormalizado = {
@@ -58,6 +66,16 @@ export type CompraOdooItemNormalizado = {
   unidad: string | null
   esRfq: boolean
   origen: "odoo"
+  /** Categoría del producto en Odoo (jerárquica, ej. "Metal / Acero"). */
+  odooCategoria: string | null
+  /** Unidad de medida Odoo. */
+  odooUom: string | null
+  /** Costo estándar Odoo. */
+  odooCostoEstandar: number | null
+  /** Referencia interna Odoo. */
+  odooRefInterna: string | null
+  /** Indica si fue re-clasificado por IA (Gemini). */
+  clasificadoPorIa: boolean
 }
 
 function normalizarClaveSat(clave: string | null | undefined): string | null {
@@ -75,6 +93,7 @@ export function construirItemDesdeLinea(linea: LineaCompraInput): CompraOdooItem
     claveProdServ,
     descripcion: linea.descripcion,
     registro: linea.registroCategorias,
+    odooCategoria: linea.odooCategoria,
   })
   const tipoInsumo =
     metal.tipoMetal ??
@@ -113,5 +132,10 @@ export function construirItemDesdeLinea(linea: LineaCompraInput): CompraOdooItem
     unidad: metal.unidad,
     esRfq: linea.esRfq ?? false,
     origen: "odoo",
+    odooCategoria: linea.odooCategoria ?? null,
+    odooUom: linea.odooUom ?? null,
+    odooCostoEstandar: linea.odooCostoEstandar ?? null,
+    odooRefInterna: linea.odooRefInterna ?? null,
+    clasificadoPorIa: false,
   }
 }
