@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   if (!auth.ok) return auth.response
 
   try {
-    const usuarios = await listarUsuariosAdmin()
+    const usuarios = await listarUsuariosAdmin(auth.token)
     return Response.json({
       usuarios: usuarios.map((u) => ({
         ...u,

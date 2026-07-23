@@ -307,8 +307,68 @@ function mapearDocUsuario(id: string, data: DocUsuarioFirestore): Usuario | null
   }
 }
 
+function desenvolverValorRest(val: any): any {
+  if (!val || typeof val !== "object") return null
+  if ("stringValue" in val) return val.stringValue
+  if ("booleanValue" in val) return val.booleanValue
+  if ("integerValue" in val) return Number(val.integerValue)
+  if ("doubleValue" in val) return Number(val.doubleValue)
+  if ("timestampValue" in val) return { toDate: () => new Date(val.timestampValue) }
+  if ("arrayValue" in val) return (val.arrayValue?.values || []).map(desenvolverValorRest)
+  if ("mapValue" in val) {
+    const obj: Record<string, any> = {}
+    for (const [k, v] of Object.entries(val.mapValue?.fields || {})) {
+      obj[k] = desenvolverValorRest(v)
+    }
+    return obj
+  }
+  return null
+}
+
+async function listarUsuariosRestFallback(token?: string): Promise<Usuario[]> {
+  const projectId =
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+    process.env.FIREBASE_PROJECT_ID ||
+    "smv-brain"
+  const dbId =
+    process.env.NEXT_PUBLIC_FIRESTORE_DATABASE_ID || "compras-americanas"
+
+  const headers: Record<string, string> = {}
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`
+  }
+
+  const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${dbId}/documents/${COLECCION}`
+  const res = await fetch(url, { headers })
+
+  if (!res.ok) {
+    throw new Error(`Firestore REST error ${res.status}`)
+  }
+
+  const json = await res.json()
+  const rawDocs: any[] = json.documents || []
+
+  const usuarios: Usuario[] = []
+  for (const doc of rawDocs) {
+    const parts = doc.name ? doc.name.split("/") : []
+    const docId = parts[parts.length - 1] || ""
+
+    const fields = doc.fields || {}
+    const data: Record<string, any> = {}
+    for (const [k, v] of Object.entries(fields)) {
+      data[k] = desenvolverValorRest(v)
+    }
+
+    const u = mapearDocUsuario(docId, data as DocUsuarioFirestore)
+    if (u) usuarios.push(u)
+  }
+
+  usuarios.sort((a, b) => a.email.localeCompare(b.email, "es"))
+  return usuarios
+}
+
 /** Lista los usuarios administrados. Docs sin plantilla/rol válido se omiten. */
-export async function listarUsuariosAdmin(): Promise<Usuario[]> {
+export async function listarUsuariosAdmin(token?: string): Promise<Usuario[]> {
   try {
     const snap = await adminDb.collection(COLECCION).orderBy("email", "asc").get()
     const usuarios: Usuario[] = []
@@ -325,22 +385,27 @@ export async function listarUsuariosAdmin(): Promise<Usuario[]> {
       msg.includes("Could not load the default credentials") ||
       msg.includes("Unable to detect a Project Id")
     ) {
-      console.warn("[usuarios-admin] Firebase Admin SDK sin credenciales GCP en entorno local. Devolviendo usuario super-admin por defecto.")
-      return [
-        {
-          id: "break-glass-super-admin",
-          email: CORREO_ADMIN_BREAK_GLASS,
-          rol: "admin",
-          plantilla: "admin",
-          modulos: modulosDePlantilla("admin"),
-          esSuperAdmin: true,
-          activo: true,
-          proveedor: "google",
-          creadoPor: "sistema",
-          creadoEn: new Date(),
-          actualizadoEn: new Date(),
-        },
-      ]
+      console.warn("[usuarios-admin] Firebase Admin SDK sin credenciales GCP en entorno local. Usando Firestore REST API fallback...")
+      try {
+        return await listarUsuariosRestFallback(token)
+      } catch (restErr) {
+        console.warn("[usuarios-admin] REST API fallback no retornó resultados. Devolviendo super-admin por defecto.", restErr)
+        return [
+          {
+            id: "break-glass-super-admin",
+            email: CORREO_ADMIN_BREAK_GLASS,
+            rol: "admin",
+            plantilla: "admin",
+            modulos: modulosDePlantilla("admin"),
+            esSuperAdmin: true,
+            activo: true,
+            proveedor: "google",
+            creadoPor: "sistema",
+            creadoEn: new Date(),
+            actualizadoEn: new Date(),
+          },
+        ]
+      }
     }
     throw error
   }

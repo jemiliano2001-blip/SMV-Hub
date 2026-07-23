@@ -57,7 +57,7 @@ describe("verificarUsuarioAutorizado", () => {
     mockVerifyIdToken.mockResolvedValue({ email: "a@b.com", email_verified: true, uid: "u1" })
     mockObtenerUsuarioAdmin.mockResolvedValue({ rol: "compras", activo: true })
     const res = await verificarUsuarioAutorizado(makeRequest("Bearer token"))
-    expect(res).toEqual({ ok: true, uid: "u1", email: "a@b.com" })
+    expect(res).toEqual({ ok: true, uid: "u1", email: "a@b.com", token: "token" })
   })
 
   it("retorna 401 si verifyIdToken lanza (token inválido/expirado)", async () => {
@@ -95,7 +95,7 @@ describe("verificarAdmin", () => {
       activo: true,
     })
     const res = await verificarAdmin(makeRequest("Bearer token"))
-    expect(res).toEqual({ ok: true, uid: "u1", email: "a@b.com" })
+    expect(res).toEqual({ ok: true, uid: "u1", email: "a@b.com", token: "token" })
   })
 
   it("retorna 500 en vez de lanzar si Firestore falla en el segundo chequeo de rol", async () => {

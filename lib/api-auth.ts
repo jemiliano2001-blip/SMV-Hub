@@ -6,6 +6,7 @@ type ResultadoAuth =
       ok: true
       uid: string
       email: string
+      token: string
     }
   | {
       ok: false
@@ -68,6 +69,7 @@ export async function verificarUsuarioAutorizado(request: Request): Promise<Resu
       ok: true,
       uid: decodedToken.uid,
       email,
+      token,
     }
   } catch {
     return {
