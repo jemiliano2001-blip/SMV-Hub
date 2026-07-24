@@ -75,11 +75,24 @@ export function useUsuario(): EstadoSesion {
 
   useEffect(() => {
     if (authBypassActivo()) return
-    const unsub = onAuthStateChanged(getClienteAuth(), (u) => {
-      setUsuario(u)
+    try {
+      const unsub = onAuthStateChanged(getClienteAuth(), (u) => {
+        setUsuario(u)
+        setCargando(false)
+      })
+      return unsub
+    } catch (error) {
+      // getAuth() valida la API key al construirse y lanza sincrónicamente si
+      // falta/es inválida (config de Firebase ausente o rota). Sin este catch,
+      // la excepción no controlada tumbaba toda la página (Next.js la atrapaba
+      // como error global) en vez de degradar a "sin sesión" — exactamente lo
+      // que la regla de CLAUDE.md de no romper la UI por un fallo de sistema
+      // pide evitar.
+      console.error("No se pudo inicializar Firebase Auth:", error)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setUsuario(null)
       setCargando(false)
-    })
-    return unsub
+    }
   }, [])
 
   return { usuario, cargando }
