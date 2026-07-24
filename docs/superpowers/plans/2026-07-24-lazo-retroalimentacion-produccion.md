@@ -79,27 +79,29 @@ fuera del sistema.
 
 ---
 
-### Task 1: Tests unitarios de las dos reglas de dinero puras — `[ ]`
+### Task 1: Tests unitarios de las dos reglas de dinero puras — `[x]` completado 2026-07-24
 
 **Files:** `tests/reportes.test.ts`, `tests/roles-modulos.test.ts`
-**Esfuerzo:** media noche
+**Esfuerzo real:** ~40 min
 
 Dos de los cuatro P1 de la auditoría de julio eran funciones puras. Se cubren con Vitest a costo
 casi cero — no necesitan navegador. Hacer esto antes del E2E es el orden correcto: el peldaño
 barato primero.
 
-- [ ] **`aplanarLineas` con envío.** Caso: orden con 2 ítems, `envio: 100`, `impuestos: 0`.
-      Aserción: la suma de `total` de las líneas resultantes incluye los 100 de envío
-      (`propEnvio` prorrateado por peso de cada línea).
-- [ ] Caso borde: orden con ítems cuyo `total` suma 0 → el envío se reparte en partes iguales
-      entre ítems, no se pierde ni truena por división entre cero.
-- [ ] **`esSuperAdminDesdeUsuarioLegacy` revocando.** Caso: `{ esSuperAdmin: false, rol: "admin" }`
-      → `false`. El booleano explícito le gana al fallback legacy.
-- [ ] Caso de migración: `{ rol: "admin" }` sin el campo → `true` (doc legacy sigue funcionando).
+- [x] **`aplanarLineas` con envío.** Orden con 2 ítems, `envio: 100`, `impuestos: 0`. La suma de
+      `total` de las líneas recupera `subtotal + envío` (120 + 80 = 200).
+- [x] Caso borde: ítems con `total` sumando 0 → envío repartido en partes iguales (25/25),
+      sin `NaN`.
+- [x] **`esSuperAdminDesdeUsuarioLegacy` revocando.** `{ esSuperAdmin: false, rol: "admin" }` →
+      `false`, y lo mismo con `plantilla: "admin"`. El booleano explícito le gana al fallback.
+- [x] Caso de migración ya existía en el `it` (`{ rol: "admin" }` sin el campo → `true`) — no se
+      duplicó, se sumaron los `expect` nuevos al bloque existente.
 
-**Verificación:** `npx vitest run tests/reportes.test.ts tests/roles-modulos.test.ts`.
-**Prueba de que el test sirve:** revertir a mano el `propEnvio` de `lib/reportes.ts` y confirmar
-que el test falla. Si pasa con el código roto, el test está mal escrito.
+**Verificación:** `npx vitest run tests/reportes.test.ts tests/roles-modulos.test.ts` → 40/40.
+**Prueba de que el test sirve:** se revirtió a mano cada fix (quitar `propEnvio` de la suma en
+`lib/reportes.ts`; exigir `data.esSuperAdmin === true` en vez de solo `typeof === "boolean"` en
+`lib/roles.ts`) y los 3 tests nuevos fallaron como se esperaba. Se restauró el código real
+después — `git diff` confirma cero cambios netos en ambos archivos de producción.
 
 ---
 
