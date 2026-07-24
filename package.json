@@ -19,9 +19,7 @@
     "firebase:deploy": "node scripts/firebase-deploy.mjs"
   },
   "dependencies": {
-    "@emnapi/runtime": "1.11.2",
     "@hookform/resolvers": "^5.4.0",
-    "@opentelemetry/api": "1.9.1",
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -49,7 +47,6 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^4.1.9",
-    "esbuild": "^0.19.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
