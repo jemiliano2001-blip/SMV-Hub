@@ -39,12 +39,21 @@ export default defineConfig({
         // `next dev`/Turbopack, que usa un bundler distinto al de producción.
         // En local, sin build previo, `next dev` sigue siendo lo cómodo.
         command: process.env.CI
-          ? "npm run start"
+          // -H 0.0.0.0: en runners de GitHub Actions, `next start` sin host
+          // explícito puede quedar escuchando solo en IPv6 (::1) mientras
+          // Chromium resuelve "localhost" a IPv4 primero — la navegación
+          // falla con "This page couldn't load" aunque el server esté vivo.
+          ? "npx next start -H 0.0.0.0"
           : process.platform === "win32"
             ? "npm.cmd run dev"
             : "npm run dev",
         url: "http://localhost:3000/login",
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
+        // En CI, mostrar el log real del server (host/puerto/errores) en vez de
+        // silenciarlo — si el fix de -H 0.0.0.0 no basta, la próxima vez hay
+        // evidencia directa en el log en lugar de tener que inferir de capturas.
+        stdout: process.env.CI ? "pipe" : "ignore",
+        stderr: process.env.CI ? "pipe" : "ignore",
       },
 })
