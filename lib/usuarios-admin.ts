@@ -307,16 +307,27 @@ function mapearDocUsuario(id: string, data: DocUsuarioFirestore): Usuario | null
   }
 }
 
-function desenvolverValorRest(val: any): any {
+/** Forma de un "Value" en la Firestore REST API (subset de campos usados aquí). */
+type ValorRestFirestore = {
+  stringValue?: string
+  booleanValue?: boolean
+  integerValue?: string
+  doubleValue?: number
+  timestampValue?: string
+  arrayValue?: { values?: ValorRestFirestore[] }
+  mapValue?: { fields?: Record<string, ValorRestFirestore> }
+}
+
+function desenvolverValorRest(val: ValorRestFirestore | null | undefined): unknown {
   if (!val || typeof val !== "object") return null
   if ("stringValue" in val) return val.stringValue
   if ("booleanValue" in val) return val.booleanValue
   if ("integerValue" in val) return Number(val.integerValue)
   if ("doubleValue" in val) return Number(val.doubleValue)
-  if ("timestampValue" in val) return { toDate: () => new Date(val.timestampValue) }
+  if ("timestampValue" in val) return { toDate: () => new Date(val.timestampValue as string) }
   if ("arrayValue" in val) return (val.arrayValue?.values || []).map(desenvolverValorRest)
   if ("mapValue" in val) {
-    const obj: Record<string, any> = {}
+    const obj: Record<string, unknown> = {}
     for (const [k, v] of Object.entries(val.mapValue?.fields || {})) {
       obj[k] = desenvolverValorRest(v)
     }
@@ -345,8 +356,10 @@ async function listarUsuariosRestFallback(token?: string): Promise<Usuario[]> {
     throw new Error(`Firestore REST error ${res.status}`)
   }
 
-  const json = await res.json()
-  const rawDocs: any[] = json.documents || []
+  const json = (await res.json()) as {
+    documents?: { name?: string; fields?: Record<string, ValorRestFirestore> }[]
+  }
+  const rawDocs = json.documents || []
 
   const usuarios: Usuario[] = []
   for (const doc of rawDocs) {
@@ -354,7 +367,7 @@ async function listarUsuariosRestFallback(token?: string): Promise<Usuario[]> {
     const docId = parts[parts.length - 1] || ""
 
     const fields = doc.fields || {}
-    const data: Record<string, any> = {}
+    const data: Record<string, unknown> = {}
     for (const [k, v] of Object.entries(fields)) {
       data[k] = desenvolverValorRest(v)
     }

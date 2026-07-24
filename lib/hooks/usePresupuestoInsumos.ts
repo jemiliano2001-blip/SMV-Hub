@@ -34,6 +34,7 @@ export function usePresupuestoInsumos(usdToMxn: number = TIPO_CAMBIO_DEFAULT_USD
       if (raw) {
         const parsed = JSON.parse(raw) as PartidaPresupuesto[]
         if (Array.isArray(parsed)) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setPartidas(parsed)
         }
       }
