@@ -1,3 +1,5 @@
+// Corre en ci.yml desde 2026-07-24 (antes existía pero ci.yml no invocaba
+// Playwright — ver docs/superpowers/plans/2026-07-24-lazo-retroalimentacion-produccion.md).
 import AxeBuilder from "@axe-core/playwright"
 import { expect, test } from "@playwright/test"
 
