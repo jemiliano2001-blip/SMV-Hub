@@ -92,6 +92,10 @@ describe("legacy helpers", () => {
     expect(esSuperAdminDesdeUsuarioLegacy({ esSuperAdmin: true })).toBe(true)
     expect(esSuperAdminDesdeUsuarioLegacy({ rol: "admin" })).toBe(true)
     expect(esSuperAdminDesdeUsuarioLegacy({ rol: "compras" })).toBe(false)
+    // El booleano explícito manda sobre el fallback legacy: permite revocar
+    // super-admin a un usuario con plantilla/rol "admin" (P1 auditoría 2026-07-23).
+    expect(esSuperAdminDesdeUsuarioLegacy({ esSuperAdmin: false, rol: "admin" })).toBe(false)
+    expect(esSuperAdminDesdeUsuarioLegacy({ esSuperAdmin: false, plantilla: "admin" })).toBe(false)
   })
 
   it("esMatrizPersonalizada", () => {

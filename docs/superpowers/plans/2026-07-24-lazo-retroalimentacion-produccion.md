@@ -141,17 +141,17 @@ que existen desde hace días y **nunca se han ejecutado** porque `ci.yml` no men
 **Files:** `e2e/auth.setup.ts`, `e2e/camino-dinero.spec.ts`
 **Esfuerzo:** ~3 noches. **Es la tarea más grande del plan**, no una de seis chicas.
 
-⚠️ **Decisión pendiente del dueño antes de empezar** — cómo autentica el E2E en CI. El roadmap
-del 2026-07-22 ya lo tenía marcado como bloqueador abierto. Opciones, de más floja a menos:
+✅ **Decidido (2026-07-24):** usuario de prueba con email/password en `smv-brain-dev`, opción
+recomendada — el bypass invalida medio recorrido y el `storageState` manual se pudre sin avisar.
 
-| Opción | Costo | Problema |
-|---|---|---|
-| `storageState` generado a mano, guardado como secret de GitHub | 0 código | Caduca; hay que regenerarlo manualmente cada tanto |
-| Usuario de prueba con email/password en `smv-brain-dev` | Bajo | Un usuario más que mantener; `/login` ya soporta password |
-| `NEXT_PUBLIC_DEV_AUTH_BYPASS=true` solo en el job de CI | Casi 0 | **No prueba el gate de auth**, y el bypass en CI es un pie cerca del gatillo de producción |
-
-Recomendación: **la segunda**. El bypass invalida medio recorrido y el `storageState` manual se
-va a podrir un martes cualquiera sin que nadie sepa por qué falla CI.
+- **Correo:** `admin@smv-hub-e2e.local` (dominio inexistente a propósito — nunca recibe correo real).
+  `admin` a secas no sirve: Firebase Auth exige formato de email válido.
+- **Password:** debe tener 6+ caracteres — Firebase Auth rechaza `admin` solo por corto
+  (`auth/weak-password`). Usar algo simple pero válido, p. ej. `admin1234`; guardarlo **solo**
+  como secret de GitHub (`E2E_TEST_USER_PASSWORD`) y en `.env.local` local — nunca en el repo.
+- Falta crear el usuario en `smv-brain-dev` y darle lo que pide la nota de abajo (whitelist +
+  claim + módulos). Se hace al empezar esta tarea, no antes — no tiene sentido crear el usuario
+  hasta que haya un spec que lo use.
 
 ⚠️ **Tener sesión no basta — el usuario de prueba necesita tres cosas más**, y descubrirlas a
 medio camino cuesta dos noches de depuración:

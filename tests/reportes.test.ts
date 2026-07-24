@@ -190,6 +190,44 @@ describe("aplanarLineas", () => {
     expect(lineas[1].cuentaCargo).toBe("LEGACY-CC")
     expect(lineas[1].destino).toBe("SMV")
   })
+
+  it("prorratea el envío por línea en órdenes con ítems (P1 auditoría 2026-07-23)", () => {
+    // Antes del fix, el envío solo se sumaba en la rama "orden sin ítems": aquí se
+    // perdía por completo, subestimando el gasto real en KPIs y reporte contable.
+    const orden = makeOrden({
+      subtotal: 100,
+      envio: 100,
+      impuestos: 0,
+      items: [
+        { descripcion: "A", cantidad: 1, precioUnitario: 60, total: 60 } as any,
+        { descripcion: "B", cantidad: 2, precioUnitario: 20, total: 40 } as any,
+      ],
+    })
+    const lineas = aplanarLineas([orden])
+    // Envío prorrateado por peso: A = 100 * 60/100 = 60 → total 60+60=120
+    expect(lineas[0].total).toBeCloseTo(120)
+    // B = 100 * 40/100 = 40 → total 40+40=80
+    expect(lineas[1].total).toBeCloseTo(80)
+    // El envío no desaparece: la suma de líneas recupera subtotal + envío.
+    const sumaTotales = lineas.reduce((acc, l) => acc + l.total, 0)
+    expect(sumaTotales).toBeCloseTo(orden.subtotal! + orden.envio!)
+  })
+
+  it("reparte el envío en partes iguales si el subtotal de ítems es 0 (sin dividir entre cero)", () => {
+    const orden = makeOrden({
+      subtotal: 0,
+      envio: 50,
+      impuestos: 0,
+      items: [
+        { descripcion: "A", cantidad: 1, precioUnitario: 0, total: 0 } as any,
+        { descripcion: "B", cantidad: 1, precioUnitario: 0, total: 0 } as any,
+      ],
+    })
+    const lineas = aplanarLineas([orden])
+    expect(lineas[0].total).toBeCloseTo(25)
+    expect(lineas[1].total).toBeCloseTo(25)
+    expect(lineas.some((l) => Number.isNaN(l.total))).toBe(false)
+  })
 })
 
 // ── agrupar ───────────────────────────────────────────────────────────────────
