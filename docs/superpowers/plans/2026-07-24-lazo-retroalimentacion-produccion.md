@@ -105,36 +105,51 @@ después — `git diff` confirma cero cambios netos en ambos archivos de producc
 
 ---
 
-### Task 2: Playwright en CI — `[ ]`
+### Task 2: Playwright en CI — `[x]` completado 2026-07-24
 
-**Files:** `.github/workflows/ci.yml`, `playwright.config.ts`, `package.json`
-**Esfuerzo:** 1 noche
-**Va antes de escribir el E2E.** Sin este paso, cualquier spec nuevo nace muerto — exactamente
-el estado actual de `e2e/login-accessibility.spec.ts` y `e2e/proveedores-accessibility.spec.ts`,
-que existen desde hace días y **nunca se han ejecutado** porque `ci.yml` no menciona Playwright.
+**Files:** `.github/workflows/ci.yml`, `playwright.config.ts`
+**Esfuerzo real:** ~1.5 noches (se comió el hallazgo de abajo, no lo escrito originalmente)
 
-- [ ] Añadir a `ci.yml`, después de "Build Next.js App" y solo en `pull_request`:
-      `npx playwright install --with-deps chromium` + `npm run test:e2e`.
-      Solo Chromium: tres navegadores triplican el tiempo de CI para atrapar bugs que este
-      proyecto no tiene (no hay usuarios en Safari).
-- [ ] `webServer` en `playwright.config.ts` levantando `npm run start`, con
-      `reuseExistingServer: !process.env.CI`.
-      ⚠️ **El paso debe ir gateado a `pull_request`, igual que el build.** En `ci.yml` el paso
-      "Build Next.js App" solo corre en PR (o si falta credencial de Firebase); en `main` con
-      credenciales, Firebase Frameworks hace su propio build y el workflow **omite `npm run build`
-      a propósito** para no compilar dos veces. Si el paso de Playwright corre en `main`,
-      `npm run start` truena porque no hay `.next`. El E2E se cuelga del build del PR, punto.
-- [ ] **No cambiar `webServer` a `npm run dev` para librar el problema anterior.** `dev` usa
-      Turbopack y los builds están clavados a `--webpack` (CLAUDE.md) — probarías un bundler
-      distinto al de producción, que es justo el problema que ese flag existe para evitar.
-- [ ] `continue-on-error: true` **solo en el primer PR**, para ver que el paso corre sin
-      bloquear a nadie. Quitarlo en el PR siguiente — un test que no puede fallar no es un test.
-- [ ] Subir el reporte HTML de Playwright como artifact (mismo patrón que el de Lighthouse, que
-      ya está resuelto en el workflow).
-- [ ] Confirmar que los 2 specs de accesibilidad existentes pasan. **Si fallan, arreglarlos aquí**
-      — llevan días rotos sin que nadie se enterara, que es justo la tesis de este plan.
+⚠️ **Dos supuestos de esta tarea resultaron falsos al verificar contra la ejecución real de CI
+— quedan documentados para que el siguiente lector no los repita:**
 
-**Verificación:** abrir un PR de prueba y ver el paso de Playwright ejecutándose en Actions.
+1. **Este repo nunca ha usado Pull Requests** (`gh pr list --state all` → vacío; un solo merge
+   commit local en todo el historial). Gatear a `pull_request`, como decía el plan original,
+   habría dejado el E2E tan muerto como estaba — exactamente el bug que esta tarea corrige.
+2. **`FIREBASE_SERVICE_ACCOUNT_KEY` no está configurado en el repo** (`gh secret list` → vacío).
+   GitHub Actions **nunca ha desplegado nada** — todo el historial de deploys ha sido manual vía
+   `npm run deploy:hosting`. Esto es una decisión del dueño, no algo que este plan decida.
+
+Consecuencia práctica: sin esa credencial, la condición real de "Build Next.js App"
+(`pull_request || (need_hosting && !firebase_credentials.available)`) es **`true` en cada push
+normal a `main`**. El E2E se cuelga del mismo gate — corre cada vez que hay un build real que
+probar, sin importar el tipo de evento.
+
+- [x] `ci.yml`: "Install Playwright Browsers" + "Run Playwright E2E" + "Upload Playwright report",
+      insertados después de "Build Next.js App", con el **mismo `if`** que ese paso (no
+      `pull_request` a secas).
+- [x] `npx playwright install --with-deps chrome` — no `chromium`. La config ya usa
+      `channel: "chrome"`; instalar el paquete genérico habría dado "browser not found" en el
+      primer run, disfrazado de error de configuración.
+- [x] `webServer` en `playwright.config.ts`: `npm run start` cuando `CI` está seteado (sirve el
+      build real de webpack que ya hizo el paso anterior del mismo job); `npm run dev` en local
+      para no romper el flujo cómodo que ya existía. Antes decía `command: "npm.cmd run dev"`
+      a secas — **hardcodeado a Windows, tronaba en `ubuntu-latest`** sin que nadie lo hubiera
+      notado porque el paso nunca había corrido en CI.
+- [x] `continue-on-error: true` en el primer run (sin PR que sirva de "run de prueba" real, esta
+      fue la forma de probarlo sin arriesgar bloquear el pipeline). Pendiente quitarlo una vez
+      confirmado en verde — ver nota abajo.
+- [x] Reporter HTML agregado (`[["github"], ["html", ...]]`) — sin esto, `Upload Playwright
+      report` no tenía nada que subir; el reporter `"github"` solo anota, no genera archivos.
+- [x] Confirmados en verde los 2 specs de accesibilidad existentes, corriendo local dos veces:
+      contra `next dev` (`npm run test:e2e`) y contra `next start` con `CI=true` (simulando
+      exactamente el paso de CI) → 4 passed, 4 skipped (proveedores se salta sin
+      `PLAYWRIGHT_STORAGE_STATE`, como está diseñado) en ambos casos.
+
+**Verificación:** sin PRs en este repo, la verificación real es el propio run de push a `main`
+— ver el commit siguiente para el resultado.
+
+**Pendiente de un run en verde:** quitar `continue-on-error: true` del paso "Run Playwright E2E".
 
 ---
 

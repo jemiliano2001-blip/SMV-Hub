@@ -10,7 +10,9 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI ? "github" : "list",
+  // "github" solo anota fallas en el PR; el reporte HTML es lo que se sube como
+  // artifact para poder ver el detalle de un run (ver ci.yml "Upload Playwright report").
+  reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL: externalBaseUrl ?? "http://localhost:3000",
     channel: "chrome",
@@ -32,7 +34,15 @@ export default defineConfig({
   webServer: externalBaseUrl
     ? undefined
     : {
-        command: "npm.cmd run dev",
+        // CI ya corrió `npm run build` en el mismo job (paso "Build Next.js App") —
+        // servir ese build real (`next start`, webpack) en vez de reconstruir con
+        // `next dev`/Turbopack, que usa un bundler distinto al de producción.
+        // En local, sin build previo, `next dev` sigue siendo lo cómodo.
+        command: process.env.CI
+          ? "npm run start"
+          : process.platform === "win32"
+            ? "npm.cmd run dev"
+            : "npm run dev",
         url: "http://localhost:3000/login",
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
