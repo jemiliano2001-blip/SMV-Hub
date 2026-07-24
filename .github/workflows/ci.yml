@@ -50,9 +50,11 @@ jobs:
         run: |
           base_sha="${{ github.event.before }}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ -z "$base_sha" ] || [[ "$base_sha" =~ ^0+$ ]] || ! git cat-file -e "$base_sha^{commit}"; then
+            changed_files="$(git ls-files)"
             targets="$(node scripts/firebase-deploy-targets.mjs --full)"
           else
-            targets="$(git diff --name-only "$base_sha" "$GITHUB_SHA" | node scripts/firebase-deploy-targets.mjs)"
+            changed_files="$(git diff --name-only "$base_sha" "$GITHUB_SHA")"
+            targets="$(echo "$changed_files" | node scripts/firebase-deploy-targets.mjs)"
           fi
 
           echo "targets=$targets" >> "$GITHUB_OUTPUT"
@@ -65,6 +67,17 @@ jobs:
             echo "need_hosting=true" >> "$GITHUB_OUTPUT"
           else
             echo "need_hosting=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Build+E2E deben correr tambien cuando SOLO cambian specs de e2e/ o su
+          # config: determinarTargetsDeploy() los ignora a proposito (no requieren
+          # redeploy de hosting), pero sin un build no hay contra que correr
+          # Playwright. Sin este flag, un cambio "solo en tests" nunca ejecuta el
+          # E2E que agrega - el mismo bug que este plan corrige, reintroducido.
+          if [[ "$targets" == *"hosting"* ]] || echo "$changed_files" | grep -qE '^e2e/|^playwright\.config\.ts$'; then
+            echo "need_build_verify=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "need_build_verify=false" >> "$GITHUB_OUTPUT"
           fi
 
           if [ -n "$targets" ]; then
@@ -110,7 +123,7 @@ jobs:
         run: npm run test:coverage
 
       - name: Build Next.js App
-        if: github.event_name == 'pull_request' || (steps.deploy_targets.outputs.need_hosting == 'true' && steps.firebase_credentials.outputs.available != 'true')
+        if: github.event_name == 'pull_request' || (steps.deploy_targets.outputs.need_build_verify == 'true' && !(steps.deploy_targets.outputs.need_hosting == 'true' && steps.firebase_credentials.outputs.available == 'true'))
         run: npm run build
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
@@ -123,14 +136,15 @@ jobs:
           NEXT_PUBLIC_FIRESTORE_DATABASE_ID: compras-americanas
           NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ secrets.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}
 
-      # Mismo gate que "Build Next.js App": solo corre si ese paso generó un build
-      # real en este job (`next start` sirve ese build; no hay build → nada que probar).
+      # Mismo gate que "Build Next.js App" (need_build_verify): solo corre si ese
+      # paso generó un build real en este job (`next start` sirve ese build; no
+      # hay build → nada que probar).
       - name: Install Playwright Browsers
-        if: github.event_name == 'pull_request' || (steps.deploy_targets.outputs.need_hosting == 'true' && steps.firebase_credentials.outputs.available != 'true')
+        if: github.event_name == 'pull_request' || (steps.deploy_targets.outputs.need_build_verify == 'true' && !(steps.deploy_targets.outputs.need_hosting == 'true' && steps.firebase_credentials.outputs.available == 'true'))
         run: npx playwright install --with-deps chrome
 
       - name: Run Playwright E2E
-        if: github.event_name == 'pull_request' || (steps.deploy_targets.outputs.need_hosting == 'true' && steps.firebase_credentials.outputs.available != 'true')
+        if: github.event_name == 'pull_request' || (steps.deploy_targets.outputs.need_build_verify == 'true' && !(steps.deploy_targets.outputs.need_hosting == 'true' && steps.firebase_credentials.outputs.available == 'true'))
         # continue-on-error temporal: primera vez que estos specs corren en CI de
         # verdad (antes de esto, ci.yml no tenía ningún paso de Playwright — nunca
         # se habían ejecutado). Se quita en cuanto se confirme un run en verde.
@@ -138,7 +152,7 @@ jobs:
         run: npm run test:e2e
 
       - name: Upload Playwright report
-        if: always() && (github.event_name == 'pull_request' || (steps.deploy_targets.outputs.need_hosting == 'true' && steps.firebase_credentials.outputs.available != 'true'))
+        if: always() && (github.event_name == 'pull_request' || (steps.deploy_targets.outputs.need_build_verify == 'true' && !(steps.deploy_targets.outputs.need_hosting == 'true' && steps.firebase_credentials.outputs.available == 'true')))
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
