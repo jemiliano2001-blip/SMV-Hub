@@ -41,10 +41,10 @@ Módulos actuales:
   Al crear una requisición, `SeccionRecomendacionInteligente.tsx` sugiere proveedor vía
   `lib/motor-recomendador-proveedores.ts`, un motor de scoring local/cliente y transparente.
 - `/ordenes-servicio` — gestión de órdenes de servicio (CRUD vía `lib/ordenes-servicio.ts` + hook `useOrdenesServicio`).
-- `/almacen` — control de entradas y salidas de materiales y herramientas hacia piso. Tab
-  Reabastecimiento ROP (`TableroReabastecimientoHerramientas.tsx`, módulo `reabastecimiento-rop`)
-  corre sobre datos demo (`DEMO_ITEMS_RECOMPRA` en `lib/recompra-herramientas.ts`) — no está
-  conectado a Firestore todavía.
+- `/almacen` — control de entradas y salidas de materiales y herramientas hacia piso. El tab
+  Reabastecimiento ROP fue **retirado** el 2026-07-24 (corría sobre datos demo en producción);
+  con él se eliminaron `lib/recompra-herramientas.ts` y el módulo `reabastecimiento-rop`. No
+  recrearlo sin datos reales de inventario.
 - `/banos` — registros de tiempos de baño, conteos diarios y agregación de resumen mensual.
 - `/horas-extra` — tabla editable para seguimiento de horas extras semanales por departamento.
 - `/operadores` — catálogo de personal para auto-completar en módulos operativos.

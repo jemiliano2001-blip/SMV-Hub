@@ -11,28 +11,27 @@ import {
 } from "@/lib/roles"
 
 describe("modulosDePlantilla", () => {
-  it("admin incluye finanzas, usuarios y reabastecimiento-rop", () => {
+  it("admin incluye finanzas, usuarios y almacen", () => {
     const m = modulosDePlantilla("admin")
     expect(m).toContain("finanzas")
     expect(m).toContain("usuarios")
-    expect(m).toContain("reabastecimiento-rop")
     expect(m).toContain("almacen")
   })
 
-  it("compras incluye reabastecimiento-rop y almacen, sin finanzas", () => {
+  it("compras incluye almacen y nueva-compra, sin finanzas", () => {
     const m = modulosDePlantilla("compras")
-    expect(m).toContain("reabastecimiento-rop")
     expect(m).toContain("almacen")
     expect(m).toContain("nueva-compra")
     expect(m).not.toContain("finanzas")
     expect(m).not.toContain("usuarios")
   })
 
-  it("almacen tiene entradas/salidas pero no ROP", () => {
+  it("almacen tiene entradas/salidas y pedidos, sin compras ni finanzas", () => {
     const m = modulosDePlantilla("almacen")
     expect(m).toContain("almacen")
     expect(m).toContain("pedidos-almacen")
-    expect(m).not.toContain("reabastecimiento-rop")
+    expect(m).not.toContain("nueva-compra")
+    expect(m).not.toContain("finanzas")
   })
 
   it("diseno es mínimo", () => {
@@ -80,7 +79,7 @@ describe("legacy helpers", () => {
   it("modulosDesdeUsuarioLegacy deriva de rol si no hay modulos", () => {
     const m = modulosDesdeUsuarioLegacy({ rol: "almacen" })
     expect(m).toContain("almacen")
-    expect(m).not.toContain("reabastecimiento-rop")
+    expect(m).not.toContain("finanzas")
   })
 
   it("plantillaDesdeUsuarioLegacy", () => {
@@ -101,7 +100,7 @@ describe("legacy helpers", () => {
   })
 
   it("tieneModulo", () => {
-    expect(tieneModulo(["almacen"], "reabastecimiento-rop")).toBe(false)
-    expect(tieneModulo(["reabastecimiento-rop"], "reabastecimiento-rop")).toBe(true)
+    expect(tieneModulo(["almacen"], "finanzas")).toBe(false)
+    expect(tieneModulo(["finanzas"], "finanzas")).toBe(true)
   })
 })

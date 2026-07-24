@@ -98,7 +98,7 @@ describe("obtenerUsuarioAdmin", () => {
       esSuperAdmin: false,
     })
     expect(info?.modulos).toContain("nueva-compra")
-    expect(info?.modulos).toContain("reabastecimiento-rop")
+    expect(info?.modulos).toContain("almacen")
   })
 
   it("devuelve activo:false si el documento tiene activo:false", async () => {
@@ -158,7 +158,7 @@ describe("crearUsuarioAdmin", () => {
       })
     )
     const payload = mockSet.mock.calls[0][0] as { modulos: string[] }
-    expect(payload.modulos).toContain("reabastecimiento-rop")
+    expect(payload.modulos).toContain("almacen")
     expect(resultado.uid).toBe("uid-nuevo")
     expect(resultado.tempPassword).toHaveLength(16)
   })

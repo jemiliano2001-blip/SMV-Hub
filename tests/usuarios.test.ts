@@ -62,7 +62,7 @@ describe("obtenerPermisosUsuario", () => {
     const p = await obtenerPermisosUsuario("uid-2", "almacen@ejemplo.com")
     expect(p?.plantilla).toBe("almacen")
     expect(p?.modulos).toContain("almacen")
-    expect(p?.modulos).not.toContain("reabastecimiento-rop")
+    expect(p?.modulos).not.toContain("finanzas")
     expect(p?.esSuperAdmin).toBe(false)
   })
 })

@@ -364,7 +364,6 @@ export const ModuloIdSchema = z.enum([
   "reportes",
   "caja-chica",
   "almacen",
-  "reabastecimiento-rop",
   "pedidos-almacen",
   "ordenes-servicio",
   "operadores",

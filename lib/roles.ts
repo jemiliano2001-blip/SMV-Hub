@@ -3,8 +3,8 @@ import { ModuloIdSchema, type ModuloId } from "@/lib/schemas"
 
 export type { Rol, ModuloId }
 
-/** Ruta base asociada a cada módulo (excepto reabastecimiento-rop, que vive en /almacen). */
-export const RUTA_POR_MODULO: Record<Exclude<ModuloId, "reabastecimiento-rop">, string> = {
+/** Ruta base asociada a cada módulo. */
+export const RUTA_POR_MODULO: Record<ModuloId, string> = {
   "nueva-compra": "/nueva-compra",
   ordenes: "/ordenes",
   "claves-sat": "/claves-sat",
@@ -49,7 +49,6 @@ export const GRUPOS_MODULOS: { nombre: string; modulos: { id: ModuloId; label: s
     nombre: "Operación",
     modulos: [
       { id: "almacen", label: "Almacén (entradas/salidas)" },
-      { id: "reabastecimiento-rop", label: "Reabastecimiento ROP" },
       { id: "pedidos-almacen", label: "Pedidos de almacén" },
       { id: "ordenes-servicio", label: "Órdenes de servicio" },
       { id: "banos", label: "Baños" },
@@ -84,7 +83,6 @@ const PLANTILLA_ADMIN: ModuloId[] = [
   "reportes",
   "caja-chica",
   "almacen",
-  "reabastecimiento-rop",
   "pedidos-almacen",
   "ordenes-servicio",
   "operadores",
@@ -102,7 +100,6 @@ const PLANTILLA_COMPRAS: ModuloId[] = [
   "proveedores",
   "caja-chica",
   "almacen",
-  "reabastecimiento-rop",
   "pedidos-almacen",
   "ordenes-servicio",
   "operadores",
@@ -184,7 +181,7 @@ export function esMatrizPersonalizada(plantilla: Rol | null | undefined, modulos
 /** Resuelve el módulo de ruta para un pathname (null = home u desconocido). */
 export function rutaAModulo(pathname: string): ModuloId | null {
   if (pathname === "/" || pathname === "") return null
-  const entradas = Object.entries(RUTA_POR_MODULO) as [Exclude<ModuloId, "reabastecimiento-rop">, string][]
+  const entradas = Object.entries(RUTA_POR_MODULO) as [ModuloId, string][]
   // Rutas más largas primero para evitar que /finanzas cloquee /finanzas/x mal
   const ordenadas = [...entradas].sort((a, b) => b[1].length - a[1].length)
   for (const [modulo, ruta] of ordenadas) {
@@ -203,7 +200,6 @@ export function tieneModulo(modulos: readonly ModuloId[] | null | undefined, mod
  * - null/undefined modulos → sin acceso
  * - `/` siempre permitido si hay lista (usuario activo con permisos cargados)
  * - `/usuarios` exige el módulo `usuarios` (la API además exige esSuperAdmin)
- * - `reabastecimiento-rop` no es ruta; se gated en la UI de /almacen
  */
 export function tienePermiso(
   modulos: readonly ModuloId[] | null | undefined,
