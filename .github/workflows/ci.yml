@@ -145,10 +145,6 @@ jobs:
 
       - name: Run Playwright E2E
         if: github.event_name == 'pull_request' || (steps.deploy_targets.outputs.need_build_verify == 'true' && !(steps.deploy_targets.outputs.need_hosting == 'true' && steps.firebase_credentials.outputs.available == 'true'))
-        # continue-on-error temporal: primera vez que estos specs corren en CI de
-        # verdad (antes de esto, ci.yml no tenía ningún paso de Playwright — nunca
-        # se habían ejecutado). Se quita en cuanto se confirme un run en verde.
-        continue-on-error: true
         run: npm run test:e2e
 
       - name: Upload Playwright report

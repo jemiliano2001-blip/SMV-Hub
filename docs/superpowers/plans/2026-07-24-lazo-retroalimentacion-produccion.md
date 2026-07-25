@@ -105,10 +105,12 @@ después — `git diff` confirma cero cambios netos en ambos archivos de producc
 
 ---
 
-### Task 2: Playwright en CI — `[x]` completado 2026-07-24
+### Task 2: Playwright en CI — `[x]` completado 2026-07-24 (verde confirmado en el log real)
 
-**Files:** `.github/workflows/ci.yml`, `playwright.config.ts`
-**Esfuerzo real:** ~1.5 noches (se comió el hallazgo de abajo, no lo escrito originalmente)
+**Files:** `.github/workflows/ci.yml`, `playwright.config.ts`, `lib/auth.ts`
+**Esfuerzo real:** ~1 sesión larga — tres hallazgos reales encadenados, ninguno anticipado en el
+plan original. El checkmark verde de GitHub Actions mintió dos veces seguidas (`continue-on-error`
+lo enmascaraba); la verificación de verdad fue siempre leer `gh run view --log`, nunca el ✓.
 
 ⚠️ **Dos supuestos de esta tarea resultaron falsos al verificar contra la ejecución real de CI
 — quedan documentados para que el siguiente lector no los repita:**
@@ -146,10 +148,54 @@ probar, sin importar el tipo de evento.
       exactamente el paso de CI) → 4 passed, 4 skipped (proveedores se salta sin
       `PLAYWRIGHT_STORAGE_STATE`, como está diseñado) en ambos casos.
 
-**Verificación:** sin PRs en este repo, la verificación real es el propio run de push a `main`
-— ver el commit siguiente para el resultado.
+**Verificación:** sin PRs en este repo, la verificación real es el propio run de push a `main`.
 
-**Pendiente de un run en verde:** quitar `continue-on-error: true` del paso "Run Playwright E2E".
+#### Hallazgo 3 — `need_hosting` no bastaba como gate: un cambio "solo en tests" nunca corría nada
+
+`determinarTargetsDeploy()` ignora a propósito `e2e/`, `tests/`, `docs/` y `playwright.config.ts`
+para no disparar un redeploy de hosting por cambios que no tocan la app — correcto para el
+deploy. Pero "Build Next.js App" y los pasos de Playwright reusaban ese mismo `need_hosting`
+como gate: un commit que solo tocara `e2e/` (como el propio Task 3 que sigue) nunca iba a generar
+un build contra el cual correr Playwright — el mismo bug que esta tarea corrige, reintroducido
+por su propio fix. Se separó en dos flags en el paso "Determine Firebase deploy targets":
+`need_hosting` (deploy, sin tocar) y `need_build_verify` (build+E2E; también `true` si cambian
+archivos bajo `e2e/` o `playwright.config.ts`).
+
+#### Hallazgo 4 — el primer run "verde" no lo era: `continue-on-error` mentía
+
+El primer push con Playwright real mostró ✓ en todos los pasos, pero el log crudo
+(`gh run view --log`) decía **4 failed, 4 skipped, 0 passed** — `continue-on-error: true`
+absorbe la falla y el checkmark no lo refleja. Las capturas del artifact (`Upload Playwright
+report`) mostraban "This page couldn't load" — un error de conexión del navegador, no un crash
+de React. Hipótesis inicial (descartada con evidencia): `next start` sin host explícito
+escuchando solo en IPv6 en `ubuntu-latest` mientras Chromium resuelve `localhost` a IPv4
+primero — se agregó `-H 0.0.0.0` de todas formas (higiene correcta, no dañina), pero el log del
+siguiente run mostró `✓ Ready in 140ms` con `Network: http://0.0.0.0:3000` **antes** de que los
+tests arrancaran: el bind nunca fue el problema.
+
+#### Hallazgo 5 — la causa real: `getAuth()` sin `NEXT_PUBLIC_FIREBASE_*` tumba toda la página
+
+`gh secret list` confirmó que ni siquiera los secrets `NEXT_PUBLIC_FIREBASE_*` (config pública
+del cliente, no sensible) están configurados — el build de CI corre con `apiKey: ""`. Diagnóstico
+reproducido **localmente**, sin depender de otro run de CI: build con las mismas env vars vacías
+que usa `ci.yml` + un script de una vez con `page.on("pageerror", ...)` capturó
+`Firebase: Error (auth/invalid-api-key)`, con el HTML resultante marcado
+`id="__next_error__"` — el error boundary global de Next.js atrapando una excepción no
+controlada. Rastreado a `useUsuario()` en `lib/auth.ts:78`: llama `getClienteAuth()` (→
+`getAuth()`, que valida la API key sincrónicamente) dentro de un `useEffect` sin try/catch.
+
+Esto **no es un problema exclusivo de CI** — viola directamente la regla de CLAUDE.md "un fallo
+de red o de sistema nunca rompe la UI visualmente": cualquier usuario real con Firebase mal
+configurado vería la misma pantalla rota. Fix aplicado en `lib/auth.ts`: try/catch alrededor de
+`getClienteAuth()`/`onAuthStateChanged`; si falla, degrada a "sin sesión, no cargando" en vez de
+propagar la excepción (`AuthGuard` ya maneja `usuario === null` redirigiendo a `/login`).
+
+**Verificado sin tocar ningún secret de GitHub** — se reprodujo el build exacto de CI localmente
+(mismas env vars vacías) antes y después del fix: 4 failed → 4 passed. Confirmado también en CI
+real (run `30135083901`): `gh run view --log` → `4 skipped`, `4 passed (11.8s)`, cero failed.
+
+- [x] `continue-on-error: true` **retirado** del paso "Run Playwright E2E" — el run en verde real
+      (no solo el checkmark) ya está confirmado.
 
 ---
 
