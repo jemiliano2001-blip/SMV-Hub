@@ -12,6 +12,7 @@
 // stubea vía page.route — no se prueba la IA, se prueba qué hace la app con
 // su respuesta. Requiere el usuario de prueba creado con
 // scripts/crear-usuario-e2e.mjs y E2E_TEST_USER_PASSWORD en el entorno.
+// (Verificado en CI real el 2026-07-25 tras cablear los secrets E2E_FIREBASE_*.)
 //
 // Login real dentro de cada test (no un storageState de otro proyecto):
 // Firebase Auth persiste la sesión en IndexedDB, que
