@@ -24,11 +24,33 @@ export default defineConfig({
   projects: [
     {
       name: "desktop-chrome",
+      testMatch: /.*-accessibility\.spec\.ts/,
       use: { viewport: { width: 1440, height: 900 } },
     },
     {
       name: "mobile-chrome",
+      testMatch: /.*-accessibility\.spec\.ts/,
       use: { viewport: { width: 390, height: 844 } },
+    },
+    {
+      // Escribe/lee Firestore real (smv-brain-dev) — un solo proyecto, sin
+      // paralelismo entre viewports ni reintentos: un retry dejaría la orden
+      // de la corrida anterior a medias y el segundo intento chocaría con la
+      // verificación de factura duplicada en vez de repetir el fallo original.
+      // Login real dentro del propio spec (ver e2e/camino-dinero.spec.ts) —
+      // sin storageState: la sesión de Firebase Auth vive en IndexedDB, que
+      // Playwright no serializa al cruzar de contexto/proyecto.
+      name: "money-path",
+      testMatch: /camino-dinero\.spec\.ts/,
+      retries: 0,
+      // 4 rutas distintas (login, reportes, nueva-compra, ordenes) navegadas
+      // en una sola corrida — en dev cada una compila on-demand la primera
+      // vez, y el timeout global de 60s pensado para specs de una sola página
+      // se queda corto.
+      timeout: 180_000,
+      use: {
+        viewport: { width: 1440, height: 900 },
+      },
     },
   ],
   webServer: externalBaseUrl

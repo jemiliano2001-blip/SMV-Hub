@@ -199,9 +199,10 @@ real (run `30135083901`): `gh run view --log` → `4 skipped`, `4 passed (11.8s)
 
 ---
 
-### Task 3: E2E del camino del dinero — `[ ]`
+### Task 3: E2E del camino del dinero — `[x]` completado 2026-07-25, los 5 pasos verdes
 
-**Files:** `e2e/auth.setup.ts`, `e2e/camino-dinero.spec.ts`
+**Files:** `e2e/camino-dinero.spec.ts` (`e2e/auth.setup.ts` se escribió y luego se eliminó — ver
+corrección de `storageState`/IndexedDB más abajo)
 **Esfuerzo:** ~3 noches. **Es la tarea más grande del plan**, no una de seis chicas.
 
 ✅ **Decidido (2026-07-24):** usuario de prueba con email/password en `smv-brain-dev`, opción
@@ -212,46 +213,137 @@ recomendada — el bypass invalida medio recorrido y el `storageState` manual se
 - **Password:** debe tener 6+ caracteres — Firebase Auth rechaza `admin` solo por corto
   (`auth/weak-password`). Usar algo simple pero válido, p. ej. `admin1234`; guardarlo **solo**
   como secret de GitHub (`E2E_TEST_USER_PASSWORD`) y en `.env.local` local — nunca en el repo.
-- Falta crear el usuario en `smv-brain-dev` y darle lo que pide la nota de abajo (whitelist +
-  claim + módulos). Se hace al empezar esta tarea, no antes — no tiene sentido crear el usuario
-  hasta que haya un spec que lo use.
+- ~~Falta crear el usuario en `smv-brain-dev`~~ — creado 2026-07-25 vía `scripts/crear-usuario-e2e.mjs`.
 
-⚠️ **Tener sesión no basta — el usuario de prueba necesita tres cosas más**, y descubrirlas a
-medio camino cuesta dos noches de depuración:
+⚠️ **Corrección 2026-07-25 — `smv-brain-dev` no existía.** El proyecto Firebase de dev descrito
+en `docs/infra/firebase-dev-project.md` nunca se había creado (dev local venía apuntando a
+`smv-brain` de producción todo este tiempo, sin que nadie lo notara porque nunca hubo un test que
+escribiera datos). Se creó de cero por CLI + llamadas REST directas a las APIs de Google Cloud
+(el CLI de Firebase no cubre todo el flujo):
 
-1. **Estar en la whitelist**: `/api/extraer` exige token válido **y** correo autorizado
-   (`lib/api-auth.ts:47` → `lib/authorized-emails.ts`). Agregar el correo del usuario de prueba
-   vía `AUTHORIZED_EMAILS_EXTRA` en el entorno de `smv-brain-dev`.
-2. **Tener el claim `smvHubActivo: true`**: `storage.rules:29` lo exige para subir la imagen de
-   la factura. Se propaga al activar el usuario en `/usuarios` (o con
-   `scripts/backfill-claims-usuarios.mjs`), y el token tarda hasta 1h en refrescarse.
+- Proyecto GCP/Firebase `smv-brain-dev` (`firebase projects:create`).
+- Firestore, base nombrada `compras-americanas`, región `nam5` (igual que prod) + reglas e
+  índices desplegados.
+- **Facturación vinculada** — con autorización explícita del usuario, se vinculó la misma cuenta
+  de facturación que ya usa `smv-brain` en producción (`billingAccounts/01ADC9-BA5EDD-BD0880`).
+  Fue necesario porque el bucket de Storage por defecto todavía depende del mecanismo legado de
+  App Engine, que exige facturación activa incluso dentro de cuota gratis Spark.
+- Storage: bucket por defecto creado vía `firebasestorage.googleapis.com` (API de consola, no
+  tiene comando CLI) + reglas desplegadas.
+- Authentication: proveedor Email/Password habilitado, `localhost`/`127.0.0.1` añadidos a
+  `authorizedDomains` (si no, el SDK bloquea el flujo aunque sea password, no OAuth).
+- App Web registrada para sacar el `firebaseConfig` real (`apiKey`, `appId`, etc.) para
+  `.env.local`.
+
+`docs/infra/firebase-dev-project.md` queda desactualizado en el paso "Crear el proyecto (una vez,
+en consola)" — en la práctica se hizo 100% por API/CLI, cero clicks en la consola. Pendiente
+actualizar ese doc si se repite el proceso alguna vez (otro entorno, ej. staging).
+
+⚠️ **Corrección 2026-07-24 sobre esta nota** (verificado leyendo el código real antes de
+construir sobre el plan): `AUTHORIZED_EMAILS_EXTRA` **no existe en ningún lugar del código** —
+`grep` solo lo encuentra en este plan y en `AGENTS.md`. Es una suposición del plan original que
+ya estaba obsoleta: la autorización real desde la auditoría de julio pasa por
+`verificarUsuarioAutorizado()` (`lib/api-auth.ts:28`) → `obtenerUsuarioAdmin()`
+(`lib/usuarios-admin.ts:38`), que exige que exista el doc `usuarios/{uid}` en Firestore con
+`activo: true` (o el correo break-glass). No hay whitelist por variable de entorno.
+
+Mejor noticia: `crearUsuarioAdmin()` (`lib/usuarios-admin.ts:127`) ya resuelve las tres cosas
+que el usuario de prueba necesita **en una sola llamada** — crea la cuenta de Auth, estampa los
+custom claims (`smvHubActivo`, `smvHubModulos`) vía `sincronizarClaimsAcceso()`, y crea el doc
+`usuarios/{uid}` con `activo: true` y los módulos de la plantilla. No es importable desde un
+script `.mjs` suelto (usa alias `@/lib/...`), así que el script de creación replica esa misma
+secuencia seguiendo el patrón de `scripts/backfill-claims-usuarios.mjs`.
+
+1. **Tener el doc `usuarios/{uid}` con `activo: true`** — reemplaza la whitelist inexistente.
+2. **Tener el claim `smvHubActivo: true`**: `storage.rules:26` lo exige para subir la imagen de
+   la factura. Lo estampa el script al crear el usuario (mismo paso que `sincronizarClaimsAcceso`).
 3. **Tener los módulos del recorrido** en `modulos[]`: `nueva-compra`, `ordenes` y `reportes`.
    Plantilla `compras` los cubre.
 
-Sin (1) el paso 1 falla con 401; sin (2) falla la subida a Storage antes de llegar a la IA;
-sin (3) `AuthGuard` lo saca de la ruta.
+Sin (1) `/api/extraer` falla con 403 y las reglas de Firestore bloquean `ordenes`; sin (2) falla
+la subida a Storage antes de llegar a la IA; sin (3) `AuthGuard` lo saca de la ruta.
 
-- [ ] `e2e/auth.setup.ts` como proyecto de setup de Playwright, con dependencia desde el spec.
-- [ ] Stub de la llamada a Gemini vía `page.route('**/api/extraer', …)` devolviendo una
+⚠️ **Corrección 2026-07-25 sobre App Check** — la nota original decía que estar desactivado en
+`firestore.rules`/`storage.rules` bastaba para no bloquear a Playwright. Cierto para las reglas,
+pero el **SDK cliente** de App Check no lo sabe: si `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` y
+`NEXT_PUBLIC_APP_CHECK_DEBUG_TOKEN` están seteados en `.env.local` (heredados de cuando
+apuntaba a `smv-brain` de prod, donde sí están registrados) pero el proyecto destino
+(`smv-brain-dev`) nunca tuvo App Check configurado, `initializeAppCheck()` reintenta el canje de
+token contra un 403 sostenido y **satura el hilo del navegador headless** — cualquier comando de
+Playwright después de eso (`page.route()`, `page.goto()`, etc.) se cuelga indefinidamente, sin
+error visible, hasta el timeout del test. Costó ~40 min de diagnóstico (trace + screenshot en el
+momento exacto del timeout) llegar a esto. Fix aplicado en el spec: abortar las llamadas a
+`content-firebaseappcheck.googleapis.com` con `page.route(...).abort()` antes de todo lo demás —
+seguro porque las reglas ya ignoran App Check.
+
+⚠️ **Corrección 2026-07-25 sobre el `storageState` de `auth.setup.ts`** — el diseño original
+(proyecto "setup" separado + `page.context().storageState()` + `dependencies: ["setup"]` en
+"money-path") **no funciona con Firebase Auth**: la sesión vive en IndexedDB, que
+`storageState()` no serializa (solo cookies + localStorage). El storageState resultante quedaba
+vacío de todo lo de `localhost` y el proyecto "money-path" arrancaba deslogueado. Se eliminó
+`e2e/auth.setup.ts` y el proyecto "setup"; el login ahora ocurre dentro del propio
+`camino-dinero.spec.ts`, en la misma página/contexto, al inicio del test (~3s de costo, aceptable
+para un spec que ya es lento por naturaleza).
+
+Y el checkbox "Notificar por WhatsApp al guardar" en `/nueva-compra` está **marcado por default**
+y abre `window.open()` + escribe al portapapeles al guardar — el spec lo desmarca antes de
+guardar para no pelear con una pestaña nueva en medio del test.
+
+- [x] Login real dentro del propio spec (no un proyecto "setup" separado — ver corrección arriba).
+- [x] Stub de la llamada a Gemini vía `page.route('**/api/extraer', …)` devolviendo una
       `ExtraccionInvoice` fija. No se prueba la IA; se prueba qué hace la app con su respuesta.
-- [ ] **Paso 1 — captura:** `/nueva-compra`, subir imagen, verificar que el form se llena con los
+- [x] **Paso 1 — captura:** `/nueva-compra`, subir imagen, verificar que el form se llena con los
       datos del stub, guardar.
-- [ ] **Paso 2 — la orden existe:** `/ordenes`, buscar por número de factura, abrir el detalle,
+- [x] **Paso 2 — la orden existe:** `/ordenes`, buscar por número de factura, abrir el detalle,
       verificar proveedor y total.
-- [ ] **Paso 3 — el reporte cuadra (el que atrapa el bug del envío):** `/reportes` con el
+- [x] **Paso 3 — el reporte cuadra (el que atrapa el bug del envío):** `/reportes` con el
       periodo correcto. Aserción: el total del KPI **incluye el envío**. Este es el paso que
-      justifica todo el E2E.
-- [ ] **Paso 4 — el filtro de moneda filtra (el otro P1):** cambiar a MXN y verificar que las
-      cifras cambian, no solo el `<select>`.
-- [ ] **Paso 5 — cierre contable acotado:** `/reportes/contable`, cerrar lote con dos monedas
-      pendientes. Aserción: solo se archivan las órdenes de la moneda activa y el diálogo avisa
-      de las otras.
-- [ ] Limpieza: el spec borra la orden que creó, o usa un prefijo identificable y un
-      `afterAll` que barre. `smv-brain-dev` no debe llenarse de basura de CI.
+      justifica todo el E2E. Maneja también el caso "periodo sin compras" (FranjaKpis no se
+      renderiza si `lineas.length === 0` — ver `ReporteView.tsx:188`), necesario porque
+      `smv-brain-dev` arrancó vacío.
+- [x] **Paso 4 — el filtro de moneda filtra (el otro P1):** completado 2026-07-25 como segundo
+      `test()` en el mismo describe (`mode: "serial"`, comparte worker con pasos 1-3 sin correr en
+      paralelo contra la misma base). Crea una orden USD (100) y una MXN (500) reales, cambia el
+      `<select>` de `/reportes` → "Reporte Gerencial & Filtros" y verifica que el KPI **cambia al
+      valor exacto de cada moneda** (100 y 500), no solo que el `<select>` cambia de opción.
+      Decisión de alcance: se probó el filtro de moneda de `ReporteView.tsx` (el panel "Reporte
+      Gerencial & Filtros" que ya usan los pasos 1-3), no el de `DashboardInteligenciaCompras.tsx`
+      ("Dashboard Inteligencia 3-Tier", la otra pestaña) — ese segundo componente lee de una
+      colección espejo (`compras_proveedor`) que requiere un botón de sincronización manual en
+      `/proveedores` (`sincronizarComprasDesdeOrdenes()`), no se alimenta directo de `ordenes`.
+      Meter esa dependencia cruzada de página hacía el test mucho más lento y frágil para
+      guardar el mismo patrón de bug (filtrar por moneda activa sin mezclar montos).
+- [x] **Paso 5 — cierre contable acotado:** completado 2026-07-25, mismo test que el paso 4
+      (reutiliza las dos órdenes ya creadas). `/reportes/contable`, selecciona USD, clic en
+      "Cerrar Reporte" → el diálogo de confirmación (`AlertDialog` de shadcn/ui) menciona
+      explícitamente "MXN" y "seguirán pendientes" antes de confirmar. Tras confirmar: la orden
+      USD desaparece de "Nuevos (Pendientes por Enviar)", la orden MXN **sigue apareciendo** — la
+      aserción que de verdad atrapa el bug (archivar todas las monedas de un jalón). Detalle de
+      limpieza: `reportes_contables` tiene `allow update, delete: if false` en `firestore.rules`
+      (un lote cerrado es inmutable por diseño, ni un super-admin puede borrarlo desde el
+      cliente) — el spec borra el lote que crea con Admin SDK en el `finally` (mismo patrón de
+      credenciales que `scripts/crear-usuario-e2e.mjs`), con degradación segura: si no hay
+      `GOOGLE_APPLICATION_CREDENTIALS` (p. ej. en CI todavía sin ese secret), el lote queda
+      huérfano pero el test no falla por eso — las aserciones funcionales ya corrieron.
+- [x] Limpieza: el spec borra las órdenes que creó en un `finally` (incluye las de pasos 4-5) y el
+      lote contable del paso 5. Verificado con **dos corridas seguidas de los 5 pasos** + query
+      directa a Firestore confirmando 0 órdenes `E2E-*` y 0 lotes en `reportes_contables`
+      remanentes en `smv-brain-dev`.
 
-**Verificación:** `npm run test:e2e` local, y el PR de prueba en verde.
-**Prueba de que el test sirve:** revertir a mano el `comprasEnMonedaActiva` del dashboard y
-confirmar que el paso 4 falla.
+**Verificación:** `npm run test:e2e -- --project=money-path` local, dos corridas consecutivas en
+verde (2 tests, ~38-44s el par) contra `smv-brain-dev` real. **Pendiente:** el PR de prueba en
+CI — ver gap de secrets abajo.
+
+**Gap nuevo para CI:** `E2E_TEST_USER_PASSWORD` no está configurado como secret de GitHub — sin
+él, "money-path" se salta solo en CI (mismo patrón que `PLAYWRIGHT_STORAGE_STATE` en
+`proveedores-accessibility.spec.ts`), no rompe el pipeline pero tampoco lo protege todavía.
+Sigue además pendiente de la Task 2 el gap de `FIREBASE_SERVICE_ACCOUNT_KEY`/
+`NEXT_PUBLIC_FIREBASE_*` para que el job de CI pueda levantar el build y correr contra
+`smv-brain-dev` — sin esos secrets, este spec no puede ejecutarse en GitHub Actions todavía
+aunque el código ya esté listo.
+
+**Prueba de que el test sirve (pendiente de ejecutar):** revertir a mano el ajuste de envío en
+`aplanarLineas`/`calcularKpis` (`lib/reportes.ts`) y confirmar que el paso 3 falla.
 
 ---
 
@@ -332,17 +424,17 @@ entre el export y la comparación).
 ## Orden de ejecución y salida degradada
 
 ```
-Task 0 ✅ → Task 1 → Task 2 → Task 3 (grande, bloqueada por decisión de auth)
+Task 0 ✅ → Task 1 ✅ → Task 2 ✅ → Task 3 ✅ (5/5 pasos, verde 2026-07-25)
                   ↘ Task 4, Task 5, Task 6 (independientes entre sí)
 ```
 
 Tasks 4, 5 y 6 no dependen de nada y se pueden hacer en cualquier orden o en paralelo.
 
-**Si Task 3 se atora** (el `storageState` autenticado es el riesgo real del plan): entregar
-1, 2, 4, 5 y 6 y aislar el E2E como su propio bloque. Eso ya deja las reglas verificadas, los
-errores legibles, el backup probado y Playwright corriendo en CI — valor real sin el ítem caro.
-Lo que **no** se puede hacer es dejar Task 2 sin Task 3 indefinidamente: CI corriendo dos specs
-de accesibilidad y nada más es teatro.
+**Pendiente para que Task 3 corra en CI (no bloquea el trabajo ya hecho):** cablear
+`E2E_TEST_USER_PASSWORD` como secret de GitHub — sin él "money-path" se sigue saltando en CI
+(mismo patrón que `PLAYWRIGHT_STORAGE_STATE`). Sigue además pendiente de la Task 2 el gap de
+`FIREBASE_SERVICE_ACCOUNT_KEY`/`NEXT_PUBLIC_FIREBASE_*` para que el job de CI pueda levantar el
+build.
 
 ## Criterio de salida del plan completo
 
