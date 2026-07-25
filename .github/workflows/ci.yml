@@ -122,19 +122,27 @@ jobs:
         if: github.event_name == 'pull_request'
         run: npm run test:coverage
 
+      # Este build nunca se despliega (el deploy real usa su propio build interno
+      # vía "firebase deploy" más abajo, apuntado a smv-brain) — solo sirve para
+      # que `next start` alimente a Playwright abajo. Por eso puede (y debe)
+      # apuntar a smv-brain-dev: e2e/camino-dinero.spec.ts crea y borra órdenes
+      # reales, y correr eso contra producción sería justo el tipo de accidente
+      # que este plan intenta evitar. Sin NEXT_PUBLIC_RECAPTCHA_SITE_KEY a
+      # propósito: App Check nunca se configuró en smv-brain-dev, y sin la
+      # variable el SDK ni intenta inicializarlo (ver lib/app-check.ts) — evita
+      # el cuelgue de reintentos 403 documentado en camino-dinero.spec.ts.
       - name: Build Next.js App
         if: github.event_name == 'pull_request' || (steps.deploy_targets.outputs.need_build_verify == 'true' && !(steps.deploy_targets.outputs.need_hosting == 'true' && steps.firebase_credentials.outputs.available == 'true'))
         run: npm run build
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
-          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
-          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
-          NEXT_PUBLIC_FIREBASE_PROJECT_ID: smv-brain
-          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
-          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
-          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.E2E_FIREBASE_API_KEY }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.E2E_FIREBASE_AUTH_DOMAIN }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: smv-brain-dev
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.E2E_FIREBASE_STORAGE_BUCKET }}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.E2E_FIREBASE_MESSAGING_SENDER_ID }}
+          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.E2E_FIREBASE_APP_ID }}
           NEXT_PUBLIC_FIRESTORE_DATABASE_ID: compras-americanas
-          NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ secrets.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}
 
       # Mismo gate que "Build Next.js App" (need_build_verify): solo corre si ese
       # paso generó un build real en este job (`next start` sirve ese build; no
@@ -146,6 +154,12 @@ jobs:
       - name: Run Playwright E2E
         if: github.event_name == 'pull_request' || (steps.deploy_targets.outputs.need_build_verify == 'true' && !(steps.deploy_targets.outputs.need_hosting == 'true' && steps.firebase_credentials.outputs.available == 'true'))
         run: npm run test:e2e
+        env:
+          # e2e/camino-dinero.spec.ts lee esta variable directo de process.env
+          # (no hay dotenv en playwright.config.ts) — sin ella "money-path" se
+          # salta solo vía test.skip(), igual que PLAYWRIGHT_STORAGE_STATE en
+          # los specs de accesibilidad.
+          E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
 
       - name: Upload Playwright report
         if: always() && (github.event_name == 'pull_request' || (steps.deploy_targets.outputs.need_build_verify == 'true' && !(steps.deploy_targets.outputs.need_hosting == 'true' && steps.firebase_credentials.outputs.available == 'true')))

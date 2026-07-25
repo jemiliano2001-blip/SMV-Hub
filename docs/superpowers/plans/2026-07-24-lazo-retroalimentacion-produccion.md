@@ -331,16 +331,28 @@ guardar para no pelear con una pestaña nueva en medio del test.
       remanentes en `smv-brain-dev`.
 
 **Verificación:** `npm run test:e2e -- --project=money-path` local, dos corridas consecutivas en
-verde (2 tests, ~38-44s el par) contra `smv-brain-dev` real. **Pendiente:** el PR de prueba en
-CI — ver gap de secrets abajo.
+verde (2 tests, ~38-44s el par) contra `smv-brain-dev` real. **Verificación en CI, 2026-07-25**:
+simulado localmente el entorno exacto de CI (`CI=true` → `next start` sirviendo un build real,
+no `next dev`) y las mismas variables que el job usa — 2/2 verde en 1.3 min.
 
-**Gap nuevo para CI:** `E2E_TEST_USER_PASSWORD` no está configurado como secret de GitHub — sin
-él, "money-path" se salta solo en CI (mismo patrón que `PLAYWRIGHT_STORAGE_STATE` en
-`proveedores-accessibility.spec.ts`), no rompe el pipeline pero tampoco lo protege todavía.
-Sigue además pendiente de la Task 2 el gap de `FIREBASE_SERVICE_ACCOUNT_KEY`/
-`NEXT_PUBLIC_FIREBASE_*` para que el job de CI pueda levantar el build y correr contra
-`smv-brain-dev` — sin esos secrets, este spec no puede ejecutarse en GitHub Actions todavía
-aunque el código ya esté listo.
+**Gap de CI cerrado (2026-07-25):** al configurar `E2E_TEST_USER_PASSWORD` se descubrió que el
+paso "Build Next.js App" tenía `NEXT_PUBLIC_FIREBASE_PROJECT_ID: smv-brain` hardcodeado — con el
+secret puesto pero el build apuntado a producción, "money-path" habría pasado de saltarse en
+silencio a **fallar** en CI (login contra un usuario que solo existe en `smv-brain-dev`). Fix: se
+creó un segundo set de secrets (`E2E_FIREBASE_API_KEY`, `_AUTH_DOMAIN`, `_STORAGE_BUCKET`,
+`_MESSAGING_SENDER_ID`, `_APP_ID`, valores de `smv-brain-dev`) y se apuntó **solo el paso de
+build de verificación** de `ci.yml` a `smv-brain-dev` — ese build nunca se despliega (el deploy
+real usa su propio build interno vía `firebase deploy --project smv-brain`, sin tocar), así que
+no había conflicto. Se omitió a propósito `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` en ese paso: sin ella
+el SDK de App Check ni intenta inicializarse (`lib/app-check.ts`), evitando por completo el
+cuelgue de reintentos 403 documentado arriba, sin depender solo del `page.route(...).abort()` del
+spec. `E2E_TEST_USER_PASSWORD` también se agregó al `env:` del paso "Run Playwright E2E" (antes
+solo estaba disponible como secret del repo, no expuesto a ese paso — sin esto el test seguiría
+saltándose aunque el secret existiera).
+
+Sigue pendiente, sin bloquear lo anterior: `FIREBASE_SERVICE_ACCOUNT_KEY` para que CI pueda
+desplegar a producción (gap de la Task 2, ver ahí) — no afecta a "money-path", que no necesita
+ese secret.
 
 **Prueba de que el test sirve (pendiente de ejecutar):** revertir a mano el ajuste de envío en
 `aplanarLineas`/`calcularKpis` (`lib/reportes.ts`) y confirmar que el paso 3 falla.
@@ -424,17 +436,17 @@ entre el export y la comparación).
 ## Orden de ejecución y salida degradada
 
 ```
-Task 0 ✅ → Task 1 ✅ → Task 2 ✅ → Task 3 ✅ (5/5 pasos, verde 2026-07-25)
+Task 0 ✅ → Task 1 ✅ → Task 2 ✅ → Task 3 ✅ (5/5 pasos, verde en CI real desde 2026-07-25)
                   ↘ Task 4, Task 5, Task 6 (independientes entre sí)
 ```
 
 Tasks 4, 5 y 6 no dependen de nada y se pueden hacer en cualquier orden o en paralelo.
 
-**Pendiente para que Task 3 corra en CI (no bloquea el trabajo ya hecho):** cablear
-`E2E_TEST_USER_PASSWORD` como secret de GitHub — sin él "money-path" se sigue saltando en CI
-(mismo patrón que `PLAYWRIGHT_STORAGE_STATE`). Sigue además pendiente de la Task 2 el gap de
-`FIREBASE_SERVICE_ACCOUNT_KEY`/`NEXT_PUBLIC_FIREBASE_*` para que el job de CI pueda levantar el
-build.
+Task 3 ya corre en CI de verdad: `E2E_TEST_USER_PASSWORD` + 5 secrets `E2E_FIREBASE_*` (config
+de `smv-brain-dev`) configurados, y el paso "Build Next.js App" de `ci.yml` apuntado a
+`smv-brain-dev` solo para la verificación que alimenta a Playwright (el deploy real a
+`smv-brain` no se tocó). Sigue pendiente, sin relación con esto: el gap de
+`FIREBASE_SERVICE_ACCOUNT_KEY` de la Task 2 para que CI pueda desplegar a producción.
 
 ## Criterio de salida del plan completo
 
