@@ -111,3 +111,9 @@ ruvector.db
 eslint-head.txt
 eslint-output.txt
 tsc-errors.txt
+
+# scripts temporales de setup y, sobre todo, llaves de service account:
+# red de seguridad para que una credencial nunca se pueda commitear por
+# accidente si un script de un solo uso muere antes de borrar su archivo.
+.tmp-*
+*-key.json
