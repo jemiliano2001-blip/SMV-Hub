@@ -377,27 +377,49 @@ silencio** — todos corregidos y verificados:
    contra el codebase `default` (inexistente aquí) y **aborta el deploy completo** —
    incluyendo hosting y rules en la misma invocación — con "No function matches given --only
    filters". Formato correcto: `functions:smv-hub:<nombre>`. Commit `a86eec4`.
-4. **El lockfile estaba incompleto para Linux.** `@img/sharp-wasm32` (llega por `next`, árbol de
-   producción) depende de `@emnapi/runtime`, pero es `optional` + `cpu:wasm32`: generando el lock
-   en Windows npm nunca materializa ese subárbol, así que el `npm ci` del buildpack de Cloud
-   Build (deploy de hosting SSR) falla con "Missing: `@emnapi/runtime@1.11.3` from lock file".
-   **Ojo: repetir `npm install`/`npm ci` en local no lo detecta ni lo arregla** — el `npm ci`
-   local pasa *porque* es Windows; tampoco basta `--os=linux --cpu=x64`, que no alcanza las
-   `bundleDependencies`. Se fija con `overrides` + una entrada directa de `@emnapi/runtime`.
-   En el mismo commit se declaran `firebase-frameworks`/`firebase-functions`, que firebase-tools
-   inyecta en el `package.json` que genera para el backend SSR sin regenerar el lock. Commit
-   `5ca0d05`. Nota: `firebase-frameworks@0.11.8` declara engines `^16||^18||^20||^22` y el
-   manifiesto generado pone `node:"24"` → el buildpack emite un warning `EBADENGINE`. Es previo
-   y no es fatal; **no "arreglar" el campo `engines` por eso**.
+4. **`hosting` vía Firebase Web Frameworks tiene un conflicto de dependencias upstream sin
+   solución con la versión actual de Next.js.** `firebase-tools` inyecta `firebase-frameworks`
+   en el `package.json` que genera para empacar el backend SSR — la versión es
+   `DEFAULT_FIREBASE_FRAMEWORKS_VERSION = "^0.11.0"`, **hardcodeada en el propio CLI**, sin
+   importar lo que declaremos nosotros. `firebase-frameworks@0.11.8` trae un peerDependency
+   `sharp@^0.32 || ^0.33`; `next@16.2.9` quiere `sharp@^0.34.5`. Los rangos **no se traslapan** —
+   no existe una versión de `sharp` que satisfaga a ambos, y por lo tanto ningún lockfile puede
+   quedar consistente con los dos presentes a la vez.
+
+   Se intentó (y se descartó, en ese orden): (a) declarar `firebase-frameworks`/
+   `firebase-functions` nosotros mismos + `overrides` para `@emnapi/*` — "arregla" el síntoma
+   original (`Missing: @opentelemetry/api`/`@emnapi/runtime from lock file`) pero un `overrides`
+   global destruye copias anidadas que ya satisfacían pines exactos de otros paquetes
+   (`@rolldown/binding-wasm32-wasi`, `@unrs/resolver-binding-wasm32-wasi`), cambiando el error en
+   vez de resolverlo; (b) regenerar el lock con `npm install --package-lock-only` — deja el árbol
+   incompleto incluso corriendo de verdad en un runner `ubuntu-latest` (le faltaba hasta
+   `semver`, sin relación con nada de esto); (c) un `npm install` real seguido de `npm ci` **en el
+   mismo job, misma máquina** — confirmó el conflicto real de una vez por todas:
+   `Invalid: lock file's sharp@0.34.5 does not satisfy sharp@0.33.5` y toda la cascada de
+   `@img/sharp-*`. Ninguna de las tres cosas es arreglable ajustando nuestro propio lockfile: el
+   sistema de restricciones no tiene solución mientras `firebase-tools` no actualice ese pin (el
+   CLI mismo avisa: "known to work with Next.js version 12 – 16.0" — 16.2.9 ya quedó fuera de ese
+   rango).
+
+   **Decisión:** revertir `package.json`/`package-lock.json` al estado previo (idéntico a
+   `7fc0c2f`, que sí pasó en CI real el 2026-07-25) y **excluir `hosting` del `--only` del deploy
+   automático** en `ci.yml` — no del paso de build/E2E de verificación, que sigue corriendo igual
+   para cualquier cambio de app. `functions`/`firestore:rules`/`storage` sí se automatizan (los 3
+   ya verificados con la credencial nueva). `hosting` sigue siendo `npm run deploy:hosting`
+   manual, como siempre ha sido. Commit `b666eda`.
+
+   Alternativas para retomar esto más adelante, si interesa: revisar si una versión más nueva de
+   `firebase-tools` sube `FIREBASE_FRAMEWORKS_VERSION` a algo compatible con `sharp@^0.34`, o
+   fijar `next` a `16.0.x` (no recomendado, toca toda la app). Ninguna se investigó a fondo — es
+   trabajo futuro, no bloquea lo demás.
 
 Validación de la credencial: `firestore:rules`, `storage` y `functions:smv-hub:*` desplegaron de
-verdad contra `smv-brain` con la key nueva. El único target que faltó (`hosting`) fallaba por el
-bug 4 — dentro de Cloud Build, **independiente de la identidad** (habría fallado igual con
-credenciales personales). Se decidió **no** seguir hand-driveando deploys a producción desde la
-laptop para confirmarlo: el fix se verificó inspeccionando el lock (la entrada
-`node_modules/@emnapi/runtime@1.11.3` ahora existe) más `npm ci` limpio, lint, tsc, 627 tests y
-`npm run build`; el deploy real de hosting lo prueba CI, que es justo el lazo que esta Task
-construye.
+verdad contra `smv-brain` con la key nueva — los tres targets que sí se automatizan. `hosting`
+queda fuera del automatismo por el bug 4, documentado arriba; no es un problema de permisos ni de
+la credencial (habría fallado igual con cualquier identidad). Las correcciones 1-3 (`7fc0c2f`,
+`11aa3d3`, `a86eec4`) están verificadas localmente pero **aún no han pasado un run verde real en
+CI** al momento de escribir esto — el primer push que las ejerce de verdad es el que sigue a este
+commit.
 
 **Prueba de que el test sirve (pendiente de ejecutar):** revertir a mano el ajuste de envío en
 `aplanarLineas`/`calcularKpis` (`lib/reportes.ts`) y confirmar que el paso 3 falla.
