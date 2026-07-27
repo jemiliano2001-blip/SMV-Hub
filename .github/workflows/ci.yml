@@ -131,8 +131,15 @@ jobs:
       # propósito: App Check nunca se configuró en smv-brain-dev, y sin la
       # variable el SDK ni intenta inicializarlo (ver lib/app-check.ts) — evita
       # el cuelgue de reintentos 403 documentado en camino-dinero.spec.ts.
+      #
+      # Antes este `if` también exigía `!(need_hosting && firebase_credentials
+      # .available)` para no compilar dos veces cuando el deploy real iba a
+      # correr. Eso apagaba build+E2E justo en los commits que SÍ deployan a
+      # producción — el gate saltaba el camino del dinero exactamente cuando
+      # más importa que corra. Se quita esa condición: el costo es un build
+      # extra en commits que deployan, el precio de que el feedback loop exista.
       - name: Build Next.js App
-        if: github.event_name == 'pull_request' || (steps.deploy_targets.outputs.need_build_verify == 'true' && !(steps.deploy_targets.outputs.need_hosting == 'true' && steps.firebase_credentials.outputs.available == 'true'))
+        if: github.event_name == 'pull_request' || steps.deploy_targets.outputs.need_build_verify == 'true'
         run: npm run build
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
@@ -148,11 +155,11 @@ jobs:
       # paso generó un build real en este job (`next start` sirve ese build; no
       # hay build → nada que probar).
       - name: Install Playwright Browsers
-        if: github.event_name == 'pull_request' || (steps.deploy_targets.outputs.need_build_verify == 'true' && !(steps.deploy_targets.outputs.need_hosting == 'true' && steps.firebase_credentials.outputs.available == 'true'))
+        if: github.event_name == 'pull_request' || steps.deploy_targets.outputs.need_build_verify == 'true'
         run: npx playwright install --with-deps chrome
 
       - name: Run Playwright E2E
-        if: github.event_name == 'pull_request' || (steps.deploy_targets.outputs.need_build_verify == 'true' && !(steps.deploy_targets.outputs.need_hosting == 'true' && steps.firebase_credentials.outputs.available == 'true'))
+        if: github.event_name == 'pull_request' || steps.deploy_targets.outputs.need_build_verify == 'true'
         run: npm run test:e2e
         env:
           # e2e/camino-dinero.spec.ts lee esta variable directo de process.env
@@ -162,7 +169,7 @@ jobs:
           E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
 
       - name: Upload Playwright report
-        if: always() && (github.event_name == 'pull_request' || (steps.deploy_targets.outputs.need_build_verify == 'true' && !(steps.deploy_targets.outputs.need_hosting == 'true' && steps.firebase_credentials.outputs.available == 'true')))
+        if: always() && (github.event_name == 'pull_request' || steps.deploy_targets.outputs.need_build_verify == 'true')
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
