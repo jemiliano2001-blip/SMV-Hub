@@ -202,11 +202,24 @@ jobs:
 
       # Firebase Frameworks ejecuta su propio next build. No se hace un build
       # previo en main para evitar compilar la aplicación dos veces.
+      # Deshabilitado: "hosting" ya no se autodespliega (ver el paso de deploy
+      # más abajo), así que parchear el bin de next para ese build no sirve
+      # de nada aquí. Se reactiva el día que hosting vuelva a ir en `--only`.
       - name: Patch Next.js bin for webpack deploy
-        if: steps.firebase_credentials.outputs.available == 'true' && steps.deploy_targets.outputs.need_hosting == 'true'
+        if: false
         run: node scripts/patch-next-webpack.mjs apply
 
-      - name: Deploy changed targets to Firebase
+      # "hosting" se excluye a proposito del deploy automatico (no del build de
+      # verificacion arriba, ese sigue corriendo para cualquier cambio de app).
+      # firebase-tools inyecta firebase-frameworks@^0.11.0 (fijo, sin importar
+      # que version le pidamos) para empacar el backend SSR de Next; esa
+      # version tiene un peerDependency sharp@^0.32||^0.33, mientras que nuestro
+      # next@16.2.9 quiere sharp@^0.34.5 -- rangos que NO se traslapan. No hay
+      # lockfile que satisfaga ambos a la vez (confirmado regenerando desde
+      # cero en un runner ubuntu-latest real). Mientras firebase-tools no
+      # actualice ese pin, hosting sigue siendo deploy manual
+      # (`npm run deploy:hosting`); functions/rules/storage sí se automatizan.
+      - name: Deploy changed targets to Firebase (sin hosting)
         if: steps.firebase_credentials.outputs.available == 'true'
         shell: bash
         env:
@@ -221,12 +234,17 @@ jobs:
           NEXT_PUBLIC_FIRESTORE_DATABASE_ID: compras-americanas
           NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ secrets.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}
         run: |
+          deploy_targets="$(echo "${{ steps.deploy_targets.outputs.targets }}" | tr ',' '\n' | grep -v '^hosting$' | paste -sd, -)"
+          if [ -z "$deploy_targets" ]; then
+            echo "Solo cambió hosting (o nada desplegable) — sin deploy automático que hacer."
+            exit 0
+          fi
           credentials_path="$RUNNER_TEMP/firebase-key.json"
           trap 'rm -f "$credentials_path"' EXIT
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT_KEY" > "$credentials_path"
           chmod 600 "$credentials_path"
           export GOOGLE_APPLICATION_CREDENTIALS="$credentials_path"
-          npx --yes firebase-tools@15.24.0 deploy --project smv-brain --only "${{ steps.deploy_targets.outputs.targets }}"
+          npx --yes firebase-tools@15.24.0 deploy --project smv-brain --only "$deploy_targets"
 
       - name: Restore Next.js bin
         if: always() && steps.firebase_credentials.outputs.available == 'true' && steps.deploy_targets.outputs.need_hosting == 'true'
