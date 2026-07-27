@@ -121,6 +121,9 @@ lo enmascaraba); la verificación de verdad fue siempre leer `gh run view --log`
 2. **`FIREBASE_SERVICE_ACCOUNT_KEY` no está configurado en el repo** (`gh secret list` → vacío).
    GitHub Actions **nunca ha desplegado nada** — todo el historial de deploys ha sido manual vía
    `npm run deploy:hosting`. Esto es una decisión del dueño, no algo que este plan decida.
+   → **Resuelto el 2026-07-27** (con auto-deploy completo aprobado por el dueño): ver
+   "Cierre del gap de `FIREBASE_SERVICE_ACCOUNT_KEY`" al final de la Task 3, incluidos los
+   cuatro bugs que el pipeline escondía y que aparecieron al probar la credencial.
 
 Consecuencia práctica: sin esa credencial, la condición real de "Build Next.js App"
 (`pull_request || (need_hosting && !firebase_credentials.available)`) es **`true` en cada push
@@ -350,9 +353,51 @@ spec. `E2E_TEST_USER_PASSWORD` también se agregó al `env:` del paso "Run Playw
 solo estaba disponible como secret del repo, no expuesto a ese paso — sin esto el test seguiría
 saltándose aunque el secret existiera).
 
-Sigue pendiente, sin bloquear lo anterior: `FIREBASE_SERVICE_ACCOUNT_KEY` para que CI pueda
-desplegar a producción (gap de la Task 2, ver ahí) — no afecta a "money-path", que no necesita
-ese secret.
+**Cierre del gap de `FIREBASE_SERVICE_ACCOUNT_KEY` (2026-07-27).** Se creó el service account
+`github-actions-deploy@smv-brain.iam.gserviceaccount.com` con los roles necesarios para
+`firebase deploy` (`firebase.admin`, `cloudfunctions.admin`, `run.admin`,
+`artifactregistry.admin`, `cloudbuild.builds.editor`, `iam.serviceAccountUser`,
+`storage.admin`) y se subió su key como el secret. Probando esa credencial con deploys reales
+contra `smv-brain` **aparecieron cuatro bugs independientes que tenían el pipeline muerto en
+silencio** — todos corregidos y verificados:
+
+1. **El gate de `ci.yml` apagaba el E2E justo al desplegar.** Los pasos de build/Playwright
+   exigían `!(need_hosting && firebase_credentials.available)` para no compilar dos veces.
+   Con `available` siempre `false` (secret inexistente) el E2E corría; **en cuanto existiera el
+   secret**, cualquier push que tocara código de app habría saltado build+E2E y desplegado a
+   producción sin verificar nada — el inverso exacto del propósito de esta Task. Configurar el
+   secret sin esto habría sido un retroceso neto. Commit `7fc0c2f`.
+2. **`functions/src/index.ts` no llamaba a `initializeApp()`.** `odooSync.ts` y
+   `odoo-compras-sync.ts` hacen `getFirestore()` a nivel de módulo; el CLI hace `require()` del
+   bundle en su fase de discovery y tronaba con "The default Firebase app does not exist".
+   Efecto: **ningún deploy de functions podía completarse, ni manual ni por CI** — las funciones
+   de sync con Odoo llevaban tiempo sin poder desplegarse. Commit `11aa3d3`.
+3. **Los targets de functions no llevaban el codebase.** `firebase.json` declara codebase
+   `smv-hub`, pero `firebase-deploy-targets.mjs` emitía `functions:<nombre>`, que hace filtrar
+   contra el codebase `default` (inexistente aquí) y **aborta el deploy completo** —
+   incluyendo hosting y rules en la misma invocación — con "No function matches given --only
+   filters". Formato correcto: `functions:smv-hub:<nombre>`. Commit `a86eec4`.
+4. **El lockfile estaba incompleto para Linux.** `@img/sharp-wasm32` (llega por `next`, árbol de
+   producción) depende de `@emnapi/runtime`, pero es `optional` + `cpu:wasm32`: generando el lock
+   en Windows npm nunca materializa ese subárbol, así que el `npm ci` del buildpack de Cloud
+   Build (deploy de hosting SSR) falla con "Missing: `@emnapi/runtime@1.11.3` from lock file".
+   **Ojo: repetir `npm install`/`npm ci` en local no lo detecta ni lo arregla** — el `npm ci`
+   local pasa *porque* es Windows; tampoco basta `--os=linux --cpu=x64`, que no alcanza las
+   `bundleDependencies`. Se fija con `overrides` + una entrada directa de `@emnapi/runtime`.
+   En el mismo commit se declaran `firebase-frameworks`/`firebase-functions`, que firebase-tools
+   inyecta en el `package.json` que genera para el backend SSR sin regenerar el lock. Commit
+   `5ca0d05`. Nota: `firebase-frameworks@0.11.8` declara engines `^16||^18||^20||^22` y el
+   manifiesto generado pone `node:"24"` → el buildpack emite un warning `EBADENGINE`. Es previo
+   y no es fatal; **no "arreglar" el campo `engines` por eso**.
+
+Validación de la credencial: `firestore:rules`, `storage` y `functions:smv-hub:*` desplegaron de
+verdad contra `smv-brain` con la key nueva. El único target que faltó (`hosting`) fallaba por el
+bug 4 — dentro de Cloud Build, **independiente de la identidad** (habría fallado igual con
+credenciales personales). Se decidió **no** seguir hand-driveando deploys a producción desde la
+laptop para confirmarlo: el fix se verificó inspeccionando el lock (la entrada
+`node_modules/@emnapi/runtime@1.11.3` ahora existe) más `npm ci` limpio, lint, tsc, 627 tests y
+`npm run build`; el deploy real de hosting lo prueba CI, que es justo el lazo que esta Task
+construye.
 
 **Prueba de que el test sirve (pendiente de ejecutar):** revertir a mano el ajuste de envío en
 `aplanarLineas`/`calcularKpis` (`lib/reportes.ts`) y confirmar que el paso 3 falla.
@@ -445,8 +490,14 @@ Tasks 4, 5 y 6 no dependen de nada y se pueden hacer en cualquier orden o en par
 Task 3 ya corre en CI de verdad: `E2E_TEST_USER_PASSWORD` + 5 secrets `E2E_FIREBASE_*` (config
 de `smv-brain-dev`) configurados, y el paso "Build Next.js App" de `ci.yml` apuntado a
 `smv-brain-dev` solo para la verificación que alimenta a Playwright (el deploy real a
-`smv-brain` no se tocó). Sigue pendiente, sin relación con esto: el gap de
-`FIREBASE_SERVICE_ACCOUNT_KEY` de la Task 2 para que CI pueda desplegar a producción.
+`smv-brain` no se tocó).
+
+El gap de `FIREBASE_SERVICE_ACCOUNT_KEY` (Task 2) quedó **cerrado el 2026-07-27**: CI ya puede
+desplegar a producción por sí solo. Al probar la credencial salieron cuatro bugs que tenían el
+pipeline muerto en silencio — el gate de `ci.yml` que habría apagado el E2E justo al desplegar,
+un `initializeApp()` faltante que impedía **cualquier** deploy de functions, targets de functions
+sin el prefijo de codebase que abortaban el deploy completo, y un lockfile incompleto para Linux
+que tumbaba el build SSR de hosting. Detalle y commits en la sección final de la Task 3.
 
 ## Criterio de salida del plan completo
 
