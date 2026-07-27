@@ -1,11 +1,18 @@
 import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 
+// El codebase debe ir explícito en el target ("functions:<codebase>:<nombre>").
+// firebase.json declara codebase "smv-hub" (no "default"): un target sin
+// codebase ("functions:<nombre>") hace que firebase-tools filtre contra el
+// codebase "default", que no existe en este proyecto, y aborte TODO el
+// deploy (incluyendo hosting/rules en el mismo comando) con "No function
+// matches given --only filters." Confirmado corriendo un deploy real contra
+// smv-brain — ver docs/superpowers/plans/2026-07-24-lazo-retroalimentacion-produccion.md.
 const FUNCTIONS = [
-  "functions:syncOdooFacturasScheduled",
-  "functions:syncOdooFacturasManual",
-  "functions:syncOdooComprasScheduled",
-  "functions:syncOdooComprasManual",
+  "functions:smv-hub:syncOdooFacturasScheduled",
+  "functions:smv-hub:syncOdooFacturasManual",
+  "functions:smv-hub:syncOdooComprasScheduled",
+  "functions:smv-hub:syncOdooComprasManual",
 ]
 
 export const TARGETS_COMPLETOS = [
