@@ -1,0 +1,30 @@
+name: Regenerar lockfile (temporal, un solo uso)
+
+# Herramienta de diagnostico, NO parte del pipeline normal. Se usa una vez
+# para que un ubuntu-latest real regenere package-lock.json (los paquetes
+# opcionales cpu:wasm32 de este repo no se materializan igual en npm de
+# Windows), y despues se borra este archivo en el mismo commit que sube el
+# lock resultante. Ver docs/superpowers/plans/2026-07-24-lazo-retroalimentacion-produccion.md.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  regen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Regenerar lockfile desde cero
+        run: |
+          rm -f package-lock.json
+          npm install --package-lock-only
+      - name: Verificar que npm ci pasa con el lockfile regenerado
+        run: npm ci
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: package-lock-linux
+          path: package-lock.json
