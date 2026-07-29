@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ShoppingCart, Download, Trash2, X, Plus, Minus, Building2, ChevronRight, Check } from 'lucide-react'
+import { ShoppingCart, Download, Trash2, X, Plus, Minus, Building2, ChevronRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { formatPrecio } from '@/lib/format'
 import type { PartidaPresupuesto } from '@/lib/hooks/usePresupuestoInsumos'

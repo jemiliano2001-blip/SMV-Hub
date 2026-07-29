@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Search, Trophy, ShoppingBag, Plus, Tag, Calendar, Building2, Check, DollarSign } from 'lucide-react'
+import { Search, Trophy, Plus, Building2, Check, DollarSign } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { formatPrecio } from '@/lib/format'
 import { aMXN, aUSD, TIPO_CAMBIO_DEFAULT_USD_MXN } from '@/lib/tipo-cambio'

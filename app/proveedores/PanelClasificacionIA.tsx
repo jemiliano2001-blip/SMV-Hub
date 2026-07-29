@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Sparkles, Check, CheckCheck, X, RefreshCw, AlertCircle, Edit2 } from 'lucide-react'
+import { Sparkles, Check, CheckCheck, X, RefreshCw, AlertCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { getClienteAuth } from '@/lib/firebase'
 import type { CompraOdooItem } from '@/lib/schemas'
