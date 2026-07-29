@@ -101,7 +101,7 @@ jobs:
           fi
 
       - name: Install Frontend Dependencies
-        run: npm ci --prefer-offline --no-audit
+        run: npm ci --prefer-offline --no-audit || npm install --prefer-offline --no-audit
 
       - name: Install Functions Dependencies
         if: github.event_name == 'pull_request' || steps.deploy_targets.outputs.need_functions == 'true'
