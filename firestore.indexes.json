@@ -40,7 +40,37 @@
         { "fieldPath": "fecha", "order": "DESCENDING" },
         { "fieldPath": "creadoEn", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "reportes_integridad_run_cases",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "runId", "order": "ASCENDING" },
+        { "fieldPath": "severityRank", "order": "DESCENDING" },
+        { "fieldPath": "detectedAt", "order": "ASCENDING" },
+        { "fieldPath": "caseId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reportes_integridad_workflows",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "assigneeUid", "order": "ASCENDING" },
+        { "fieldPath": "state", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "reportes_integridad_runs",
+      "fieldPath": "expireAt",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "reportes_integridad_run_cases",
+      "fieldPath": "expireAt",
+      "indexes": []
+    }
+  ]
 }

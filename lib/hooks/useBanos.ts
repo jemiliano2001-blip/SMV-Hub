@@ -9,7 +9,7 @@ import {
 } from '@/lib/banos'
 import type { RegistroBano } from '@/lib/schemas'
 
-function calcularMinutos(entrada: string, llegada: string): number {
+export function calcularMinutos(entrada: string, llegada: string): number {
   if (!entrada || !llegada) return 0
   const [eH, eM] = entrada.split(':').map(Number)
   const [lH, lM] = llegada.split(':').map(Number)
@@ -67,6 +67,11 @@ export function useBanos(mesFiltro?: string) {
     await actualizarRegistroBano(id, { horaLlegada, tiempoMinutos })
   }
 
+  async function actualizarHorario(id: string, horaEntrada: string, horaLlegada: string): Promise<void> {
+    const tiempoMinutos = calcularMinutos(horaEntrada, horaLlegada)
+    await actualizarRegistroBano(id, { horaEntrada, horaLlegada, tiempoMinutos })
+  }
+
   async function borrarRegistro(id: string): Promise<void> {
     await eliminarRegistroBano(id)
   }
@@ -78,6 +83,7 @@ export function useBanos(mesFiltro?: string) {
     fetchRegistros,
     registrarEntrada,
     registrarLlegada,
+    actualizarHorario,
     borrarRegistro,
   }
 }

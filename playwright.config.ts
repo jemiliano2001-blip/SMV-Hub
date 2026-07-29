@@ -33,6 +33,24 @@ export default defineConfig({
       use: { viewport: { width: 390, height: 844 } },
     },
     {
+      name: "integrity-desktop",
+      testMatch: /reportes-integridad\.spec\.ts/,
+      timeout: 120_000,
+      use: { viewport: { width: 1440, height: 900 } },
+    },
+    {
+      name: "integrity-tablet",
+      testMatch: /reportes-integridad\.spec\.ts/,
+      timeout: 120_000,
+      use: { viewport: { width: 1024, height: 768 } },
+    },
+    {
+      name: "integrity-mobile",
+      testMatch: /reportes-integridad\.spec\.ts/,
+      timeout: 120_000,
+      use: { viewport: { width: 390, height: 844 } },
+    },
+    {
       // Escribe/lee Firestore real (smv-brain-dev) — un solo proyecto, sin
       // paralelismo entre viewports ni reintentos: un retry dejaría la orden
       // de la corrida anterior a medias y el segundo intento chocaría con la

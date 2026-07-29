@@ -1,22 +1,36 @@
 ---
 name: firebase-seed
-description: Genera un script Node.js para insertar datos de prueba en Firestore (base compras-americanas, colección ordenes). Útil para pruebas de UI con datos controlados.
+description: Genera datos de prueba seguros para SMV Hub en emulador o smv-brain-dev. Nunca apunta a producción.
 disable-model-invocation: true
 ---
 
-Genera `scripts/seed-dev.mjs` que inserte 15-20 órdenes de prueba en la base `compras-americanas`.
+Genera `scripts/seed-dev.mjs` para insertar 15–20 órdenes en la base
+`compras-americanas`, exclusivamente en el emulador o en `smv-brain-dev`.
 
-Requisitos del dataset:
-- Mezcla de estados: pendiente, aprobada, rechazada
-- Monedas: mitad USD, mitad MXN (nunca mezclar en totales)
-- Proveedores variados: McMaster-Carr, Amazon, eBay, Digi-Key, Mouser, Mercado Libre
-- Empresas: "SMV Maquinados" y "Siltek"
-- Algunos con fechaEntrega, otros sin ella
-- Rango de fechas: últimos 6 meses
-- Items realistas: herramientas, refacciones, electrónica industrial
+## Datos
 
-El script debe:
-1. Leer credenciales del `.env.local` (NEXT_PUBLIC_FIREBASE_* + NEXT_PUBLIC_FIRESTORE_DATABASE_ID)
-2. Usar Firebase Admin SDK o el SDK cliente con emulador
-3. Limpiar la colección antes de insertar (modo desarrollo únicamente)
-4. Imprimir progreso por fila insertada
+- Estados: `pendiente`, `aprobada` y `rechazada`.
+- Monedas: USD y MXN; nunca sumarlas entre sí.
+- Proveedores industriales variados.
+- Empresas/destinos: `SMV` y `Siltek`.
+- Fechas dentro de los últimos seis meses.
+- Ítems realistas de herramientas, refacciones y automatización.
+- `creadoEn` y `actualizadoEn` válidos; campos conformes a
+  `OrdenCompraSchema`.
+
+## Seguridad obligatoria
+
+1. Lee `.env.local` y valida
+   `NEXT_PUBLIC_FIREBASE_PROJECT_ID === "smv-brain-dev"`, o exige variables de
+   emulador.
+2. Rechaza explícitamente `smv-brain`, credenciales de producción y un project
+   ID vacío.
+3. No limpies una colección completa por defecto. Usa un prefijo/tag único de
+   seed y borra solo documentos creados por el propio script.
+4. Si se solicita limpieza amplia, exige un flag explícito como
+   `--confirm-dev-reset` y vuelve a validar el project ID.
+5. Imprime proyecto, base y cantidad antes de escribir; nunca imprimas secretos.
+
+Prefiere Firebase Admin para `smv-brain-dev` con credenciales locales
+controladas, o el SDK cliente contra emuladores. Incluye un modo `--dry-run` y
+documenta el comando de ejecución.

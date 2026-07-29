@@ -1,9 +1,21 @@
-## graphify
+# Instrucciones para Gemini
 
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+@AGENTS.md
 
-Rules:
-- ALWAYS read graphify-out/GRAPH_REPORT.md before reading any source files, running grep/glob searches, or answering codebase questions. The graph is your primary map of the codebase.
-- IF graphify-out/wiki/index.md EXISTS, navigate it instead of reading raw files
-- For cross-module "how does X relate to Y" questions, prefer `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"` over grep — these traverse the graph's EXTRACTED + INFERRED edges instead of scanning files
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+Las reglas de `AGENTS.md` son la fuente de verdad para producto, seguridad,
+modelos Gemini, build y despliegue.
+
+## Graphify
+
+El repositorio puede incluir un grafo de conocimiento en `graphify-out/`.
+Úsalo como mapa auxiliar cuando esté presente y actualizado:
+
+- Lee `graphify-out/GRAPH_REPORT.md` o `graphify-out/wiki/index.md` si existen.
+- Para relaciones entre módulos, puedes usar `graphify query`, `graphify path` o
+  `graphify explain`.
+- Después de modificar código, ejecuta `graphify update .` si la herramienta
+  está disponible.
+
+Graphify no sustituye la lectura de `AGENTS.md`, `CLAUDE.md` ni la verificación
+directa del código. Si el grafo falta, está desactualizado o la herramienta
+falla, continúa con inspección nativa del repositorio.

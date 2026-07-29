@@ -16,6 +16,7 @@ import LogoSMV from '@/app/LogoSMV'
 import BotonSesion from '@/app/BotonSesion'
 import BuscadorGlobalCommand from '@/components/BuscadorGlobalCommand'
 import PedidoAlmacenBadge from '@/app/pedidos-almacen/PedidoAlmacenBadge'
+import MisCasosBadge from '@/app/proveedores/mis-casos/MisCasosBadge'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { tienePermiso } from '@/lib/roles'
 import { usePermisos } from '@/lib/hooks/useRol'
@@ -33,6 +34,7 @@ const GRUPOS: GrupoNav[] = [
       { href: '/cotizaciones', label: 'Cotizaciones' },
       { href: '/requisiciones', label: 'Requisiciones' },
       { href: '/proveedores', label: 'Catálogo de proveedores' },
+      { href: '/proveedores/mis-casos', label: 'Mis casos' },
       { href: '/reportes', label: 'Reportes de compras' },
     ],
   },
@@ -147,6 +149,7 @@ export default function NavBar() {
                   >
                     <span>{g.nombre}</span>
                     {g.links.some((l) => l.href === '/pedidos-almacen') && <PedidoAlmacenBadge />}
+                    {g.links.some((l) => l.href === '/proveedores/mis-casos') && <MisCasosBadge />}
                     <ChevronDown
                       className={`h-3.5 w-3.5 transition-transform duration-150 ${desplegado ? 'rotate-180 text-[#0369A1]' : 'text-slate-400'}`}
                     />
@@ -169,6 +172,7 @@ export default function NavBar() {
                         >
                           <span>{l.label}</span>
                           {l.href === '/pedidos-almacen' && <PedidoAlmacenBadge />}
+                          {l.href === '/proveedores/mis-casos' && <MisCasosBadge />}
                         </Link>
                       ))}
                     </div>
@@ -222,6 +226,7 @@ export default function NavBar() {
                         >
                           <span>{l.label}</span>
                           {l.href === '/pedidos-almacen' && <PedidoAlmacenBadge />}
+                          {l.href === '/proveedores/mis-casos' && <MisCasosBadge />}
                         </Link>
                       ))}
                     </div>

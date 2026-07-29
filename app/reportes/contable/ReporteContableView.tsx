@@ -18,6 +18,7 @@ import * as XLSX from "xlsx"
 import { listarLotesContables, crearLoteContable, type ReporteContableLote } from "@/lib/reportes-contables"
 import { useConfirmDialog } from "@/components/ConfirmDialogProvider"
 import { toast } from "sonner"
+import IntegrityTrustStrip from "@/app/reportes/integridad/IntegrityTrustStrip"
 
 const MSG_ERROR = "No se pudieron cargar las órdenes. Verifica tu conexión."
 
@@ -353,14 +354,19 @@ export default function ReporteContableView() {
     <div className="w-full">
       <div className="max-w-[1400px] mx-auto px-4 py-6 print:max-w-none print:px-0 print:py-0">
         
-        <div className="mb-4 no-print flex gap-4 text-sm">
-          <Link href="/reportes" className="text-gray-500 hover:text-gray-900 transition-colors">
-            Reporte Gerencial
+        <div className="mb-4 no-print flex flex-wrap gap-4 border-b border-slate-200 text-sm">
+          <Link href="/reportes" className="min-h-11 content-center text-gray-500 hover:text-gray-900">
+            Integridad
           </Link>
-          <span className="font-semibold text-blue-600 border-b-2 border-blue-600 pb-1">
-            Reporte Contable
+          <Link href="/reportes?vista=gerencial" className="min-h-11 content-center text-gray-500 hover:text-gray-900">
+            Reporte gerencial
+          </Link>
+          <span className="min-h-11 content-center border-b-2 border-blue-600 font-semibold text-blue-600">
+            Cierre contable
           </span>
         </div>
+
+        <IntegrityTrustStrip />
 
         <div className="no-print flex gap-4 mb-6 border-b border-gray-200">
           <button 

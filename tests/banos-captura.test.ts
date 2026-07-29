@@ -5,6 +5,7 @@ import {
   formatIndicadorCapturaBano,
 } from "@/lib/format"
 import { resolverOperadorActivo } from "@/lib/banos-captura"
+import { calcularMinutos } from "@/lib/hooks/useBanos"
 import type { Operador } from "@/lib/schemas"
 
 const AHORA = new Date("2026-07-06T14:52:00")
@@ -63,5 +64,21 @@ describe("resolverOperadorActivo", () => {
 
   it("null si nombre vacío", () => {
     expect(resolverOperadorActivo("   ", ops)).toBeNull()
+  })
+})
+
+describe("calcularMinutos", () => {
+  it("calcula diferencia de minutos correctamente dentro del mismo día", () => {
+    expect(calcularMinutos("14:00", "14:15")).toBe(15)
+    expect(calcularMinutos("08:30", "09:05")).toBe(35)
+  })
+
+  it("devuelve 0 si alguna hora es nula o vacía", () => {
+    expect(calcularMinutos("", "14:15")).toBe(0)
+    expect(calcularMinutos("14:00", "")).toBe(0)
+  })
+
+  it("maneja cruce de medianoche correctamente", () => {
+    expect(calcularMinutos("23:50", "00:10")).toBe(20)
   })
 })

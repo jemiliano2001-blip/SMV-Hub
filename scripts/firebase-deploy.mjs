@@ -5,12 +5,18 @@
  * https://github.com/firebase/firebase-tools/issues/9749
  *
  * Uso:
- *   node scripts/firebase-deploy.mjs deploy --only hosting
+ *   node scripts/firebase-deploy.mjs deploy --project smv-brain --only hosting:smv-hub
  *   npm run deploy:hosting
  */
 import { spawn, spawnSync } from "node:child_process"
-import { join } from "node:path"
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { delimiter, join } from "node:path"
 import { fileURLToPath } from "node:url"
+import {
+  projectFromFirebaseArgs,
+  resolveFirebaseDeployEnv,
+} from "./firebase-deploy-env.mjs"
 
 const patchScript = join(fileURLToPath(new URL(".", import.meta.url)), "patch-next-webpack.mjs")
 
@@ -22,25 +28,80 @@ function runPatch(cmd) {
 const firebaseArgs = process.argv.slice(2)
 if (firebaseArgs.length === 0) {
   console.error("Uso: node scripts/firebase-deploy.mjs <args de firebase>")
-  console.error("Ej.: node scripts/firebase-deploy.mjs deploy --only hosting")
+  console.error(
+    "Ej.: node scripts/firebase-deploy.mjs deploy --project smv-brain --only hosting:smv-hub"
+  )
   process.exit(1)
+}
+
+let resolvedEnv
+try {
+  resolvedEnv = resolveFirebaseDeployEnv({
+    args: firebaseArgs,
+    cwd: process.cwd(),
+    baseEnv: process.env,
+  })
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error))
+  process.exit(1)
+}
+
+if (projectFromFirebaseArgs(firebaseArgs) === "smv-brain") {
+  console.log("→ configuración web Firebase fijada a smv-brain desde .env.production")
 }
 
 runPatch("apply")
 
-const nodeOptions = process.env.NODE_OPTIONS || ""
+const nodeOptions = resolvedEnv.NODE_OPTIONS || ""
+let windowsShimDir = null
+
+function deployPath() {
+  if (process.platform !== "win32") return process.env.PATH
+  const esbuildCmd = join(
+    process.cwd(),
+    "node_modules",
+    ".bin",
+    "esbuild.cmd"
+  )
+  if (!existsSync(esbuildCmd)) return process.env.PATH
+
+  windowsShimDir = mkdtempSync(join(tmpdir(), "smv-firebase-shim-"))
+  writeFileSync(
+    join(windowsShimDir, "which.cmd"),
+    [
+      "@echo off",
+      'if /I "%~1"=="esbuild" (',
+      `  echo ${esbuildCmd}`,
+      "  exit /b 0",
+      ")",
+      "where %*",
+      "",
+    ].join("\r\n"),
+    "utf8"
+  )
+  return `${windowsShimDir}${delimiter}${process.env.PATH || ""}`
+}
+
 const deployEnv = {
-  ...process.env,
+  ...resolvedEnv,
+  PATH: deployPath(),
   NODE_OPTIONS: /--max[_-]old[_-]space[_-]size/i.test(nodeOptions)
     ? nodeOptions
     : `${nodeOptions} --max_old_space_size=4096`.trim(),
 }
 
 let restaurado = false
+function limpiarShim() {
+  if (!windowsShimDir) return
+  rmSync(windowsShimDir, { recursive: true, force: true })
+  windowsShimDir = null
+}
+
 function restaurarUnaVez() {
   if (restaurado) return
   restaurado = true
   runPatch("restore")
+  limpiarShim()
 }
 
 process.on("exit", () => {
@@ -51,6 +112,7 @@ process.on("exit", () => {
       /* ignore */
     }
   }
+  limpiarShim()
 })
 process.on("SIGINT", () => {
   restaurarUnaVez()

@@ -13,12 +13,16 @@ const FUNCTIONS = [
   "functions:smv-hub:syncOdooFacturasManual",
   "functions:smv-hub:syncOdooComprasScheduled",
   "functions:smv-hub:syncOdooComprasManual",
+  "functions:smv-hub:listarCasosIntegridad",
+  "functions:smv-hub:obtenerCasoIntegridad",
+  "functions:smv-hub:ejecutarComandoCasoIntegridad",
 ]
 
 export const TARGETS_COMPLETOS = [
   "hosting",
   ...FUNCTIONS,
   "firestore:rules",
+  "firestore:indexes",
   "storage",
 ].join(",")
 

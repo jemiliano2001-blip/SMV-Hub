@@ -25,8 +25,8 @@ Módulos actuales:
   `ReporteContableLote` (`lib/reportes-contables.ts`), traduce descripciones al español y
   sugiere/reasigna claves SAT en batch vía IA (`lib/reportes-contables-ia.ts` +
   `POST /api/retro-traducir-lote`, `POST /api/sat-descripciones`).
-- `/finanzas` — facturación y cobranza de clientes sincronizada con Odoo; solo rol `admin` (ver
-  `lib/roles.ts` y `firestore.rules`). Lógica en `lib/finanzas.ts` / `lib/finanzas-facturas.ts`;
+- `/finanzas` — facturación y cobranza de clientes sincronizada con Odoo; requiere el módulo
+  `finanzas` (ver `lib/roles.ts` y `firestore.rules`). Lógica en `lib/finanzas.ts` / `lib/finanzas-facturas.ts`;
   sync en `functions/src/odooSync.ts` + `odoo-mapeo.ts`.
 - `/caja-chica` — movimientos y arqueo de caja chica (`lib/caja-chica.ts`).
 - `/claves-sat` — buscador de claves SAT (`BuscadorClavesSat.tsx`), complementa la sugerencia
@@ -48,7 +48,7 @@ Módulos actuales:
 - `/banos` — registros de tiempos de baño, conteos diarios y agregación de resumen mensual.
 - `/horas-extra` — tabla editable para seguimiento de horas extras semanales por departamento.
 - `/operadores` — catálogo de personal para auto-completar en módulos operativos.
-- `/usuarios` — administración de accesos y roles (solo `admin`); lógica en `lib/usuarios.ts` /
+- `/usuarios` — administración de accesos y roles (solo super-admin); lógica en `lib/usuarios.ts` /
   `lib/usuarios-admin.ts`.
 - `/pedidos-almacen` — captura rápida de pedidos desde piso (encargado de almacén); CRUD en
   `lib/pedidos-almacen.ts`, colección Firestore propia `pedidos-almacen`; gated por módulo
@@ -68,6 +68,7 @@ El roadmap vivo está en [PROJECT.md](PROJECT.md) y los planes detallados en
 npm run dev            # servidor de desarrollo en http://localhost:3000
 npm run build          # build de producción (incluye verify:firebase-ssr)
 npm run lint           # ESLint
+npx tsc --noEmit       # verificación TypeScript sin emitir archivos
 npm test               # corre la suite de Vitest una vez
 npm run test:watch     # Vitest en modo watch
 npm run test:coverage  # Vitest con reporte de cobertura
@@ -83,14 +84,22 @@ npm run sat:import          # importación estándar
 npm run sat:import:phpcfdi  # importación desde el catálogo phpcfdi
 ```
 
+La suite E2E también incluye `e2e/camino-dinero.spec.ts`: usa autenticación real,
+escribe únicamente en `smv-brain-dev`, stubea Gemini y valida compra → orden →
+reportes/cierre contable. Requiere `E2E_TEST_USER_PASSWORD`; consulta
+`docs/testing/e2e.md`.
+
 `npm run build` corre con `--webpack` (no Turbopack) y valida el bundle después: Firebase
 Hosting usa Turbopack por defecto, pero con `firebase-admin`/`firebase-functions` genera
 aliases con hash que la función SSR no resuelve en producción — no lo cambies a `next build`
 a secas (ver `next.config.ts` y `scripts/verificar-bundle-firebase.mjs`).
 
-Para deploy manual de Hosting (fuera de CI) usa `npm run deploy:hosting` — parchea el build a
-webpack antes de correr `firebase deploy --only hosting` (ver `scripts/firebase-deploy.mjs`);
-no uses `firebase deploy` a secas, falla por el mismo motivo que `next build` a secas.
+Para deploy manual de Hosting (fuera de CI) usa `npm run deploy:hosting` — fija
+`--project smv-brain`, carga `.env.production` sobre `.env.local` y parchea el build a
+webpack antes de correr `firebase deploy --only hosting:smv-hub` (ver `scripts/firebase-deploy.mjs`);
+no uses `firebase deploy` a secas, falla por el mismo motivo que `next build` a secas. Tampoco
+ejecutes `firebase deploy --only functions --force`: `smv-brain` comparte Functions con otras
+aplicaciones y un deploy global puede eliminarlas. El codebase de Hub es `smv-hub`.
 
 ### Cloud Functions (`functions/`)
 
@@ -193,6 +202,8 @@ GEMINI_API_KEY=
 - `tests/` — pruebas de Vitest; la mayoría prueban lógica pura de `lib/` sin Firebase real, pero
   `extraer-route.test.ts` y `extraer-lote.test.ts` testean los Route Handlers mockeando fetch/Gemini,
   y `lib-ordenes.test.ts` / `ordenes.test.ts` cubren la capa CRUD de Firestore
+- `e2e/` — Playwright/axe para login y proveedores, más el camino real del dinero contra
+  `smv-brain-dev`; nunca debe escribir en producción
 - `docs/superpowers/specs/` — diseños (qué se va a construir y por qué)
 - `docs/superpowers/plans/` — planes task-by-task ejecutables
 - `.agents/` — artefactos del flujo de agentes (no es código de producción)
@@ -305,9 +316,17 @@ async function action(formData: FormData) {
 Firebase v12 puede tener breaking changes respecto a v9/v10. Revisa los docs en
 `node_modules/firebase/` antes de asumir patrones del SDK modular de tu conocimiento previo.
 
+App Check se inicializa en el cliente cuando existe `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`. El
+enforcement de Firestore y Storage está temporalmente desactivado (`appCheckValido()` devuelve
+`true`) desde 2026-07-13; no afirmes que está activo ni cambies la función a
+`request.app != null` hasta completar la validación de dominios, debug tokens y métricas descrita
+en `docs/infra/app-check-setup.md`. Los callables rechazan solicitudes sin App Check por defecto;
+`APP_CHECK_ENFORCE=false` es solo una salida temporal controlada.
+
 ## Autenticación
 
-El acceso se controla con Google Sign-In vía `lib/auth.ts` (`useUsuario`) y `app/AuthGuard.tsx`.
+El acceso se controla con Firebase Auth vía `lib/auth.ts` (`useUsuario`) y `app/AuthGuard.tsx`.
+Google Sign-In es el flujo normal; email/password existe para el usuario automatizado de E2E.
 
 En desarrollo y producción se exige sesión real por defecto. El bypass es exclusivamente opt-in
 para pruebas visuales sin acceso real a Firestore: `NEXT_PUBLIC_DEV_AUTH_BYPASS=true` devuelve un

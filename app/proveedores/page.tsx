@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import Link from 'next/link'
 import { fechaHoyLocal } from '@/lib/format'
 import {
   Building2,
@@ -17,6 +18,7 @@ import {
   Printer,
   Brain,
   RefreshCw,
+  ClipboardCheck,
 } from 'lucide-react'
 import AuthGuard from '@/app/AuthGuard'
 import { useDirectorioProveedores } from '@/lib/hooks/useDirectorioProveedores'
@@ -70,6 +72,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import MisCasosBadge from './mis-casos/MisCasosBadge'
 
 const CATEGORIAS_OPCIONES: { valor: CategoriaProveedor; etiqueta: string }[] = [
   { valor: 'endmills', etiqueta: 'Endmills (Cortadores CNC)' },
@@ -1304,6 +1307,15 @@ function ProveedoresContent() {
 
         {/* Navegación por Pestañas Principales */}
         <div className="flex items-center gap-1.5 overflow-x-auto border border-slate-200 bg-white p-1.5 rounded-xl shadow-2xs text-xs font-bold">
+          <Link
+            href="/proveedores/mis-casos"
+            className="flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border border-slate-200 px-4 py-2.5 text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0369A1]"
+          >
+            <ClipboardCheck className="h-4 w-4 text-[#0369A1]" />
+            Mis casos
+            <MisCasosBadge />
+          </Link>
+
           <button
             type="button"
             onClick={() => setSeccion('proveedores')}

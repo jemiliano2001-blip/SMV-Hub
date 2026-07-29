@@ -1,0 +1,117 @@
+{
+  "trust": {
+    "activeRunId": "run_20260729",
+    "syncId": "sync_20260729",
+    "ruleVersion": "integrity-v1",
+    "mode": "pilot",
+    "sourceStatus": "current",
+    "computedAt": "2026-07-29T12:00:00.000Z",
+    "staleAfter": "2026-07-29T15:00:00.000Z",
+    "calculationState": "ready",
+    "coverage": { "matched": 119, "eligible": 142, "percentage": 83.8 },
+    "currencyScopes": ["MXN", "USD"],
+    "excludedCounts": { "creditNotes": 3, "outsideWindow": 4 },
+    "summary": { "open": 23, "high": 8, "medium": 15, "exact": 119 },
+    "delta": { "new": 5, "corrected": 4, "reopened": 1 },
+    "lastAttemptAt": "2026-07-29T12:00:00.000Z",
+    "safeErrorCode": null,
+    "capabilities": { "canTriggerSync": true }
+  },
+  "case": {
+    "caseId": "ic_fixture",
+    "runId": "run_20260729",
+    "type": "diferencia_importe",
+    "severity": "alta",
+    "severityRank": 2,
+    "detectedAt": "2026-07-28T12:00:00.000Z",
+    "providerName": "Proveedor Fixture",
+    "currency": "USD",
+    "localReference": "INV-100",
+    "odooReference": "INV-100",
+    "sourceRevision": "revision-fixture",
+    "ruleVersion": "integrity-v1",
+    "ruleLabel": "Tolerancia de importe > 2%",
+    "evidence": {
+      "local": {
+        "id": "local-1",
+        "invoiceNumber": "INV-100",
+        "providerName": "Proveedor Fixture",
+        "providerId": "provider-1",
+        "effectiveDate": "2026-07-20",
+        "currency": "USD",
+        "total": 110,
+        "updatedAt": "2026-07-20T12:00:00.000Z"
+      },
+      "odoo": {
+        "id": "vi_10",
+        "odooId": 10,
+        "invoiceNumber": "INV-100",
+        "providerName": "Proveedor Fixture",
+        "odooPartnerId": 7,
+        "odooCompanyId": 1,
+        "invoiceDate": "2026-07-20",
+        "currency": "USD",
+        "total": 100,
+        "sourceRevision": "odoo-revision"
+      }
+    },
+    "comparison": {
+      "affectedField": "total",
+      "localValue": "110",
+      "odooValue": "100",
+      "absoluteDifference": 10,
+      "percentageDifference": 10,
+      "tolerancePct": 2,
+      "explanation": "USD 10.00 fuera de tolerancia (+10.0%)."
+    },
+    "candidates": [{
+      "localOrderId": "local-1",
+      "odooInvoiceId": "vi_10",
+      "odooCompanyId": 1,
+      "reference": "INV-100",
+      "providerName": "Proveedor Fixture",
+      "companyLabel": "Compañía Odoo 1",
+      "date": "2026-07-20",
+      "currency": "USD",
+      "amount": 110,
+      "sourceRevision": "revision-fixture"
+    }],
+    "workflow": {
+      "state": "investigando",
+      "revision": 3,
+      "assignee": {
+        "uid": "provider-user",
+        "displayName": "Usuario Proveedor",
+        "email": "provider@example.com"
+      },
+      "lastNote": "Revisando en origen.",
+      "evidenceUrl": "https://example.com/evidence",
+      "manualLink": null,
+      "updatedAt": "2026-07-29T12:00:00.000Z",
+      "updatedBy": "finance@example.com"
+    },
+    "history": [],
+    "eligibleAssignees": []
+  },
+  "task": {
+    "caseId": "ic_fixture",
+    "providerName": "Proveedor Fixture",
+    "localReference": "INV-100",
+    "odooReference": "INV-100",
+    "type": "diferencia_importe",
+    "affectedField": "total",
+    "requestedAction": "Revisar el total capturado y solicitar la corrección en origen.",
+    "state": "investigando",
+    "revision": 3,
+    "assigneeUid": "provider-user",
+    "updatedAt": "2026-07-29T12:00:00.000Z",
+    "activity": []
+  },
+  "error": {
+    "code": "REVISION_CONFLICT",
+    "message": "El caso cambió mientras lo revisabas.",
+    "currentRevision": 4,
+    "refreshRequired": true
+  }
+}
+

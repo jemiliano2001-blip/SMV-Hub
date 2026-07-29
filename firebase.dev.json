@@ -1,0 +1,29 @@
+{
+  "firestore": {
+    "database": "compras-americanas",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "functions": {
+    "source": "functions",
+    "codebase": "smv-hub"
+  },
+  "hosting": {
+    "site": "smv-brain-dev",
+    "source": ".",
+    "frameworksBackend": {
+      "region": "us-central1",
+      "memory": "512MiB"
+    },
+    "ignore": [
+      "firebase.json",
+      "firebase.dev.json",
+      "**/.*",
+      "**/node_modules/**",
+      "scratch/**"
+    ]
+  }
+}

@@ -1,14 +1,16 @@
 import { useState, useRef } from 'react'
-import { useBanos } from '@/lib/hooks/useBanos'
+import { authBypassActivo, useUsuario } from '@/lib/auth'
+import { usePermisos } from '@/lib/hooks/useRol'
+import { calcularMinutos, useBanos } from '@/lib/hooks/useBanos'
 import { useOperadores } from '@/lib/hooks/useOperadores'
-import type { Bano } from '@/lib/schemas'
+import type { Bano, RegistroBano } from '@/lib/schemas'
 import {
   fechaHoyLocal,
   horaAhoraLocal,
   formatIndicadorCapturaBano,
 } from '@/lib/format'
 import { resolverOperadorActivo } from '@/lib/banos-captura'
-import { Plus, Trash2, Check, Search } from 'lucide-react'
+import { Plus, Trash2, Check, Search, Pencil, X, Clock } from 'lucide-react'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 
 const BANOS: Bano[] = ['Baño #1', 'Baño #2', 'CNC', 'Automatizacion']
@@ -27,8 +29,21 @@ function getInitials(name: string) {
 }
 
 export default function RegistroBanoList() {
+  const { usuario } = useUsuario()
+  const { esSuperAdmin } = usePermisos(authBypassActivo() ? null : usuario)
+  const puedeEliminar = esSuperAdmin || authBypassActivo()
+
   const confirmar = useConfirmDialog()
-  const { registros, loading: loadingBanos, error, fetchRegistros, registrarEntrada, registrarLlegada, borrarRegistro } = useBanos()
+  const {
+    registros,
+    loading: loadingBanos,
+    error,
+    fetchRegistros,
+    registrarEntrada,
+    registrarLlegada,
+    actualizarHorario,
+    borrarRegistro,
+  } = useBanos()
   const { activos: operadoresActivos, loading: loadingOps } = useOperadores()
 
   const [agregando, setAgregando] = useState(false)
@@ -41,6 +56,45 @@ export default function RegistroBanoList() {
   const [operador, setOperador] = useState('')
   const [indicadorHora, setIndicadorHora] = useState(() => new Date())
   const operadorInputRef = useRef<HTMLInputElement>(null)
+
+  // Estado para modal de edición de horario
+  const [editandoRegistro, setEditandoRegistro] = useState<RegistroBano | null>(null)
+  const [editHoraEntrada, setEditHoraEntrada] = useState('')
+  const [editHoraLlegada, setEditHoraLlegada] = useState('')
+  const [guardandoEdit, setGuardandoEdit] = useState(false)
+  const [errorEdit, setErrorEdit] = useState<string | null>(null)
+
+  function abrirModalEditar(r: RegistroBano) {
+    setEditandoRegistro(r)
+    setEditHoraEntrada(r.horaEntrada)
+    setEditHoraLlegada(r.horaLlegada || horaAhoraLocal())
+    setErrorEdit(null)
+  }
+
+  async function handleGuardarHorario(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editandoRegistro) return
+    if (!editHoraEntrada || !editHoraLlegada) {
+      setErrorEdit('Ingresa tanto la hora de entrada como la de llegada.')
+      return
+    }
+
+    setGuardandoEdit(true)
+    setErrorEdit(null)
+    try {
+      await actualizarHorario(editandoRegistro.id, editHoraEntrada, editHoraLlegada)
+      const mins = calcularMinutos(editHoraEntrada, editHoraLlegada)
+      setMensajeExito(
+        `Horario de ${editandoRegistro.operador} actualizado a ${editHoraEntrada} - ${editHoraLlegada} (${mins} min)`
+      )
+      setEditandoRegistro(null)
+    } catch (err) {
+      console.error('Error guardando horario:', err)
+      setErrorEdit('No se pudo actualizar el horario. Intenta de nuevo.')
+    } finally {
+      setGuardandoEdit(false)
+    }
+  }
 
   const fechaHoy = fechaHoyLocal()
 
@@ -295,14 +349,24 @@ export default function RegistroBanoList() {
                       <td className="px-4 py-2 text-gray-600">{r.bano}</td>
                       <td className="px-4 py-2 text-gray-900">{r.horaEntrada}</td>
                       <td className="px-4 py-2 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleLlegada(r.id, r.horaEntrada)}
-                          className="text-xs font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-2.5 py-1 rounded-md inline-flex items-center gap-1 transition-colors"
-                        >
-                          <Check className="h-3.5 w-3.5" />
-                          Llegó
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => abrirModalEditar(r)}
+                            title="Editar hora de entrada"
+                            className="p-1 text-slate-400 hover:text-[#0369A1] hover:bg-slate-100 rounded transition-colors"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleLlegada(r.id, r.horaEntrada)}
+                            className="text-xs font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-2.5 py-1 rounded-md inline-flex items-center gap-1 transition-colors"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                            Llegó
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -325,7 +389,7 @@ export default function RegistroBanoList() {
                   <th className="px-4 py-2">Baño</th>
                   <th className="px-4 py-2 w-32">Horario</th>
                   <th className="px-4 py-2 w-20 text-right">Total</th>
-                  <th className="px-4 py-2 w-10"></th>
+                  <th className="px-4 py-2 w-16 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -354,13 +418,26 @@ export default function RegistroBanoList() {
                         {r.tiempoMinutos} m
                       </td>
                       <td className="px-4 py-2 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleEliminar(r.id, r.operador)}
-                          className="text-gray-400 hover:text-red-500 transition-colors"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => abrirModalEditar(r)}
+                            title="Editar hora que llegó / horario"
+                            className="p-1 text-slate-400 hover:text-[#0369A1] hover:bg-slate-100 rounded transition-colors"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          {puedeEliminar && (
+                            <button
+                              type="button"
+                              onClick={() => handleEliminar(r.id, r.operador)}
+                              title="Eliminar registro (Solo Super Admin)"
+                              className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -370,6 +447,92 @@ export default function RegistroBanoList() {
           </div>
         </div>
       </div>
+
+      {/* Modal de edición de horario */}
+      {editandoRegistro && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-md p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">Editar Horario de Registro</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {editandoRegistro.operador} — <span className="font-medium text-slate-700">{editandoRegistro.bano}</span> ({editandoRegistro.fecha})
+                </p>
+              </div>
+              <button
+                onClick={() => setEditandoRegistro(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-100 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {errorEdit && (
+              <div className="bg-red-50 border border-red-200 text-red-700 p-2.5 rounded-lg text-xs">
+                {errorEdit}
+              </div>
+            )}
+
+            <form onSubmit={handleGuardarHorario} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5 text-slate-400" />
+                    Hora Entrada
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={editHoraEntrada}
+                    onChange={(e) => setEditHoraEntrada(e.target.value)}
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0369A1]/20 focus:border-[#0369A1]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5 text-slate-400" />
+                    Hora Llegada
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={editHoraLlegada}
+                    onChange={(e) => setEditHoraLlegada(e.target.value)}
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0369A1]/20 focus:border-[#0369A1]"
+                  />
+                </div>
+              </div>
+
+              {/* Dynamic preview badge */}
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-center justify-between text-xs">
+                <span className="text-slate-600 font-medium">Duración recalculada:</span>
+                <span className="font-bold text-[#0369A1] text-sm bg-sky-50 border border-sky-200/60 px-2 py-0.5 rounded">
+                  {editHoraEntrada && editHoraLlegada ? `${calcularMinutos(editHoraEntrada, editHoraLlegada)} min` : '--'}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditandoRegistro(null)}
+                  className="px-3.5 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={guardandoEdit}
+                  className="px-4 py-1.5 text-xs font-semibold bg-[#0369A1] hover:bg-[#0284C7] text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
+                >
+                  {guardandoEdit ? 'Guardando...' : 'Guardar Horario'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+

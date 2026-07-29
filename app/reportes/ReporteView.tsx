@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import Link from "next/link"
 import { listarOrdenes } from "@/lib/ordenes"
 import {
@@ -17,7 +17,9 @@ import FiltrosReporte from "@/app/reportes/components/FiltrosReporte"
 import FranjaKpis from "@/app/reportes/components/FranjaKpis"
 import TablaReporte from "@/app/reportes/components/TablaReporte"
 import AvisoPendientes from "@/app/reportes/components/AvisoPendientes"
-import { Loader2, AlertCircle } from "lucide-react"
+import { Loader2, AlertCircle, FileSpreadsheet, ShieldCheck } from "lucide-react"
+import IntegrityWorkspace from "./integridad/IntegrityWorkspace"
+import IntegrityTrustStrip from "./integridad/IntegrityTrustStrip"
 
 type PresetTipo = "semana" | "mes" | "personalizado"
 
@@ -36,13 +38,14 @@ function tituloReporte(desde: Date, hasta: Date): string {
   return `${desde.toLocaleDateString(loc, opt)} — ${hasta.toLocaleDateString(loc, opt)}`
 }
 
-import DashboardInteligenciaCompras from "./DashboardInteligenciaCompras"
-import { BarChart3, FileSpreadsheet } from "lucide-react"
-
-export default function ReporteView() {
-  const [tabVista, setTabVista] = useState<"dashboard" | "gerencial">("dashboard")
+export default function ReporteView({
+  initialTab = "integridad",
+}: {
+  initialTab?: "integridad" | "gerencial"
+}) {
+  const [tabVista, setTabVista] = useState<"integridad" | "gerencial">(initialTab)
   const [ordenes, setOrdenes] = useState<OrdenCompra[]>([])
-  const [cargando, setCargando] = useState(true)
+  const [cargando, setCargando] = useState(initialTab === "gerencial")
   const [error, setError] = useState<string | null>(null)
   const [presetTipo, setPresetTipo] = useState<PresetTipo>("semana")
   const [periodo, setPeriodo] = useState(() => periodoPreset("semana"))
@@ -62,16 +65,23 @@ export default function ReporteView() {
     }
   }, [])
 
-  // Carga inicial: el estado arranca en `cargando = true`, así que sólo
-  // actualizamos estado después del await para no disparar renders en cascada.
   useEffect(() => {
-    let activo = true
-    listarOrdenes()
-      .then((data) => { if (activo) setOrdenes(data) })
-      .catch(() => { if (activo) setError(MSG_ERROR) })
-      .finally(() => { if (activo) setCargando(false) })
-    return () => { activo = false }
-  }, [])
+    if (initialTab !== "gerencial") return
+    let active = true
+    void listarOrdenes()
+      .then((data) => {
+        if (active) setOrdenes(data)
+      })
+      .catch(() => {
+        if (active) setError(MSG_ERROR)
+      })
+      .finally(() => {
+        if (active) setCargando(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [initialTab])
 
   function handlePreset(tipo: "semana" | "mes") {
     setPresetTipo(tipo)
@@ -107,12 +117,21 @@ export default function ReporteView() {
         >
           Reintentar
         </button>
+        <button
+          onClick={() => {
+            setError(null)
+            setTabVista("integridad")
+          }}
+          className="min-h-11 text-sm font-semibold text-[#0369A1] underline underline-offset-4"
+        >
+          Volver a Integridad
+        </button>
       </div>
     )
   }
 
   return (
-    <div className="w-full">
+    <main className="w-full">
       <div className="max-w-[1400px] mx-auto px-4 py-6 print:max-w-none print:px-0 print:py-0">
 
         {/* Navegación y selector de pestañas (Oculto al imprimir) */}
@@ -123,20 +142,23 @@ export default function ReporteView() {
 
           <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
             <button
-              onClick={() => setTabVista("dashboard")}
+              onClick={() => setTabVista("integridad")}
               className={[
                 "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
-                tabVista === "dashboard"
+                tabVista === "integridad"
                   ? "bg-slate-900 text-white shadow-xs"
                   : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60",
               ].join(" ")}
             >
-              <BarChart3 className="h-4 w-4 text-amber-400" />
-              Dashboard Inteligencia 3-Tier
+              <ShieldCheck className="h-4 w-4 text-emerald-500" />
+              Integridad
             </button>
 
             <button
-              onClick={() => setTabVista("gerencial")}
+              onClick={() => {
+                setTabVista("gerencial")
+                if (ordenes.length === 0) void cargar()
+              }}
               className={[
                 "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
                 tabVista === "gerencial"
@@ -145,19 +167,20 @@ export default function ReporteView() {
               ].join(" ")}
             >
               <FileSpreadsheet className="h-4 w-4 text-slate-500" />
-              Reporte Gerencial &amp; Filtros
+              Reporte gerencial
             </button>
           </div>
 
           <Link href="/reportes/contable" className="text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors">
-            Reporte Contable →
+            Cierre contable →
           </Link>
         </div>
 
-        {tabVista === "dashboard" && <DashboardInteligenciaCompras />}
+        {tabVista === "integridad" && <IntegrityWorkspace />}
 
         {tabVista === "gerencial" && (
           <>
+            <IntegrityTrustStrip />
             <FiltrosReporte
               presetTipo={presetTipo}
               desde={periodo.desde}
@@ -205,6 +228,6 @@ export default function ReporteView() {
         )}
 
       </div>
-    </div>
+    </main>
   )
 }

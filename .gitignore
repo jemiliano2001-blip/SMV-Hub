@@ -60,6 +60,7 @@ data/odoo-discovery/
 graphify-out/
 .gstack/
 .scratch/
+scratch/
 
 # datos reales de negocio — nunca comitear
 *.xlsx

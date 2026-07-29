@@ -1,15 +1,28 @@
 ---
 name: gen-test
-description: Genera un archivo de prueba Vitest para una función o módulo de lib/. Solo lógica pura — sin Firebase real, sin mocks de red.
+description: Genera y verifica una prueba Vitest para lógica pura de lib/ en SMV Hub, sin Firebase ni red reales.
 ---
 
-Dado el archivo o función que se indica, genera un test en `tests/<nombre>.test.ts` siguiendo estos patrones del proyecto:
+Dado un archivo o función de `lib/`, crea
+`tests/<nombre>.test.ts` siguiendo los patrones existentes:
 
-- Importa solo desde `@/lib/<módulo>` (alias configurado en vitest.config.ts)
-- Usa datos dummy inline, nunca fixtures de archivo externo
-- Cubre el happy path + al menos 2 edge cases (entrada vacía, tipo incorrecto, valor límite)
-- Estilo `describe` / `it` con nombres descriptivos en español
-- Sin comentarios obvios — los nombres de los tests son la documentación
-- Sigue el patrón de tests existentes en `tests/` (ver `tests/reportes.test.ts` como referencia de calidad)
+- Importa desde `@/lib/<módulo>` usando el alias de `vitest.config.ts`.
+- Usa datos inline tipados; evita fixtures externos para lógica pequeña.
+- Cubre happy path y al menos dos bordes relevantes (vacío, límite, moneda,
+  fecha nula o input inválido según el dominio).
+- Usa `describe`/`it` con nombres descriptivos en español.
+- No uses `any`, `@ts-ignore`, Firebase real ni red real.
+- Conserva la separación por moneda en cualquier cálculo financiero.
+- Sigue el archivo de pruebas más cercano al módulo; usa
+  `tests/reportes.test.ts` como referencia general.
 
-Ejemplo de invocación: `/gen-test lib/reportes.ts` o `/gen-test filtrarPorRango`
+Esta skill no cubre Route Handlers ni E2E. Esos tests pueden requerir mocks de
+Auth/Gemini o Playwright y deben seguir sus suites existentes.
+
+Después de crear el test, ejecútalo de forma aislada:
+
+```powershell
+npm.cmd exec vitest run -- tests/<nombre>.test.ts
+```
+
+Ejemplos: `/gen-test lib/reportes.ts` o `/gen-test filtrarPorRango`.

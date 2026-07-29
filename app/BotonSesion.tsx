@@ -17,7 +17,7 @@ export default function BotonSesion() {
 
   return (
     <div className="flex items-center gap-3">
-      <span className="hidden sm:inline text-xs text-gray-400">{usuario.email}</span>
+      <span className="hidden sm:inline text-xs text-gray-600">{usuario.email}</span>
       <button
         onClick={handleLogout}
         className="text-gray-500 hover:text-gray-900 transition-colors"

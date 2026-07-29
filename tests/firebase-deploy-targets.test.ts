@@ -16,7 +16,9 @@ describe('selector de targets para deploy de Firebase', () => {
   it('despliega sólo las Functions de SMV Hub para cambios del backend', () => {
     expect(determinarTargetsDeploy(['functions/src/odooSync.ts'])).toBe(
       'functions:smv-hub:syncOdooFacturasScheduled,functions:smv-hub:syncOdooFacturasManual,'
-      + 'functions:smv-hub:syncOdooComprasScheduled,functions:smv-hub:syncOdooComprasManual'
+      + 'functions:smv-hub:syncOdooComprasScheduled,functions:smv-hub:syncOdooComprasManual,'
+      + 'functions:smv-hub:listarCasosIntegridad,functions:smv-hub:obtenerCasoIntegridad,'
+      + 'functions:smv-hub:ejecutarComandoCasoIntegridad'
     )
   })
 

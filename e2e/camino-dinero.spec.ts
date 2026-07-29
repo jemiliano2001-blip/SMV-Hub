@@ -126,7 +126,7 @@ async function seleccionarMoneda(page: Page, moneda: string): Promise<void> {
 
 async function prepararReporteGerencial(page: Page): Promise<void> {
   await page.goto("/reportes")
-  await page.getByRole("button", { name: "Reporte Gerencial & Filtros" }).click()
+  await page.getByRole("button", { name: "Reporte gerencial" }).click()
   await page.getByRole("button", { name: "Este mes" }).click()
 
   // El selector de moneda solo existe en el DOM si el periodo tiene más de una
@@ -296,7 +296,7 @@ test.describe("camino del dinero", () => {
 
       await test.step("paso 4 — el filtro de moneda cambia las cifras, no solo el <select>", async () => {
         await page.goto("/reportes")
-        await page.getByRole("button", { name: "Reporte Gerencial & Filtros" }).click()
+        await page.getByRole("button", { name: "Reporte gerencial" }).click()
         await page.getByRole("button", { name: "Este mes" }).click()
 
         // Con dos monedas presentes, el selector debe existir (a diferencia

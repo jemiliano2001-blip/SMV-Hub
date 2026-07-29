@@ -7,9 +7,13 @@ export type ResultadoSyncComprasOdoo = {
   items: number
   proveedores: number
   huerfanos: number
+  integrityMode: "off" | "shadow" | "pilot" | "on"
+  integrityRunId: string | null
+  integrityCases: number
+  integrityErrorCode: string | null
 }
 
-/** Llama a `syncOdooComprasManual` (módulo proveedores / compras / admin). */
+/** Reutiliza el sync manual de compras y su lease de Integridad. */
 export async function sincronizarComprasOdoo(): Promise<ResultadoSyncComprasOdoo> {
   const functions = getFunctions(firebaseApp)
   const fn = httpsCallable<undefined, ResultadoSyncComprasOdoo>(functions, "syncOdooComprasManual")

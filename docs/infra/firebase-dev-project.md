@@ -1,67 +1,84 @@
 # Proyecto Firebase de desarrollo (`smv-brain-dev`)
 
-Separar desarrollo de producción evita que pruebas locales borren o corrompan
-datos reales del taller (compras, precios, OTs Fisher).
+El entorno de desarrollo separa las pruebas que escriben datos de la operación
+real en `smv-brain`.
 
-## Crear el proyecto (una vez, en consola)
+## Servicios requeridos
 
-1. [Firebase Console](https://console.firebase.google.com/) → **Add project**
-2. Nombre: `smv-brain-dev` (ID sugerido: `smv-brain-dev`)
-3. Desactiva Google Analytics si no lo necesitas en dev
-4. En el proyecto prod `smv-brain`, anota la configuración de la app web
+En Firebase Console crea/configura:
 
-## Replicar servicios en dev
+| Servicio | Configuración |
+|---|---|
+| Firestore | Base nombrada `compras-americanas` |
+| Authentication | Google y email/password para el usuario automatizado de E2E |
+| Storage | Bucket del proyecto dev |
+| App Check | Registro Web App y debug tokens propios de dev, si se va a probar |
 
-| Servicio | Acción |
-|----------|--------|
-| Firestore | Crear base de datos **nombrada** `compras-americanas` (mismo ID que prod) |
-| Authentication | Habilitar **Google** como proveedor |
-| Storage | Crear bucket por defecto |
-| App Check | Misma config reCAPTCHA v3 + debug tokens para localhost |
+Los aliases están definidos en `.firebaserc`:
 
-## Desplegar reglas en dev
+- `development` → `smv-brain-dev`
+- `production` y `default` → `smv-brain`
 
-```bash
-firebase use development
-firebase deploy --only firestore:rules,storage
-firebase use production   # volver a prod
+Comprueba el target antes de cualquier escritura o deploy:
+
+```powershell
+npx.cmd firebase-tools use
+npx.cmd firebase-tools use development
 ```
 
-El alias `development` → `smv-brain-dev` está en [`.firebaserc`](../../.firebaserc).
+## Configuración local
 
-## Variables locales
-
-Copia [`.env.example`](../../.env.example) a `.env.local`:
-
-```bash
-cp .env.example .env.local
+```powershell
+Copy-Item .env.example .env.local
 ```
 
-Rellena con credenciales de **smv-brain-dev** (no prod):
+Rellena `.env.local` con la Web App de desarrollo:
 
-```
+```dotenv
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=smv-brain-dev
+NEXT_PUBLIC_FIRESTORE_DATABASE_ID=compras-americanas
 ```
 
-## Regla de oro
+No uses credenciales de producción en `.env.local`. El login real de Google es
+el comportamiento normal; `NEXT_PUBLIC_DEV_AUTH_BYPASS=true` solo sirve para UI
+sin acceso real a Firestore.
 
-| Entorno | Proyecto | Quién escribe |
-|---------|----------|---------------|
-| `npm run dev` local | `smv-brain-dev` | Desarrolladores |
-| Push a `main` (CI) | `smv-brain` | GitHub Actions únicamente |
+## Reglas de desarrollo
 
-Nunca pongas credenciales de `smv-brain` en `.env.local`.
+Antes de desplegar, confirma que el target activo sea `development`:
+
+```powershell
+npx.cmd firebase-tools use development
+npx.cmd firebase-tools deploy --only firestore:rules,storage
+```
+
+Al terminar, puedes restaurar el alias:
+
+```powershell
+npx.cmd firebase-tools use production
+```
+
+No despliegues Functions desde dev con un comando global ni con `--force`.
+
+## Usuario E2E
+
+`e2e/camino-dinero.spec.ts` usa email/password, escribe en
+`smv-brain-dev`, stubea Gemini y limpia los registros que crea. Configura el
+usuario con `scripts/crear-usuario-e2e.mjs` y entrega su contraseña mediante
+`E2E_TEST_USER_PASSWORD`; no la guardes en Git.
+
+Consulta [../testing/e2e.md](../testing/e2e.md) para el flujo completo.
 
 ## Datos de prueba
 
-Opcional: importar un subconjunto anonimizado desde prod (solo con permiso explícito):
+Prefiere datos sintéticos o emuladores. Una copia anonimizada de producción
+requiere autorización explícita, un bucket controlado y validación del destino
+antes de importar:
 
-```bash
-# Export desde prod (admin)
-gcloud firestore export gs://smv-brain-firestore-backups/dev-seed/ \
-  --project=smv-brain --database=compras-americanas
-
-# Import en dev
-gcloud firestore import gs://smv-brain-firestore-backups/dev-seed/ \
-  --project=smv-brain-dev --database=compras-americanas
+```powershell
+gcloud firestore import gs://BUCKET/RUTA-ANONIMIZADA/ `
+  --project=smv-brain-dev `
+  --database=compras-americanas
 ```
+
+Nunca uses `smv-brain` como destino de una prueba o seed.

@@ -10,3 +10,8 @@ initializeApp();
 
 export { syncOdooFacturasScheduled, syncOdooFacturasManual } from "./odooSync";
 export { syncOdooComprasScheduled, syncOdooComprasManual } from "./odoo-compras-sync";
+export {
+  listarCasosIntegridad,
+  obtenerCasoIntegridad,
+  ejecutarComandoCasoIntegridad,
+} from "./reportes-integridad/api";

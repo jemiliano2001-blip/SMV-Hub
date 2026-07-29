@@ -1,5 +1,9 @@
 import * as functions from "firebase-functions"
-import { assertAuthorizedCallable, errorMessage, esCorreoBreakGlass } from "./auth"
+import {
+  errorMessage,
+  getCallablePrincipal,
+  principalHasLegacyPurchasingSyncAccess,
+} from "./auth"
 import { getDb } from "./firestore-db"
 import {
   idsHuerfanosCompras,
@@ -14,6 +18,20 @@ import {
   type OdooVendorBillRaw,
 } from "./odoo-compras-mapeo"
 import { CATEGORIAS_PRODUCTO_REGISTRO } from "./compras-odoo/categorias-registro"
+import type { IntegrityErrorCode } from "./reportes-integridad/contratos"
+import { IntegrityDomainError } from "./reportes-integridad/errores"
+import {
+  loadIntegrityConfig,
+  runIntegrityWithoutBlockingMirror,
+  runIntegrityPipeline,
+} from "./reportes-integridad/pipeline"
+import {
+  acquireIntegrityLease,
+  heartbeatIntegrityLease,
+  markIntegrityAttempt,
+  releaseIntegrityLease,
+  type IntegrityConfig,
+} from "./reportes-integridad/repositorio"
 
 const db = getDb()
 
@@ -393,13 +411,24 @@ async function upsertProveedoresDesdePartners(
   return upserts
 }
 
-async function sincronizarComprasOdoo(): Promise<{
+async function sincronizarComprasOdoo(options: {
+  config: IntegrityConfig
+  leaseOwner: string
+  syncId: string
+  startedAtMs: number
+}): Promise<{
   pos: number
   facturas: number
   items: number
   proveedores: number
   huerfanos: number
+  integrityMode: IntegrityConfig["mode"]
+  integrityRunId: string | null
+  integrityCases: number
+  integrityErrorCode: IntegrityErrorCode | null
 }> {
+  let phase: "odoo" | "mirror" | "integrity" = "odoo"
+  try {
   const { url, dbName, username, apiKey } = credencialesOdoo()
   const uid = await llamarOdoo<number>(url, "common", "login", [dbName, username, apiKey])
   if (!uid) throw new Error("Login a Odoo falló — revisa credenciales")
@@ -491,6 +520,8 @@ async function sincronizarComprasOdoo(): Promise<{
 
   const posMapped = posRaw.map((r) => mapearPoOdoo(r, ahora))
   const billsMapped = billsRaw.map((r) => mapearFacturaProveedorOdoo(r, ahora))
+  await heartbeatIntegrityLease(db, options.leaseOwner)
+  phase = "mirror"
 
   const poExistSnap = await db.collection("compras_odoo_po").select("creadoEn").get()
   const poCreado = new Map(poExistSnap.docs.map((d) => [d.id, d.data().creadoEn as FirebaseFirestore.Timestamp]))
@@ -601,20 +632,94 @@ async function sincronizarComprasOdoo(): Promise<{
     huerfanosEliminados: huerfanos,
   })
 
+  await heartbeatIntegrityLease(db, options.leaseOwner)
+  phase = "integrity"
+  const integrityFallback = {
+    mode: options.config.mode,
+    runId: null as string | null,
+    cases: 0,
+    checksum: null as string | null,
+  }
+  const { result: integrity, errorCode: integrityErrorCode } =
+    await runIntegrityWithoutBlockingMirror({
+      fallback: integrityFallback,
+      run: () =>
+        runIntegrityPipeline({
+          db,
+          config: options.config,
+          purchaseOrders: posMapped,
+          bills: billsMapped,
+          syncId: options.syncId,
+          computedAt: ahora,
+          startedAtMs: options.startedAtMs,
+        }),
+      onDomainError: (error) => {
+        console.warn(
+          `Integridad: cálculo aislado del espejo con estado ${error.dto.code}.`
+        )
+      },
+    })
+
   return {
     pos: posMapped.length,
     facturas: billsMapped.length,
     items: items.length,
     proveedores,
     huerfanos,
+    integrityMode: integrity.mode,
+    integrityRunId: integrity.runId,
+    integrityCases: integrity.cases,
+    integrityErrorCode,
+  }
+  } catch (error) {
+    if (error instanceof IntegrityDomainError) throw error
+    if (phase === "odoo") {
+      throw new IntegrityDomainError(
+        "ODOO_UNAVAILABLE",
+        "Odoo no está disponible; se conserva la última corrida válida."
+      )
+    }
+    if (phase === "mirror") {
+      throw new IntegrityDomainError(
+        "MIRROR_WRITE_FAILED",
+        "El espejo Odoo no se completó; no se publicó una nueva corrida."
+      )
+    }
+    throw new IntegrityDomainError(
+      "RUN_WRITE_FAILED",
+      "No fue posible publicar la nueva corrida de Integridad."
+    )
   }
 }
 
-async function ejecutarSyncConLogging() {
+async function ejecutarSyncConLogging(kind: "manual" | "scheduled") {
+  const startedAtMs = Date.now()
+  const config = await loadIntegrityConfig(db)
+  const lease = await acquireIntegrityLease(db, kind)
+  const syncId = `sync_${new Date(startedAtMs).toISOString().replace(/\D/g, "").slice(0, 17)}_${lease.ownerInvocationId.slice(0, 8)}`
   try {
-    const r = await sincronizarComprasOdoo()
+    const r = await sincronizarComprasOdoo({
+      config,
+      leaseOwner: lease.ownerInvocationId,
+      syncId,
+      startedAtMs,
+    })
+    await markIntegrityAttempt(
+      db,
+      r.integrityErrorCode
+        ? {
+            at: new Date(),
+            health: "failed",
+            safeErrorCode: r.integrityErrorCode,
+          }
+        : {
+            at: new Date(),
+            health: "current",
+            safeErrorCode: null,
+          }
+    )
     console.log(
-      `Sync Odoo→Compras: ${r.pos} POs, ${r.facturas} facturas, ${r.items} ítems, ${r.proveedores} proveedores`
+      `Sync Odoo→Compras: ${r.pos} POs, ${r.facturas} facturas, ${r.items} ítems, ${r.proveedores} proveedores; Integridad=${r.integrityMode}/${r.integrityCases}${r.integrityErrorCode ? ` (${r.integrityErrorCode})` : ""}`
     )
     return r
   } catch (error) {
@@ -623,7 +728,24 @@ async function ejecutarSyncConLogging() {
       { ultimoError: errorMessage(error), ultimoErrorEn: new Date() },
       { merge: true }
     )
+    if (
+      !(error instanceof IntegrityDomainError) ||
+      error.dto.code !== "SYNC_ALREADY_RUNNING"
+    ) {
+      await markIntegrityAttempt(db, {
+        at: new Date(),
+        health: "failed",
+        safeErrorCode:
+          error instanceof IntegrityDomainError
+            ? error.dto.code
+            : "ODOO_UNAVAILABLE",
+      })
+    }
     throw error
+  } finally {
+    await releaseIntegrityLease(db, lease.ownerInvocationId).catch((error) => {
+      console.error("Integridad: no se pudo liberar el lease", errorMessage(error))
+    })
   }
 }
 
@@ -632,7 +754,7 @@ export const syncOdooComprasScheduled = functions
   .pubsub.schedule("every 2 hours")
   .onRun(async () => {
     try {
-      await ejecutarSyncConLogging()
+      await ejecutarSyncConLogging("scheduled")
     } catch {
       // Ya quedó en sync_state
     }
@@ -641,27 +763,27 @@ export const syncOdooComprasScheduled = functions
 export const syncOdooComprasManual = functions
   .runWith({ secrets: ODOO_SECRETS, timeoutSeconds: 540, memory: "1GB" })
   .https.onCall(async (_data, context) => {
-    const email = await assertAuthorizedCallable(context)
-    const usuarioSnap = await db.collection("usuarios").doc(context.auth!.uid).get()
-    const data = usuarioSnap.data()
-    const esBreakGlass = esCorreoBreakGlass(email)
-    const modulos = Array.isArray(data?.modulos) ? (data.modulos as string[]) : []
-    const tieneAcceso =
-      esBreakGlass ||
-      data?.esSuperAdmin === true ||
-      data?.rol === "admin" ||
-      data?.plantilla === "admin" ||
-      data?.plantilla === "compras" ||
-      modulos.includes("proveedores")
-    if (!tieneAcceso) {
+    const principal = await getCallablePrincipal(context)
+    if (!principalHasLegacyPurchasingSyncAccess(principal)) {
       throw new functions.https.HttpsError(
         "permission-denied",
-        "Requiere módulo proveedores, plantilla compras/admin o super-admin."
+        "Requiere proveedores/compras, super-admin o los módulos reportes + finanzas."
       )
     }
     try {
-      return await ejecutarSyncConLogging()
+      return await ejecutarSyncConLogging("manual")
     } catch (error) {
+      if (error instanceof IntegrityDomainError) {
+        const code =
+          error.dto.code === "SYNC_ALREADY_RUNNING"
+            ? "already-exists"
+            : error.dto.code === "ODOO_UNAVAILABLE"
+              ? "unavailable"
+              : error.dto.code === "SOURCE_SNAPSHOT_INVALID"
+                ? "failed-precondition"
+                : "internal"
+        throw new functions.https.HttpsError(code, error.dto.message, error.dto)
+      }
       throw new functions.https.HttpsError("internal", errorMessage(error))
     }
   })

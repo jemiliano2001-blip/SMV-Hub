@@ -1,67 +1,89 @@
 # SMV Hub
 
-Plataforma interna de SMV Maquinados — compras, diseño y operación del taller.
-Reemplaza flujos basados en Excel y automatiza la extracción de datos de facturas mediante IA.
+Plataforma interna de SMV Maquinados para compras, diseño, finanzas y operación
+del taller. El nombre técnico del repositorio y de la base Firestore sigue siendo
+`compras-americanas`; el producto visible es **SMV Hub**.
 
-## 🚀 Características Principales
+## Capacidades principales
 
-- **Gestión de Compras y Órdenes**: Extracción inteligente de facturas y órdenes de compra con la API de Gemini (Google AI), validación de montos (con impuestos y envíos), y trazabilidad en múltiples monedas.
-- **Cotizaciones e Importación**: Importación masiva vía CSV de órdenes de proveedores como McMaster-Carr y Grainger, con validación pre-carga.
-- **Almacén y Operaciones**:
-  - Catálogo de operadores.
-  - Entradas y salidas de almacén.
-  - Control de tiempo de baños (con generación de tablas dinámicas automatizadas).
-  - Control de horas extra semanales.
-- **Requisiciones y Órdenes de Servicio**: Tracking de solicitudes internas y OTs con proveedores externos.
-- **Reportes**: Generación de reportes PDF y análisis con KPIs sobre toda la operación.
+- **Compras:** captura de facturas con extracción estructurada mediante Gemini,
+  validación de montos, detección de duplicados, claves SAT y órdenes
+  multi-moneda.
+- **Proveedores y cotizaciones:** catálogo USA Tooling, importación CSV de
+  cotizaciones, precios históricos, lead time, scorecards e inteligencia cruzada
+  con compras de Odoo.
+- **Reportes y finanzas:** KPIs por moneda, impresión/PDF desde el navegador,
+  cierre contable asistido por IA, facturación/cobranza sincronizada con Odoo y
+  caja chica con comprobantes.
+- **Operación:** entradas/salidas de almacén, pedidos de almacén, requisiciones,
+  órdenes de servicio, operadores, horas extra y registros de baños.
+- **Administración:** Google Sign-In, usuarios activos, permisos por módulo,
+  super-administración y auditoría.
 
-## 🛠️ Stack Tecnológico
+La ruta legacy `/importar` y el tab de reabastecimiento ROP de `/almacen` están
+retirados. Los helpers de `lib/importar.ts` siguen activos porque Nueva Compra y
+Cotizaciones los reutilizan.
 
-- **Framework:** Next.js 16 (App Router)
-- **Frontend:** React 19, Tailwind CSS v4, Lucide Icons, Zod (Validación)
-- **Backend & DB:** Firebase v12 (Firestore, Auth, Storage)
-- **IA:** Integración nativa con Gemini (REST) para estructuración de datos de recibos y facturas
-- **Scraping:** Cheerio para extracción en background de precios de proveedores
-- **Testing:** Vitest
+## Stack
 
-## 💻 Desarrollo Local
+- Next.js 16.2.9 con App Router y React 19.2.4
+- TypeScript estricto, Tailwind CSS v4 y Zod
+- Firebase Auth, Firestore nombrado, Storage, Hosting y Cloud Functions
+- Gemini API vía REST para extracción y clasificación
+- Vitest, Playwright y axe-core
 
-1. Instala las dependencias:
-```bash
-npm install
+## Desarrollo local
+
+Requisitos: Node.js 22, npm y acceso al proyecto Firebase de desarrollo
+`smv-brain-dev`.
+
+```powershell
+npm.cmd install
+Copy-Item .env.example .env.local
+npm.cmd run dev
 ```
 
-2. Configura las variables de entorno en un archivo `.env.local`:
-```bash
-# Firebase config
-NEXT_PUBLIC_FIREBASE_API_KEY=
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-NEXT_PUBLIC_FIREBASE_APP_ID=
+Rellena `.env.local` con la configuración Web App de `smv-brain-dev`, la base
+`compras-americanas` y `GEMINI_API_KEY`. El inicio de sesión real es el
+comportamiento normal también en localhost. Usa
+`NEXT_PUBLIC_DEV_AUTH_BYPASS=true` únicamente para maquetación sin acceso real a
+Firestore.
 
-# Gemini (IA Extracción)
-GEMINI_API_KEY=
+La aplicación queda disponible en
+[http://localhost:3000](http://localhost:3000).
 
-# (Opcional) Bypass de login en dev
-# NEXT_PUBLIC_DEV_AUTH_BYPASS=true
+## Verificación
+
+```powershell
+npm.cmd run lint
+npm.cmd exec tsc -- --noEmit
+npm.cmd test
+npm.cmd run build
+npm.cmd run test:e2e
 ```
 
-3. Levanta el servidor de desarrollo:
-```bash
-npm run dev
-```
+`npm run build` usa `next build --webpack` y después valida el bundle de Firebase
+SSR. No retires `--webpack` ni el verificador: el bundle generado con Turbopack
+no es compatible con el despliegue actual de Firebase Hosting.
 
-La aplicación estará disponible en [http://localhost:3000](http://localhost:3000).
+Las pruebas E2E públicas no requieren sesión. Los recorridos autenticados y el
+camino real de compra → orden → reporte tienen requisitos adicionales descritos
+en [docs/testing/e2e.md](docs/testing/e2e.md).
 
-## 🧪 Comandos Útiles
+## Despliegue y seguridad
 
-```bash
-npm run build          # Build para producción
-npm run lint           # Chequeo estático (ESLint)
-npm test               # Ejecutar pruebas unitarias (Vitest)
-```
+Producción vive en el proyecto compartido `smv-brain`. El workflow de
+`.github/workflows/ci.yml` valida el código y despliega únicamente los targets
+Firebase afectados. Las Functions de Hub usan el codebase `smv-hub`; no ejecutes
+un deploy global de Functions con `--force`, porque el proyecto también aloja
+funciones de otras aplicaciones.
 
-## 🔒 Seguridad
-Todo el acceso de lectura y escritura está controlado por reglas estrictas en `firestore.rules` (whitelist de emails) y validaciones Zod estrictas antes de persistir datos en Firebase.
+El acceso combina Firebase Auth, documentos activos en `usuarios`, permisos por
+módulo, Firestore/Storage Rules y custom claims para Storage. App Check está
+instrumentado, pero el enforcement en reglas continúa pausado hasta completar la
+validación indicada en
+[docs/infra/app-check-setup.md](docs/infra/app-check-setup.md).
+
+Consulta [PROJECT.md](PROJECT.md) para el estado funcional,
+[CLAUDE.md](CLAUDE.md) para convenciones de desarrollo y
+[AGENTS.md](AGENTS.md) para restricciones críticas.

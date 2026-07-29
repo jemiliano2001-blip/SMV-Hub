@@ -606,22 +606,37 @@ service cloud.firestore {
     // ── Compras Odoo (espejo solo lectura; escribe Admin SDK / Cloud Functions) ─
 
     function esProveedoresAutorizado() {
-      return esUsuarioAutorizado();
+      return esUsuarioAutorizado() &&
+        (
+          esCorreoBreakGlass() ||
+          tieneModulo('proveedores') ||
+          tieneModulo('finanzas') ||
+          esSuperAdminDoc()
+        );
     }
 
     match /compras_odoo_po/{docId} {
-      allow read: if esUsuarioAutorizado();
+      allow read: if esProveedoresAutorizado();
       allow write: if false;
     }
 
     match /compras_odoo_facturas/{docId} {
-      allow read: if esUsuarioAutorizado();
+      allow read: if esProveedoresAutorizado();
       allow write: if false;
     }
 
     match /compras_odoo_items/{docId} {
-      allow read: if esUsuarioAutorizado();
-      allow update: if esUsuarioAutorizado();
+      allow read: if esProveedoresAutorizado();
+      allow update: if esUsuarioAutorizado()
+                    && (esCorreoBreakGlass() || tieneModulo('proveedores') || esSuperAdminDoc())
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                      'categoriaId',
+                      'tipoInsumo',
+                      'tipoMetal',
+                      'medida',
+                      'clasificadoPorIa',
+                      'actualizadoEn'
+                    ]);
       allow create, delete: if false;
     }
 
@@ -631,8 +646,30 @@ service cloud.firestore {
     }
 
     match /compras_odoo_sync_state/{docId} {
-      allow read: if esUsuarioAutorizado();
+      allow read: if esProveedoresAutorizado();
       allow write: if false;
+    }
+
+    // Integridad del gasto: evidencia, workflow, configuración y eventos solo
+    // atraviesan las callables. El Admin SDK de Functions ignora estas reglas.
+    match /reportes_integridad_state/{docId} {
+      allow read, write: if false;
+    }
+
+    match /reportes_integridad_runs/{runId} {
+      allow read, write: if false;
+    }
+
+    match /reportes_integridad_run_cases/{caseId} {
+      allow read, write: if false;
+    }
+
+    match /reportes_integridad_workflows/{caseId} {
+      allow read, write: if false;
+
+      match /events/{eventId} {
+        allow read, write: if false;
+      }
     }
 
     match /categorias_producto/{catId} {

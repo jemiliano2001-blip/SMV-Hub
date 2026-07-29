@@ -1,54 +1,79 @@
 # Backups automáticos de Firestore
 
-SMV Hub guarda compras, precios y operación del taller en Firestore (`compras-americanas`).
-La exportación diaria protege contra borrados accidentales o corrupción de datos.
+SMV Hub usa la base nombrada `compras-americanas`. El script
+`infra/firestore-backup/setup.sh` configura exportaciones diarias en el proyecto
+`smv-brain`.
 
-## Configuración inicial (una vez)
+## Requisitos y alcance
 
-1. Autentícate con gcloud: `gcloud auth login` y `gcloud config set project smv-brain`
-2. Ejecuta el script:
+- `gcloud` autenticado con permisos de import/export, Storage y Scheduler.
+- Bash (Cloud Shell, WSL o Git Bash); el script no es PowerShell nativo.
+- Confirmación explícita de proyecto y base antes de ejecutarlo.
+
+El script crea:
+
+- `gs://smv-brain-firestore-backups`;
+- política de ciclo de vida de 90 días;
+- cuenta `firestore-backup@smv-brain.iam.gserviceaccount.com`;
+- job `firestore-daily-export` a las 02:00 de `America/Monterrey`.
+
+## Configuración inicial
 
 ```bash
-chmod +x infra/firestore-backup/setup.sh
-./infra/firestore-backup/setup.sh
+gcloud auth login
+gcloud config set project smv-brain
+./infra/firestore-backup/setup.sh \
+  --project smv-brain \
+  --database compras-americanas
 ```
 
-Esto crea:
-
-- Bucket `gs://smv-brain-firestore-backups` con retención de **90 días**
-- Cuenta de servicio `firestore-backup@smv-brain.iam.gserviceaccount.com`
-- Job de Cloud Scheduler que exporta cada día a las 02:00 (hora Monterrey)
+El script reemplaza el job de Scheduler con el mismo nombre. Revisa sus
+parámetros antes de volver a ejecutarlo.
 
 ## Verificación
 
-```bash
-# Listar exportaciones recientes
+```powershell
+gcloud scheduler jobs describe firestore-daily-export `
+  --project=smv-brain `
+  --location=us-central1
+
 gcloud storage ls gs://smv-brain-firestore-backups/automatic/
+```
 
-# Disparar export manual
-gcloud firestore export gs://smv-brain-firestore-backups/manual/$(date +%Y-%m-%d) \
-  --project=smv-brain \
+Export manual desde PowerShell:
+
+```powershell
+$fechaBackup = Get-Date -Format 'yyyy-MM-dd'
+gcloud firestore export "gs://smv-brain-firestore-backups/manual/$fechaBackup" `
+  --project=smv-brain `
   --database=compras-americanas
 ```
 
-## Restauración (trimestral en staging)
+## Prueba de restauración
 
-Prueba la restauración en `smv-brain-dev` antes de tocar producción:
+Prueba primero en `smv-brain-dev`, nunca directamente en producción:
 
-```bash
-gcloud firestore import gs://smv-brain-firestore-backups/automatic/YYYY-MM-DD/ \
-  --project=smv-brain-dev \
+```powershell
+gcloud firestore import gs://smv-brain-firestore-backups/automatic/RUTA-EXPORT/ `
+  --project=smv-brain-dev `
   --database=compras-americanas
 ```
 
-## Facturas (Storage)
+Verifica conteos y registros críticos después de importar. Una restauración a
+producción requiere ventana de mantenimiento, respaldo previo y aprobación
+explícita.
 
-Las imágenes/PDF en `ordenes/**` viven en Firebase Storage. Para versionado adicional:
+## Archivos de Storage
 
-```bash
-gcloud storage buckets update gs://smv-brain.appspot.com \
-  --versioning \
+La exportación de Firestore no incluye imágenes ni PDF. Para los objetos de
+`ordenes/**`, `pedidos-almacen/**` y `caja-chica/**`, configura versionado o una
+política de copia en el bucket real mostrado por Firebase Console:
+
+```powershell
+gcloud storage buckets update gs://BUCKET-REAL `
+  --versioning `
   --project=smv-brain
 ```
 
-(Ajusta el nombre del bucket según Firebase Console → Storage.)
+No asumas que el bucket termina en `.appspot.com`; usa el identificador exacto
+del entorno.
