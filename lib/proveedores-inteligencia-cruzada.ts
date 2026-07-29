@@ -715,7 +715,7 @@ export function ofertasDesdeHistorico(
 
   const ofertas: OfertaCotizacion[] = []
   for (const c of porProv.values()) {
-    if (c.precioUnitario == null) continue
+    if (c.precioUnitario == null || c.precioUnitario <= 0) continue
     const match = c.proveedorId
       ? catalogo.find((p) => p.id === c.proveedorId)
       : matchProveedorPorNombre(c.proveedor, catalogo)

@@ -1120,6 +1120,23 @@ function ProveedoresContent() {
     sincronizarOrdenes,
   } = useProveedoresInteligencia()
 
+  // Filtrar estrictamente compras y cotizaciones con precio > 0 (omitir 0s)
+  const comprasConPrecio = useMemo(() => {
+    return todasCompras.filter(
+      (c) => (c.precioUnitario && c.precioUnitario > 0) || (c.costoTotal && c.costoTotal > 0)
+    )
+  }, [todasCompras])
+
+  const cotizacionesFiltradas = useMemo(() => {
+    return cotizaciones
+      .map((cot) => ({
+        ...cot,
+        ofertas: cot.ofertas.filter((o) => o.precioUnitario > 0),
+        ofertasRanking: cot.ofertasRanking.filter((o) => o.precioUnitario > 0),
+      }))
+      .filter((cot) => cot.ofertas.length > 0)
+  }, [cotizaciones])
+
   // Historial completo de órdenes para los scorecards automáticos (necesitan todas, no solo la página inicial).
   const { ordenes: ordenesScorecard, cargarTodas: cargarTodasOrdenes } = useOrdenes()
   useEffect(() => {
@@ -1428,14 +1445,14 @@ function ProveedoresContent() {
 
             {cargandoIntel ? (
               <div className="p-8 text-center text-xs text-slate-400 animate-pulse">Cargando cotizaciones de comparación...</div>
-            ) : cotizaciones.length === 0 ? (
+            ) : cotizacionesFiltradas.length === 0 ? (
               <div className="bg-white border border-slate-200 rounded-xl p-10 text-center space-y-2">
                 <Scale className="h-10 w-10 text-slate-300 mx-auto" />
                 <h3 className="text-sm font-bold text-slate-900">Sin escenarios de cotización registrados</h3>
               </div>
             ) : (
               <div className="space-y-6">
-                {cotizaciones.map((cot) => (
+                {cotizacionesFiltradas.map((cot) => (
                   <div key={cot.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
                       <div>
@@ -1459,7 +1476,7 @@ function ProveedoresContent() {
                       }))}
                       proveedoresCatalogo={todosProveedores}
                       evaluacionesHistoricas={evaluaciones}
-                      comprasHistoricas={todasCompras}
+                      comprasHistoricas={comprasConPrecio}
                     />
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1585,7 +1602,7 @@ function ProveedoresContent() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
-                    {todasCompras.map((c) => (
+                    {comprasConPrecio.map((c) => (
                       <tr key={c.id} className="hover:bg-slate-50/80 transition-colors font-mono text-[11px]">
                         <td className="px-4 py-3">
                           <span className="font-bold text-slate-900 block">{c.fecha}</span>

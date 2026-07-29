@@ -11,8 +11,6 @@ import {
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import PanelProveedoresFantasma from '@/app/proveedores/PanelProveedoresFantasma'
-import PanelComprasOdoo from '@/app/proveedores/PanelComprasOdoo'
 import type { Proveedor, CategoriaProveedor } from '@/lib/schemas'
 import type { ScorecardAutomatica } from '@/lib/proveedores-inteligencia-cruzada'
 import { obtenerMatrizBackupProveedores, guardarMatrizBackupProveedores } from '@/lib/proveedores'
@@ -268,11 +266,6 @@ export default function PanelInteligencia360({
         )}
       </div>
 
-      {/* COMPONENTES DE MANTENIMIENTO Y ODOO EXISTENTES */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <PanelProveedoresFantasma catalogo={proveedores} />
-        <PanelComprasOdoo />
-      </div>
     </div>
   )
 }

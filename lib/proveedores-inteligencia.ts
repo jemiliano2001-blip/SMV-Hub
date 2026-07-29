@@ -155,7 +155,7 @@ export async function obtenerComprasProveedor(proveedorId?: string): Promise<Com
       return await inicializarComprasSemilla()
     }
 
-    return snap.docs.map((d) => {
+    const items: CompraProveedor[] = snap.docs.map((d) => {
       const data = d.data()
       return {
         id: d.id,
@@ -175,9 +175,12 @@ export async function obtenerComprasProveedor(proveedorId?: string): Promise<Com
         creadoEn: formatearFecha(data.creadoEn),
       }
     })
+
+    // Excluir órdenes de compra sin precio (precioUnitario y costoTotal <= 0)
+    return items.filter((c) => c.precioUnitario > 0 || c.costoTotal > 0)
   } catch (err) {
     console.error("Error al obtener compras de proveedor:", err)
-    return COMPRAS_SEMILLA.map((c, i) => ({ id: `semilla-c-${i}`, ...c }))
+    return COMPRAS_SEMILLA.filter((c) => c.precioUnitario > 0 || c.costoTotal > 0).map((c, i) => ({ id: `semilla-c-${i}`, ...c }))
   }
 }
 
@@ -624,6 +627,9 @@ export async function sincronizarComprasDesdeOrdenes(): Promise<{ importadas: nu
           const pu = item.precioUnitario || item.subtotal || 0
           const costoTotal = item.subtotal || pu * cantidad
 
+          // Omitir órdenes / items sin precio (precio = 0)
+          if (pu <= 0 && costoTotal <= 0) continue
+
           await crearCompraProveedor({
             proveedorId: provId,
             proveedorNombre: provNombre,
@@ -642,6 +648,10 @@ export async function sincronizarComprasDesdeOrdenes(): Promise<{ importadas: nu
           importadas++
         }
       } else {
+        const total = data.total || 0
+        // Omitir órdenes generales sin precio (precio = 0)
+        if (total <= 0) continue
+
         // Si no tiene items desglosados, se importa el total de la orden
         await crearCompraProveedor({
           proveedorId: provId,
@@ -652,9 +662,9 @@ export async function sincronizarComprasDesdeOrdenes(): Promise<{ importadas: nu
           categoria: "tooling",
           marca: provNombre,
           cantidad: 1,
-          precioUnitario: data.total || 0,
+          precioUnitario: total,
           moneda,
-          costoTotal: data.total || 0,
+          costoTotal: total,
           leadTimeRealDias: 4,
           notas: `Importado automáticamente desde Ver Órdenes (Doc: ${ordenId})`,
         })
