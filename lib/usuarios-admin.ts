@@ -278,6 +278,7 @@ interface DocUsuarioFirestore {
   plantilla?: unknown
   modulos?: unknown
   esSuperAdmin?: unknown
+  atiendeDocumentosVenta?: unknown
   activo?: unknown
   proveedor?: unknown
   creadoPor?: string
@@ -299,6 +300,7 @@ function mapearDocUsuario(id: string, data: DocUsuarioFirestore): Usuario | null
     plantilla,
     modulos: modulosDesdeUsuarioLegacy(data),
     esSuperAdmin: esSuperAdminDesdeUsuarioLegacy(data),
+    atiendeDocumentosVenta: data.atiendeDocumentosVenta === true,
     activo: data.activo === true,
     proveedor,
     creadoPor: data.creadoPor ?? "",
@@ -411,6 +413,7 @@ export async function listarUsuariosAdmin(token?: string): Promise<Usuario[]> {
             plantilla: "admin",
             modulos: modulosDePlantilla("admin"),
             esSuperAdmin: true,
+            atiendeDocumentosVenta: false,
             activo: true,
             proveedor: "google",
             creadoPor: "sistema",

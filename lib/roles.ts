@@ -21,6 +21,7 @@ export const RUTA_POR_MODULO: Record<ModuloId, string> = {
   banos: "/banos",
   notificaciones: "/notificaciones",
   finanzas: "/finanzas",
+  "documentos-venta": "/documentos-venta",
   auditoria: "/auditoria",
   usuarios: "/usuarios",
 }
@@ -53,6 +54,7 @@ export const GRUPOS_MODULOS: { nombre: string; modulos: { id: ModuloId; label: s
       { id: "pedidos-almacen", label: "Pedidos de almacén" },
       { id: "ordenes-servicio", label: "Órdenes de servicio" },
       { id: "notificaciones", label: "Notificaciones" },
+      { id: "documentos-venta", label: "Documentos de venta" },
       { id: "banos", label: "Baños" },
     ],
   },
@@ -91,6 +93,7 @@ const PLANTILLA_ADMIN: ModuloId[] = [
   "horas-extra",
   "banos",
   "notificaciones",
+  "documentos-venta",
   "finanzas",
   "auditoria",
   "usuarios",
@@ -109,11 +112,18 @@ const PLANTILLA_COMPRAS: ModuloId[] = [
   "horas-extra",
   "banos",
   "notificaciones",
+  "documentos-venta",
 ]
 
 const PLANTILLA_DISENO: ModuloId[] = ["cotizaciones", "requisiciones", "horas-extra"]
 
-const PLANTILLA_ALMACEN: ModuloId[] = ["almacen", "pedidos-almacen", "banos", "notificaciones"]
+const PLANTILLA_ALMACEN: ModuloId[] = [
+  "almacen",
+  "pedidos-almacen",
+  "banos",
+  "notificaciones",
+  "documentos-venta",
+]
 
 /** Mapa de plantilla → módulos (atajo; la fuente de verdad por usuario es modulos[]). */
 export const MODULOS_POR_PLANTILLA: Record<Rol, ModuloId[]> = {
@@ -285,6 +295,14 @@ export function plantillaDesdeUsuarioLegacy(data: {
     return data.rol
   }
   return null
+}
+
+export function puedeAtenderDocumentosVenta(u: {
+  atiendeDocumentosVenta?: boolean
+  esSuperAdmin?: boolean
+} | null | undefined): boolean {
+  if (!u) return false
+  return u.esSuperAdmin === true || u.atiendeDocumentosVenta === true
 }
 
 export function esSuperAdminDesdeUsuarioLegacy(data: {
