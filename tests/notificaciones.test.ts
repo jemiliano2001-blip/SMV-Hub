@@ -49,6 +49,11 @@ describe("tituloParaTipo", () => {
     expect(tituloParaTipo("pedido_almacen_creado")).toBe("Nuevo pedido de almacén")
     expect(tituloParaTipo("requisicion_estado")).toBe("Requisición actualizada")
   })
+
+  it("devuelve títulos legibles para los tipos de baños", () => {
+    expect(tituloParaTipo("banos_solicitud_creada")).toBe("Nueva solicitud de eliminación de registro de baño")
+    expect(tituloParaTipo("banos_solicitud_resuelta")).toBe("Solicitud de eliminación de baño resuelta")
+  })
 })
 
 describe("merge y conteo", () => {

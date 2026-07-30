@@ -16,7 +16,6 @@ export type FiltroOrigen = "todos" | OrigenModuloNotificacion
 
 export function useNotificaciones(opciones?: { enabled?: boolean }) {
   const enabled = opciones?.enabled !== false
-  const [items, setItems] = useState<NotificacionConLeida[]>([])
   const [leidasIds, setLeidasIds] = useState<Set<string>>(new Set())
   const [raw, setRaw] = useState<Parameters<typeof mergeNotificacionesConLeidas>[0]>([])
   const [cargando, setCargando] = useState(true)
@@ -25,6 +24,7 @@ export function useNotificaciones(opciones?: { enabled?: boolean }) {
 
   useEffect(() => {
     if (!enabled) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset al deshabilitar el hook
       setCargando(false)
       setRaw([])
       return
@@ -46,6 +46,7 @@ export function useNotificaciones(opciones?: { enabled?: boolean }) {
 
   useEffect(() => {
     if (!enabled || !uid) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sin sesión no hay leídos
       setLeidasIds(new Set())
       return
     }
@@ -60,9 +61,10 @@ export function useNotificaciones(opciones?: { enabled?: boolean }) {
     return unsub
   }, [uid, enabled])
 
-  useEffect(() => {
-    setItems(mergeNotificacionesConLeidas(raw, leidasIds))
-  }, [raw, leidasIds])
+  const items = useMemo(
+    () => mergeNotificacionesConLeidas(raw, leidasIds),
+    [raw, leidasIds]
+  )
 
   const noLeidas = useMemo(() => contarNoLeidas(items), [items])
   const paraDropdown = useMemo(() => ordenarParaDropdown(items).slice(0, 10), [items])

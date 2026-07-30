@@ -4,6 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
+import { authBypassActivo, useUsuario } from '@/lib/auth'
+import { usePermisos } from '@/lib/hooks/useRol'
+import { useSolicitudesBorradoBanosPendientes } from '@/lib/hooks/useBanosSolicitudesBorrado'
 import {
   useNotificaciones,
   type FiltroLeida,
@@ -27,7 +30,37 @@ export default function NotificacionesView() {
   const [marcando, setMarcando] = useState(false)
   const router = useRouter()
 
+  const { usuario } = useUsuario()
+  const { esSuperAdmin } = usePermisos(authBypassActivo() ? null : usuario)
+  const pendientesBanos = useSolicitudesBorradoBanosPendientes(esSuperAdmin)
+  const [resolviendoId, setResolviendoId] = useState<string | null>(null)
+
   const lista = filtrar(origen, leida)
+
+  async function onResolverSolicitud(solicitudId: string, decision: 'aprobar' | 'rechazar') {
+    setResolviendoId(solicitudId)
+    try {
+      const token = await usuario?.getIdToken()
+      const res = await fetch(`/api/banos/solicitudes-borrado/${solicitudId}/resolver`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ decision }),
+      })
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string }
+        toast.error(data.error || 'No se pudo resolver la solicitud')
+        return
+      }
+      toast.success(decision === 'aprobar' ? 'Solicitud aprobada' : 'Solicitud rechazada')
+    } catch {
+      toast.error('No se pudo resolver la solicitud')
+    } finally {
+      setResolviendoId(null)
+    }
+  }
 
   async function onClickFila(id: string, href: string, yaLeida: boolean) {
     if (!yaLeida) {
@@ -77,6 +110,7 @@ export default function NotificacionesView() {
               ['todos', 'Todos'],
               ['pedidos-almacen', 'Pedidos'],
               ['requisiciones', 'Requisiciones'],
+              ['banos', 'Baños'],
             ] as const
           ).map(([value, label]) => (
             <button
@@ -141,10 +175,17 @@ export default function NotificacionesView() {
       <ul className="space-y-2">
         {lista.map((n) => (
           <li key={n.id}>
-            <button
-              type="button"
+            <div
+              role="button"
+              tabIndex={0}
               onClick={() => void onClickFila(n.id, n.href, n.leida)}
-              className={`w-full text-left rounded-xl border p-3.5 transition-colors hover:border-[#0369A1]/40 ${
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  void onClickFila(n.id, n.href, n.leida)
+                }
+              }}
+              className={`w-full text-left rounded-xl border p-3.5 transition-colors hover:border-[#0369A1]/40 cursor-pointer ${
                 n.leida
                   ? 'bg-white border-slate-200'
                   : 'bg-sky-50/60 border-sky-200'
@@ -160,17 +201,44 @@ export default function NotificacionesView() {
                       </Badge>
                     )}
                     <Badge variant="outline" className="text-[10px] font-mono">
-                      {n.origenModulo === 'pedidos-almacen' ? 'pedido' : 'requisición'}
+                      {n.origenModulo === 'pedidos-almacen'
+                        ? 'pedido'
+                        : n.origenModulo === 'banos'
+                          ? 'baño'
+                          : 'requisición'}
                     </Badge>
                   </div>
                   <p className="text-xs text-slate-600 mt-1">{n.cuerpo}</p>
+                  {n.origenModulo === 'banos' &&
+                    n.tipo === 'banos_solicitud_creada' &&
+                    esSuperAdmin &&
+                    pendientesBanos.has(n.origenId) && (
+                      <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          disabled={resolviendoId === n.origenId}
+                          onClick={() => void onResolverSolicitud(n.origenId, 'aprobar')}
+                          className="text-[11px] font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-2.5 py-1 rounded-md disabled:opacity-50"
+                        >
+                          Aprobar
+                        </button>
+                        <button
+                          type="button"
+                          disabled={resolviendoId === n.origenId}
+                          onClick={() => void onResolverSolicitud(n.origenId, 'rechazar')}
+                          className="text-[11px] font-semibold bg-red-100 text-red-700 hover:bg-red-200 px-2.5 py-1 rounded-md disabled:opacity-50"
+                        >
+                          Rechazar
+                        </button>
+                      </div>
+                    )}
                   <p className="text-[10px] text-slate-400 font-mono mt-2">
                     {formatearFecha(n.creadoEn)}
                     {n.creadoPorNombre ? ` · ${n.creadoPorNombre}` : ''}
                   </p>
                 </div>
               </div>
-            </button>
+            </div>
           </li>
         ))}
       </ul>
