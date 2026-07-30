@@ -3,13 +3,14 @@ import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
 import { calcularMinutos, useBanos } from '@/lib/hooks/useBanos'
 import { useOperadores } from '@/lib/hooks/useOperadores'
-import type { Bano, RegistroBano } from '@/lib/schemas'
+import type { Bano, MotivoSolicitudBorradoBano, RegistroBano } from '@/lib/schemas'
 import {
   fechaHoyLocal,
   horaAhoraLocal,
   formatIndicadorCapturaBano,
 } from '@/lib/format'
 import { resolverOperadorActivo } from '@/lib/banos-captura'
+import { MOTIVOS_SOLICITUD_BORRADO_BANO } from '@/lib/banos-solicitudes-borrado'
 import { Plus, Trash2, Check, Search, Pencil, X, Clock } from 'lucide-react'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 
@@ -63,6 +64,63 @@ export default function RegistroBanoList() {
   const [editHoraLlegada, setEditHoraLlegada] = useState('')
   const [guardandoEdit, setGuardandoEdit] = useState(false)
   const [errorEdit, setErrorEdit] = useState<string | null>(null)
+
+  // Estado para modal de solicitud de eliminación (almacén)
+  const [solicitandoRegistro, setSolicitandoRegistro] = useState<RegistroBano | null>(null)
+  const [motivoSolicitud, setMotivoSolicitud] = useState<MotivoSolicitudBorradoBano | null>(null)
+  const [notaSolicitud, setNotaSolicitud] = useState('')
+  const [enviandoSolicitud, setEnviandoSolicitud] = useState(false)
+  const [errorSolicitud, setErrorSolicitud] = useState<string | null>(null)
+
+  function abrirModalSolicitud(r: RegistroBano) {
+    setSolicitandoRegistro(r)
+    setMotivoSolicitud(null)
+    setNotaSolicitud('')
+    setErrorSolicitud(null)
+  }
+
+  async function handleEnviarSolicitud(e: React.FormEvent) {
+    e.preventDefault()
+    if (!solicitandoRegistro || !motivoSolicitud) return
+    if (motivoSolicitud === 'otro' && !notaSolicitud.trim()) {
+      setErrorSolicitud('Escribe una nota para el motivo "Otro".')
+      return
+    }
+
+    setEnviandoSolicitud(true)
+    setErrorSolicitud(null)
+    try {
+      const token = await usuario?.getIdToken()
+      const res = await fetch('/api/banos/solicitudes-borrado', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          registroId: solicitandoRegistro.id,
+          motivo: motivoSolicitud,
+          nota: notaSolicitud.trim() || undefined,
+        }),
+      })
+      const data = await res.json() as { estado?: string; error?: string }
+      if (!res.ok) {
+        setErrorSolicitud(data.error || 'No se pudo enviar la solicitud.')
+        return
+      }
+      setMensajeExito(
+        data.estado === 'auto_aprobada'
+          ? `Se eliminó automáticamente el registro de ${solicitandoRegistro.operador}.`
+          : 'Solicitud enviada. Un súper admin la revisará pronto.'
+      )
+      setSolicitandoRegistro(null)
+    } catch (err) {
+      console.error('Error enviando solicitud de borrado:', err)
+      setErrorSolicitud('No se pudo enviar la solicitud. Intenta de nuevo.')
+    } finally {
+      setEnviandoSolicitud(false)
+    }
+  }
 
   function abrirModalEditar(r: RegistroBano) {
     setEditandoRegistro(r)
@@ -443,6 +501,22 @@ export default function RegistroBanoList() {
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           )}
+                          {!puedeEliminar && !!usuario?.uid && r.creadoPorUid === usuario.uid && (
+                            r.solicitudBorradoEstado === 'pendiente' ? (
+                              <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md whitespace-nowrap">
+                                Pendiente de revisión
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => abrirModalSolicitud(r)}
+                                title="Solicitar eliminación (un súper admin la revisará)"
+                                className="text-[10px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md transition-colors whitespace-nowrap"
+                              >
+                                Solicitar eliminación
+                              </button>
+                            )
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -532,6 +606,81 @@ export default function RegistroBanoList() {
                   className="px-4 py-1.5 text-xs font-semibold bg-[#0369A1] hover:bg-[#0284C7] text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
                 >
                   {guardandoEdit ? 'Guardando...' : 'Guardar Horario'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de solicitud de eliminación */}
+      {solicitandoRegistro && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-md p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">Solicitar eliminación</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {solicitandoRegistro.operador} — <span className="font-medium text-slate-700">{solicitandoRegistro.bano}</span> ({solicitandoRegistro.fecha})
+                </p>
+              </div>
+              <button
+                onClick={() => setSolicitandoRegistro(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-100 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {errorSolicitud && (
+              <div className="bg-red-50 border border-red-200 text-red-700 p-2.5 rounded-lg text-xs">
+                {errorSolicitud}
+              </div>
+            )}
+
+            <form onSubmit={handleEnviarSolicitud} className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {MOTIVOS_SOLICITUD_BORRADO_BANO.map((m) => (
+                  <button
+                    key={m.value}
+                    type="button"
+                    onClick={() => setMotivoSolicitud(m.value)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                      motivoSolicitud === m.value
+                        ? 'bg-[#0369A1] text-white border-[#0369A1]'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-[#0369A1]/50'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
+              {motivoSolicitud === 'otro' && (
+                <textarea
+                  required
+                  value={notaSolicitud}
+                  onChange={(e) => setNotaSolicitud(e.target.value)}
+                  placeholder="Explica brevemente el motivo..."
+                  rows={3}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0369A1]/20 focus:border-[#0369A1]"
+                />
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSolicitandoRegistro(null)}
+                  className="px-3.5 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={enviandoSolicitud || !motivoSolicitud}
+                  className="px-4 py-1.5 text-xs font-semibold bg-[#0369A1] hover:bg-[#0284C7] text-white rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {enviandoSolicitud ? 'Enviando...' : 'Enviar solicitud'}
                 </button>
               </div>
             </form>
