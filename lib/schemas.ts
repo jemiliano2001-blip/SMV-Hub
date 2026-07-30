@@ -553,7 +553,12 @@ export const EstadoSolicitudBorradoBanoSchema = z.enum([
 ])
 export type EstadoSolicitudBorradoBano = z.infer<typeof EstadoSolicitudBorradoBanoSchema>
 
-export const ReglaAutoAprobacionSchema = z.enum(["duplicado_10min", "arrepentimiento_2min"])
+export const ReglaAutoAprobacionSchema = z.enum([
+  "duplicado_10min",
+  "arrepentimiento_2min",
+  "ia_aprobada",
+  "ia_rechazada",
+])
 export type ReglaAutoAprobacion = z.infer<typeof ReglaAutoAprobacionSchema>
 
 export const RegistroResumenSolicitudSchema = z.object({
@@ -576,6 +581,11 @@ export const SolicitudBorradoBanoSchema = z.object({
   solicitadoPorNombre: z.string(),
   estado: EstadoSolicitudBorradoBanoSchema,
   reglaAutoAplicada: ReglaAutoAprobacionSchema.optional(),
+  evaluacionIa: z.object({
+    decision: z.enum(["aprobar", "rechazar", "revision"]),
+    confianza: z.number().min(0).max(1),
+    motivo: z.string(),
+  }).optional(),
   resueltoPorUid: z.string().optional(),
   resueltoPorNombre: z.string().optional(),
   creadoEn: z.date(),

@@ -77,7 +77,8 @@ export default function ReporteView({
 
   useEffect(() => {
     if (tabVista !== "gerencial") return
-    void cargar()
+    const timer = window.setTimeout(() => void cargar(), 0)
+    return () => window.clearTimeout(timer)
   }, [tabVista, cargar])
 
   function handlePreset(tipo: "semana" | "mes") {

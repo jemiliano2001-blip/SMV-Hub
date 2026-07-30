@@ -39,6 +39,16 @@ async function seed(): Promise<void> {
         email: "report-user@example.com",
         modulos: ["reportes"],
       }),
+      db.doc("usuarios/notifications-user").set({
+        activo: true,
+        email: "notifications-user@example.com",
+        modulos: ["notificaciones"],
+      }),
+      db.doc("usuarios/other-notifications-user").set({
+        activo: true,
+        email: "other-notifications-user@example.com",
+        modulos: ["notificaciones"],
+      }),
       db.doc("compras_odoo_po/po-1").set({ name: "PO-1" }),
       db.doc("compras_odoo_facturas/bill-1").set({ name: "BILL-1" }),
       db.doc("compras_odoo_items/item-1").set({
@@ -130,6 +140,16 @@ describeWithEmulator("reglas Firestore de Integridad", () => {
     await assertSucceeds(provider.get())
     await assertFails(provider.update({ status: "tampered" }))
     await assertFails(userDb("report-user").doc("compras_odoo_sync_state/current").get())
+  })
+
+  it("persiste y permite leer únicamente los marcadores de notificaciones propios", async () => {
+    const ruta = "usuarios/notifications-user/notificaciones_leidas/notif-1"
+    const marcador = userDb("notifications-user").doc(ruta)
+
+    await assertSucceeds(marcador.set({ leidoEn: new Date() }))
+    await assertSucceeds(marcador.get())
+    await assertFails(userDb("other-notifications-user").doc(ruta).get())
+    await assertFails(marcador.set({ leidoEn: new Date(), campoNoPermitido: true }))
   })
 
   it("el harness realmente ejecutó contra el emulador", () => {

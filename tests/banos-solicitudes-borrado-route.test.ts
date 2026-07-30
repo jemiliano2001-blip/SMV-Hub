@@ -6,17 +6,20 @@ const {
   mockObtenerUsuarioAdmin,
   mockRegistrarAuditoriaServer,
   mockEmitirNotificacionServer,
+  mockEvaluarSolicitudBorradoConIa,
 } = vi.hoisted(() => ({
   mockVerificarUsuarioAutorizado: vi.fn(),
   mockObtenerUsuarioAdmin: vi.fn(),
   mockRegistrarAuditoriaServer: vi.fn().mockResolvedValue(undefined),
   mockEmitirNotificacionServer: vi.fn().mockResolvedValue("notif-1"),
+  mockEvaluarSolicitudBorradoConIa: vi.fn(),
 }))
 
 vi.mock("@/lib/api-auth", () => ({ verificarUsuarioAutorizado: mockVerificarUsuarioAutorizado }))
 vi.mock("@/lib/usuarios-admin", () => ({ obtenerUsuarioAdmin: mockObtenerUsuarioAdmin }))
 vi.mock("@/lib/auditoria-server", () => ({ registrarAuditoriaServer: mockRegistrarAuditoriaServer }))
 vi.mock("@/lib/notificaciones-server", () => ({ emitirNotificacionServer: mockEmitirNotificacionServer }))
+vi.mock("@/lib/banos-ia", () => ({ evaluarSolicitudBorradoConIa: mockEvaluarSolicitudBorradoConIa }))
 
 class FakeTimestamp {
   constructor(private fecha: Date) {}
@@ -105,6 +108,7 @@ describe("POST /api/banos/solicitudes-borrado", () => {
     vi.clearAllMocks()
     mockVerificarUsuarioAutorizado.mockResolvedValue({ ok: true, uid: "user-1", email: "juan@smv.com" })
     mockObtenerUsuarioAdmin.mockResolvedValue({ activo: true, esSuperAdmin: false, modulos: ["banos"] })
+    mockEvaluarSolicitudBorradoConIa.mockResolvedValue({ decision: "revision", confianza: 0.4, motivo: "Requiere revisión" })
     fakeAdminDb = makeFakeAdminDb({})
   })
 
@@ -154,11 +158,13 @@ describe("POST /api/banos/solicitudes-borrado", () => {
         fakeRegistroDoc("registro-2", { horaEntrada: "10:05" }),
       ],
     })
+    mockEvaluarSolicitudBorradoConIa.mockResolvedValue({ decision: "aprobar", confianza: 0.95, motivo: "Duplicado claro" })
     const res = await POST(makeRequest({ registroId: "registro-1", motivo: "duplicado" }))
     const body = await res.json()
 
     expect(res.status).toBe(201)
-    expect(body).toEqual({ estado: "auto_aprobada", regla: "duplicado_10min" })
+    expect(body.estado).toBe("auto_aprobada")
+    expect(body.regla).toBe("ia_aprobada")
     expect(fakeAdminDb.__registroDocRef.delete).toHaveBeenCalled()
     expect(mockRegistrarAuditoriaServer).toHaveBeenCalled()
     expect(mockEmitirNotificacionServer).toHaveBeenCalledWith(
@@ -170,11 +176,13 @@ describe("POST /api/banos/solicitudes-borrado", () => {
     fakeAdminDb = makeFakeAdminDb({
       registroDoc: fakeRegistroDoc("registro-1", { creadoEn: new FakeTimestamp(new Date()) }),
     })
+    mockEvaluarSolicitudBorradoConIa.mockResolvedValue({ decision: "aprobar", confianza: 0.95, motivo: "Arrepentimiento inmediato" })
     const res = await POST(makeRequest({ registroId: "registro-1", motivo: "accidental" }))
     const body = await res.json()
 
     expect(res.status).toBe(201)
-    expect(body).toEqual({ estado: "auto_aprobada", regla: "arrepentimiento_2min" })
+    expect(body.estado).toBe("auto_aprobada")
+    expect(body.regla).toBe("ia_aprobada")
     expect(fakeAdminDb.__registroDocRef.delete).toHaveBeenCalled()
   })
 

@@ -4,7 +4,8 @@ import { adminDb } from "@/lib/firebase-admin"
 import { obtenerUsuarioAdmin } from "@/lib/usuarios-admin"
 import { registrarAuditoriaServer } from "@/lib/auditoria-server"
 import { emitirNotificacionServer } from "@/lib/notificaciones-server"
-import { evaluarReglaAutoAprobacion, construirResumenRegistro } from "@/lib/banos-solicitudes-borrado"
+import { construirResumenRegistro } from "@/lib/banos-solicitudes-borrado"
+import { evaluarSolicitudBorradoConIa, type EvaluacionBano } from "@/lib/banos-ia"
 import { CrearSolicitudBorradoBanoInputSchema, type RegistroBano } from "@/lib/schemas"
 
 function registroDesdeSnapshot(id: string, data: DocumentData): RegistroBano {
@@ -68,13 +69,52 @@ export async function POST(request: Request) {
       .get()
     const relacionados = relacionadosSnap.docs.map((d: QueryDocumentSnapshot) => registroDesdeSnapshot(d.id, d.data()))
 
-    const ahora = new Date()
-    const regla = evaluarReglaAutoAprobacion(registro, relacionados, ahora)
+    let evaluacionIa: EvaluacionBano | null = null
+    try {
+      evaluacionIa = await evaluarSolicitudBorradoConIa({ registro, motivo, nota, relacionados })
+    } catch (error) {
+      // Una caída de Gemini nunca debe borrar ni rechazar datos automáticamente.
+      console.error("Evaluación IA de Baños no disponible:", error instanceof Error ? error.message : "error desconocido")
+    }
+
+    const iaConConfianza = evaluacionIa && evaluacionIa.confianza >= 0.8 ? evaluacionIa : null
+    const regla = iaConConfianza?.decision === "aprobar"
+      ? "ia_aprobada"
+      : iaConConfianza?.decision === "rechazar"
+        ? "ia_rechazada"
+        : null
     const registroResumen = construirResumenRegistro(registro)
     const solicitudRef = adminDb.collection("solicitudes_borrado_banos").doc()
     const solicitadoPorNombre = auth.email
 
-    if (regla) {
+    if (regla === "ia_rechazada") {
+      await solicitudRef.set({
+        registroId,
+        registroResumen,
+        motivo,
+        ...(nota ? { nota } : {}),
+        solicitadoPorUid: auth.uid,
+        solicitadoPorNombre,
+        estado: "rechazada",
+        reglaAutoAplicada: regla,
+        evaluacionIa,
+        creadoEn: FieldValue.serverTimestamp(),
+        actualizadoEn: FieldValue.serverTimestamp(),
+      })
+      await emitirNotificacionServer({
+        tipo: "banos_solicitud_resuelta",
+        titulo: "Solicitud de borrado rechazada por IA",
+        cuerpo: `${registro.operador} · ${registro.bano} (${registro.fecha}) — ${iaConConfianza?.motivo ?? "el registro se conserva"}`,
+        origenModulo: "banos",
+        origenId: solicitudRef.id,
+        href: "/banos",
+        creadoPorUid: auth.uid,
+        creadoPorNombre: solicitadoPorNombre,
+      })
+      return Response.json({ estado: "rechazada", regla, evaluacionIa }, { status: 201 })
+    }
+
+    if (regla === "ia_aprobada") {
       await solicitudRef.set({
         registroId,
         registroResumen,
@@ -84,6 +124,7 @@ export async function POST(request: Request) {
         solicitadoPorNombre,
         estado: "auto_aprobada",
         reglaAutoAplicada: regla,
+        evaluacionIa,
         creadoEn: FieldValue.serverTimestamp(),
         actualizadoEn: FieldValue.serverTimestamp(),
       })
@@ -105,7 +146,7 @@ export async function POST(request: Request) {
         creadoPorUid: auth.uid,
         creadoPorNombre: solicitadoPorNombre,
       })
-      return Response.json({ estado: "auto_aprobada", regla }, { status: 201 })
+      return Response.json({ estado: "auto_aprobada", regla, evaluacionIa }, { status: 201 })
     }
 
     await solicitudRef.set({
@@ -116,6 +157,7 @@ export async function POST(request: Request) {
       solicitadoPorUid: auth.uid,
       solicitadoPorNombre,
       estado: "pendiente",
+      ...(evaluacionIa ? { evaluacionIa } : {}),
       creadoEn: FieldValue.serverTimestamp(),
       actualizadoEn: FieldValue.serverTimestamp(),
     })

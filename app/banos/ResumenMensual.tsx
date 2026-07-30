@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useBanos } from '@/lib/hooks/useBanos'
 import { Clock, Search, Download } from 'lucide-react'
+import { fechaHoyLocal } from '@/lib/format'
 
 function formatearHorasMinutos(minutosTotales: number): string {
   const horas = Math.floor(minutosTotales / 60)
@@ -9,7 +10,7 @@ function formatearHorasMinutos(minutosTotales: number): string {
 }
 
 export default function ResumenMensual() {
-  const [mes, setMes] = useState(() => new Date().toISOString().slice(0, 7)) // YYYY-MM
+  const [mes, setMes] = useState(() => fechaHoyLocal().slice(0, 7)) // YYYY-MM
   
   const { registros, loading, error } = useBanos(mes)
 

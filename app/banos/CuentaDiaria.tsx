@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react'
 import { useBanos } from '@/lib/hooks/useBanos'
 import { Search, Download } from 'lucide-react'
+import { fechaHoyLocal } from '@/lib/format'
 
 export default function CuentaDiaria() {
-  const [mes, setMes] = useState(() => new Date().toISOString().slice(0, 7)) // YYYY-MM
+  const [mes, setMes] = useState(() => fechaHoyLocal().slice(0, 7)) // YYYY-MM
   
   const { registros, loading, error, fetchRegistros } = useBanos(mes)
 

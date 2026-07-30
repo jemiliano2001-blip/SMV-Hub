@@ -40,7 +40,8 @@ export function useCotizaciones() {
   }, [])
 
   useEffect(() => {
-    void fetchCotizaciones()
+    const id = window.setTimeout(() => void fetchCotizaciones(), 0)
+    return () => window.clearTimeout(id)
   }, [fetchCotizaciones])
 
   const cargarMas = useCallback(async () => {

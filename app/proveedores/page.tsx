@@ -1158,7 +1158,8 @@ function ProveedoresContent() {
   }
 
   useEffect(() => {
-    void cargarScorecardsVentana()
+    const timer = window.setTimeout(() => void cargarScorecardsVentana(), 0)
+    return () => window.clearTimeout(timer)
   }, [])
 
   const [modalFormAbierto, setModalFormAbierto] = useState(false)

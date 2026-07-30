@@ -35,6 +35,7 @@ export default function RegistroBanoList() {
   const puedeEliminar = esSuperAdmin || authBypassActivo()
 
   const confirmar = useConfirmDialog()
+  const mesActual = fechaHoyLocal().slice(0, 7)
   const {
     registros,
     loading: loadingBanos,
@@ -44,7 +45,7 @@ export default function RegistroBanoList() {
     registrarLlegada,
     actualizarHorario,
     borrarRegistro,
-  } = useBanos()
+  } = useBanos(mesActual)
   const { activos: operadoresActivos, loading: loadingOps } = useOperadores()
 
   const [agregando, setAgregando] = useState(false)
@@ -108,11 +109,15 @@ export default function RegistroBanoList() {
         setErrorSolicitud(data.error || 'No se pudo enviar la solicitud.')
         return
       }
-      setMensajeExito(
+      if (data.estado === 'rechazada') {
+        setMensajeExito('La IA rechazó la solicitud; el registro se conserva.')
+      } else {
+        setMensajeExito(
         data.estado === 'auto_aprobada'
           ? `Se eliminó automáticamente el registro de ${solicitandoRegistro.operador}.`
           : 'Solicitud enviada. Un súper admin la revisará pronto.'
-      )
+        )
+      }
       setSolicitandoRegistro(null)
     } catch (err) {
       console.error('Error enviando solicitud de borrado:', err)
