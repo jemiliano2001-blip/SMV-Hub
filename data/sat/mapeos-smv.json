@@ -23,6 +23,26 @@
       "descripcionEjemplo": "Compression Spring"
     },
     {
+      "tokensNormalizados": ["resorte", "compresion"],
+      "claveProdServ": "31161904",
+      "descripcionEjemplo": "Resorte de compresión"
+    },
+    {
+      "tokensNormalizados": ["resortes", "compresion"],
+      "claveProdServ": "31161904",
+      "descripcionEjemplo": "Resortes de compresión"
+    },
+    {
+      "tokensNormalizados": ["spring", "extension"],
+      "claveProdServ": "31161907",
+      "descripcionEjemplo": "Extension Spring"
+    },
+    {
+      "tokensNormalizados": ["resorte", "extension"],
+      "claveProdServ": "31161907",
+      "descripcionEjemplo": "Resorte de extensión"
+    },
+    {
       "tokensNormalizados": ["deburring", "blade"],
       "sku": "BS1010",
       "claveProdServ": "23241609",
@@ -32,6 +52,16 @@
       "tokensNormalizados": ["oring", "gasket", "seal"],
       "claveProdServ": "31162411",
       "descripcionEjemplo": "Buna-N O-Ring"
+    },
+    {
+      "tokensNormalizados": ["o-ring", "buna-n"],
+      "claveProdServ": "31162411",
+      "descripcionEjemplo": "Buna-N O-Ring 1/4 ID"
+    },
+    {
+      "tokensNormalizados": ["oring", "buna"],
+      "claveProdServ": "31162411",
+      "descripcionEjemplo": "Buna N ORing"
     }
   ]
 }

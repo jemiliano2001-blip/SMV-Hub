@@ -57,6 +57,7 @@ describe("CASOS_SMV_SAT sin Gemini", () => {
       )
 
       expect(result.claveProdServ).not.toBeNull()
+      expect(result.claveProdServ).toBe(caso.claveEsperada)
 
       if (caso.patronDescripcionSat && result.descripcionSat) {
         expect(result.descripcionSat).toMatch(new RegExp(caso.patronDescripcionSat, "i"))

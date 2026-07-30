@@ -70,6 +70,9 @@ export default function ReporteContableView() {
   const [guardandoLote, setGuardandoLote] = useState(false)
   const [resugieriendo, setResugieriendo] = useState<Set<string>>(new Set())
   const [errorResugerir, setErrorResugerir] = useState<string | null>(null)
+  const [altsPorLinea, setAltsPorLinea] = useState<
+    Record<string, Array<{ clave: string; descripcionSat: string }>>
+  >({})
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -253,6 +256,28 @@ export default function ReporteContableView() {
     }
   }
 
+  const aplicarClaveLinea = async (
+    linea: Linea,
+    claveProdServ: string,
+    alts: Array<{ clave: string; descripcionSat: string }> = []
+  ) => {
+    const orden = ordenes.find((o) => o.id === linea.ordenId)
+    if (!orden) throw new Error("La orden ya no existe")
+
+    const itemsActualizados = orden.items.map((item, idx) =>
+      idx === linea.itemIndex
+        ? { ...item, claveProdServ, satPendiente: false }
+        : item
+    )
+    await actualizarClavesSatLote([{ ordenId: linea.ordenId, items: itemsActualizados }])
+    const claveLinea = `${linea.ordenId}-${linea.itemIndex}`
+    setAltsPorLinea((prev) => ({
+      ...prev,
+      [claveLinea]: alts.filter((a) => a.clave !== claveProdServ).slice(0, 3),
+    }))
+    await cargar()
+  }
+
   const handleResugerir = async (linea: Linea) => {
     if (linea.itemIndex < 0) return
     const clave = `${linea.ordenId}-${linea.itemIndex}`
@@ -268,28 +293,28 @@ export default function ReporteContableView() {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          items: [{ descripcion: linea.descripcion, proveedor: linea.proveedor }],
+          items: [
+            {
+              descripcion: linea.descripcion,
+              proveedor: linea.proveedor,
+              terminosPrevios: linea.descripcionSimplificada || undefined,
+            },
+          ],
           historialEntradas: extraerEntradasHistorialSat(ordenesFiltradas),
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "No se pudo generar la sugerencia")
 
-      const sugerencia = data.sugerencias?.[0] as { claveProdServ: string | null } | undefined
+      const sugerencia = data.sugerencias?.[0] as {
+        claveProdServ: string | null
+        alternativas?: Array<{ clave: string; descripcionSat: string }>
+      } | undefined
       if (!sugerencia?.claveProdServ) {
         throw new Error("No hubo una nueva sugerencia de clave SAT para esta línea")
       }
 
-      const orden = ordenes.find((o) => o.id === linea.ordenId)
-      if (!orden) throw new Error("La orden ya no existe")
-
-      const itemsActualizados = orden.items.map((item, idx) =>
-        idx === linea.itemIndex
-          ? { ...item, claveProdServ: sugerencia.claveProdServ!, satPendiente: false }
-          : item
-      )
-      await actualizarClavesSatLote([{ ordenId: linea.ordenId, items: itemsActualizados }])
-      await cargar()
+      await aplicarClaveLinea(linea, sugerencia.claveProdServ, sugerencia.alternativas ?? [])
     } catch (error) {
       setErrorResugerir(mensajeError(error))
     } finally {
@@ -563,6 +588,21 @@ export default function ReporteContableView() {
                                 ? "Cargando..."
                                 : satDict[l.claveProdServ || ""] || ""}
                             </div>
+                            {(altsPorLinea[`${l.ordenId}-${l.itemIndex}`]?.length ?? 0) > 0 && (
+                              <div className="mt-1.5 flex flex-wrap gap-1 no-print">
+                                {altsPorLinea[`${l.ordenId}-${l.itemIndex}`].map((alt) => (
+                                  <button
+                                    key={alt.clave}
+                                    type="button"
+                                    title={alt.descripcionSat}
+                                    onClick={() => void aplicarClaveLinea(l, alt.clave, altsPorLinea[`${l.ordenId}-${l.itemIndex}`])}
+                                    className="rounded border border-blue-200 bg-white px-1.5 py-0.5 text-[10px] font-mono text-blue-800 hover:bg-blue-50"
+                                  >
+                                    {alt.clave}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-right font-medium">
                             {l.cantidad !== null ? l.cantidad : "—"}

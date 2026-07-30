@@ -146,7 +146,7 @@ export default function ModalSugerirClavesSat({
                 alternativas: sug?.alternativas ?? [],
                 aplicar: tieneClave && sug?.confianza === 'alta',
                 buscando: false,
-                mostrarAlternativas: false,
+                mostrarAlternativas: (sug?.alternativas?.length ?? 0) > 0,
               }
             })
           )

@@ -42,7 +42,23 @@ describe("buscarClavesSat con catálogo cargado", () => {
     const singular = buscarClavesSat("resorte de compresion", 3)
     const plural = buscarClavesSat("resortes de compresion", 3)
     expect(singular[0]?.entry.clave).toBe(plural[0]?.entry.clave)
+    expect(singular[0]?.entry.clave).toBe("31161904")
     expect(singular[0]?.entry.descripcion).toMatch(/^Resortes de compresión$/i)
     expect(singular[0]?.score).toBeGreaterThanOrEqual(400)
+  })
+
+  it("con filtro taller, 31161904 sigue primero y no ganan máquinas de forjado", () => {
+    const results = buscarClavesSat("resorte de compresión", 5, {
+      divisionPrefijos: ["23", "27", "31"],
+    })
+    expect(results[0]?.entry.clave).toBe("31161904")
+    expect(results.map((r) => r.entry.clave)).not.toContain("23251710")
+  })
+
+  it("query solo 'resorte' prioriza el producto sobre máquina/herramienta", () => {
+    const results = buscarClavesSat("resorte", 5, { divisionPrefijos: ["23", "27", "31"] })
+    expect(results.length).toBeGreaterThan(0)
+    expect(results[0]?.entry.descripcion).toMatch(/^Resortes?\b/i)
+    expect(results[0]?.entry.descripcion).not.toMatch(/máquina|forjado|tester|alicate/i)
   })
 })

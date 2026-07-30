@@ -48,6 +48,13 @@ describe("traducirConGlosario", () => {
     expect(r).not.toBeNull()
     expect(r?.terminosBusqueda).toMatch(/herramienta|corte|carburo/)
   })
+
+  it("conserva modificador 'compresión' en consultas en español", () => {
+    const r = traducirConGlosario("resorte de compresión")
+    expect(r).not.toBeNull()
+    expect(r?.terminosBusqueda).toMatch(/resorte/)
+    expect(r?.terminosBusqueda).toMatch(/compresion/)
+  })
 })
 
 describe("resolverModeloLite", () => {
@@ -400,6 +407,30 @@ describe("sugerirClaveSatItem", () => {
     // aunque la búsqueda directa con la misma traducción ya daba la respuesta
     // correcta, ej. "resorte de compresión" → clave equivocada de "máquina de
     // forjado de martillo de resorte").
+    expect(traducirYElegir).not.toHaveBeenCalled()
+  })
+
+  it("resorte de compresión (ES) → 31161904 con alternativas y sin IA", async () => {
+    clearSatSugerenciaCache()
+    const traducirYElegir = vi.fn().mockResolvedValue({
+      terminosBusqueda: "resorte",
+      clave: "23251710",
+      motivo: "candidato malo",
+      confianzaIa: "alta" as const,
+    })
+
+    for (const descripcion of [
+      "resorte de compresión",
+      "resortes de compresión",
+      "Resorte de compresion 1/2",
+    ]) {
+      clearSatSugerenciaCache()
+      const result = await sugerirClaveSatItem({ descripcion }, new Map(), { traducirYElegir })
+      expect(result.claveProdServ).toBe("31161904")
+      expect(result.descripcionSat).toMatch(/compresión/i)
+      expect(result.alternativas?.length ?? 0).toBeGreaterThan(0)
+      expect(result.alternativas?.some((a) => a.clave === "23251710")).toBe(false)
+    }
     expect(traducirYElegir).not.toHaveBeenCalled()
   })
 })

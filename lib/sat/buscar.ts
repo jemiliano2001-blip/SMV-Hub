@@ -27,6 +27,11 @@ export type BuscarClavesSatOpciones = {
   /** Varias divisiones permitidas (ej. ["23","31"] para taller). */
   divisionPrefijos?: string[]
   limit?: number
+  /**
+   * Si true, también busca en el catálogo completo y fusiona matches de frase
+   * casi exacta aunque el filtro de división los hubiera dejado fuera.
+   */
+  inyectarFraseExacta?: boolean
 }
 
 const PALABRAS_GENERICAS = new Set([
@@ -34,6 +39,43 @@ const PALABRAS_GENERICAS = new Set([
   "EL", "LOS", "LAS", "SOLIDO", "SOLIDA", "INDUSTRIAL", "PRODUCTO", "OTROS",
   "RECTA", "ESPIRAL", "PRECISION",
 ])
+
+/** Modificadores de producto que deben pesar (no tirarlos ni tratarlos como ruido). */
+const MODIFICADORES_PRODUCTO = new Set([
+  "COMPRESION", "EXTENSION", "TRACCION", "TORSION", "HELICE", "HELICOIDAL",
+  "COMPRESSION", "EXTENSION", "TORSION",
+])
+
+/**
+ * Tipos de producto de la query → preferimos entradas cuyo título sea ese
+ * producto, no herramientas/máquinas que solo lo mencionan.
+ */
+const TIPOS_PRODUCTO: Array<{
+  query: RegExp
+  titulo: RegExp
+  ruido: RegExp
+}> = [
+  {
+    query: /\b(resortes?|springs?)\b/i,
+    titulo: /\bresortes?\b/i,
+    ruido: /\b(maquina|máquina|forja|forjado|tester|alicate|compresor|tuerca|tuercas|arandela|arandelas|extensor|prensa)\b/i,
+  },
+  {
+    query: /\b(tornillos?|screws?|bolts?)\b/i,
+    titulo: /\btornillos?\b/i,
+    ruido: /\b(maquina|máquina|extractor|juego)\b/i,
+  },
+  {
+    query: /\b(insertos?|inserts?)\b/i,
+    titulo: /\binsertos?\b/i,
+    ruido: /\b(maquina|máquina|portaherramienta)\b/i,
+  },
+  {
+    query: /\b(brocas?|drills?)\b/i,
+    titulo: /\bbrocas?\b/i,
+    ruido: /\b(maquina|máquina|afiladora)\b/i,
+  },
+]
 
 function unique<T>(values: T[]): T[] {
   return Array.from(new Set(values))
@@ -72,6 +114,38 @@ function filtrarEntradas(opciones?: BuscarClavesSatOpciones): SatCatalogEntry[] 
   )
 }
 
+function aplicarSesgoTipoProducto(
+  entry: SatCatalogEntry,
+  query: string,
+  score: number,
+  reasons: string[]
+): number {
+  const tokensEspecificosQuery = tokenizarTextoSat(query).filter(
+    (t) => !PALABRAS_GENERICAS.has(t) || MODIFICADORES_PRODUCTO.has(t)
+  )
+  const primerTipo = tokensEspecificosQuery[0] ?? ""
+  let adjusted = score
+  const desc = entry.descripcion
+
+  for (const tipo of TIPOS_PRODUCTO) {
+    if (!tipo.query.test(query)) continue
+  // Solo sesgar si el tipo es el núcleo de la query (primer término específico).
+  // Evita que "perno de resorte…" se trate como producto "resorte".
+  if (!tipo.query.test(primerTipo) && tokensEspecificosQuery.length > 1) {
+    continue
+  }
+    if (tipo.titulo.test(desc) && !tipo.ruido.test(desc)) {
+      adjusted += 220
+      reasons.push("Coincide tipo de producto del catálogo")
+    } else if (tipo.ruido.test(desc)) {
+      adjusted -= 280
+      reasons.push("Penalizado: menciona el tipo pero no es el producto")
+    }
+    break
+  }
+  return adjusted
+}
+
 function scoreEntry(entry: SatCatalogEntry, query: string): SatSearchResult | null {
   const normalizedKey = normalizarClaveProdServ(query)
   if (normalizedKey) {
@@ -96,29 +170,43 @@ function scoreEntry(entry: SatCatalogEntry, query: string): SatSearchResult | nu
   // Estematizado (quita plurales simples) para que "resorte" encuentre
   // "Resortes de compresión" en el catálogo y viceversa.
   const haystackStem = stemTextoSat(haystack)
+  const descStem = stemTextoSat(normalizarTextoSat(entry.descripcion))
 
   let score = 0
   const reasons: string[] = []
 
-  if (haystackStem.includes(stemTextoSat(normalizedQuery))) {
-    score += 400
-    reasons.push("La descripción contiene la búsqueda completa")
+  const queryStem = stemTextoSat(normalizedQuery)
+  if (descStem === queryStem || haystackStem.includes(queryStem)) {
+    // Preferir igualdad/contención en la descripción del producto, no en división/grupo.
+    if (descStem === queryStem || descStem.includes(queryStem)) {
+      score += 450
+      reasons.push("La descripción contiene la búsqueda completa")
+    } else {
+      score += 200
+      reasons.push("El haystack contiene la búsqueda completa")
+    }
   }
 
   const frases = extraerFrasesQuery(query)
   for (const frase of frases) {
-    if (frase.length >= 6 && haystackStem.includes(stemTextoSat(frase))) {
-      score += 120
+    if (frase.length >= 6 && descStem.includes(stemTextoSat(frase))) {
+      score += 150
       reasons.push(`Coincide frase: ${frase}`)
       break
     }
   }
 
   const matchedTokens = queryTokens.filter((token) => tokenMatchesHaystack(token, haystackStem))
-  const tokensEspecificos = matchedTokens.filter((t) => !PALABRAS_GENERICAS.has(t))
-  const tokensGenericos = matchedTokens.filter((t) => PALABRAS_GENERICAS.has(t))
+  const tokensEspecificos = matchedTokens.filter(
+    (t) => !PALABRAS_GENERICAS.has(t) || MODIFICADORES_PRODUCTO.has(t)
+  )
+  const tokensGenericos = matchedTokens.filter(
+    (t) => PALABRAS_GENERICAS.has(t) && !MODIFICADORES_PRODUCTO.has(t)
+  )
 
-  const queryTokensEspecificos = queryTokens.filter((t) => !PALABRAS_GENERICAS.has(t))
+  const queryTokensEspecificos = queryTokens.filter(
+    (t) => !PALABRAS_GENERICAS.has(t) || MODIFICADORES_PRODUCTO.has(t)
+  )
   const primerTerminoEspecifico = queryTokensEspecificos[0]
   const coincideTerminoPrincipal =
     !primerTerminoEspecifico || tokensEspecificos.includes(primerTerminoEspecifico)
@@ -128,6 +216,14 @@ function scoreEntry(entry: SatCatalogEntry, query: string): SatSearchResult | nu
     reasons.push(
       `Coinciden ${tokensEspecificos.length} término(s) específico(s): ${unique(tokensEspecificos).join(", ")}`
     )
+  }
+
+  // Modificadores de la query (compresión, extensión…) que también están en la descripción.
+  const modsQuery = queryTokens.filter((t) => MODIFICADORES_PRODUCTO.has(t))
+  const modsMatched = modsQuery.filter((t) => tokenMatchesHaystack(t, descStem))
+  if (modsMatched.length > 0) {
+    score += modsMatched.length * 120
+    reasons.push(`Modificador de producto: ${unique(modsMatched).join(", ")}`)
   }
 
   if (tokensGenericos.length > 0 && tokensEspecificos.length === 0) {
@@ -147,9 +243,67 @@ function scoreEntry(entry: SatCatalogEntry, query: string): SatSearchResult | nu
     reasons.push(`Palabras clave del catálogo: ${unique(exactKeywordMatches).join(", ")}`)
   }
 
-  if (score === 0) return null
+  score = aplicarSesgoTipoProducto(entry, query, score, reasons)
+
+  if (score <= 0) return null
 
   return { entry, score, reasons, coincideTerminoPrincipal }
+}
+
+function rankear(
+  entries: SatCatalogEntry[],
+  query: string,
+  limite: number
+): SatSearchResult[] {
+  return entries
+    .map((entry) => scoreEntry(entry, query))
+    .filter((result): result is SatSearchResult => result !== null)
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score
+      return a.entry.clave.localeCompare(b.entry.clave)
+    })
+    .slice(0, limite)
+}
+
+/**
+ * Matches de frase casi exacta en todo el catálogo (sin filtro de división).
+ * Garantiza que "Resortes de compresión" entre al top-N aunque el área taller
+ * haya sesgado el pool.
+ */
+function matchesFraseExacta(query: string, limit: number): SatSearchResult[] {
+  const normalizedQuery = normalizarTextoSat(query)
+  if (!normalizedQuery || normalizedQuery.length < 6) return []
+  const queryStem = stemTextoSat(normalizedQuery)
+  const hits: SatSearchResult[] = []
+
+  for (const entry of getSatCatalogEntries()) {
+    const descStem = stemTextoSat(normalizarTextoSat(entry.descripcion))
+    // Solo contención de la query en la descripción (no al revés: evita que
+    // títulos cortos del catálogo "enganchen" queries largas no relacionadas).
+    if (descStem === queryStem || (queryStem.length >= 8 && descStem.includes(queryStem))) {
+      const scored = scoreEntry(entry, query)
+      if (scored && scored.score >= 400) hits.push(scored)
+    }
+  }
+
+  return hits
+    .sort((a, b) => b.score - a.score || a.entry.clave.localeCompare(b.entry.clave))
+    .slice(0, limit)
+}
+
+function fusionarResultados(
+  primarios: SatSearchResult[],
+  extras: SatSearchResult[],
+  limite: number
+): SatSearchResult[] {
+  const mapa = new Map<string, SatSearchResult>()
+  for (const r of [...extras, ...primarios]) {
+    const prev = mapa.get(r.entry.clave)
+    if (!prev || r.score > prev.score) mapa.set(r.entry.clave, r)
+  }
+  return [...mapa.values()]
+    .sort((a, b) => b.score - a.score || a.entry.clave.localeCompare(b.entry.clave))
+    .slice(0, limite)
 }
 
 export function buscarClavesSat(
@@ -177,14 +331,17 @@ export function buscarClavesSat(
       : []
   }
 
-  return filtrarEntradas(opciones)
-    .map((entry) => scoreEntry(entry, cleaned))
-    .filter((result): result is SatSearchResult => result !== null)
-    .sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score
-      return a.entry.clave.localeCompare(b.entry.clave)
-    })
-    .slice(0, limite)
+  const ranked = rankear(filtrarEntradas(opciones), cleaned, limite)
+
+  const hayFiltroDivision = Boolean(
+    opciones?.divisionPrefijos?.length || opciones?.divisionPrefijo?.trim()
+  )
+  if (opciones?.inyectarFraseExacta !== false && hayFiltroDivision) {
+    const extras = matchesFraseExacta(cleaned, limite)
+    if (extras.length > 0) return fusionarResultados(ranked, extras, limite)
+  }
+
+  return ranked
 }
 
 export function sugerenciaSatBasicaPorDescripcion(
