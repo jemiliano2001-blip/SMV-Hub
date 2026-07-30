@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react"
 import Link from "next/link"
-import { listarOrdenes, actualizarClavesSatLote } from "@/lib/ordenes"
+import { listarOrdenesEnRango, actualizarClavesSatLote } from "@/lib/ordenes"
 import { aplanarLineas, type Linea } from "@/lib/reportes"
 import type { OrdenCompra } from "@/lib/schemas"
 import { getClienteAuth } from "@/lib/firebase"
@@ -12,7 +12,7 @@ import {
   crearResumenProcesamiento,
   type ResumenProcesamientoContableIa,
 } from "@/lib/reportes-contables-ia"
-import { extraerEntradasHistorialSat } from "@/lib/sat/sugerir-clave"
+import { extraerEntradasHistorialSat } from "@/lib/sat/extraer-historial-ordenes"
 import { Loader2, AlertCircle, FileSpreadsheet, Printer, Sparkles, CheckCircle2, History, RefreshCw } from "lucide-react"
 import * as XLSX from "xlsx"
 import { listarLotesContables, crearLoteContable, type ReporteContableLote } from "@/lib/reportes-contables"
@@ -78,8 +78,11 @@ export default function ReporteContableView() {
     setCargando(true)
     setError(null)
     try {
+      const hasta = new Date()
+      const desde = new Date()
+      desde.setFullYear(desde.getFullYear() - 1)
       const [ords, lts] = await Promise.all([
-        listarOrdenes(),
+        listarOrdenesEnRango(desde, hasta),
         listarLotesContables()
       ])
       setOrdenes(ords)
@@ -535,7 +538,7 @@ export default function ReporteContableView() {
                             <div className="text-gray-500">
                               <CheckCircle2 className="h-12 w-12 mx-auto text-emerald-400 mb-3" />
                               <p className="text-lg font-medium text-gray-900">¡Todo al día!</p>
-                              <p>No hay compras pendientes por enviar a la contadora.</p>
+                              <p>No hay compras pendientes por enviar a la contadora en los últimos 12 meses.</p>
                             </div>
                           ) : (
                             <p className="text-gray-500">Selecciona un lote del historial para ver sus compras.</p>

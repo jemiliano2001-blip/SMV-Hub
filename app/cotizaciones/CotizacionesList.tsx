@@ -116,6 +116,12 @@ export default function CotizacionesList() {
     loading,
     error,
     fetchCotizaciones,
+    cargarMas,
+    cargarTodas,
+    cargandoMas,
+    cargandoCompleto,
+    coleccionCompleta,
+    hayMas,
     addOrUpdateCotizacion,
     handleEliminarLote,
   } = useCotizaciones()
@@ -349,10 +355,31 @@ export default function CotizacionesList() {
         </div>
         <div className="flex items-center justify-between gap-3">
           <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <p className="text-xs text-gray-500">
-                {filtradas.length} de {cotizaciones.length} cotizaciones
+                {filtradas.length} de {cotizaciones.length} cotizaciones cargadas
+                {!coleccionCompleta && hayMas ? ' (hay más en el servidor)' : ''}
               </p>
+              {hayMas && !coleccionCompleta && (
+                <button
+                  type="button"
+                  onClick={() => void cargarMas()}
+                  disabled={cargandoMas || loading}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {cargandoMas ? 'Cargando…' : 'Cargar más del servidor'}
+                </button>
+              )}
+              {!coleccionCompleta && (
+                <button
+                  type="button"
+                  onClick={() => void cargarTodas().catch(() => undefined)}
+                  disabled={cargandoCompleto || loading}
+                  className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800 hover:bg-sky-100 disabled:opacity-50"
+                >
+                  {cargandoCompleto ? 'Cargando historial…' : 'Cargar historial completo'}
+                </button>
+              )}
               {selectedIds.size > 0 && (
                 <button
                   onClick={handleDeleteMultiple}

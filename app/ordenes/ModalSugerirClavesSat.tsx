@@ -6,7 +6,7 @@ import type { OrdenCompra, ItemFactura } from '@/lib/schemas'
 import { normalizarClaveProdServ } from '@/lib/sat/normalizar'
 import { actualizarClavesSatLote } from '@/lib/ordenes'
 import { getClienteAuth } from '@/lib/firebase'
-import { extraerEntradasHistorialSat } from '@/lib/sat/sugerir-clave'
+import { extraerEntradasHistorialSat } from '@/lib/sat/extraer-historial-ordenes'
 import { guardarAsignacionesSatValidadas } from '@/lib/sat/mapeos-persistir'
 import type { AlternativaSat } from '@/lib/sat/types'
 

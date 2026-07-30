@@ -11,6 +11,6 @@ build de producción o `smv-hub.web.app` (no solo `next dev`).
 
 | Momento | MB | Notas |
 |---------|-----|-------|
-| Baseline pre-fix | | |
-| Post Fase 1 | | |
-| Post Fase 2 | | |
+| Baseline pre-fix | | Medir en prod/build antes de desplegar este branch |
+| Post Fase 1 | | Auto full-scans cortados; scorecards 12 meses |
+| Post Fase 2 | | Reportes por rango; cotizaciones paginadas; SAT helper sin catálogo en cliente |

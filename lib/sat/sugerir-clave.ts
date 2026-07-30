@@ -127,19 +127,7 @@ export function construirHistorialSat(ordenes: OrdenCompra[]): Map<string, Histo
 }
 
 /** Entradas ligeras enviadas desde el cliente (ya autenticado en Firestore). */
-export function extraerEntradasHistorialSat(
-  ordenes: OrdenCompra[]
-): Array<{ descripcion: string; claveProdServ: string }> {
-  const entradas: Array<{ descripcion: string; claveProdServ: string }> = []
-  for (const orden of ordenes) {
-    for (const item of orden.items ?? []) {
-      const clave = normalizarClaveProdServ(item.claveProdServ)
-      if (!clave || !item.descripcion?.trim()) continue
-      entradas.push({ descripcion: item.descripcion, claveProdServ: clave })
-    }
-  }
-  return entradas
-}
+export { extraerEntradasHistorialSat } from "@/lib/sat/extraer-historial-ordenes"
 
 export function construirHistorialSatDesdeEntradas(
   entradas: Array<{ descripcion: string; claveProdServ: string }>

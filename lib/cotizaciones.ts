@@ -7,6 +7,10 @@ import {
   deleteDoc,
   query,
   orderBy,
+  limit,
+  startAfter,
+  type QueryConstraint,
+  type QueryDocumentSnapshot,
 } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import type { Cotizacion } from "@/lib/schemas"
@@ -65,6 +69,39 @@ export async function listarCotizaciones(): Promise<Cotizacion[]> {
   return snap.docs
     .map((d) => d.data())
     .sort((a, b) => (b.fecha ?? "").localeCompare(a.fecha ?? ""))
+}
+
+export type CursorCotizaciones = QueryDocumentSnapshot<Cotizacion>
+
+export interface PaginaCotizaciones {
+  items: Cotizacion[]
+  siguienteCursor: CursorCotizaciones | null
+  hayMas: boolean
+}
+
+function normalizarTamanoPaginaCotizaciones(tamano: number): number {
+  if (!Number.isFinite(tamano)) return 50
+  return Math.min(100, Math.max(1, Math.trunc(tamano)))
+}
+
+export async function obtenerPaginaCotizaciones(
+  tamano = 50,
+  cursor?: CursorCotizaciones | null
+): Promise<PaginaCotizaciones> {
+  const tamanoSeguro = normalizarTamanoPaginaCotizaciones(tamano)
+  const restricciones: QueryConstraint[] = [orderBy("creadoEn", "desc")]
+  if (cursor) restricciones.push(startAfter(cursor))
+  restricciones.push(limit(tamanoSeguro + 1))
+
+  const snapshot = await getDocs(query(cotizacionesRef(), ...restricciones))
+  const hayMas = snapshot.docs.length > tamanoSeguro
+  const documentos = snapshot.docs.slice(0, tamanoSeguro)
+
+  return {
+    items: documentos.map((documento) => documento.data()),
+    siguienteCursor: hayMas ? documentos.at(-1) ?? null : null,
+    hayMas,
+  }
 }
 
 export async function obtenerCotizacion(id: string): Promise<Cotizacion | null> {

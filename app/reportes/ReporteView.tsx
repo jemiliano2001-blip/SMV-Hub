@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react"
 import Link from "next/link"
-import { listarOrdenes } from "@/lib/ordenes"
+import { listarOrdenesEnRango } from "@/lib/ordenes"
 import {
   filtrarPorRango,
   aplanarLineas,
@@ -38,6 +38,15 @@ function tituloReporte(desde: Date, hasta: Date): string {
   return `${desde.toLocaleDateString(loc, opt)} — ${hasta.toLocaleDateString(loc, opt)}`
 }
 
+/** Ensanchar query de creadoEn para no perder órdenes con fechaFactura en el período. */
+function margenConsulta(desde: Date, hasta: Date): { desdeQ: Date; hastaQ: Date } {
+  const desdeQ = new Date(desde)
+  desdeQ.setDate(desdeQ.getDate() - 45)
+  const hastaQ = new Date(hasta)
+  hastaQ.setDate(hastaQ.getDate() + 45)
+  return { desdeQ, hastaQ }
+}
+
 export default function ReporteView({
   initialTab = "integridad",
 }: {
@@ -45,50 +54,38 @@ export default function ReporteView({
 }) {
   const [tabVista, setTabVista] = useState<"integridad" | "gerencial">(initialTab)
   const [ordenes, setOrdenes] = useState<OrdenCompra[]>([])
-  const [cargando, setCargando] = useState(initialTab === "gerencial")
+  const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [presetTipo, setPresetTipo] = useState<PresetTipo>("semana")
   const [periodo, setPeriodo] = useState(() => periodoPreset("semana"))
   const [agruparPor, setAgruparPor] = useState<CriterioAgrupacion>("proveedor")
   const [moneda, setMoneda] = useState("MXN")
 
-  // Recarga manual (botón "Reintentar"): aquí sí marcamos cargando de inmediato.
   const cargar = useCallback(async () => {
     setCargando(true)
     setError(null)
     try {
-      setOrdenes(await listarOrdenes())
+      const { desdeQ, hastaQ } = margenConsulta(periodo.desde, periodo.hasta)
+      const brutas = await listarOrdenesEnRango(desdeQ, hastaQ)
+      setOrdenes(filtrarPorRango(brutas, periodo.desde, periodo.hasta))
     } catch {
       setError(MSG_ERROR)
     } finally {
       setCargando(false)
     }
-  }, [])
+  }, [periodo.desde, periodo.hasta])
 
   useEffect(() => {
-    if (initialTab !== "gerencial") return
-    let active = true
-    void listarOrdenes()
-      .then((data) => {
-        if (active) setOrdenes(data)
-      })
-      .catch(() => {
-        if (active) setError(MSG_ERROR)
-      })
-      .finally(() => {
-        if (active) setCargando(false)
-      })
-    return () => {
-      active = false
-    }
-  }, [initialTab])
+    if (tabVista !== "gerencial") return
+    void cargar()
+  }, [tabVista, cargar])
 
   function handlePreset(tipo: "semana" | "mes") {
     setPresetTipo(tipo)
     setPeriodo(periodoPreset(tipo))
   }
 
-  const ordenesDelPeriodo = filtrarPorRango(ordenes, periodo.desde, periodo.hasta)
+  const ordenesDelPeriodo = ordenes
   const lineasTodas = aplanarLineas(ordenesDelPeriodo)
   const monedas = [...new Set(lineasTodas.map((l) => l.moneda))].filter(Boolean)
   const monedaActiva = monedas.includes(moneda) ? moneda : (monedas[0] ?? "MXN")
