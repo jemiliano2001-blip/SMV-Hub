@@ -349,7 +349,8 @@ service cloud.firestore {
         esCorreoBreakGlass() ||
         tieneModulo('notificaciones') ||
         tieneModulo('pedidos-almacen') ||
-        tieneModulo('requisiciones')
+        tieneModulo('requisiciones') ||
+        tieneModulo('banos')
       );
     }
 
@@ -413,7 +414,20 @@ service cloud.firestore {
                     && request.resource.data.creadoEn == resource.data.creadoEn
                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
 
-      allow delete: if esUsuarioAutorizado();
+      // Antes cualquier usuario autorizado podía borrar directo — la UI ya
+      // ocultaba el botón a quien no fuera súper admin, pero la regla no lo
+      // exigía. El flujo de solicitud de borrado (Route Handler + Admin SDK)
+      // solo tiene sentido si esto queda cerrado también aquí.
+      allow delete: if esUsuarioAutorizado() && (esSuperAdminDoc() || esCorreoBreakGlass());
+    }
+
+    // ── Solicitudes de eliminación de registros de baño ──────────────────────
+    // Toda escritura (crear, auto-aprobar, aprobar, rechazar) pasa por
+    // app/api/banos/solicitudes-borrado/* con Admin SDK, que ignora estas
+    // reglas — por eso el write queda cerrado también desde el cliente.
+    match /solicitudes_borrado_banos/{solicitudId} {
+      allow read: if esUsuarioAutorizado() && (esSuperAdminDoc() || esCorreoBreakGlass());
+      allow write: if false;
     }
 
     // ── Horas Extra ──────────────────────────────────────────────────────────
