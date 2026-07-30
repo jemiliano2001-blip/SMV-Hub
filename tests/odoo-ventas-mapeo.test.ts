@@ -15,6 +15,7 @@ const SO: OdooSaleOrderRaw = {
   id: 42,
   name: "S00042",
   client_order_ref: "PO-999",
+  origin: "PO.20263330",
   partner_id: [10, "Cliente Demo"],
   date_order: "2026-07-01 10:00:00",
   state: "sale",
@@ -103,6 +104,7 @@ describe("mapearLineaOdoo / mapearVentaOdooSo", () => {
     const so = mapearVentaOdooSo(SO, LINEAS, PICKINGS, ahora)
     expect(so.id).toBe("odoo_42")
     expect(so.clientOrderRef).toBe("PO-999")
+    expect(so.ordenCompra).toBe("PO.20263330")
     expect(so.partnerName).toBe("Cliente Demo")
     expect(so.lineas).toHaveLength(2)
     expect(so.lineas[0]?.productName).toBe("Pieza A")
@@ -113,5 +115,10 @@ describe("mapearLineaOdoo / mapearVentaOdooSo", () => {
   it("client_order_ref false → null", () => {
     const so = mapearVentaOdooSo({ ...SO, client_order_ref: false }, LINEAS, [], ahora)
     expect(so.clientOrderRef).toBeNull()
+  })
+
+  it("origin false → ordenCompra null", () => {
+    const so = mapearVentaOdooSo({ ...SO, origin: false }, LINEAS, [], ahora)
+    expect(so.ordenCompra).toBeNull()
   })
 })

@@ -9,6 +9,7 @@ export type OdooSaleOrderRaw = {
   id: number
   name: string
   client_order_ref: string | false
+  origin: string | false
   partner_id: OdooRelacion
   date_order: string | false
   state: string
@@ -53,6 +54,7 @@ export type VentaOdooSoNormalizada = {
   odooId: number
   name: string
   clientOrderRef: string | null
+  ordenCompra: string | null
   partnerId: number
   partnerName: string
   dateOrder: string | null
@@ -135,6 +137,7 @@ export function mapearVentaOdooSo(
     odooId: raw.id,
     name: raw.name,
     clientOrderRef: textoOrNull(raw.client_order_ref),
+    ordenCompra: textoOrNull(raw.origin),
     partnerId: partner.id,
     partnerName: partner.name,
     dateOrder: textoOrNull(raw.date_order),

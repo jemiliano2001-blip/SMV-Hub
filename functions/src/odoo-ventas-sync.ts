@@ -24,6 +24,7 @@ const CAMPOS_SO = [
   'id',
   'name',
   'client_order_ref',
+  'origin',
   'partner_id',
   'date_order',
   'state',
