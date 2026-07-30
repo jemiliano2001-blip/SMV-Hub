@@ -1,5 +1,6 @@
 import type {
   EstadoSolicitudDocumento,
+  SolicitudDocumento,
   TipoSolicitudDocumento,
   VentaOdooSo,
 } from "@/lib/schemas"
@@ -19,11 +20,66 @@ export function puedeTransicionarEstado(
   return false
 }
 
+export function ordenCompraEfectiva(so: {
+  ordenCompra?: string | null
+  clientOrderRef?: string | null
+}): string | null {
+  const a = so.ordenCompra?.trim()
+  if (a) return a
+  const b = so.clientOrderRef?.trim()
+  if (b) return b
+  return null
+}
+
+export function ordenCompraSolicitud(s: {
+  ordenCompra?: string | null
+  clientOrderRef?: string | null
+}): string | null {
+  return ordenCompraEfectiva(s)
+}
+
+export function etiquetaEstadoSolicitudDocumento(
+  e: EstadoSolicitudDocumento
+): string {
+  switch (e) {
+    case "pendiente":
+      return "Por atender"
+    case "en_proceso":
+      return "En proceso"
+    case "completada":
+      return "Lista"
+    case "rechazada":
+      return "Cancelada"
+  }
+}
+
+export function particionarSolicitudesVentas(
+  rows: readonly SolicitudDocumento[]
+): { pendientes: SolicitudDocumento[]; hechas: SolicitudDocumento[] } {
+  const pendientes: SolicitudDocumento[] = []
+  const hechas: SolicitudDocumento[] = []
+  for (const s of rows) {
+    if (s.estado === "pendiente" || s.estado === "en_proceso") pendientes.push(s)
+    else hechas.push(s)
+  }
+  const byCreadoDesc = (a: SolicitudDocumento, b: SolicitudDocumento) =>
+    b.creadoEn.getTime() - a.creadoEn.getTime()
+  pendientes.sort((a, b) => {
+    const rank = (e: string) => (e === "pendiente" ? 0 : 1)
+    const d = rank(a.estado) - rank(b.estado)
+    return d !== 0 ? d : byCreadoDesc(a, b)
+  })
+  hechas.sort(byCreadoDesc)
+  return { pendientes, hechas }
+}
+
 export function filtrarSoPorTexto(sos: readonly VentaOdooSo[], q: string): VentaOdooSo[] {
   const n = q.trim().toLowerCase()
   if (!n) return [...sos]
   return sos.filter((s) => {
-    const hay = [s.name, s.partnerName, s.clientOrderRef ?? ""].join(" ").toLowerCase()
+    const hay = [s.name, s.partnerName, s.ordenCompra ?? "", s.clientOrderRef ?? ""]
+      .join(" ")
+      .toLowerCase()
     return hay.includes(n)
   })
 }

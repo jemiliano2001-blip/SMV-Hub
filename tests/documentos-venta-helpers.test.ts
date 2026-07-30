@@ -1,10 +1,14 @@
-import { describe, expect, it } from "vitest"
+﻿import { describe, expect, it } from "vitest"
 import {
+  etiquetaEstadoSolicitudDocumento,
   filtrarSoPorTexto,
+  ordenCompraEfectiva,
+  ordenCompraSolicitud,
+  particionarSolicitudesVentas,
   puedeTransicionarEstado,
   validarPartidasRemision,
 } from "@/lib/documentos-venta-helpers"
-import type { VentaOdooSo } from "@/lib/schemas"
+import type { SolicitudDocumento, VentaOdooSo } from "@/lib/schemas"
 
 const atendedor = { esAtendedor: true, esSolicitante: false }
 const solicitante = { esAtendedor: false, esSolicitante: true }
@@ -53,6 +57,7 @@ function soBase(overrides: Partial<VentaOdooSo> = {}): VentaOdooSo {
     odooId: 100,
     name: "SO001",
     clientOrderRef: "PO-123",
+    ordenCompra: null,
     partnerId: 1,
     partnerName: "Acme Corp",
     dateOrder: "2026-07-01",
@@ -65,15 +70,34 @@ function soBase(overrides: Partial<VentaOdooSo> = {}): VentaOdooSo {
   }
 }
 
+describe("ordenCompraEfectiva / ordenCompraSolicitud", () => {
+  it("ordenCompraEfectiva prefiere origin sobre clientOrderRef", () => {
+    expect(ordenCompraEfectiva({ ordenCompra: "PO.1", clientOrderRef: "X" })).toBe("PO.1")
+    expect(ordenCompraEfectiva({ ordenCompra: null, clientOrderRef: "X" })).toBe("X")
+    expect(ordenCompraEfectiva({ ordenCompra: null, clientOrderRef: null })).toBeNull()
+  })
+
+  it("ordenCompraSolicitud reutiliza el mismo efectivo", () => {
+    expect(ordenCompraSolicitud({ ordenCompra: "  A  ", clientOrderRef: "B" })).toBe("A")
+  })
+})
+
 describe("filtrarSoPorTexto", () => {
   const sos = [
     soBase({ id: "1", name: "SO001", partnerName: "Acme Corp", clientOrderRef: "PO-123" }),
     soBase({ id: "2", name: "SO002", partnerName: "Beta SA", clientOrderRef: null }),
+    soBase({
+      id: "3",
+      name: "2026/S01126",
+      partnerName: "OHD",
+      clientOrderRef: null,
+      ordenCompra: "PO.20263330",
+    }),
   ]
 
   it("devuelve copia completa con query vacía", () => {
     const result = filtrarSoPorTexto(sos, "  ")
-    expect(result).toHaveLength(2)
+    expect(result).toHaveLength(3)
     expect(result).not.toBe(sos)
   })
 
@@ -82,6 +106,51 @@ describe("filtrarSoPorTexto", () => {
     expect(filtrarSoPorTexto(sos, "po-123")).toHaveLength(1)
     expect(filtrarSoPorTexto(sos, "so002")).toHaveLength(1)
     expect(filtrarSoPorTexto(sos, "inexistente")).toHaveLength(0)
+  })
+
+  it("filtrarSoPorTexto matchea ordenCompra", () => {
+    expect(filtrarSoPorTexto(sos, "20263330")).toHaveLength(1)
+  })
+})
+
+describe("etiquetaEstadoSolicitudDocumento", () => {
+  it("etiquetaEstadoSolicitudDocumento en español claro", () => {
+    expect(etiquetaEstadoSolicitudDocumento("pendiente")).toBe("Por atender")
+    expect(etiquetaEstadoSolicitudDocumento("en_proceso")).toBe("En proceso")
+    expect(etiquetaEstadoSolicitudDocumento("completada")).toBe("Lista")
+    expect(etiquetaEstadoSolicitudDocumento("rechazada")).toBe("Cancelada")
+  })
+})
+
+describe("particionarSolicitudesVentas", () => {
+  it("particionarSolicitudesVentas separa pendientes y hechas", () => {
+    const base: Omit<SolicitudDocumento, "id" | "estado"> = {
+      tipo: "remision",
+      odooSoId: 1,
+      odooSoName: "S1",
+      clientOrderRef: null,
+      ordenCompra: "PO.1",
+      partnerName: "C",
+      partidas: [],
+      nota: "",
+      folioOdoo: null,
+      motivoRechazo: null,
+      solicitadoPorUid: "u",
+      solicitadoPorNombre: "U",
+      atendidoPorUid: null,
+      atendidoPorNombre: null,
+      creadoEn: new Date("2026-07-01T00:00:00Z"),
+      actualizadoEn: new Date("2026-07-01T00:00:00Z"),
+    }
+    const rows: SolicitudDocumento[] = [
+      { ...base, id: "a", estado: "pendiente" },
+      { ...base, id: "b", estado: "en_proceso" },
+      { ...base, id: "c", estado: "completada" },
+      { ...base, id: "d", estado: "rechazada" },
+    ]
+    const { pendientes, hechas } = particionarSolicitudesVentas(rows)
+    expect(pendientes.map((s) => s.id).sort()).toEqual(["a", "b"])
+    expect(hechas.map((s) => s.id).sort()).toEqual(["c", "d"])
   })
 })
 

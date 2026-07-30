@@ -471,6 +471,7 @@ export const TipoNotificacionSchema = z.enum([
   "banos_solicitud_resuelta",
   "solicitud_documento_creada",
   "solicitud_documento_estado",
+  "solicitud_documento_mensaje",
 ])
 export type TipoNotificacion = z.infer<typeof TipoNotificacionSchema>
 
@@ -1042,6 +1043,7 @@ export const SolicitudDocumentoSchema = z.object({
   odooSoId: z.number().int().positive(),
   odooSoName: z.string().min(1),
   clientOrderRef: z.string().nullable(),
+  ordenCompra: z.string().nullable(),
   partnerName: z.string().min(1),
   partidas: z.array(PartidaSolicitudDocumentoSchema).default([]),
   nota: z.string().default(""),
@@ -1099,6 +1101,7 @@ export const VentaOdooSoSchema = z.object({
   odooId: z.number().int().positive(),
   name: z.string().min(1),
   clientOrderRef: z.string().nullable(),
+  ordenCompra: z.string().nullable(),
   partnerId: z.number().int(),
   partnerName: z.string(),
   dateOrder: z.string().nullable(),

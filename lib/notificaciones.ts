@@ -68,6 +68,7 @@ const TITULOS: Record<TipoNotificacion, string> = {
   banos_solicitud_resuelta: "Solicitud de eliminación de baño resuelta",
   solicitud_documento_creada: "Nueva solicitud de documento",
   solicitud_documento_estado: "Solicitud de documento actualizada",
+  solicitud_documento_mensaje: "Nuevo mensaje en solicitud",
 }
 
 export function tituloParaTipo(tipo: TipoNotificacion): string {
