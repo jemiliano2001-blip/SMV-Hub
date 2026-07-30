@@ -17,6 +17,7 @@ import BotonSesion from '@/app/BotonSesion'
 import BuscadorGlobalCommand from '@/components/BuscadorGlobalCommand'
 import PedidoAlmacenBadge from '@/app/pedidos-almacen/PedidoAlmacenBadge'
 import MisCasosBadge from '@/app/proveedores/mis-casos/MisCasosBadge'
+import NotificacionesBell from '@/app/notificaciones/NotificacionesBell'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { tienePermiso } from '@/lib/roles'
 import { usePermisos } from '@/lib/hooks/useRol'
@@ -50,6 +51,7 @@ const GRUPOS: GrupoNav[] = [
   {
     nombre: 'Operación',
     links: [
+      { href: '/notificaciones', label: 'Notificaciones' },
       { href: '/almacen', label: 'Almacén de materiales' },
       { href: '/pedidos-almacen', label: 'Pedidos de almacén' },
       { href: '/ordenes-servicio', label: 'Órdenes de servicio' },
@@ -182,18 +184,21 @@ export default function NavBar() {
             })}
 
             <div className="ml-3 pl-3 border-l border-slate-200 flex items-center gap-2">
+              <NotificacionesBell />
               <BuscadorGlobalCommand />
               <BotonSesion />
             </div>
           </nav>
 
           {/* Menú Móvil */}
-          <Sheet open={menuMovil} onOpenChange={setMenuMovil}>
+          <div className="md:hidden flex items-center gap-1">
+            <NotificacionesBell />
+            <Sheet open={menuMovil} onOpenChange={setMenuMovil}>
             <SheetTrigger asChild>
               <button
                 type="button"
                 aria-label="Abrir menú"
-                className="md:hidden flex items-center gap-1 rounded-lg p-2 text-slate-900 hover:bg-slate-100 transition-colors"
+                className="flex items-center gap-1 rounded-lg p-2 text-slate-900 hover:bg-slate-100 transition-colors"
               >
                 <Menu className="h-5 w-5" />
                 <PedidoAlmacenBadge />
@@ -239,6 +244,7 @@ export default function NavBar() {
               </div>
             </SheetContent>
           </Sheet>
+          </div>
         </div>
       </div>
     </header>

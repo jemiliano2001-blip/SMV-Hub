@@ -86,6 +86,18 @@ service cloud.firestore {
       // Todas las escrituras pasan por app/api/usuarios/* (Admin SDK, que
       // ignora estas reglas) — nunca directo desde el navegador.
       allow write: if false;
+
+      // Leídos de notificaciones in-app: solo el dueño del uid.
+      match /notificaciones_leidas/{notificacionId} {
+        allow read, create, update: if estaAutenticado()
+          && appCheckValido()
+          && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['leidoEn'])
+          && request.resource.data.leidoEn is timestamp;
+        allow delete: if estaAutenticado()
+          && appCheckValido()
+          && request.auth.uid == uid;
+      }
     }
 
     // ── Validación de datos (frontera real del lado servidor) ────────────────
@@ -328,6 +340,55 @@ service cloud.firestore {
                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
 
       allow delete: if false;
+    }
+
+    // ── Notificaciones in-app (Operación del Taller) ─────────────────────────
+
+    function puedeVerNotificaciones() {
+      return esUsuarioAutorizado() && (
+        esCorreoBreakGlass() ||
+        tieneModulo('notificaciones') ||
+        tieneModulo('pedidos-almacen') ||
+        tieneModulo('requisiciones')
+      );
+    }
+
+    function puedeCrearNotificacion() {
+      return esUsuarioAutorizado() && (
+        esCorreoBreakGlass() ||
+        (
+          request.resource.data.origenModulo == 'pedidos-almacen' &&
+          (tieneModulo('pedidos-almacen') || rolUsuario() in ['admin', 'compras', 'almacen'])
+        ) ||
+        (
+          request.resource.data.origenModulo == 'requisiciones' &&
+          (tieneModulo('requisiciones') || rolUsuario() in ['admin', 'compras', 'diseno'])
+        )
+      );
+    }
+
+    function notificacionValida(d) {
+      return d.tipo in [
+               'pedido_almacen_creado',
+               'pedido_almacen_estado',
+               'requisicion_creada',
+               'requisicion_estado'
+             ] &&
+             d.titulo is string &&
+             d.cuerpo is string &&
+             d.origenModulo in ['pedidos-almacen', 'requisiciones'] &&
+             d.origenId is string &&
+             d.href is string &&
+             d.creadoPorUid is string &&
+             d.creadoPorNombre is string &&
+             d.creadoEn is timestamp &&
+             d.actualizadoEn is timestamp;
+    }
+
+    match /notificaciones/{notificacionId} {
+      allow read: if puedeVerNotificaciones();
+      allow create: if puedeCrearNotificacion() && notificacionValida(request.resource.data);
+      allow update, delete: if false;
     }
 
     // ── Control de Baños ─────────────────────────────────────────────────────

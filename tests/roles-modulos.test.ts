@@ -5,6 +5,7 @@ import {
   modulosDePlantilla,
   modulosDesdeUsuarioLegacy,
   plantillaDesdeUsuarioLegacy,
+  puedeVerNotificaciones,
   tieneModulo,
   tienePermiso,
   tienePermisoPorRol,
@@ -26,10 +27,11 @@ describe("modulosDePlantilla", () => {
     expect(m).not.toContain("usuarios")
   })
 
-  it("almacen tiene entradas/salidas y pedidos, sin compras ni finanzas", () => {
+  it("almacen tiene entradas/salidas, pedidos y notificaciones", () => {
     const m = modulosDePlantilla("almacen")
     expect(m).toContain("almacen")
     expect(m).toContain("pedidos-almacen")
+    expect(m).toContain("notificaciones")
     expect(m).not.toContain("nueva-compra")
     expect(m).not.toContain("finanzas")
   })
@@ -40,6 +42,20 @@ describe("modulosDePlantilla", () => {
       "requisiciones",
       "horas-extra",
     ])
+  })
+})
+
+describe("puedeVerNotificaciones", () => {
+  it("true con notificaciones, pedidos-almacen o requisiciones", () => {
+    expect(puedeVerNotificaciones(["notificaciones"])).toBe(true)
+    expect(puedeVerNotificaciones(["pedidos-almacen"])).toBe(true)
+    expect(puedeVerNotificaciones(["requisiciones"])).toBe(true)
+    expect(puedeVerNotificaciones(["banos"])).toBe(false)
+    expect(puedeVerNotificaciones(null)).toBe(false)
+  })
+
+  it("diseño entra a /notificaciones vía requisiciones", () => {
+    expect(tienePermiso(modulosDePlantilla("diseno"), "/notificaciones")).toBe(true)
   })
 })
 

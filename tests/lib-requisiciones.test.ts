@@ -19,6 +19,15 @@ vi.mock('@/lib/firebase', () => ({
   getClienteAuth: vi.fn(() => ({ currentUser: { email: 'test@example.com' } })),
 }))
 
+vi.mock('@/lib/notificaciones', () => ({
+  emitirNotificacion: vi.fn(async () => 'notif-1'),
+  tituloParaTipo: vi.fn((t: string) => t),
+}))
+
+vi.mock('@/lib/auditoria', () => ({
+  registrarAuditoria: vi.fn(),
+}))
+
 const { mockCollectionRef, mockQueryRef, MockTimestamp, mockBatch } = vi.hoisted(() => {
   const collectionRef = {
     type: 'collectionRef',

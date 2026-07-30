@@ -60,6 +60,15 @@ const { mockCollectionRef, mockDocRef, mockQueryRef, MockTimestamp } = vi.hoiste
   }
 })
 
+vi.mock("@/lib/auditoria", () => ({
+  registrarAuditoria: vi.fn(),
+}))
+
+vi.mock("@/lib/notificaciones", () => ({
+  emitirNotificacion: vi.fn(async () => "notif-1"),
+  tituloParaTipo: vi.fn((t: string) => t),
+}))
+
 // Mock firebase/firestore
 vi.mock("firebase/firestore", () => {
   return {
@@ -67,17 +76,16 @@ vi.mock("firebase/firestore", () => {
     doc: vi.fn(() => mockDocRef),
     addDoc: vi.fn(),
     getDocs: vi.fn(),
+    getDoc: vi.fn(async () => ({
+      exists: () => true,
+      data: () => ({ descripcion: "5 brocas de 3/8" }),
+    })),
     updateDoc: vi.fn(),
     query: vi.fn(() => mockQueryRef),
     orderBy: vi.fn((field, direction) => ({ field, direction })),
     Timestamp: MockTimestamp,
   }
 })
-
-// Mock auditoria — no es el foco de estas pruebas, y evita el addDoc real de la colección auditoria.
-vi.mock("@/lib/auditoria", () => ({
-  registrarAuditoria: vi.fn(),
-}))
 
 describe("lib/pedidos-almacen CRUD operations", () => {
   const mockPayload: NuevoPedidoAlmacen = {

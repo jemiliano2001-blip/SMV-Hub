@@ -369,6 +369,7 @@ export const ModuloIdSchema = z.enum([
   "operadores",
   "horas-extra",
   "banos",
+  "notificaciones",
   "finanzas",
   "auditoria",
   "usuarios",
@@ -454,6 +455,51 @@ export const NuevoPedidoAlmacenSchema = PedidoAlmacenSchema.pick({
   solicitadoPorNombre: true,
 })
 export type NuevoPedidoAlmacen = z.infer<typeof NuevoPedidoAlmacenSchema>
+
+// ── Notificaciones in-app (Operación del Taller) ─────────────────────────────
+// Feed broadcast de eventos de pedidos-almacén y requisiciones; leído por usuario
+// en usuarios/{uid}/notificaciones_leidas/{notificacionId}.
+
+export const TipoNotificacionSchema = z.enum([
+  "pedido_almacen_creado",
+  "pedido_almacen_estado",
+  "requisicion_creada",
+  "requisicion_estado",
+])
+export type TipoNotificacion = z.infer<typeof TipoNotificacionSchema>
+
+export const OrigenModuloNotificacionSchema = z.enum(["pedidos-almacen", "requisiciones"])
+export type OrigenModuloNotificacion = z.infer<typeof OrigenModuloNotificacionSchema>
+
+export const NotificacionSchema = z.object({
+  id: z.string(),
+  tipo: TipoNotificacionSchema,
+  titulo: z.string().min(1),
+  cuerpo: z.string(),
+  origenModulo: OrigenModuloNotificacionSchema,
+  origenId: z.string().min(1),
+  href: z.string().min(1),
+  creadoEn: z.date(),
+  actualizadoEn: z.date(),
+  creadoPorUid: z.string(),
+  creadoPorNombre: z.string(),
+})
+export type Notificacion = z.infer<typeof NotificacionSchema>
+
+export const NuevaNotificacionSchema = NotificacionSchema.omit({
+  id: true,
+  creadoEn: true,
+  actualizadoEn: true,
+})
+export type NuevaNotificacion = z.infer<typeof NuevaNotificacionSchema>
+
+export const NotificacionLeidaSchema = z.object({
+  id: z.string(),
+  leidoEn: z.date(),
+})
+export type NotificacionLeida = z.infer<typeof NotificacionLeidaSchema>
+
+export type NotificacionConLeida = Notificacion & { leida: boolean }
 
 // ── Control de Baños ──────────────────────────────────────────────────────────
 

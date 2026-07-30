@@ -28,6 +28,7 @@ import { crearOrden } from "@/lib/ordenes"
 import { crearCompraProveedor } from "@/lib/proveedores-inteligencia"
 import { getClienteAuth } from "@/lib/firebase"
 import { registrarAuditoria } from "@/lib/auditoria"
+import { emitirNotificacion, tituloParaTipo } from "@/lib/notificaciones"
 import { fechaHoyLocal } from "@/lib/format"
 
 const COLECCION_REQUISICIONES = "requisiciones"
@@ -96,6 +97,17 @@ export async function crearRequisicionFlujo(payload: NuevaRequisicionFlujoPayloa
 
   const user = getClienteAuth().currentUser
   await registrarAuditoria(user?.email, "CREAR", "requisiciones", docRef.id, `Creó requisición ${folio} con ${itemsConId.length} ítems`)
+
+  await emitirNotificacion({
+    tipo: "requisicion_creada",
+    titulo: tituloParaTipo("requisicion_creada"),
+    cuerpo: `${folio}: ${nuevaData.descripcion}`,
+    origenModulo: "requisiciones",
+    origenId: docRef.id,
+    href: "/requisiciones",
+    creadoPorUid: user?.uid ?? "",
+    creadoPorNombre: user?.displayName || user?.email || "Usuario",
+  })
 
   return {
     id: docRef.id,

@@ -21,6 +21,7 @@ import {
   DollarSign,
   FileSearch,
   FileSpreadsheet,
+  Bell,
   Package,
   Receipt,
   Search,
@@ -146,6 +147,15 @@ const NAV_CARDS: readonly TarjetaNavegacion[] = [
   },
 
   // ── Operación del Taller ─────────────────────────────
+  {
+    href: '/notificaciones',
+    icon: Bell,
+    label: 'Notificaciones',
+    desc: 'Avisos de pedidos de almacén y requisiciones del taller.',
+    grupo: 'operacion',
+    principal: true,
+    tags: ['notificaciones', 'avisos', 'alerta', 'taller'],
+  },
   {
     href: '/pedidos-almacen',
     icon: ClipboardCheck,

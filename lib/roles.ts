@@ -19,6 +19,7 @@ export const RUTA_POR_MODULO: Record<ModuloId, string> = {
   operadores: "/operadores",
   "horas-extra": "/horas-extra",
   banos: "/banos",
+  notificaciones: "/notificaciones",
   finanzas: "/finanzas",
   auditoria: "/auditoria",
   usuarios: "/usuarios",
@@ -51,6 +52,7 @@ export const GRUPOS_MODULOS: { nombre: string; modulos: { id: ModuloId; label: s
       { id: "almacen", label: "Almacén (entradas/salidas)" },
       { id: "pedidos-almacen", label: "Pedidos de almacén" },
       { id: "ordenes-servicio", label: "Órdenes de servicio" },
+      { id: "notificaciones", label: "Notificaciones" },
       { id: "banos", label: "Baños" },
     ],
   },
@@ -88,6 +90,7 @@ const PLANTILLA_ADMIN: ModuloId[] = [
   "operadores",
   "horas-extra",
   "banos",
+  "notificaciones",
   "finanzas",
   "auditoria",
   "usuarios",
@@ -105,11 +108,12 @@ const PLANTILLA_COMPRAS: ModuloId[] = [
   "operadores",
   "horas-extra",
   "banos",
+  "notificaciones",
 ]
 
 const PLANTILLA_DISENO: ModuloId[] = ["cotizaciones", "requisiciones", "horas-extra"]
 
-const PLANTILLA_ALMACEN: ModuloId[] = ["almacen", "pedidos-almacen", "banos"]
+const PLANTILLA_ALMACEN: ModuloId[] = ["almacen", "pedidos-almacen", "banos", "notificaciones"]
 
 /** Mapa de plantilla → módulos (atajo; la fuente de verdad por usuario es modulos[]). */
 export const MODULOS_POR_PLANTILLA: Record<Rol, ModuloId[]> = {
@@ -140,6 +144,7 @@ export const PERMISOS_POR_ROL: Record<Rol, string[]> = {
     "/operadores",
     "/horas-extra",
     "/banos",
+    "/notificaciones",
     "/finanzas",
     "/auditoria",
     "/usuarios",
@@ -157,9 +162,10 @@ export const PERMISOS_POR_ROL: Record<Rol, string[]> = {
     "/operadores",
     "/horas-extra",
     "/banos",
+    "/notificaciones",
   ],
   diseno: ["/", "/cotizaciones", "/requisiciones", "/horas-extra"],
-  almacen: ["/", "/almacen", "/pedidos-almacen", "/banos"],
+  almacen: ["/", "/almacen", "/pedidos-almacen", "/banos", "/notificaciones"],
 }
 
 export function modulosDePlantilla(plantilla: Rol): ModuloId[] {
@@ -196,10 +202,27 @@ export function tieneModulo(modulos: readonly ModuloId[] | null | undefined, mod
 }
 
 /**
+ * Lectura del feed /ruta `/notificaciones`: módulo dedicado o cualquiera de los
+ * orígenes v1 (pedidos-almacén / requisiciones), para no dejar fuera a quien ya
+ * opera el taller sin backfill del módulo nuevo.
+ */
+export function puedeVerNotificaciones(
+  modulos: readonly ModuloId[] | null | undefined
+): boolean {
+  if (!modulos) return false
+  return (
+    tieneModulo(modulos, "notificaciones") ||
+    tieneModulo(modulos, "pedidos-almacen") ||
+    tieneModulo(modulos, "requisiciones")
+  )
+}
+
+/**
  * Autorización de ruta por módulos.
  * - null/undefined modulos → sin acceso
  * - `/` siempre permitido si hay lista (usuario activo con permisos cargados)
  * - `/usuarios` exige el módulo `usuarios` (la API además exige esSuperAdmin)
+ * - `/notificaciones` usa `puedeVerNotificaciones` (OR de módulos)
  */
 export function tienePermiso(
   modulos: readonly ModuloId[] | null | undefined,
@@ -210,6 +233,7 @@ export function tienePermiso(
 
   const modulo = rutaAModulo(pathname)
   if (!modulo) return false
+  if (modulo === "notificaciones") return puedeVerNotificaciones(modulos)
   return tieneModulo(modulos, modulo)
 }
 
