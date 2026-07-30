@@ -59,6 +59,14 @@
         { "fieldPath": "state", "order": "ASCENDING" },
         { "fieldPath": "updatedAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "solicitudes_documento",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "solicitadoPorUid", "order": "ASCENDING" },
+        { "fieldPath": "creadoEn", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [
