@@ -2,28 +2,26 @@ import { useEffect, useState } from "react"
 import { suscribirSolicitudesBorradoBanosPendientes } from "@/lib/banos"
 import type { SolicitudBorradoBano } from "@/lib/schemas"
 
+const VACIO = new Map<string, SolicitudBorradoBano>()
+
 /**
- * Solo debe habilitarse (`enabled: true`) para súper admin — es lo único que
- * puede leer `solicitudes_borrado_banos` según firestore.rules. Se usa para
- * saber, dentro de /notificaciones, si una solicitud sigue pendiente y así
- * mostrar (o esconder) los botones Aprobar/Rechazar.
+ * Solo habilitar (`enabled: true`) para super admin: es lo unico que puede
+ * leer `solicitudes_borrado_banos` segun firestore.rules. Sirve en
+ * /notificaciones para mostrar u ocultar Aprobar/Rechazar.
  */
 export function useSolicitudesBorradoBanosPendientes(
   enabled: boolean
 ): Map<string, SolicitudBorradoBano> {
-  const [porId, setPorId] = useState<Map<string, SolicitudBorradoBano>>(new Map())
+  const [porId, setPorId] = useState<Map<string, SolicitudBorradoBano>>(VACIO)
 
   useEffect(() => {
-    if (!enabled) {
-      setPorId(new Map())
-      return
-    }
+    if (!enabled) return
     const unsub = suscribirSolicitudesBorradoBanosPendientes(
       (items) => setPorId(new Map(items.map((s) => [s.id, s]))),
-      (err) => console.error("Error suscribiendo a solicitudes de borrado de baños:", err)
+      (err) => console.error("Error suscribiendo a solicitudes de borrado de banos:", err)
     )
     return unsub
   }, [enabled])
 
-  return porId
+  return enabled ? porId : VACIO
 }
