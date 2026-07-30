@@ -4,6 +4,7 @@ import {
   doc,
   getDoc,
   query,
+  where,
   orderBy,
   limit,
   onSnapshot,
@@ -191,9 +192,20 @@ export async function actualizarEstadoSolicitudDocumento(args: {
 
 export function suscribirSolicitudesDocumento(
   onData: (rows: SolicitudDocumento[]) => void,
-  onError: (e: Error) => void
+  onError: (e: Error) => void,
+  opts?: { atiende?: boolean; uid?: string | null }
 ): () => void {
-  const q = query(solicitudesRef(), orderBy("creadoEn", "desc"), limit(200))
+  const atiende = opts?.atiende === true
+  const uid = opts?.uid ?? null
+  const q =
+    atiende || !uid
+      ? query(solicitudesRef(), orderBy("creadoEn", "desc"), limit(200))
+      : query(
+          solicitudesRef(),
+          where("solicitadoPorUid", "==", uid),
+          orderBy("creadoEn", "desc"),
+          limit(200)
+        )
   return onSnapshot(
     q,
     (snap) => {

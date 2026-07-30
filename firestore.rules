@@ -349,7 +349,8 @@ service cloud.firestore {
         esCorreoBreakGlass() ||
         tieneModulo('notificaciones') ||
         tieneModulo('pedidos-almacen') ||
-        tieneModulo('requisiciones')
+        tieneModulo('requisiciones') ||
+        tieneModulo('documentos-venta')
       );
     }
 
@@ -363,6 +364,10 @@ service cloud.firestore {
         (
           request.resource.data.origenModulo == 'requisiciones' &&
           (tieneModulo('requisiciones') || rolUsuario() in ['admin', 'compras', 'diseno'])
+        ) ||
+        (
+          request.resource.data.origenModulo == 'documentos-venta' &&
+          tieneModulo('documentos-venta')
         )
       );
     }
@@ -372,11 +377,13 @@ service cloud.firestore {
                'pedido_almacen_creado',
                'pedido_almacen_estado',
                'requisicion_creada',
-               'requisicion_estado'
+               'requisicion_estado',
+               'solicitud_documento_creada',
+               'solicitud_documento_estado'
              ] &&
              d.titulo is string &&
              d.cuerpo is string &&
-             d.origenModulo in ['pedidos-almacen', 'requisiciones'] &&
+             d.origenModulo in ['pedidos-almacen', 'requisiciones', 'documentos-venta'] &&
              d.origenId is string &&
              d.href is string &&
              d.creadoPorUid is string &&
@@ -753,6 +760,95 @@ service cloud.firestore {
     match /configuraciones/{configId} {
       allow read, create, update: if esUsuarioAutorizado();
       allow delete: if esUsuarioAutorizado();
+    }
+
+    // ── Documentos de venta (solicitudes remisión/factura + espejo Odoo) ─────
+
+    function esDocumentosVentaAutorizado() {
+      return esUsuarioAutorizado() &&
+        (esCorreoBreakGlass() || tieneModulo('documentos-venta'));
+    }
+
+    function atiendeDocumentosVenta() {
+      return esCorreoBreakGlass() || esSuperAdminDoc() ||
+        (exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
+          docUsuario().atiendeDocumentosVenta == true);
+    }
+
+    function puedeLeerSolicitudDocumento() {
+      return esDocumentosVentaAutorizado() && (
+        atiendeDocumentosVenta() ||
+        resource.data.solicitadoPorUid == request.auth.uid
+      );
+    }
+
+    function solicitudDocumentoCreateValida(d) {
+      return d.tipo in ['factura', 'remision'] &&
+             d.estado == 'pendiente' &&
+             d.odooSoId is number &&
+             d.odooSoName is string &&
+             d.partnerName is string &&
+             d.solicitadoPorUid == request.auth.uid &&
+             d.solicitadoPorNombre is string &&
+             d.creadoEn is timestamp &&
+             d.actualizadoEn is timestamp;
+    }
+
+    match /ventas_odoo_so/{soId} {
+      allow read: if esDocumentosVentaAutorizado();
+      allow write: if false;
+    }
+
+    match /ventas_odoo_sync_state/{docId} {
+      allow read: if esDocumentosVentaAutorizado();
+      allow write: if false;
+    }
+
+    match /solicitudes_documento/{solicitudId} {
+      allow read: if puedeLeerSolicitudDocumento();
+
+      allow create: if esDocumentosVentaAutorizado()
+                    && solicitudDocumentoCreateValida(request.resource.data);
+
+      allow update: if esDocumentosVentaAutorizado()
+                    && request.resource.data.creadoEn == resource.data.creadoEn
+                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn
+                    && request.resource.data.solicitadoPorUid == resource.data.solicitadoPorUid
+                    && request.resource.data.tipo == resource.data.tipo
+                    && request.resource.data.odooSoId == resource.data.odooSoId
+                    && (
+                      atiendeDocumentosVenta() ||
+                      (
+                        resource.data.solicitadoPorUid == request.auth.uid &&
+                        resource.data.estado == 'pendiente' &&
+                        request.resource.data.estado == 'rechazada'
+                      )
+                    );
+
+      allow delete: if false;
+
+      match /mensajes/{mensajeId} {
+        allow read: if esDocumentosVentaAutorizado() && (
+          atiendeDocumentosVenta() ||
+          get(/databases/$(database)/documents/solicitudes_documento/$(solicitudId)).data.solicitadoPorUid
+            == request.auth.uid
+        );
+
+        allow create: if esDocumentosVentaAutorizado()
+                      && request.resource.data.autorUid == request.auth.uid
+                      && request.resource.data.texto is string
+                      && request.resource.data.texto.size() > 0
+                      && request.resource.data.texto.size() <= 4000
+                      && request.resource.data.autorNombre is string
+                      && request.resource.data.creadoEn is timestamp
+                      && (
+                        atiendeDocumentosVenta() ||
+                        get(/databases/$(database)/documents/solicitudes_documento/$(solicitudId)).data.solicitadoPorUid
+                          == request.auth.uid
+                      );
+
+        allow update, delete: if false;
+      }
     }
 
     // ── Todo lo demás: denegado por defecto ──────────────────────────────────

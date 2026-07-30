@@ -69,7 +69,8 @@ export function useDocumentosVenta(opts: {
       (err) => {
         setError(err.message || "No se pudieron cargar las solicitudes")
         setLoading(false)
-      }
+      },
+      { atiende, uid }
     )
 
     return () => {
@@ -77,7 +78,7 @@ export function useDocumentosVenta(opts: {
       unsubSync()
       unsubSolicitudes()
     }
-  }, [])
+  }, [atiende, uid])
 
   useEffect(() => {
     if (!solicitudIdSeleccionada) {
