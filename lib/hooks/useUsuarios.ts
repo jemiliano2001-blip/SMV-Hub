@@ -10,6 +10,7 @@ export interface UsuarioAdmin {
   plantilla: Rol
   modulos: ModuloId[]
   esSuperAdmin: boolean
+  atiendeDocumentosVenta: boolean
   activo: boolean
   proveedor: "google" | "password"
   creadoPor: string
@@ -22,6 +23,7 @@ export interface CrearUsuarioInput {
   plantilla: Rol
   modulos?: ModuloId[]
   esSuperAdmin?: boolean
+  atiendeDocumentosVenta?: boolean
   password?: string
 }
 
@@ -29,6 +31,7 @@ export interface ActualizarUsuarioInput {
   plantilla?: Rol
   modulos?: ModuloId[]
   esSuperAdmin?: boolean
+  atiendeDocumentosVenta?: boolean
   activo?: boolean
 }
 
@@ -72,6 +75,7 @@ export function useUsuarios() {
             plantilla: u.plantilla ?? u.rol,
             modulos: u.modulos ?? [],
             esSuperAdmin: u.esSuperAdmin === true,
+            atiendeDocumentosVenta: u.atiendeDocumentosVenta === true,
           }))
         )
       }

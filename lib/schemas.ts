@@ -371,6 +371,7 @@ export const ModuloIdSchema = z.enum([
   "banos",
   "notificaciones",
   "finanzas",
+  "documentos-venta",
   "auditoria",
   "usuarios",
 ])
@@ -389,6 +390,7 @@ export const UsuarioSchema = z.object({
   esSuperAdmin: z.boolean().default(false),
   activo: z.boolean().default(true),
   proveedor: ProveedorAuthSchema,
+  atiendeDocumentosVenta: z.boolean().default(false),
   creadoPor: z.string(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
@@ -467,10 +469,17 @@ export const TipoNotificacionSchema = z.enum([
   "requisicion_estado",
   "banos_solicitud_creada",
   "banos_solicitud_resuelta",
+  "solicitud_documento_creada",
+  "solicitud_documento_estado",
 ])
 export type TipoNotificacion = z.infer<typeof TipoNotificacionSchema>
 
-export const OrigenModuloNotificacionSchema = z.enum(["pedidos-almacen", "requisiciones", "banos"])
+export const OrigenModuloNotificacionSchema = z.enum([
+  "pedidos-almacen",
+  "requisiciones",
+  "banos",
+  "documentos-venta",
+])
 export type OrigenModuloNotificacion = z.infer<typeof OrigenModuloNotificacionSchema>
 
 export const NotificacionSchema = z.object({
@@ -996,3 +1005,97 @@ export const CategoriaProductoSchema = z.object({
   palabrasClave: z.array(z.string()).default([]),
 })
 export type CategoriaProducto = z.infer<typeof CategoriaProductoSchema>
+
+// ── Documentos de venta (factura / remisión sobre SO Odoo) ────────────────────
+
+export const TipoSolicitudDocumentoSchema = z.enum(["factura", "remision"])
+export type TipoSolicitudDocumento = z.infer<typeof TipoSolicitudDocumentoSchema>
+
+export const EstadoSolicitudDocumentoSchema = z.enum([
+  "pendiente",
+  "en_proceso",
+  "completada",
+  "rechazada",
+])
+export type EstadoSolicitudDocumento = z.infer<typeof EstadoSolicitudDocumentoSchema>
+
+export const PartidaSolicitudDocumentoSchema = z.object({
+  odooLineId: z.number().int().positive(),
+  productName: z.string().min(1),
+  qtySolicitada: z.number().positive(),
+})
+
+export const SolicitudDocumentoSchema = z.object({
+  id: z.string(),
+  tipo: TipoSolicitudDocumentoSchema,
+  estado: EstadoSolicitudDocumentoSchema,
+  odooSoId: z.number().int().positive(),
+  odooSoName: z.string().min(1),
+  clientOrderRef: z.string().nullable(),
+  partnerName: z.string().min(1),
+  partidas: z.array(PartidaSolicitudDocumentoSchema).default([]),
+  nota: z.string().default(""),
+  folioOdoo: z.string().nullable(),
+  motivoRechazo: z.string().nullable(),
+  solicitadoPorUid: z.string().min(1),
+  solicitadoPorNombre: z.string().min(1),
+  atendidoPorUid: z.string().nullable(),
+  atendidoPorNombre: z.string().nullable(),
+  creadoEn: z.date(),
+  actualizadoEn: z.date(),
+})
+export type SolicitudDocumento = z.infer<typeof SolicitudDocumentoSchema>
+
+export const NuevaSolicitudDocumentoSchema = SolicitudDocumentoSchema.omit({
+  id: true,
+  creadoEn: true,
+  actualizadoEn: true,
+  estado: true,
+  folioOdoo: true,
+  motivoRechazo: true,
+  atendidoPorUid: true,
+  atendidoPorNombre: true,
+}).extend({
+  estado: z.literal("pendiente").default("pendiente"),
+})
+export type NuevaSolicitudDocumento = z.infer<typeof NuevaSolicitudDocumentoSchema>
+
+export const MensajeSolicitudDocumentoSchema = z.object({
+  id: z.string(),
+  texto: z.string().min(1).max(4000),
+  autorUid: z.string().min(1),
+  autorNombre: z.string().min(1),
+  creadoEn: z.date(),
+})
+export type MensajeSolicitudDocumento = z.infer<typeof MensajeSolicitudDocumentoSchema>
+
+export const VentaOdooLineaSchema = z.object({
+  odooLineId: z.number().int().positive(),
+  productName: z.string(),
+  productDefaultCode: z.string().nullable(),
+  qtyOrdered: z.number().nonnegative(),
+  qtyDelivered: z.number().nonnegative(),
+  qtyPending: z.number().nonnegative(),
+})
+
+export const VentaOdooRemisionSchema = z.object({
+  name: z.string(),
+  state: z.string(),
+  dateDone: z.string().nullable(),
+})
+
+export const VentaOdooSoSchema = z.object({
+  id: z.string(),
+  odooId: z.number().int().positive(),
+  name: z.string().min(1),
+  clientOrderRef: z.string().nullable(),
+  partnerId: z.number().int(),
+  partnerName: z.string(),
+  dateOrder: z.string().nullable(),
+  state: z.string(),
+  invoiceStatus: z.string(),
+  lineas: z.array(VentaOdooLineaSchema),
+  remisiones: z.array(VentaOdooRemisionSchema),
+  sincronizadoEn: z.date(),
+})
+export type VentaOdooSo = z.infer<typeof VentaOdooSoSchema>

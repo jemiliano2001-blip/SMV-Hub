@@ -9,6 +9,7 @@ export interface EstadoPermisos {
   plantilla: Rol | null
   modulos: ModuloId[] | null
   esSuperAdmin: boolean
+  atiendeDocumentosVenta: boolean
   cargando: boolean
 }
 
@@ -52,6 +53,7 @@ export function usePermisos(usuario: User | null): EstadoPermisos {
       plantilla: null,
       modulos: null,
       esSuperAdmin: false,
+      atiendeDocumentosVenta: false,
       cargando: false,
     }
   }
@@ -61,6 +63,7 @@ export function usePermisos(usuario: User | null): EstadoPermisos {
     plantilla: permisos?.plantilla ?? null,
     modulos: permisos?.modulos ?? null,
     esSuperAdmin: permisos?.esSuperAdmin ?? false,
+    atiendeDocumentosVenta: permisos?.atiendeDocumentosVenta ?? false,
     cargando,
   }
 }

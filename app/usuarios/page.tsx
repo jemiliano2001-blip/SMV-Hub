@@ -100,6 +100,7 @@ function FormNuevoUsuario({
     plantilla: Rol
     modulos: ModuloId[]
     esSuperAdmin: boolean
+    atiendeDocumentosVenta: boolean
     password?: string
   }) => Promise<void>
 }) {
@@ -107,6 +108,7 @@ function FormNuevoUsuario({
   const [plantilla, setPlantilla] = useState<Rol>('compras')
   const [modulos, setModulos] = useState<ModuloId[]>(() => modulosDePlantilla('compras'))
   const [esSuperAdmin, setEsSuperAdmin] = useState(false)
+  const [atiendeDocumentosVenta, setAtiendeDocumentosVenta] = useState(false)
   const [password, setPassword] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -131,12 +133,14 @@ function FormNuevoUsuario({
         plantilla,
         modulos,
         esSuperAdmin,
+        atiendeDocumentosVenta,
         password: password || undefined,
       })
       setEmail('')
       setPlantilla('compras')
       setModulos(modulosDePlantilla('compras'))
       setEsSuperAdmin(false)
+      setAtiendeDocumentosVenta(false)
       setPassword('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el usuario')
@@ -204,7 +208,7 @@ function FormNuevoUsuario({
         </button>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-2 text-xs text-slate-800 cursor-pointer">
           <input
             type="checkbox"
@@ -214,6 +218,15 @@ function FormNuevoUsuario({
           />
           <Shield className="h-3.5 w-3.5 text-rose-600" />
           Super-admin (puede editar usuarios)
+        </label>
+        <label className="flex items-center gap-2 text-xs text-slate-800 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={atiendeDocumentosVenta}
+            onChange={(e) => setAtiendeDocumentosVenta(e.target.checked)}
+            className="rounded border-slate-300 text-[#0369A1]"
+          />
+          Atiende documentos de venta (cola remisión/factura)
         </label>
         {personalizado && (
           <span className="text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded">
@@ -244,12 +257,16 @@ function ModalEditarPermisos({
     plantilla: Rol
     modulos: ModuloId[]
     esSuperAdmin: boolean
+    atiendeDocumentosVenta: boolean
   }) => Promise<void>
   onCerrar: () => void
 }) {
   const [plantilla, setPlantilla] = useState<Rol>(usuario.plantilla)
   const [modulos, setModulos] = useState<ModuloId[]>(usuario.modulos)
   const [esSuperAdmin, setEsSuperAdmin] = useState(usuario.esSuperAdmin)
+  const [atiendeDocumentosVenta, setAtiendeDocumentosVenta] = useState(
+    usuario.atiendeDocumentosVenta === true
+  )
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -263,7 +280,7 @@ function ModalEditarPermisos({
     setGuardando(true)
     setError(null)
     try {
-      await onGuardar({ plantilla, modulos, esSuperAdmin })
+      await onGuardar({ plantilla, modulos, esSuperAdmin, atiendeDocumentosVenta })
       onCerrar()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar')
@@ -313,6 +330,15 @@ function ModalEditarPermisos({
             />
             <Shield className="h-3.5 w-3.5 text-rose-600" />
             Super-admin
+          </label>
+          <label className="flex items-center gap-2 text-xs text-slate-800 cursor-pointer mt-4">
+            <input
+              type="checkbox"
+              checked={atiendeDocumentosVenta}
+              onChange={(e) => setAtiendeDocumentosVenta(e.target.checked)}
+              className="rounded border-slate-300 text-[#0369A1]"
+            />
+            Atiende documentos de venta
           </label>
           {personalizado && (
             <span className="mt-4 text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded">
@@ -485,6 +511,7 @@ function UsuariosContent() {
     plantilla: Rol
     modulos: ModuloId[]
     esSuperAdmin: boolean
+    atiendeDocumentosVenta: boolean
     password?: string
   }) {
     const tempPassword = await crearUsuario(input)
@@ -495,6 +522,7 @@ function UsuariosContent() {
     plantilla: Rol
     modulos: ModuloId[]
     esSuperAdmin: boolean
+    atiendeDocumentosVenta: boolean
   }) {
     if (!editando) return
     setAccionError(null)
