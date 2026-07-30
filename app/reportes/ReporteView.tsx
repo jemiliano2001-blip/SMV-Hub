@@ -17,9 +17,10 @@ import FiltrosReporte from "@/app/reportes/components/FiltrosReporte"
 import FranjaKpis from "@/app/reportes/components/FranjaKpis"
 import TablaReporte from "@/app/reportes/components/TablaReporte"
 import AvisoPendientes from "@/app/reportes/components/AvisoPendientes"
-import { Loader2, AlertCircle, FileSpreadsheet, ShieldCheck } from "lucide-react"
+import { Loader2, AlertCircle, FileSpreadsheet, ShieldCheck, Gauge } from "lucide-react"
 import IntegrityWorkspace from "./integridad/IntegrityWorkspace"
 import IntegrityTrustStrip from "./integridad/IntegrityTrustStrip"
+import DashboardInteligenciaCompras from "./DashboardInteligenciaCompras"
 
 type PresetTipo = "semana" | "mes" | "personalizado"
 
@@ -41,9 +42,9 @@ function tituloReporte(desde: Date, hasta: Date): string {
 export default function ReporteView({
   initialTab = "integridad",
 }: {
-  initialTab?: "integridad" | "gerencial"
+  initialTab?: "integridad" | "gerencial" | "inteligencia"
 }) {
-  const [tabVista, setTabVista] = useState<"integridad" | "gerencial">(initialTab)
+  const [tabVista, setTabVista] = useState<"integridad" | "gerencial" | "inteligencia">(initialTab)
   const [ordenes, setOrdenes] = useState<OrdenCompra[]>([])
   const [cargando, setCargando] = useState(initialTab === "gerencial")
   const [error, setError] = useState<string | null>(null)
@@ -169,6 +170,19 @@ export default function ReporteView({
               <FileSpreadsheet className="h-4 w-4 text-slate-500" />
               Reporte gerencial
             </button>
+
+            <button
+              onClick={() => setTabVista("inteligencia")}
+              className={[
+                "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
+                tabVista === "inteligencia"
+                  ? "bg-white text-slate-900 shadow-xs border border-slate-200"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60",
+              ].join(" ")}
+            >
+              <Gauge className="h-4 w-4 text-[#0369A1]" />
+              Dashboard 3-Tier
+            </button>
           </div>
 
           <Link href="/reportes/contable" className="text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors">
@@ -177,6 +191,8 @@ export default function ReporteView({
         </div>
 
         {tabVista === "integridad" && <IntegrityWorkspace />}
+
+        {tabVista === "inteligencia" && <DashboardInteligenciaCompras />}
 
         {tabVista === "gerencial" && (
           <>

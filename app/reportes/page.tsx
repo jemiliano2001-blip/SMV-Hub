@@ -11,7 +11,15 @@ export default async function ReportesPage({
     <AuthGuard>
       <div className="min-h-screen bg-gray-50 flex flex-col print:bg-white">
         <div className="flex-1">
-          <ReporteView initialTab={params.vista === "gerencial" ? "gerencial" : "integridad"} />
+          <ReporteView
+            initialTab={
+              params.vista === "gerencial"
+                ? "gerencial"
+                : params.vista === "inteligencia"
+                  ? "inteligencia"
+                  : "integridad"
+            }
+          />
         </div>
       </div>
     </AuthGuard>

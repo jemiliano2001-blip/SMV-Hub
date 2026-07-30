@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Filter,
   Eye,
+  Star,
 } from 'lucide-react'
 import { useProveedores } from '@/lib/hooks/useProveedores'
 import { useProveedoresInteligencia } from '@/lib/hooks/useProveedoresInteligencia'
@@ -153,7 +154,7 @@ export default function DashboardInteligenciaCompras() {
   return (
     <div className="space-y-6 font-sans">
       {/* ENCABEZADO DEL DASHBOARD */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-base font-extrabold text-slate-900 tracking-tight">
@@ -187,19 +188,19 @@ export default function DashboardInteligenciaCompras() {
 
       {/* ── SECCIÓN 1 (ARRIBA): RESUMEN EJECUTIVO CON KPIS ────────────────────── */}
       <div className="space-y-2">
-        <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+        <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
           <Zap className="h-4 w-4 text-amber-500" /> 1. Resumen Ejecutivo (KPIs Clave Operativos)
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* KPI 1: Gasto Total */}
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-2">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
             <div className="flex justify-between items-center text-xs">
               <span className="font-bold text-slate-500 text-[11px]">¿Cuánto estamos gastando?</span>
               <DollarSign className="h-4 w-4 text-emerald-600" />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900 font-mono tracking-tight">
+              <p className="text-2xl font-extrabold text-slate-900 font-mono tracking-tight">
                 ${gastoUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })} <span className="text-xs text-slate-500">USD</span>
               </p>
               <p className="text-[11px] text-slate-500 font-mono mt-0.5">
@@ -209,13 +210,13 @@ export default function DashboardInteligenciaCompras() {
           </div>
 
           {/* KPI 2: Lead Time */}
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-2">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
             <div className="flex justify-between items-center text-xs">
               <span className="font-bold text-slate-500 text-[11px]">¿Cuánto estamos tardando?</span>
               <Clock className="h-4 w-4 text-sky-600" />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900 font-mono tracking-tight">
+              <p className="text-2xl font-extrabold text-slate-900 font-mono tracking-tight">
                 {leadTimePromedio} <span className="text-xs font-sans text-slate-600 font-normal">días hábiles</span>
               </p>
               <p className="text-[11px] text-emerald-600 font-bold mt-0.5 flex items-center gap-1">
@@ -225,13 +226,13 @@ export default function DashboardInteligenciaCompras() {
           </div>
 
           {/* KPI 3: Atoradas */}
-          <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-2xs space-y-2">
+          <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-sm space-y-2">
             <div className="flex justify-between items-center text-xs">
               <span className="font-extrabold text-amber-900 text-[11px]">¿Dónde se están atorando?</span>
               <AlertTriangle className="h-4 w-4 text-amber-600" />
             </div>
             <div>
-              <p className="text-2xl font-black text-amber-950 font-mono tracking-tight">
+              <p className="text-2xl font-extrabold text-amber-950 font-mono tracking-tight">
                 {atoradasEnCotizacion + atoradasEnAprobacion} <span className="text-xs font-sans font-normal text-amber-800">compras</span>
               </p>
               <p className="text-[11px] text-amber-800 font-medium mt-0.5">
@@ -241,13 +242,13 @@ export default function DashboardInteligenciaCompras() {
           </div>
 
           {/* KPI 4: Atención Inmediata */}
-          <div className="bg-red-50 p-4 rounded-xl border border-red-200 shadow-2xs space-y-2">
+          <div className="bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm space-y-2">
             <div className="flex justify-between items-center text-xs">
               <span className="font-extrabold text-red-900 text-[11px]">¿Atención inmediata?</span>
               <Zap className="h-4 w-4 text-red-600" />
             </div>
             <div>
-              <p className="text-2xl font-black text-red-950 font-mono tracking-tight">
+              <p className="text-2xl font-extrabold text-red-950 font-mono tracking-tight">
                 {casosAtencionInmediata.length} <span className="text-xs font-sans font-normal text-red-800">casos críticos</span>
               </p>
               <p className="text-[11px] text-red-700 font-bold mt-0.5">
@@ -260,13 +261,13 @@ export default function DashboardInteligenciaCompras() {
 
       {/* ── SECCIÓN 2 (MEDIO): TENDENCIAS Y COMPARATIVOS ───────────────────────── */}
       <div className="space-y-2">
-        <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+        <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
           <TrendingUp className="h-4 w-4 text-sky-600" /> 2. Tendencias y Comparativos de Proveedores
         </h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Gasto por Categoría */}
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
             <div className="border-b border-slate-100 pb-2">
               <h3 className="text-xs font-extrabold text-slate-900">¿En qué categorías estamos gastando más?</h3>
               <p className="text-[11px] text-slate-500">Desglose de compras acumuladas por tipo de herramienta.</p>
@@ -293,14 +294,14 @@ export default function DashboardInteligenciaCompras() {
           </div>
 
           {/* Top Proveedores por Rendimiento */}
-          <div className="lg:col-span-2 bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+          <div className="lg:col-span-2 bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
             <div className="border-b border-slate-100 pb-2 flex justify-between items-center">
               <div>
                 <h3 className="text-xs font-extrabold text-slate-900">¿Qué proveedores están rindiendo mejor?</h3>
                 <p className="text-[11px] text-slate-500">Ranking multicriterio por scoring, precio y tiempo de entrega real.</p>
               </div>
-              <span className="text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded">
-                Score 1-5 ⭐
+              <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded">
+                <Star className="h-3 w-3 fill-emerald-800" /> Score 1-5
               </span>
             </div>
 
@@ -324,7 +325,9 @@ export default function DashboardInteligenciaCompras() {
                         ${prov.gastoTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })} {monedaActiva}
                       </td>
                       <td className="px-3 py-2 font-bold text-amber-600">
-                        ⭐ {prov.score.toFixed(1)} / 5.0
+                        <span className="inline-flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-amber-500 text-amber-500" /> {prov.score.toFixed(1)} / 5.0
+                        </span>
                       </td>
                       <td className="px-3 py-2 text-emerald-700 font-bold text-[11px]">
                         {prov.cumplimiento}
@@ -340,18 +343,18 @@ export default function DashboardInteligenciaCompras() {
 
       {/* ── SECCIÓN 3 (ABAJO): TABLAS ACCIONABLES Y ALERTAS CRÍTICAS ───────────── */}
       <div className="space-y-2">
-        <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+        <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
           <AlertTriangle className="h-4 w-4 text-red-500" /> 3. Tablas Accionables y Alertas de Atención Inmediata
         </h2>
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
-          <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-4 bg-slate-100 border-b border-slate-200 flex justify-between items-center">
             <div>
-              <h3 className="text-xs font-extrabold flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-400" />
+              <h3 className="text-xs font-extrabold text-slate-900 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
                 Casos que Requieren Atención Inmediata ({casosAtencionInmediata.length})
               </h3>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500">
                 Lista priorizada de ordenes demoradas y requisiciones urgentes estancadas.
               </p>
             </div>
@@ -362,7 +365,7 @@ export default function DashboardInteligenciaCompras() {
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs font-sans">
-              <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px]">
+              <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px]">
                 <tr>
                   <th className="px-4 py-3">Prioridad / Folio</th>
                   <th className="px-4 py-3">Descripción de la Solicitud / Compra</th>
@@ -396,7 +399,7 @@ export default function DashboardInteligenciaCompras() {
                       <td className="px-4 py-3 text-right">
                         <a
                           href={item.tipo === 'requisicion' ? '/requisiciones' : '/proveedores'}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#0369A1] hover:bg-[#0284C7] text-white font-bold text-[11px] rounded-lg shadow-2xs transition-colors"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#0369A1] hover:bg-[#0284C7] text-white font-bold text-[11px] rounded-lg shadow-sm transition-colors"
                         >
                           <Eye className="h-3.5 w-3.5" /> Resolver
                         </a>
