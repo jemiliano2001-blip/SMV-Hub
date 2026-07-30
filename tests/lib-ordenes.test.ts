@@ -24,6 +24,7 @@ import {
   crearOrden,
   crearOrdenesLote,
   listarOrdenes,
+  listarOrdenesRecientes,
   obtenerPaginaOrdenes,
   contarOrdenes,
   obtenerOrden,
@@ -233,6 +234,23 @@ describe("lib/ordenes CRUD operations", () => {
       expect(query).toHaveBeenCalledWith(mockCollectionRef, { field: "creadoEn", direction: "desc" })
       expect(getDocs).toHaveBeenCalledWith(mockQueryRef)
       expect(result).toEqual([mockOrdenData1, mockOrdenData2])
+    })
+  })
+
+  describe("listarOrdenesRecientes", () => {
+    it("pide orderBy creadoEn desc y limit con default 200", async () => {
+      vi.mocked(getDocs).mockResolvedValue({ docs: [] } as unknown as QuerySnapshot)
+      await listarOrdenesRecientes()
+      expect(orderBy).toHaveBeenCalledWith("creadoEn", "desc")
+      expect(limit).toHaveBeenCalledWith(200)
+    })
+
+    it("respeta un limite custom y lo acota a max 500", async () => {
+      vi.mocked(getDocs).mockResolvedValue({ docs: [] } as unknown as QuerySnapshot)
+      await listarOrdenesRecientes(50)
+      expect(limit).toHaveBeenCalledWith(50)
+      await listarOrdenesRecientes(9999)
+      expect(limit).toHaveBeenCalledWith(500)
     })
   })
 

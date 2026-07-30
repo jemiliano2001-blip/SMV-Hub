@@ -74,6 +74,21 @@ export async function listarOrdenes(): Promise<OrdenCompra[]> {
   return snap.docs.map((d) => d.data())
 }
 
+const LIMITE_RECIENTES_DEFAULT = 200
+const LIMITE_RECIENTES_MAX = 500
+
+export async function listarOrdenesRecientes(
+  limite = LIMITE_RECIENTES_DEFAULT
+): Promise<OrdenCompra[]> {
+  const n = Number.isFinite(limite)
+    ? Math.min(LIMITE_RECIENTES_MAX, Math.max(1, Math.trunc(limite)))
+    : LIMITE_RECIENTES_DEFAULT
+  const snap = await getDocs(
+    query(ordenesRef(), orderBy("creadoEn", "desc"), limit(n))
+  )
+  return snap.docs.map((d) => d.data())
+}
+
 export type CursorOrdenes = QueryDocumentSnapshot<OrdenCompra>
 
 export interface PaginaOrdenes {
