@@ -7,7 +7,7 @@ import { Loader2, Plus, Trash2, Upload, X, AlertTriangle, FileText } from 'lucid
 import WhatsAppIcon from '@/components/WhatsAppIcon'
 import { z } from 'zod'
 import { getClienteAuth } from '@/lib/firebase'
-import { buscarPorFacturaYProveedor, listarOrdenes } from '@/lib/ordenes'
+import { buscarPorFacturaYProveedor, listarOrdenesRecientes } from '@/lib/ordenes'
 import { esOrdenDuplicada } from '@/lib/importar'
 import { validarCuadreFactura, validarImpuestoTexas } from '@/lib/factura-montos'
 import {
@@ -161,10 +161,10 @@ export default function NuevaCompraForm({
     return () => window.clearTimeout(timer)
   }, [proveedorWatch, numeroFacturaWatch, verificarDuplicado])
 
-  // Carga el historial de órdenes una vez para alimentar las sugerencias.
+  // Historial acotado (últimas 200) a propósito — spec memoria cliente; la IA sigue con prioridad.
   useEffect(() => {
     let activo = true
-    listarOrdenes()
+    listarOrdenesRecientes(200)
       .then((ordenes) => {
         if (activo) historialRef.current = aplanarHistorial(ordenes)
       })

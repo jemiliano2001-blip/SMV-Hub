@@ -356,7 +356,6 @@ export default function OrdenesList() {
         estadoFiltro={estadoFiltro}
         setEstadoFiltro={(estado) => {
           setEstadoFiltro(estado)
-          if (estado !== 'todos') void cargarTodas()
         }}
         hayFiltrosActivos={hayFiltrosActivos}
         ordenesFiltradasLength={ordenesFiltradas.length}

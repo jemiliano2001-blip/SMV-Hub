@@ -89,6 +89,22 @@ export async function listarOrdenesRecientes(
   return snap.docs.map((d) => d.data())
 }
 
+/** Órdenes con creadoEn en [desde, hasta]. Callers de reportes deben aplicar filtrarPorRango para fechaFactura. */
+export async function listarOrdenesEnRango(
+  desde: Date,
+  hasta: Date
+): Promise<OrdenCompra[]> {
+  const snap = await getDocs(
+    query(
+      ordenesRef(),
+      where("creadoEn", ">=", desde),
+      where("creadoEn", "<=", hasta),
+      orderBy("creadoEn", "desc")
+    )
+  )
+  return snap.docs.map((d) => d.data())
+}
+
 export type CursorOrdenes = QueryDocumentSnapshot<OrdenCompra>
 
 export interface PaginaOrdenes {

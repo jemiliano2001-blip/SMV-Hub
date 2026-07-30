@@ -10,6 +10,7 @@ import {
   deleteDoc,
   query,
   orderBy,
+  where,
   limit,
   startAfter,
   getCountFromServer,
@@ -25,6 +26,7 @@ import {
   crearOrdenesLote,
   listarOrdenes,
   listarOrdenesRecientes,
+  listarOrdenesEnRango,
   obtenerPaginaOrdenes,
   contarOrdenes,
   obtenerOrden,
@@ -94,6 +96,7 @@ vi.mock("firebase/firestore", () => {
     deleteDoc: vi.fn(),
     query: vi.fn(() => mockQueryRef),
     orderBy: vi.fn((field, direction) => ({ field, direction })),
+    where: vi.fn((field, op, value) => ({ field, op, value })),
     limit: vi.fn((cantidad) => ({ cantidad })),
     startAfter: vi.fn((cursor) => ({ cursor })),
     getCountFromServer: vi.fn(),
@@ -251,6 +254,18 @@ describe("lib/ordenes CRUD operations", () => {
       expect(limit).toHaveBeenCalledWith(50)
       await listarOrdenesRecientes(9999)
       expect(limit).toHaveBeenCalledWith(500)
+    })
+  })
+
+  describe("listarOrdenesEnRango", () => {
+    it("consulta creadoEn con cotas y orderBy desc", async () => {
+      vi.mocked(getDocs).mockResolvedValue({ docs: [] } as unknown as QuerySnapshot)
+      const desde = new Date("2025-07-30T00:00:00Z")
+      const hasta = new Date("2026-07-30T23:59:59Z")
+      await listarOrdenesEnRango(desde, hasta)
+      expect(where).toHaveBeenCalledWith("creadoEn", ">=", desde)
+      expect(where).toHaveBeenCalledWith("creadoEn", "<=", hasta)
+      expect(orderBy).toHaveBeenCalledWith("creadoEn", "desc")
     })
   })
 

@@ -478,10 +478,7 @@ export default function RequisicionesList() {
   const chip = (activo: boolean, onClick: () => void, label: string) => (
     <button
       key={label}
-      onClick={() => {
-        prepararHistorialCompleto()
-        onClick()
-      }}
+      onClick={onClick}
       className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
         activo
           ? 'bg-blue-600 text-white'
@@ -514,7 +511,6 @@ export default function RequisicionesList() {
           <button
             onClick={() => {
               setTabVista('tabla')
-              prepararHistorialCompleto()
             }}
             className={[
               'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2',
@@ -703,7 +699,6 @@ export default function RequisicionesList() {
               <button
                 key={t}
                 onClick={() => {
-                  prepararHistorialCompleto()
                   setTipoActivo(t)
                   setFiltroEstado('todos')
                   setFiltroEmpresa('')
@@ -908,7 +903,6 @@ export default function RequisicionesList() {
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            onFocus={prepararHistorialCompleto}
             placeholder={isAuto
               ? 'Buscar por descripción, proveedor, parte #, OT, nota…'
               : 'Buscar por descripción, solicitante, tienda…'}
@@ -918,6 +912,16 @@ export default function RequisicionesList() {
             <p className="text-xs text-gray-500">
               {filtradas.length} coincidencias · {requisiciones.length} de {totalRequisiciones} cargadas
             </p>
+            {!coleccionCompleta && (
+              <button
+                type="button"
+                onClick={prepararHistorialCompleto}
+                disabled={cargandoCompleto}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800 hover:bg-sky-100 disabled:opacity-50"
+              >
+                {cargandoCompleto ? 'Cargando…' : 'Cargar historial completo'}
+              </button>
+            )}
             {cargandoCompleto && (
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-700">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> Preparando historial completo…

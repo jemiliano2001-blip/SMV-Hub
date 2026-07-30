@@ -23,9 +23,9 @@ import {
 import AuthGuard from '@/app/AuthGuard'
 import { useDirectorioProveedores } from '@/lib/hooks/useDirectorioProveedores'
 import { useProveedoresInteligencia } from '@/lib/hooks/useProveedoresInteligencia'
-import { useOrdenes } from '@/lib/hooks/useOrdenes'
 import type {
   Proveedor,
+  OrdenCompra,
   CategoriaProveedor,
   EstatusProveedor,
   TipoProveedor,
@@ -48,6 +48,7 @@ import CalculadoraLandedPrice from './components/CalculadoraLandedPrice'
 import PanelInteligencia360 from './components/PanelInteligencia360'
 import { listarItemsComprasOdoo } from '@/lib/compras-odoo-store'
 import { listarCotizaciones } from '@/lib/cotizaciones'
+import { listarOrdenesEnRango } from '@/lib/ordenes'
 import {
   ofertasDesdeHistorico,
   construirComparacionDesdeHistorico,
@@ -1137,11 +1138,28 @@ function ProveedoresContent() {
       .filter((cot) => cot.ofertas.length > 0)
   }, [cotizaciones])
 
-  // Historial completo de órdenes para los scorecards automáticos (necesitan todas, no solo la página inicial).
-  const { ordenes: ordenesScorecard, cargarTodas: cargarTodasOrdenes } = useOrdenes()
+  // Scorecards: ventana de 12 meses (no full-scan). Botón refresca la misma ventana.
+  const [ordenesScorecard, setOrdenesScorecard] = useState<OrdenCompra[]>([])
+  const [cargandoScorecards, setCargandoScorecards] = useState(false)
+
+  async function cargarScorecardsVentana() {
+    setCargandoScorecards(true)
+    try {
+      const hasta = new Date()
+      const desde = new Date()
+      desde.setFullYear(desde.getFullYear() - 1)
+      setOrdenesScorecard(await listarOrdenesEnRango(desde, hasta))
+    } catch (err) {
+      console.error('[proveedores] scorecards:', err)
+      toast.error('No se pudieron cargar las órdenes para scorecards')
+    } finally {
+      setCargandoScorecards(false)
+    }
+  }
+
   useEffect(() => {
-    void cargarTodasOrdenes()
-  }, [cargarTodasOrdenes])
+    void cargarScorecardsVentana()
+  }, [])
 
   const [modalFormAbierto, setModalFormAbierto] = useState(false)
   const [modalPOAbierto, setModalPOAbierto] = useState(false)
@@ -1640,6 +1658,8 @@ function ProveedoresContent() {
             scorecards={scorecardsAuto}
             onGenerarScorecards={handleGenerarScorecards}
             guardandoScorecards={guardandoScorecards}
+            onActualizarVentanaScorecards={() => void cargarScorecardsVentana()}
+            cargandoVentanaScorecards={cargandoScorecards}
           />
         )}
 

@@ -20,6 +20,8 @@ interface PanelInteligencia360Props {
   scorecards: ScorecardAutomatica[]
   onGenerarScorecards: () => void
   guardandoScorecards: boolean
+  onActualizarVentanaScorecards?: () => void
+  cargandoVentanaScorecards?: boolean
 }
 
 export default function PanelInteligencia360({
@@ -27,6 +29,8 @@ export default function PanelInteligencia360({
   scorecards,
   onGenerarScorecards,
   guardandoScorecards,
+  onActualizarVentanaScorecards,
+  cargandoVentanaScorecards = false,
 }: PanelInteligencia360Props) {
   // Feature C: Mapeo de Categoría -> { primarioId, backupId }, persistido en Firestore
   // (antes solo en useState — se perdía al recargar la página).
@@ -200,14 +204,28 @@ export default function PanelInteligencia360({
             </p>
           </div>
 
-          <Button
-            onClick={onGenerarScorecards}
-            disabled={guardandoScorecards}
-            className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs gap-2 shadow-xs"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${guardandoScorecards ? 'animate-spin' : ''}`} />
-            {guardandoScorecards ? 'Guardando...' : 'Persistir Scorecards en DB'}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {onActualizarVentanaScorecards && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onActualizarVentanaScorecards}
+                disabled={cargandoVentanaScorecards || guardandoScorecards}
+                className="font-bold text-xs gap-2"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${cargandoVentanaScorecards ? 'animate-spin' : ''}`} />
+                {cargandoVentanaScorecards ? 'Cargando…' : 'Actualizar scorecards (12 meses)'}
+              </Button>
+            )}
+            <Button
+              onClick={onGenerarScorecards}
+              disabled={guardandoScorecards || cargandoVentanaScorecards}
+              className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs gap-2 shadow-xs"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${guardandoScorecards ? 'animate-spin' : ''}`} />
+              {guardandoScorecards ? 'Guardando...' : 'Persistir Scorecards en DB'}
+            </Button>
+          </div>
         </div>
 
         {scorecards.length === 0 ? (
