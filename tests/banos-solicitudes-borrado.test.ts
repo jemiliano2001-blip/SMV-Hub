@@ -60,6 +60,75 @@ describe("evaluarReglaAutoAprobacion — duplicado_10min", () => {
     )
     expect(resultado).toBeNull()
   })
+
+  it("no aplica si el otro registro es de diferente operador (aunque esté a 5 min)", () => {
+    const objetivo = registro({
+      id: "r1",
+      operador: "Juan Pérez",
+      bano: "Baño #1",
+      fecha: "2026-07-30",
+      horaEntrada: "10:00",
+    })
+    const otroOperador = registro({
+      id: "r2",
+      operador: "Carlos López", // diferente operador
+      bano: "Baño #1",
+      fecha: "2026-07-30",
+      horaEntrada: "10:05",
+    })
+    const resultado = evaluarReglaAutoAprobacion(
+      objetivo,
+      [objetivo, otroOperador],
+      new Date("2026-07-30T14:00:00Z") // solicitud creada 4 horas después
+    )
+    expect(resultado).toBeNull()
+  })
+
+  it("no aplica si el otro registro es de diferente baño (aunque esté a 5 min)", () => {
+    const objetivo = registro({
+      id: "r1",
+      operador: "Juan Pérez",
+      bano: "Baño #1",
+      fecha: "2026-07-30",
+      horaEntrada: "10:00",
+    })
+    const otroBano = registro({
+      id: "r2",
+      operador: "Juan Pérez",
+      bano: "Baño #2", // diferente baño
+      fecha: "2026-07-30",
+      horaEntrada: "10:05",
+    })
+    const resultado = evaluarReglaAutoAprobacion(
+      objetivo,
+      [objetivo, otroBano],
+      new Date("2026-07-30T14:00:00Z") // solicitud creada 4 horas después
+    )
+    expect(resultado).toBeNull()
+  })
+
+  it("no aplica si el otro registro es de diferente fecha (aunque esté a 5 min)", () => {
+    const objetivo = registro({
+      id: "r1",
+      operador: "Juan Pérez",
+      bano: "Baño #1",
+      fecha: "2026-07-30",
+      horaEntrada: "10:00",
+    })
+    const otraFecha = registro({
+      id: "r2",
+      operador: "Juan Pérez",
+      bano: "Baño #1",
+      fecha: "2026-07-29", // diferente fecha
+      horaEntrada: "10:05",
+    })
+    const resultado = evaluarReglaAutoAprobacion(
+      objetivo,
+      [objetivo, otraFecha],
+      new Date("2026-07-30T14:00:00Z") // solicitud creada 4 horas después
+    )
+    expect(resultado).toBeNull()
+  })
 })
 
 describe("evaluarReglaAutoAprobacion — arrepentimiento_2min", () => {

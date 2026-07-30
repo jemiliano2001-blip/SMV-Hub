@@ -30,6 +30,9 @@ export function evaluarReglaAutoAprobacion(
   const hayDuplicadoCercano = registrosRelacionados.some(
     (otro) =>
       otro.id !== registro.id &&
+      otro.operador === registro.operador &&
+      otro.bano === registro.bano &&
+      otro.fecha === registro.fecha &&
       minutosEntreHoras(otro.horaEntrada, registro.horaEntrada) <= VENTANA_DUPLICADO_MIN
   )
   if (hayDuplicadoCercano) return "duplicado_10min"
