@@ -100,6 +100,7 @@ export interface NuevoUsuarioPayload {
   /** Si se omite, se usan los módulos de la plantilla. */
   modulos?: ModuloId[]
   esSuperAdmin?: boolean
+  atiendeDocumentosVenta?: boolean
   creadoPor: string
   /** Si se omite, se genera una temporal aleatoria. */
   password?: string
@@ -141,6 +142,7 @@ export async function crearUsuarioAdmin(payload: NuevoUsuarioPayload): Promise<U
     plantilla,
     modulos,
     esSuperAdmin: payload.esSuperAdmin === true,
+    atiendeDocumentosVenta: payload.atiendeDocumentosVenta === true,
     activo: true,
     proveedor: "password",
     creadoPor: payload.creadoPor,
@@ -155,6 +157,7 @@ export interface CambiosUsuarioAdmin {
   plantilla?: Rol
   modulos?: ModuloId[]
   esSuperAdmin?: boolean
+  atiendeDocumentosVenta?: boolean
   activo?: boolean
   /** @deprecated Usar plantilla (también reescribe modulos si no mandas modulos). */
   rol?: Rol
@@ -225,6 +228,10 @@ export async function actualizarUsuarioAdmin(
 
   if (cambios.esSuperAdmin !== undefined) {
     update.esSuperAdmin = cambios.esSuperAdmin
+  }
+
+  if (cambios.atiendeDocumentosVenta !== undefined) {
+    update.atiendeDocumentosVenta = cambios.atiendeDocumentosVenta
   }
 
   if (cambios.activo !== undefined) {

@@ -103,6 +103,10 @@ export default function BuscadorGlobalCommand() {
               <FileText className="mr-2 h-4 w-4 text-slate-600" />
               <span>Facturación Clientes (Odoo Sync)</span>
             </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => router.push('/documentos-venta'))}>
+              <FileText className="mr-2 h-4 w-4 text-sky-600" />
+              <span>Documentos de venta (remisión / factura)</span>
+            </CommandItem>
             <CommandItem onSelect={() => runCommand(() => router.push('/caja-chica'))}>
               <DollarSign className="mr-2 h-4 w-4 text-amber-600" />
               <span>Caja Chica &amp; Gastos Menores</span>

@@ -52,6 +52,7 @@ const GRUPOS: GrupoNav[] = [
     nombre: 'Operación',
     links: [
       { href: '/notificaciones', label: 'Notificaciones' },
+      { href: '/documentos-venta', label: 'Documentos de venta' },
       { href: '/almacen', label: 'Almacén de materiales' },
       { href: '/pedidos-almacen', label: 'Pedidos de almacén' },
       { href: '/ordenes-servicio', label: 'Órdenes de servicio' },

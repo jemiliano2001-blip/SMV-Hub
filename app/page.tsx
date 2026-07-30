@@ -21,6 +21,7 @@ import {
   DollarSign,
   FileSearch,
   FileSpreadsheet,
+  FileText,
   Bell,
   Package,
   Receipt,
@@ -155,6 +156,15 @@ const NAV_CARDS: readonly TarjetaNavegacion[] = [
     grupo: 'operacion',
     principal: true,
     tags: ['notificaciones', 'avisos', 'alerta', 'taller'],
+  },
+  {
+    href: '/documentos-venta',
+    icon: FileText,
+    label: 'Documentos de venta',
+    desc: 'Pide remisiones o facturas de órdenes de venta y chatea con ventas.',
+    grupo: 'operacion',
+    principal: true,
+    tags: ['remision', 'factura', 'odoo', 'ventas', 'po'],
   },
   {
     href: '/pedidos-almacen',

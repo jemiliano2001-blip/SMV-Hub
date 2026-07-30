@@ -15,6 +15,7 @@ export interface PermisosUsuario {
   plantilla: Rol
   modulos: ModuloId[]
   esSuperAdmin: boolean
+  atiendeDocumentosVenta: boolean
   activo: boolean
 }
 
@@ -33,6 +34,7 @@ export async function obtenerPermisosUsuario(
       plantilla: "admin",
       modulos: modulosDePlantilla("admin"),
       esSuperAdmin: true,
+      atiendeDocumentosVenta: true,
       activo: true,
     }
   }
@@ -54,6 +56,7 @@ export async function obtenerPermisosUsuario(
     plantilla,
     modulos,
     esSuperAdmin,
+    atiendeDocumentosVenta: data.atiendeDocumentosVenta === true || esSuperAdmin,
     activo: true,
   }
 }
