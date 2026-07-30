@@ -54,12 +54,14 @@ Odoo (sale.order + lines + stock.picking outgoing)
 
 ### Filtro de sync
 
-Incluir SO con `state in ('sale', 'done')` y al menos una de:
+Incluir SO con `state in ('sale', 'done')` y
+`invoice_status in ('to invoice', 'upselling')` — misma ventana que la pestaña
+Odoo «A facturar» y que SMV VISION. Las facturadas por completo (`invoiced`) no
+entran al espejo (aunque tengan qty de entrega pendiente).
 
-- `invoice_status != 'invoiced'`, o
-- qty pendiente de entrega > 0 (derivada de líneas / pickings no cancelados).
-
-Orphan purge como finanzas: **no** vaciar el espejo si Odoo devuelve 0 filas.
+En cada línea se guarda la **Descripción** (`sale.order.line.name`), no el
+producto genérico del catálogo. `productName` en el schema es ese texto de
+descripción (legacy del nombre de campo).
 IDs Firestore: `odoo_<id>` (o `/` → `_` si el name se usa como id).
 
 Heartbeat en `ventas_odoo_sync_state/latest` (`ultimaSyncEn`, `filas`, `error` nullable).

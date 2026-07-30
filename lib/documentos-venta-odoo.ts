@@ -3,6 +3,7 @@ import {
   doc,
   onSnapshot,
   orderBy,
+  limit,
   query,
   Timestamp,
   type FirestoreDataConverter,
@@ -74,7 +75,7 @@ export function suscribirVentasOdooSo(
   onData: (rows: VentaOdooSo[]) => void,
   onError: (e: Error) => void
 ): () => void {
-  const q = query(ventasSoRef(), orderBy("name", "desc"))
+  const q = query(ventasSoRef(), orderBy("name", "desc"), limit(500))
   return onSnapshot(
     q,
     (snap) => {

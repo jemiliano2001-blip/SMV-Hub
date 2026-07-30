@@ -61,37 +61,42 @@ describe("qtyPendingLinea", () => {
 })
 
 describe("soDebeIncluirse", () => {
-  it("incluye sale con invoice pendiente", () => {
-    expect(
-      soDebeIncluirse({ state: "sale", invoiceStatus: "to invoice", lineas: [{ qtyPending: 0 }] })
-    ).toBe(true)
+  it("incluye sale con to invoice", () => {
+    expect(soDebeIncluirse({ state: "sale", invoiceStatus: "to invoice" })).toBe(true)
   })
 
-  it("incluye invoiced si aún hay qty pendiente", () => {
-    expect(
-      soDebeIncluirse({ state: "done", invoiceStatus: "invoiced", lineas: [{ qtyPending: 1 }] })
-    ).toBe(true)
+  it("incluye upselling (como VISION)", () => {
+    expect(soDebeIncluirse({ state: "done", invoiceStatus: "upselling" })).toBe(true)
   })
 
-  it("excluye invoiced sin pendientes", () => {
-    expect(
-      soDebeIncluirse({ state: "done", invoiceStatus: "invoiced", lineas: [{ qtyPending: 0 }] })
-    ).toBe(false)
+  it("excluye facturado completo aunque haya qty pendiente", () => {
+    expect(soDebeIncluirse({ state: "sale", invoiceStatus: "invoiced" })).toBe(false)
   })
 
   it("excluye draft", () => {
-    expect(
-      soDebeIncluirse({ state: "draft", invoiceStatus: "to invoice", lineas: [{ qtyPending: 5 }] })
-    ).toBe(false)
+    expect(soDebeIncluirse({ state: "draft", invoiceStatus: "to invoice" })).toBe(false)
   })
 })
 
 describe("mapearLineaOdoo / mapearVentaOdooSo", () => {
-  it("mapea líneas y qtyPending", () => {
+  it("usa Descripción de línea, no el producto genérico", () => {
     const l = mapearLineaOdoo(LINEAS[0])
     expect(l.odooLineId).toBe(1)
-    expect(l.productName).toBe("[A] Pieza A")
+    expect(l.productName).toBe("Pieza A")
+    expect(l.productDefaultCode).toBe("A")
     expect(l.qtyPending).toBe(6)
+  })
+
+  it("si la descripción está vacía, cae al display del producto", () => {
+    const l = mapearLineaOdoo({
+      id: 9,
+      product_id: [1, "[73181000] Servicio de maquinados"],
+      name: "   ",
+      product_uom_qty: 1,
+      qty_delivered: 0,
+    })
+    expect(l.productName).toBe("[73181000] Servicio de maquinados")
+    expect(l.productDefaultCode).toBe("73181000")
   })
 
   it("mapea SO completa con PO, partner y remisiones", () => {
@@ -100,6 +105,7 @@ describe("mapearLineaOdoo / mapearVentaOdooSo", () => {
     expect(so.clientOrderRef).toBe("PO-999")
     expect(so.partnerName).toBe("Cliente Demo")
     expect(so.lineas).toHaveLength(2)
+    expect(so.lineas[0]?.productName).toBe("Pieza A")
     expect(so.remisiones[0]?.name).toBe("WH/OUT/0001")
     expect(so.remisiones[0]?.dateDone).toBe("2026-07-15 09:00:00")
   })

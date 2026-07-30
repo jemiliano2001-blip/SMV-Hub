@@ -82,8 +82,8 @@ export function useDocumentosVenta(opts: {
 
   useEffect(() => {
     if (!solicitudIdSeleccionada) {
-      setMensajes([])
-      return
+      const id = window.setTimeout(() => setMensajes([]), 0)
+      return () => window.clearTimeout(id)
     }
 
     const unsub = suscribirMensajesSolicitud(

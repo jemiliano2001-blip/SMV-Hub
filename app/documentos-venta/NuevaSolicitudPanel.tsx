@@ -123,7 +123,7 @@ export default function NuevaSolicitudPanel({
 
         {sos.length === 0 ? (
           <p className="text-sm text-slate-500 py-4 text-center">
-            No hay órdenes de venta en el espejo. Sincroniza desde Odoo o espera la sync programada.
+            No hay órdenes a facturar (to invoice / upselling). Sincroniza desde Odoo o espera la sync.
           </p>
         ) : (
           <ul className="max-h-56 overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-lg">
@@ -173,48 +173,64 @@ export default function NuevaSolicitudPanel({
           </div>
 
           {tipo === 'remision' && (
-            <ul className="space-y-2">
-              {so.lineas.map((l) => {
-                const checked = seleccionadas.has(l.odooLineId)
-                return (
-                  <li
-                    key={l.odooLineId}
-                    className="flex flex-wrap items-center gap-2 text-sm border border-slate-100 rounded-lg px-3 py-2"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      disabled={l.qtyPending <= 0}
-                      onChange={(e) => {
-                        const next = new Set(seleccionadas)
-                        if (e.target.checked) next.add(l.odooLineId)
-                        else next.delete(l.odooLineId)
-                        setSeleccionadas(next)
-                      }}
-                    />
-                    <span className="flex-1 min-w-[10rem]">{l.productName}</span>
-                    <span className="text-xs text-slate-400">
-                      Pend. {l.qtyPending}
-                    </span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={l.qtyPending}
-                      step="any"
-                      disabled={!checked}
-                      value={qtyPorLinea[l.odooLineId] ?? l.qtyPending}
-                      onChange={(e) =>
-                        setQtyPorLinea((prev) => ({
-                          ...prev,
-                          [l.odooLineId]: Number(e.target.value),
-                        }))
-                      }
-                      className="w-20 rounded border border-slate-200 px-2 py-1 text-xs"
-                    />
-                  </li>
-                )
-              })}
-            </ul>
+            <div className="space-y-2">
+              <div className="grid grid-cols-[auto_1fr_auto_auto] gap-2 px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                <span />
+                <span>Descripción</span>
+                <span className="text-right">Cant.</span>
+                <span className="w-20 text-right">Solicitar</span>
+              </div>
+              <ul className="space-y-2">
+                {so.lineas.map((l) => {
+                  const checked = seleccionadas.has(l.odooLineId)
+                  return (
+                    <li
+                      key={l.odooLineId}
+                      className="grid grid-cols-[auto_1fr_auto_auto] gap-2 items-start text-sm border border-slate-100 rounded-lg px-3 py-2"
+                    >
+                      <input
+                        type="checkbox"
+                        className="mt-1"
+                        checked={checked}
+                        disabled={l.qtyPending <= 0}
+                        onChange={(e) => {
+                          const next = new Set(seleccionadas)
+                          if (e.target.checked) next.add(l.odooLineId)
+                          else next.delete(l.odooLineId)
+                          setSeleccionadas(next)
+                        }}
+                      />
+                      <span className="min-w-0 whitespace-pre-wrap break-words text-slate-800">
+                        {l.productName}
+                      </span>
+                      <span className="text-xs text-slate-500 tabular-nums text-right pt-0.5">
+                        {l.qtyOrdered}
+                        {l.qtyDelivered > 0 && (
+                          <span className="block text-slate-400">
+                            pend. {l.qtyPending}
+                          </span>
+                        )}
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={l.qtyPending}
+                        step="any"
+                        disabled={!checked}
+                        value={qtyPorLinea[l.odooLineId] ?? l.qtyPending}
+                        onChange={(e) =>
+                          setQtyPorLinea((prev) => ({
+                            ...prev,
+                            [l.odooLineId]: Number(e.target.value),
+                          }))
+                        }
+                        className="w-20 rounded border border-slate-200 px-2 py-1 text-xs"
+                      />
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
           )}
 
           <label className="block text-xs font-semibold text-slate-600">

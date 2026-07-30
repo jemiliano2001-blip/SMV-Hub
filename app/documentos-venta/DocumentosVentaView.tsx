@@ -63,8 +63,11 @@ export default function DocumentosVentaView() {
   useEffect(() => {
     const id = searchParams.get('solicitud')
     if (id) {
-      setSolicitudId(id)
-      setTab(atiende ? 'cola' : 'mias')
+      const timer = window.setTimeout(() => {
+        setSolicitudId(id)
+        setTab(atiende ? 'cola' : 'mias')
+      }, 0)
+      return () => window.clearTimeout(timer)
     }
   }, [searchParams, atiende])
 
@@ -98,7 +101,7 @@ export default function DocumentosVentaView() {
             {formatoSync(syncState?.ultimaSyncEn ?? null)}
           </span>
           {typeof syncState?.filas === 'number' && (
-            <span className="text-slate-400"> · {syncState.filas} SO</span>
+            <span className="text-slate-400"> · {syncState.filas} SO a facturar</span>
           )}
           {syncState?.error && (
             <span className="text-red-600 ml-2">Error: {syncState.error}</span>

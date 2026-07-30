@@ -111,13 +111,17 @@ async function sincronizarVentasOdoo(): Promise<number> {
   const uid = await llamarOdoo<number>(url, 'common', 'login', [dbName, username, apiKey]);
   if (!uid) throw new Error('Login a Odoo falló — revisa credenciales');
 
+  // Misma ventana que VISION / pestaña Odoo "A facturar".
   const ordenes = await llamarOdoo<OdooSaleOrderRaw[]>(url, 'object', 'execute_kw', [
     dbName,
     uid,
     apiKey,
     'sale.order',
     'search_read',
-    [[['state', 'in', ['sale', 'done']]]],
+    [[
+      ['state', 'in', ['sale', 'done']],
+      ['invoice_status', 'in', ['to invoice', 'upselling']],
+    ]],
     { fields: CAMPOS_SO },
   ]);
 
@@ -170,13 +174,7 @@ async function sincronizarVentasOdoo(): Promise<number> {
       .map((id) => lineasPorId.get(id))
       .filter((l): l is OdooSaleLineRaw => l !== undefined);
     const mapped = mapearVentaOdooSo(raw, lineasSo, pickingsPorOrigin.get(raw.name) ?? [], ahora);
-    if (
-      soDebeIncluirse({
-        state: mapped.state,
-        invoiceStatus: mapped.invoiceStatus,
-        lineas: mapped.lineas,
-      })
-    ) {
+    if (soDebeIncluirse({ state: mapped.state, invoiceStatus: mapped.invoiceStatus })) {
       incluidos.push(mapped);
     }
   }

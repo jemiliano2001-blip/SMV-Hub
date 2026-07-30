@@ -79,27 +79,31 @@ export function qtyPendingLinea(ordered: number, delivered: number): number {
   return Math.max(0, o - d)
 }
 
+/** Igual que VISION: pestaña "A facturar" = to invoice + upselling. */
 export function soDebeIncluirse(so: {
   state: string
   invoiceStatus: string
-  lineas: readonly { qtyPending: number }[]
 }): boolean {
   if (so.state !== "sale" && so.state !== "done") return false
-  if (so.invoiceStatus !== "invoiced") return true
-  return so.lineas.some((l) => l.qtyPending > 0)
+  return so.invoiceStatus === "to invoice" || so.invoiceStatus === "upselling"
 }
 
+/**
+ * En SMV el producto casi siempre es genérico ("Servicio de maquinados");
+ * el texto útil está en la Descripción de la línea (`sale.order.line.name`).
+ */
 export function mapearLineaOdoo(raw: OdooSaleLineRaw): VentaOdooLineaNormalizada {
-  const productName =
-    raw.product_id === false
-      ? raw.name
-      : raw.product_id[1] || raw.name
+  const descripcion = typeof raw.name === "string" ? raw.name.trim() : ""
+  const productDisplay =
+    raw.product_id === false ? "" : (raw.product_id[1] || "").trim()
+  const productName = descripcion || productDisplay || "Sin descripción"
+  const codeMatch = /^\[([^\]]+)\]/.exec(productDisplay)
   const qtyOrdered = Number(raw.product_uom_qty) || 0
   const qtyDelivered = Number(raw.qty_delivered) || 0
   return {
     odooLineId: raw.id,
     productName,
-    productDefaultCode: null,
+    productDefaultCode: codeMatch?.[1] ?? null,
     qtyOrdered,
     qtyDelivered,
     qtyPending: qtyPendingLinea(qtyOrdered, qtyDelivered),

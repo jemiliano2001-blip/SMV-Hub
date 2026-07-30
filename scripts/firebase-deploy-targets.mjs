@@ -13,6 +13,8 @@ const FUNCTIONS = [
   "functions:smv-hub:syncOdooFacturasManual",
   "functions:smv-hub:syncOdooComprasScheduled",
   "functions:smv-hub:syncOdooComprasManual",
+  "functions:smv-hub:syncOdooVentasScheduled",
+  "functions:smv-hub:syncOdooVentasManual",
   "functions:smv-hub:listarCasosIntegridad",
   "functions:smv-hub:obtenerCasoIntegridad",
   "functions:smv-hub:ejecutarComandoCasoIntegridad",
