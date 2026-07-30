@@ -134,6 +134,13 @@ describe("POST /api/banos/solicitudes-borrado", () => {
     expect(res.status).toBe(403)
   })
 
+  it("permite a un súper admin solicitar el borrado de un registro que no creó", async () => {
+    mockObtenerUsuarioAdmin.mockResolvedValueOnce({ activo: true, esSuperAdmin: true, modulos: ["banos"] })
+    fakeAdminDb = makeFakeAdminDb({ registroDoc: fakeRegistroDoc("registro-1", { creadoPorUid: "otro-uid" }) })
+    const res = await POST(makeRequest({ registroId: "registro-1", motivo: "bano_equivocado" }))
+    expect(res.status).toBe(201)
+  })
+
   it("retorna 409 si ya hay una solicitud pendiente para ese registro", async () => {
     fakeAdminDb = makeFakeAdminDb({ yaPendiente: true })
     const res = await POST(makeRequest({ registroId: "registro-1", motivo: "duplicado" }))
