@@ -4,7 +4,7 @@
 **Módulo:** `/documentos-venta` (evolución UX + sync)  
 **Estado:** aprobado en brainstorming (enfoque 1 — vista dual por rol)  
 **Base:** `docs/superpowers/specs/2026-07-30-documentos-venta-design.md`  
-**Plan:** (pendiente tras review de este spec)
+**Plan:** `docs/superpowers/plans/2026-07-30-documentos-venta-modo-ventas.md`
 
 ---
 
