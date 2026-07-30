@@ -237,6 +237,27 @@ export async function agregarMensajeSolicitud(
     creadoEn: ahora,
   } as MensajeSolicitudDocumento)
 
+  try {
+    const snap = await getDoc(doc(db, COLECCION, solicitudId).withConverter(solicitudConverter))
+    const sol = snap.data()
+    if (sol) {
+      const actor = actorNotificacion()
+      const etiqueta = sol.tipo === "factura" ? "Factura" : "Remisión"
+      await emitirNotificacion({
+        tipo: "solicitud_documento_mensaje",
+        titulo: tituloParaTipo("solicitud_documento_mensaje"),
+        cuerpo: `Nuevo mensaje · ${etiqueta} ${sol.odooSoName}`,
+        origenModulo: "documentos-venta",
+        origenId: solicitudId,
+        href: `/documentos-venta?solicitud=${solicitudId}`,
+        creadoPorUid: actor.uid || autorUid,
+        creadoPorNombre: actor.nombre || autorNombre,
+      })
+    }
+  } catch (err) {
+    console.error("Notif mensaje solicitud_documento falló:", err)
+  }
+
   return ref.id
 }
 

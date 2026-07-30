@@ -1,6 +1,7 @@
 'use client'
 
 import type { SolicitudDocumento } from '@/lib/schemas'
+import { ordenCompraSolicitud } from '@/lib/documentos-venta-helpers'
 
 export default function ColaVentasPanel({
   solicitudes,
@@ -52,8 +53,10 @@ export default function ColaVentasPanel({
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               {s.partnerName}
-              {s.clientOrderRef ? ` · PO ${s.clientOrderRef}` : ''} · por{' '}
-              {s.solicitadoPorNombre}
+              {ordenCompraSolicitud(s)
+                ? ` · Orden de compra ${ordenCompraSolicitud(s)}`
+                : ''}{' '}
+              · por {s.solicitadoPorNombre}
             </p>
           </button>
         </li>

@@ -7,7 +7,7 @@ import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
 import { puedeAtenderDocumentosVenta } from '@/lib/roles'
 import { useDocumentosVenta } from '@/lib/hooks/useDocumentosVenta'
-import { filtrarSoPorTexto } from '@/lib/documentos-venta-helpers'
+import { filtrarSoPorTexto, ordenCompraSolicitud } from '@/lib/documentos-venta-helpers'
 import type { SolicitudDocumento, VentaOdooSo } from '@/lib/schemas'
 import NuevaSolicitudPanel from './NuevaSolicitudPanel'
 import SolicitudDetalleModal from './SolicitudDetalleModal'
@@ -234,7 +234,9 @@ function ListaSolicitudes({
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               {s.partnerName}
-              {s.clientOrderRef ? ` · PO ${s.clientOrderRef}` : ' · Sin PO'}
+              {ordenCompraSolicitud(s)
+                ? ` · Orden de compra ${ordenCompraSolicitud(s)}`
+                : ' · Sin orden de compra'}
             </p>
           </button>
         </li>

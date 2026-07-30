@@ -7,6 +7,7 @@ import type {
   SolicitudDocumento,
   VentaOdooSo,
 } from '@/lib/schemas'
+import { ordenCompraSolicitud } from '@/lib/documentos-venta-helpers'
 
 type Props = {
   solicitud: SolicitudDocumento
@@ -101,8 +102,10 @@ export default function SolicitudDetalleModal({
             </h2>
             <p className="text-xs text-slate-500">
               {solicitud.partnerName}
-              {solicitud.clientOrderRef ? ` · PO ${solicitud.clientOrderRef}` : ''} ·{' '}
-              {solicitud.estado.replace('_', ' ')}
+              {ordenCompraSolicitud(solicitud)
+                ? ` · Orden de compra ${ordenCompraSolicitud(solicitud)}`
+                : ''}{' '}
+              · {solicitud.estado.replace('_', ' ')}
             </p>
           </div>
           <button

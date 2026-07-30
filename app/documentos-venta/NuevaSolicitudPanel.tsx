@@ -6,7 +6,7 @@ import type {
   TipoSolicitudDocumento,
   VentaOdooSo,
 } from '@/lib/schemas'
-import { validarPartidasRemision } from '@/lib/documentos-venta-helpers'
+import { validarPartidasRemision, ordenCompraEfectiva } from '@/lib/documentos-venta-helpers'
 
 type Props = {
   sos: VentaOdooSo[]
@@ -84,6 +84,7 @@ export default function NuevaSolicitudPanel({
       odooSoId: so.odooId,
       odooSoName: so.name,
       clientOrderRef: so.clientOrderRef,
+      ordenCompra: ordenCompraEfectiva(so),
       partnerName: so.partnerName || 'Sin cliente',
       partidas,
       nota: nota.trim(),
@@ -112,12 +113,12 @@ export default function NuevaSolicitudPanel({
     <div className="space-y-4">
       <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
         <label className="block text-xs font-semibold text-slate-600">
-          Buscar empresa, PO o SO
+          Buscar empresa, orden de compra o SO
           <input
             value={busqueda}
             onChange={(e) => onBusquedaChange(e.target.value)}
             className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-            placeholder="Ej. Suprajit, PO-123, S00042"
+            placeholder="Ej. OHD, PO.20263330, 2026/S01126"
           />
         </label>
 
@@ -139,8 +140,10 @@ export default function NuevaSolicitudPanel({
                   <span className="font-semibold text-slate-900">{s.name}</span>
                   <span className="text-slate-500"> · {s.partnerName || 'Sin cliente'}</span>
                   <span className="block text-xs text-slate-400">
-                    {s.clientOrderRef ? `PO ${s.clientOrderRef}` : 'Sin PO'} ·{' '}
-                    {s.invoiceStatus}
+                    {ordenCompraEfectiva(s)
+                      ? `Orden de compra ${ordenCompraEfectiva(s)}`
+                      : 'Sin orden de compra'}{' '}
+                    · {s.invoiceStatus}
                   </span>
                 </button>
               </li>

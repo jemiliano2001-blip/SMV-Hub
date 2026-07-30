@@ -36,6 +36,7 @@ const ventaSoConverter: FirestoreDataConverter<VentaOdooSo> = {
       odooId: d.odooId,
       name: d.name,
       clientOrderRef: d.clientOrderRef ?? null,
+      ordenCompra: d.ordenCompra ?? null,
       partnerId: d.partnerId,
       partnerName: d.partnerName,
       dateOrder: d.dateOrder ?? null,
