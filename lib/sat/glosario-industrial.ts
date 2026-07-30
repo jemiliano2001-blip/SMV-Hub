@@ -25,6 +25,8 @@ const FRASES_EN_ES: Array<[string, string]> = [
   ["flat end", "fresa plana"],
   ["compression spring", "resorte compresion"],
   ["extension spring", "resorte extension"],
+  ["ball spring plunger", "perno bola resorte"],
+  ["spring plunger", "perno resorte"],
   ["hex bolt", "tornillo hexagonal"],
   ["hex screw", "tornillo hexagonal"],
   ["socket head", "tornillo cabeza cilindrica"],
@@ -41,7 +43,7 @@ const FRASES_EN_ES: Array<[string, string]> = [
   ["thread tap", "machuelo"],
   ["spiral flute", "espiral"],
   ["straight flute", "recta"],
-  ["o-ring", "empaque o-ring"],
+  ["o-ring", "oring empaque"],
   ["round bar", "barra redonda acero"],
   ["flat bar", "barra plana acero"],
   ["bar stock", "barra acero"],
@@ -162,10 +164,14 @@ const STOPWORDS_EN = new Set([
 ])
 
 const PALABRAS_ES_INDUSTRIAL = new Set([
-  "fresa", "broca", "tornillo", "tuerca", "arandela", "resorte", "rodamiento",
+  "fresa", "broca", "tornillo", "tuerca", "arandela", "resorte", "resortes",
+  "rodamiento",
   "herramienta", "empaque", "valvula", "inserto", "machuelo", "escariador",
   "carburo", "calibre", "calibrador", "micrometro", "avellanador", "desbarbado",
   "cuchilla", "limador", "precision", "agujeros", "corte", "portaherramienta",
+  // Modificadores de producto: sin ellos "resorte de compresión" → solo "resorte"
+  // y el buscador prioriza máquinas/herramientas que mencionan "resorte".
+  "compresion", "extension", "traccion", "torsion", "helicoidal",
 ])
 
 export type TraduccionGlosario = {

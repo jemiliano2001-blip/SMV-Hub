@@ -194,6 +194,27 @@ function alternativasDesdeResults(results: SatSearchResult[], excluirClave?: str
     }))
 }
 
+/** Ranking local de la descripción original (para alternativas aunque la fuente sea mapeo/historial/IA). */
+function rankingLocalDescripcion(
+  descripcion: string,
+  opciones?: BuscarClavesSatOpciones
+): SatSearchResult[] {
+  return buscarClavesSat(descripcion, 5, { ...opciones, inyectarFraseExacta: true })
+}
+
+function conAlternativasLocales(
+  sugerencia: SugerenciaClaveSat,
+  descripcion: string,
+  opciones?: BuscarClavesSatOpciones
+): SugerenciaClaveSat {
+  if (sugerencia.alternativas && sugerencia.alternativas.length > 0) return sugerencia
+  const ranking = rankingLocalDescripcion(descripcion, opciones)
+  return {
+    ...sugerencia,
+    alternativas: alternativasDesdeResults(ranking, sugerencia.claveProdServ ?? undefined),
+  }
+}
+
 /** Si el top candidato supera umbral absoluto o tiene gap claro vs el segundo, no hace falta Gemini. */
 export function esResultadoClaro(results: SatSearchResult[]): boolean {
   const top = results[0]
@@ -203,6 +224,19 @@ export function esResultadoClaro(results: SatSearchResult[]): boolean {
   // no a que el catálogo tenga el producto real. Mejor no sugerir nada que
   // sugerir con confianza algo equivocado.
   if (!top.coincideTerminoPrincipal) return false
+
+  // Falso positivo típico: glosario deja solo "resorte" (+ materiales) y el
+  // sesgo de tipo empuja cualquier "Resortes …" del catálogo a score alto.
+  const soloUnTermino = top.reasons.some((r) => /Coinciden 1 término/.test(r))
+  const sinFraseNiMod = !top.reasons.some(
+    (r) =>
+      r.includes("búsqueda completa") ||
+      r.includes("Coincide frase") ||
+      r.includes("Modificador de producto") ||
+      r.includes("Coincidencia exacta")
+  )
+  if (soloUnTermino && sinFraseNiMod) return false
+
   if (top.score >= UMBRAL_SCORE_ALTO) return true
   const segundo = results[1]
   if (top.score >= UMBRAL_SCORE_MEDIO && segundo) {
@@ -329,6 +363,7 @@ function obtenerQueriesCandidatos(descripcion: string, terminosPrevios?: string)
   const glosario = traducirConGlosario(descripcion)?.terminosBusqueda
 
   return [
+    descripcion,
     terminosPrevios,
     glosario,
     terminosClave,
@@ -364,7 +399,11 @@ function obtenerCandidatosParaGemini(
   return { candidatos, scores }
 }
 
-function sinSugerencia(motivo: string, terminosBusqueda?: string): SugerenciaClaveSat {
+function sinSugerencia(
+  motivo: string,
+  terminosBusqueda?: string,
+  alternativas: AlternativaSat[] = []
+): SugerenciaClaveSat {
   return {
     claveProdServ: null,
     descripcionSat: null,
@@ -372,6 +411,7 @@ function sinSugerencia(motivo: string, terminosBusqueda?: string): SugerenciaCla
     motivo,
     fuente: "manual",
     terminosBusqueda,
+    alternativas,
   }
 }
 
@@ -402,10 +442,22 @@ export async function sugerirClaveSatItem(
   const terminosGlosario = traducirConGlosario(descripcion)?.terminosBusqueda
 
   const desdeHistorial = buscarPorHistorial(descripcion, historial)
-  if (desdeHistorial) return guardarEnCache(descripcion, item.proveedor, desdeHistorial)
+  if (desdeHistorial) {
+    return guardarEnCache(
+      descripcion,
+      item.proveedor,
+      conAlternativasLocales(desdeHistorial, descripcion, opciones)
+    )
+  }
 
   const desdeHistorialExt = buscarPorHistorialExtendido(descripcion, historial, deps.mapeos)
-  if (desdeHistorialExt) return guardarEnCache(descripcion, item.proveedor, desdeHistorialExt)
+  if (desdeHistorialExt) {
+    return guardarEnCache(
+      descripcion,
+      item.proveedor,
+      conAlternativasLocales(desdeHistorialExt, descripcion, opciones)
+    )
+  }
 
   const omitirBusquedaLocal = pareceDescripcionIngles(descripcion, item.proveedor)
   const desdeLocal = omitirBusquedaLocal ? null : buscarLocal(descripcion, opciones)
@@ -422,11 +474,23 @@ export async function sugerirClaveSatItem(
       "Descripción traducida: ",
       opciones
     )
-    if (desdeTerminosPrevios) return guardarEnCache(descripcion, item.proveedor, desdeTerminosPrevios)
+    if (desdeTerminosPrevios) {
+      return guardarEnCache(
+        descripcion,
+        item.proveedor,
+        conAlternativasLocales(desdeTerminosPrevios, descripcion, opciones)
+      )
+    }
   }
 
   const desdeGlosario = buscarConGlosario(descripcion, opciones)
-  if (desdeGlosario) return guardarEnCache(descripcion, item.proveedor, desdeGlosario)
+  if (desdeGlosario) {
+    return guardarEnCache(
+      descripcion,
+      item.proveedor,
+      conAlternativasLocales(desdeGlosario, descripcion, opciones)
+    )
+  }
 
   const { candidatos, scores } = obtenerCandidatosParaGemini(
     descripcion,
@@ -439,6 +503,8 @@ export async function sugerirClaveSatItem(
 
     if (fusion.clave && candidatos.some((c) => c.clave === fusion.clave)) {
       const resultsIa = buscarClavesSat(fusion.terminosBusqueda, 5, opciones)
+      const rankingFallback = resultsIa.length > 0 ? resultsIa : scores
+      const rankingOriginal = rankingLocalDescripcion(descripcion, opciones)
       const desdeIa = resultadoDesdeClave(
         fusion.clave,
         confianzaDesdeIa(fusion.confianzaIa),
@@ -446,7 +512,10 @@ export async function sugerirClaveSatItem(
         "ia_rag",
         {
           terminosBusqueda: fusion.terminosBusqueda,
-          alternativas: alternativasDesdeResults(resultsIa.length > 0 ? resultsIa : scores, fusion.clave),
+          alternativas: alternativasDesdeResults(
+            rankingOriginal.length > 0 ? rankingOriginal : rankingFallback,
+            fusion.clave
+          ),
         }
       )
       return guardarEnCache(descripcion, item.proveedor, desdeIa)
@@ -459,10 +528,15 @@ export async function sugerirClaveSatItem(
       opciones
     )
     if (desdeTerminosIa) {
-      return guardarEnCache(descripcion, item.proveedor, {
-        ...desdeTerminosIa,
-        terminosBusqueda: fusion.terminosBusqueda,
-      })
+      return guardarEnCache(
+        descripcion,
+        item.proveedor,
+        conAlternativasLocales(
+          { ...desdeTerminosIa, terminosBusqueda: fusion.terminosBusqueda },
+          descripcion,
+          opciones
+        )
+      )
     }
   } catch {
     // Sin sugerencia por IA
@@ -470,9 +544,13 @@ export async function sugerirClaveSatItem(
 
   if (desdeLocal && !omitirBusquedaLocal) return desdeLocal
 
+  const rankingFinal = rankingLocalDescripcion(descripcion, opciones)
+  // UX híbrida: sin match claro no inventamos confianza — clave vacía + alternativas
+  // para que el usuario elija (spec 2026-07-30).
   return sinSugerencia(
     "No hubo coincidencias automáticas en el catálogo local ni con IA",
-    terminosGlosario
+    terminosGlosario,
+    alternativasDesdeResults(rankingFinal)
   )
 }
 
