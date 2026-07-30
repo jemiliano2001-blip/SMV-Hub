@@ -64,6 +64,8 @@ const TITULOS: Record<TipoNotificacion, string> = {
   pedido_almacen_estado: "Pedido de almacén actualizado",
   requisicion_creada: "Nueva requisición",
   requisicion_estado: "Requisición actualizada",
+  banos_solicitud_creada: "Nueva solicitud de eliminación de registro de baño",
+  banos_solicitud_resuelta: "Solicitud de eliminación de baño resuelta",
 }
 
 export function tituloParaTipo(tipo: TipoNotificacion): string {

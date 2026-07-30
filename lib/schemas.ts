@@ -465,10 +465,12 @@ export const TipoNotificacionSchema = z.enum([
   "pedido_almacen_estado",
   "requisicion_creada",
   "requisicion_estado",
+  "banos_solicitud_creada",
+  "banos_solicitud_resuelta",
 ])
 export type TipoNotificacion = z.infer<typeof TipoNotificacionSchema>
 
-export const OrigenModuloNotificacionSchema = z.enum(["pedidos-almacen", "requisiciones"])
+export const OrigenModuloNotificacionSchema = z.enum(["pedidos-almacen", "requisiciones", "banos"])
 export type OrigenModuloNotificacion = z.infer<typeof OrigenModuloNotificacionSchema>
 
 export const NotificacionSchema = z.object({
@@ -516,8 +518,73 @@ export const RegistroBanoSchema = z.object({
   tiempoMinutos: z.number().nullable(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
+  creadoPorUid: z.string().optional(),
+  creadoPorNombre: z.string().optional(),
+  solicitudBorradoEstado: z.literal("pendiente").optional(),
 })
 export type RegistroBano = z.infer<typeof RegistroBanoSchema>
+
+// ── Solicitudes de eliminación de registros de baño ───────────────────────────
+
+export const MotivoSolicitudBorradoBanoSchema = z.enum([
+  "accidental",
+  "bano_equivocado",
+  "operador_equivocado",
+  "hora_mal_capturada",
+  "duplicado",
+  "otro",
+])
+export type MotivoSolicitudBorradoBano = z.infer<typeof MotivoSolicitudBorradoBanoSchema>
+
+export const EstadoSolicitudBorradoBanoSchema = z.enum([
+  "pendiente",
+  "auto_aprobada",
+  "aprobada",
+  "rechazada",
+])
+export type EstadoSolicitudBorradoBano = z.infer<typeof EstadoSolicitudBorradoBanoSchema>
+
+export const ReglaAutoAprobacionSchema = z.enum(["duplicado_10min", "arrepentimiento_2min"])
+export type ReglaAutoAprobacion = z.infer<typeof ReglaAutoAprobacionSchema>
+
+export const RegistroResumenSolicitudSchema = z.object({
+  operador: z.string(),
+  bano: BanoSchema,
+  fecha: z.string(),
+  horaEntrada: z.string(),
+  horaLlegada: z.string().nullable(),
+  tiempoMinutos: z.number().nullable(),
+})
+export type RegistroResumenSolicitud = z.infer<typeof RegistroResumenSolicitudSchema>
+
+export const SolicitudBorradoBanoSchema = z.object({
+  id: z.string(),
+  registroId: z.string(),
+  registroResumen: RegistroResumenSolicitudSchema,
+  motivo: MotivoSolicitudBorradoBanoSchema,
+  nota: z.string().optional(),
+  solicitadoPorUid: z.string(),
+  solicitadoPorNombre: z.string(),
+  estado: EstadoSolicitudBorradoBanoSchema,
+  reglaAutoAplicada: ReglaAutoAprobacionSchema.optional(),
+  resueltoPorUid: z.string().optional(),
+  resueltoPorNombre: z.string().optional(),
+  creadoEn: z.date(),
+  actualizadoEn: z.date(),
+})
+export type SolicitudBorradoBano = z.infer<typeof SolicitudBorradoBanoSchema>
+
+export const CrearSolicitudBorradoBanoInputSchema = z
+  .object({
+    registroId: z.string().min(1),
+    motivo: MotivoSolicitudBorradoBanoSchema,
+    nota: z.string().trim().max(280).optional(),
+  })
+  .refine((d) => d.motivo !== "otro" || (d.nota !== undefined && d.nota.length > 0), {
+    message: "La nota es obligatoria cuando el motivo es 'Otro'",
+    path: ["nota"],
+  })
+export type CrearSolicitudBorradoBanoInput = z.infer<typeof CrearSolicitudBorradoBanoInputSchema>
 
 // ── Horas Extra ───────────────────────────────────────────────────────────────
 
