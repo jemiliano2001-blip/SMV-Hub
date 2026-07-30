@@ -94,9 +94,26 @@ for (const doc of snap.docs) {
     continue
   }
 
+  const modulosIniciales =
+    Array.isArray(data.modulos) && data.modulos.length > 0
+      ? [...data.modulos]
+      : [...MODULOS_POR_PLANTILLA[plantilla]]
+
+  // Docs migrados antes de que "proveedores" entrara a la matriz admin/compras
+  // quedaban sin el id; el check viejo los marcaba "ya migrado" por tener cualquier
+  // modulos[] no vacío. Aquí los parchamos.
+  if (
+    (plantilla === "admin" || plantilla === "compras") &&
+    !modulosIniciales.includes("proveedores")
+  ) {
+    modulosIniciales.push("proveedores")
+  }
+
+  const modulos = modulosIniciales
+
   const modulosYaOk =
     Array.isArray(data.modulos) &&
-    data.modulos.length > 0 &&
+    data.modulos.includes("proveedores") &&
     data.plantilla === plantilla &&
     typeof data.esSuperAdmin === "boolean"
 
@@ -105,10 +122,6 @@ for (const doc of snap.docs) {
     omitidos++
     continue
   }
-
-  const modulos = Array.isArray(data.modulos) && data.modulos.length > 0
-    ? data.modulos
-    : MODULOS_POR_PLANTILLA[plantilla]
 
   const esSuperAdmin =
     data.esSuperAdmin === true || plantilla === "admin" || data.rol === "admin"

@@ -197,14 +197,17 @@ export function tieneModulo(modulos: readonly ModuloId[] | null | undefined, mod
 
 /**
  * Autorización de ruta por módulos.
+ * - esSuperAdmin → acceso a todas las rutas (AuthGuard ya especializa /usuarios)
  * - null/undefined modulos → sin acceso
  * - `/` siempre permitido si hay lista (usuario activo con permisos cargados)
  * - `/usuarios` exige el módulo `usuarios` (la API además exige esSuperAdmin)
  */
 export function tienePermiso(
   modulos: readonly ModuloId[] | null | undefined,
-  pathname: string
+  pathname: string,
+  esSuperAdmin?: boolean
 ): boolean {
+  if (esSuperAdmin) return true
   if (!modulos) return false
   if (pathname === "/") return true
 
@@ -227,22 +230,30 @@ export function modulosDesdeUsuarioLegacy(data: {
   modulos?: unknown
   plantilla?: unknown
   rol?: unknown
+  esSuperAdmin?: unknown
 }): ModuloId[] {
+  const plantilla = plantillaDesdeUsuarioLegacy(data)
+  const esSuper = esSuperAdminDesdeUsuarioLegacy(data)
+
   if (Array.isArray(data.modulos)) {
     const parseados: ModuloId[] = []
     for (const m of data.modulos) {
       const r = ModuloIdSchema.safeParse(m)
       if (r.success) parseados.push(r.data)
     }
-    if (parseados.length > 0 || Array.isArray(data.modulos)) return parseados
+    if (parseados.length > 0 || Array.isArray(data.modulos)) {
+      // Soft-add: docs migrados antes de que "proveedores" existiera en la matriz
+      // siguen sin el id en Firestore; en cliente lo añadimos si el usuario es
+      // super-admin o ya tiene el núcleo de compras (admin/compras de facto).
+      const tieneComprasCore = parseados.some(
+        (m) => m === "nueva-compra" || m === "cotizaciones" || m === "requisiciones"
+      )
+      if ((esSuper || tieneComprasCore) && !parseados.includes("proveedores")) {
+        parseados.push("proveedores")
+      }
+      return parseados
+    }
   }
-
-  const plantilla =
-    typeof data.plantilla === "string"
-      ? data.plantilla
-      : typeof data.rol === "string"
-        ? data.rol
-        : null
 
   if (plantilla === "admin" || plantilla === "compras" || plantilla === "diseno" || plantilla === "almacen") {
     return modulosDePlantilla(plantilla)

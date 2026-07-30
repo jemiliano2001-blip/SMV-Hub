@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { AlertCircle, Check, Copy, Loader2, Search } from "lucide-react"
+import { useUsuario } from "@/lib/auth"
 import { getClienteAuth } from "@/lib/firebase"
 
 type SatSearchResponse = {
@@ -27,6 +28,7 @@ type SatSearchResponse = {
 }
 
 export default function BuscadorClavesSat() {
+  const { usuario, cargando: cargandoAuth } = useUsuario()
   const [query, setQuery] = useState("")
   const [data, setData] = useState<SatSearchResponse | null>(null)
   const [loading, setLoading] = useState(false)
@@ -42,6 +44,8 @@ export default function BuscadorClavesSat() {
   useEffect(() => {
     let cancelled = false
 
+    if (cargandoAuth) return
+
     async function loadResults() {
       setLoading(true)
       setError(null)
@@ -50,7 +54,7 @@ export default function BuscadorClavesSat() {
         if (query.trim()) params.set("q", query.trim())
         params.set("limit", "15")
 
-        const token = await getClienteAuth().currentUser?.getIdToken()
+        const token = await (usuario?.getIdToken() ?? getClienteAuth().currentUser?.getIdToken())
         const response = await fetch(`/api/claves-sat?${params.toString()}`, {
           method: "GET",
           cache: "no-store",
@@ -58,13 +62,22 @@ export default function BuscadorClavesSat() {
         })
 
         if (!response.ok) {
-          throw new Error(`No se pudo consultar el catálogo (${response.status})`)
+          let errDetalle = ""
+          try {
+            const body = (await response.json()) as { details?: string; error?: string }
+            if (body?.details) errDetalle = `: ${body.details}`
+            else if (body?.error) errDetalle = `: ${body.error}`
+          } catch {
+            // sin cuerpo JSON usable
+          }
+          throw new Error(`No se pudo consultar el catálogo (${response.status})${errDetalle}`)
         }
 
         const payload = (await response.json()) as SatSearchResponse
         if (!cancelled) setData(payload)
       } catch (err) {
         if (!cancelled) {
+          setData(null)
           setError(err instanceof Error ? err.message : "Error desconocido al consultar el catálogo")
         }
       } finally {
@@ -76,14 +89,17 @@ export default function BuscadorClavesSat() {
     return () => {
       cancelled = true
     }
-  }, [query])
+  }, [query, usuario, cargandoAuth])
 
-  const formattedUpdatedAt = !data?.meta.updatedAtUtc
-    ? "Pendiente de importar el archivo oficial"
-    : new Date(data.meta.updatedAtUtc).toLocaleString("es-MX", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      })
+  const catalogoCargado = data != null && !error
+  const formattedUpdatedAt = !catalogoCargado
+    ? "No disponible"
+    : !data.meta.updatedAtUtc
+      ? "Pendiente de importar el archivo oficial"
+      : new Date(data.meta.updatedAtUtc).toLocaleString("es-MX", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        })
 
   return (
     <div className="space-y-6">
@@ -95,10 +111,18 @@ export default function BuscadorClavesSat() {
               Busca por descripción o por clave de 8 dígitos. La búsqueda se resuelve localmente dentro de la app.
             </p>
           </div>
-          <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-900">
-            <div className="font-semibold">Catálogo cargado</div>
-            <div>Total: {data?.meta.total ?? 0} claves</div>
-            <div>Versión: {data?.meta.version ?? "pending-import"}</div>
+          <div
+            className={`rounded-lg border px-4 py-3 text-xs ${
+              error
+                ? "border-red-100 bg-red-50 text-red-900"
+                : "border-blue-100 bg-blue-50 text-blue-900"
+            }`}
+          >
+            <div className="font-semibold">{error ? "Error al cargar el catálogo" : "Catálogo cargado"}</div>
+            <div>
+              Total: {catalogoCargado ? data.meta.total : "—"} claves
+            </div>
+            <div>Versión: {catalogoCargado ? data.meta.version : "—"}</div>
             <div>Actualizado: {formattedUpdatedAt}</div>
           </div>
         </div>
@@ -142,7 +166,11 @@ export default function BuscadorClavesSat() {
           {loading && <Loader2 className="h-4 w-4 animate-spin text-blue-600" />}
         </div>
 
-        {data && data.meta.total === 0 ? (
+        {error ? (
+          <div className="px-6 py-8 text-sm text-gray-600">
+            No se pueden mostrar resultados hasta que el catálogo responda. Revisa el error de arriba e intenta de nuevo.
+          </div>
+        ) : data && data.meta.total === 0 ? (
           <div className="px-6 py-8 text-sm text-gray-600">
             El catálogo local todavía está vacío. Ejecuta{' '}
             <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">npm run sat:import:phpcfdi</code>{' '}

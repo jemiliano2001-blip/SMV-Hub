@@ -62,6 +62,11 @@ describe("tienePermiso (por módulos)", () => {
     expect(tienePermiso(modulosDePlantilla("almacen"), "/finanzas")).toBe(false)
   })
 
+  it("esSuperAdmin abre cualquier ruta aunque falte el módulo", () => {
+    expect(tienePermiso(["almacen"], "/proveedores", true)).toBe(true)
+    expect(tienePermiso([], "/finanzas", true)).toBe(true)
+  })
+
   it("compat tienePermisoPorRol", () => {
     expect(tienePermisoPorRol("compras", "/nueva-compra")).toBe(true)
     expect(tienePermisoPorRol("compras", "/ordenes")).toBe(false)
@@ -73,6 +78,35 @@ describe("legacy helpers", () => {
   it("modulosDesdeUsuarioLegacy lee modulos[]", () => {
     expect(
       modulosDesdeUsuarioLegacy({ modulos: ["almacen", "banos"], rol: "compras" })
+    ).toEqual(["almacen", "banos"])
+  })
+
+  it("modulosDesdeUsuarioLegacy soft-add proveedores si hay núcleo de compras", () => {
+    const m = modulosDesdeUsuarioLegacy({
+      modulos: ["nueva-compra", "cotizaciones"],
+      plantilla: "compras",
+      esSuperAdmin: false,
+    })
+    expect(m).toContain("nueva-compra")
+    expect(m).toContain("proveedores")
+  })
+
+  it("modulosDesdeUsuarioLegacy soft-add proveedores si esSuperAdmin", () => {
+    const m = modulosDesdeUsuarioLegacy({
+      modulos: ["auditoria"],
+      plantilla: "admin",
+      esSuperAdmin: true,
+    })
+    expect(m).toContain("proveedores")
+  })
+
+  it("modulosDesdeUsuarioLegacy no inventa proveedores sin compras ni super-admin", () => {
+    expect(
+      modulosDesdeUsuarioLegacy({
+        modulos: ["almacen", "banos"],
+        plantilla: "almacen",
+        esSuperAdmin: false,
+      })
     ).toEqual(["almacen", "banos"])
   })
 
