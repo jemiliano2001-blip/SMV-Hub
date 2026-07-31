@@ -134,7 +134,12 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      # FIREBASE_CLI_EXPERIMENTS: firebase.json declara hosting con Next.js
+      # (frameworks), y firebase-tools valida el experimento webframeworks al
+      # arrancar emuladores aunque el --only sea solo firestore.
       - name: Run Firestore Integrity Emulator Tests
+        env:
+          FIREBASE_CLI_EXPERIMENTS: webframeworks
         run: npx --yes firebase-tools@15.24.0 emulators:exec --only firestore "npm run test:emulator"
 
       # Este build nunca se despliega (el deploy real usa su propio build interno
