@@ -33,8 +33,8 @@ describe("reglas de firestore para horas extra", () => {
 
     expect(fn).toBeTruthy()
     expect(fn).toMatch(/esSuperAdminDoc\(\)/)
-    expect(fn).toMatch(/docUsuario\(\)\.rol in \['admin', 'compras'\]/)
-    expect(fn).toMatch(/docUsuario\(\)\.plantilla in \['admin', 'compras'\]/)
+    expect(fn).toMatch(/docUsuario\(\)\.rol in \['admin', 'compras', 'automatizacion'\]/)
+    expect(fn).toMatch(/docUsuario\(\)\.plantilla in \['admin', 'compras', 'automatizacion'\]/)
     expect(fn).toMatch(/docUsuario\(\)\.editaHorasExtra == true/)
   })
 })

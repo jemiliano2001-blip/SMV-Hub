@@ -453,16 +453,17 @@ service cloud.firestore {
              d.actualizadoEn is timestamp;
     }
 
-    // Edición restringida: super-admin, plantilla/rol admin o compras (compras
-    // y contabilidad) o el flag por usuario `editaHorasExtra` (automatización).
+    // Edición restringida: super-admin, plantilla/rol admin, compras o
+    // automatización (compras, contabilidad y el encargado de automatización)
+    // o el flag por usuario `editaHorasExtra` para casos individuales.
     // Diseño y el resto: solo lectura. Mantener sincronizado con
     // `puedeEditarHorasExtra()` en `lib/roles.ts`.
     function puedeEditarHorasExtra() {
       return esUsuarioAutorizado() && (
         esCorreoBreakGlass() ||
         esSuperAdminDoc() ||
-        docUsuario().rol in ['admin', 'compras'] ||
-        docUsuario().plantilla in ['admin', 'compras'] ||
+        docUsuario().rol in ['admin', 'compras', 'automatizacion'] ||
+        docUsuario().plantilla in ['admin', 'compras', 'automatizacion'] ||
         ('editaHorasExtra' in docUsuario() && docUsuario().editaHorasExtra == true)
       );
     }

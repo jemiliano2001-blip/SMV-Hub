@@ -13,7 +13,7 @@ import {
 } from '@/lib/roles'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 
-const PLANTILLAS: Rol[] = ['admin', 'compras', 'diseno', 'almacen']
+const PLANTILLAS: Rol[] = ['admin', 'compras', 'diseno', 'almacen', 'automatizacion']
 
 function BannerPasswordTemporal({ password, onClose }: { password: string; onClose: () => void }) {
   const [copiado, setCopiado] = useState(false)

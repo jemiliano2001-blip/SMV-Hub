@@ -350,7 +350,7 @@ export type Operador = z.infer<typeof OperadorSchema>
 
 // ── Usuarios (roles y acceso, administrados desde /usuarios) ──────────────────
 
-export const RolSchema = z.enum(["admin", "compras", "diseno", "almacen"])
+export const RolSchema = z.enum(["admin", "compras", "diseno", "almacen", "automatizacion"])
 export type Rol = z.infer<typeof RolSchema>
 
 /** Identificadores de módulo asignables por usuario (sí/no). */

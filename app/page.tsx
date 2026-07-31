@@ -331,6 +331,7 @@ const NOMBRE_ROL: Record<Rol, string> = {
   compras: 'Equipo de Compras',
   diseno: 'Ingeniería y Diseño',
   almacen: 'Encargado de Almacén',
+  automatizacion: 'Automatización',
 }
 
 export default function Home() {

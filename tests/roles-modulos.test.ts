@@ -44,6 +44,15 @@ describe("modulosDePlantilla", () => {
       "horas-extra",
     ])
   })
+
+  it("automatizacion es diseno + notificaciones", () => {
+    expect(modulosDePlantilla("automatizacion")).toEqual([
+      "cotizaciones",
+      "requisiciones",
+      "horas-extra",
+      "notificaciones",
+    ])
+  })
 })
 
 describe("puedeVerNotificaciones", () => {
@@ -63,9 +72,10 @@ describe("puedeVerNotificaciones", () => {
 })
 
 describe("puedeEditarHorasExtra", () => {
-  it("admin y compras editan por plantilla", () => {
+  it("admin, compras y automatización editan por plantilla", () => {
     expect(puedeEditarHorasExtra({ plantilla: "admin" })).toBe(true)
     expect(puedeEditarHorasExtra({ plantilla: "compras" })).toBe(true)
+    expect(puedeEditarHorasExtra({ plantilla: "automatizacion" })).toBe(true)
   })
 
   it("diseño y almacén no editan sin flag", () => {
@@ -131,6 +141,7 @@ describe("legacy helpers", () => {
   it("plantillaDesdeUsuarioLegacy", () => {
     expect(plantillaDesdeUsuarioLegacy({ plantilla: "diseno" })).toBe("diseno")
     expect(plantillaDesdeUsuarioLegacy({ rol: "compras" })).toBe("compras")
+    expect(plantillaDesdeUsuarioLegacy({ plantilla: "automatizacion" })).toBe("automatizacion")
     expect(plantillaDesdeUsuarioLegacy({})).toBeNull()
   })
 

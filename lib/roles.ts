@@ -1,5 +1,5 @@
 import type { Rol } from "@/lib/schemas"
-import { ModuloIdSchema, type ModuloId } from "@/lib/schemas"
+import { ModuloIdSchema, RolSchema, type ModuloId } from "@/lib/schemas"
 
 export type { Rol, ModuloId }
 
@@ -117,6 +117,13 @@ const PLANTILLA_COMPRAS: ModuloId[] = [
 
 const PLANTILLA_DISENO: ModuloId[] = ["cotizaciones", "requisiciones", "horas-extra"]
 
+const PLANTILLA_AUTOMATIZACION: ModuloId[] = [
+  "cotizaciones",
+  "requisiciones",
+  "horas-extra",
+  "notificaciones",
+]
+
 const PLANTILLA_ALMACEN: ModuloId[] = [
   "almacen",
   "pedidos-almacen",
@@ -131,6 +138,7 @@ export const MODULOS_POR_PLANTILLA: Record<Rol, ModuloId[]> = {
   compras: PLANTILLA_COMPRAS,
   diseno: PLANTILLA_DISENO,
   almacen: PLANTILLA_ALMACEN,
+  automatizacion: PLANTILLA_AUTOMATIZACION,
 }
 
 /**
@@ -176,6 +184,7 @@ export const PERMISOS_POR_ROL: Record<Rol, string[]> = {
   ],
   diseno: ["/", "/cotizaciones", "/requisiciones", "/horas-extra"],
   almacen: ["/", "/almacen", "/pedidos-almacen", "/banos", "/notificaciones"],
+  automatizacion: ["/", "/cotizaciones", "/requisiciones", "/horas-extra", "/notificaciones"],
 }
 
 export function modulosDePlantilla(plantilla: Rol): ModuloId[] {
@@ -280,7 +289,13 @@ export function modulosDesdeUsuarioLegacy(data: {
         ? data.rol
         : null
 
-  if (plantilla === "admin" || plantilla === "compras" || plantilla === "diseno" || plantilla === "almacen") {
+  if (
+    plantilla === "admin" ||
+    plantilla === "compras" ||
+    plantilla === "diseno" ||
+    plantilla === "almacen" ||
+    plantilla === "automatizacion"
+  ) {
     return modulosDePlantilla(plantilla)
   }
   return []
@@ -290,21 +305,19 @@ export function plantillaDesdeUsuarioLegacy(data: {
   plantilla?: unknown
   rol?: unknown
 }): Rol | null {
-  if (data.plantilla === "admin" || data.plantilla === "compras" || data.plantilla === "diseno" || data.plantilla === "almacen") {
-    return data.plantilla
-  }
-  if (data.rol === "admin" || data.rol === "compras" || data.rol === "diseno" || data.rol === "almacen") {
-    return data.rol
-  }
+  const r1 = RolSchema.safeParse(data.plantilla)
+  if (r1.success) return r1.data
+  const r2 = RolSchema.safeParse(data.rol)
+  if (r2.success) return r2.data
   return null
 }
 
 /**
- * Edición de /horas-extra: super-admin, plantilla admin/compras (compras y
- * contabilidad) o el flag por usuario `editaHorasExtra` (p. ej. el encargado
- * de automatización). El resto —incluida la plantilla diseño— ve en solo
- * lectura. Debe mantenerse sincronizado con `puedeEditarHorasExtra()` en
- * `firestore.rules`.
+ * Edición de /horas-extra: super-admin, plantilla admin/compras/automatización
+ * (compras, contabilidad y el encargado de automatización) o el flag por
+ * usuario `editaHorasExtra` para casos individuales con otra plantilla. El
+ * resto —incluida la plantilla diseño— ve en solo lectura. Debe mantenerse
+ * sincronizado con `puedeEditarHorasExtra()` en `firestore.rules`.
  */
 export function puedeEditarHorasExtra(u: {
   plantilla?: Rol | null
@@ -313,7 +326,7 @@ export function puedeEditarHorasExtra(u: {
 } | null | undefined): boolean {
   if (!u) return false
   if (u.esSuperAdmin === true || u.editaHorasExtra === true) return true
-  return u.plantilla === "admin" || u.plantilla === "compras"
+  return u.plantilla === "admin" || u.plantilla === "compras" || u.plantilla === "automatizacion"
 }
 
 export function puedeAtenderDocumentosVenta(u: {
