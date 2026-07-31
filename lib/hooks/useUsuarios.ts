@@ -11,6 +11,7 @@ export interface UsuarioAdmin {
   modulos: ModuloId[]
   esSuperAdmin: boolean
   atiendeDocumentosVenta: boolean
+  editaHorasExtra: boolean
   activo: boolean
   proveedor: "google" | "password"
   creadoPor: string
@@ -24,6 +25,7 @@ export interface CrearUsuarioInput {
   modulos?: ModuloId[]
   esSuperAdmin?: boolean
   atiendeDocumentosVenta?: boolean
+  editaHorasExtra?: boolean
   password?: string
 }
 
@@ -32,6 +34,7 @@ export interface ActualizarUsuarioInput {
   modulos?: ModuloId[]
   esSuperAdmin?: boolean
   atiendeDocumentosVenta?: boolean
+  editaHorasExtra?: boolean
   activo?: boolean
 }
 
@@ -76,6 +79,7 @@ export function useUsuarios() {
             modulos: u.modulos ?? [],
             esSuperAdmin: u.esSuperAdmin === true,
             atiendeDocumentosVenta: u.atiendeDocumentosVenta === true,
+            editaHorasExtra: u.editaHorasExtra === true,
           }))
         )
       }

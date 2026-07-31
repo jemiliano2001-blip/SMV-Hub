@@ -16,6 +16,7 @@ export interface PermisosUsuario {
   modulos: ModuloId[]
   esSuperAdmin: boolean
   atiendeDocumentosVenta: boolean
+  editaHorasExtra: boolean
   activo: boolean
 }
 
@@ -35,6 +36,7 @@ export async function obtenerPermisosUsuario(
       modulos: modulosDePlantilla("admin"),
       esSuperAdmin: true,
       atiendeDocumentosVenta: true,
+      editaHorasExtra: true,
       activo: true,
     }
   }
@@ -57,6 +59,7 @@ export async function obtenerPermisosUsuario(
     modulos,
     esSuperAdmin,
     atiendeDocumentosVenta: data.atiendeDocumentosVenta === true || esSuperAdmin,
+    editaHorasExtra: data.editaHorasExtra === true,
     activo: true,
   }
 }

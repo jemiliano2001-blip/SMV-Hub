@@ -12,6 +12,7 @@ const CambiosUsuarioSchema = z
     modulos: z.array(ModuloIdSchema).optional(),
     esSuperAdmin: z.boolean().optional(),
     atiendeDocumentosVenta: z.boolean().optional(),
+    editaHorasExtra: z.boolean().optional(),
     activo: z.boolean().optional(),
   })
   .refine(
@@ -21,6 +22,7 @@ const CambiosUsuarioSchema = z
       c.modulos !== undefined ||
       c.esSuperAdmin !== undefined ||
       c.atiendeDocumentosVenta !== undefined ||
+      c.editaHorasExtra !== undefined ||
       c.activo !== undefined,
     { message: "Debe incluir al menos un campo a actualizar" }
   )

@@ -14,52 +14,80 @@ import type { NotificacionConLeida, OrigenModuloNotificacion } from "@/lib/schem
 export type FiltroLeida = "todas" | "no_leidas" | "leidas"
 export type FiltroOrigen = "todos" | OrigenModuloNotificacion
 
-export function useNotificaciones(opciones?: { enabled?: boolean }) {
+export function useNotificaciones(opciones?: { enabled?: boolean; uid?: string | null }) {
   const enabled = opciones?.enabled !== false
-  const [leidasIds, setLeidasIds] = useState<Set<string>>(new Set())
+  const uid =
+    opciones && "uid" in opciones
+      ? opciones.uid ?? null
+      : getClienteAuth().currentUser?.uid ?? null
+  const [leidasConfirmadas, setLeidasConfirmadas] = useState<Set<string>>(new Set())
+  const [leidasOptimistas, setLeidasOptimistas] = useState<Set<string>>(new Set())
   const [raw, setRaw] = useState<Parameters<typeof mergeNotificacionesConLeidas>[0]>([])
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const uid = getClienteAuth().currentUser?.uid ?? null
+  const [cargandoFeed, setCargandoFeed] = useState(enabled && Boolean(uid))
+  const [cargandoLeidas, setCargandoLeidas] = useState(enabled && Boolean(uid))
+  const [errorFeed, setErrorFeed] = useState<string | null>(null)
+  const [errorLeidas, setErrorLeidas] = useState<string | null>(null)
+  const [intento, setIntento] = useState(0)
 
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || !uid) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reset al deshabilitar el hook
-      setCargando(false)
+      setCargandoFeed(false)
       setRaw([])
+      setErrorFeed(null)
       return
     }
-    setCargando(true)
+    setCargandoFeed(true)
+    setErrorFeed(null)
     const unsub = suscribirNotificaciones(
       (lista) => {
         setRaw(lista)
-        setCargando(false)
-        setError(null)
+        setCargandoFeed(false)
+        setErrorFeed(null)
       },
       (err) => {
-        setError(err.message || "No se pudieron cargar las notificaciones")
-        setCargando(false)
+        setErrorFeed(err.message || "No se pudieron cargar las notificaciones")
+        setCargandoFeed(false)
       }
     )
     return unsub
-  }, [enabled])
+  }, [enabled, uid, intento])
 
   useEffect(() => {
     if (!enabled || !uid) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- sin sesión no hay leídos
-      setLeidasIds(new Set())
+      setLeidasConfirmadas(new Set())
+      setLeidasOptimistas(new Set())
+      setCargandoLeidas(false)
+      setErrorLeidas(null)
       return
     }
+    setCargandoLeidas(true)
+    setErrorLeidas(null)
     const unsub = suscribirNotificacionesLeidas(
       uid,
-      (ids) => setLeidasIds(ids),
+      (ids) => {
+        setLeidasConfirmadas(ids)
+        setLeidasOptimistas((previas) => {
+          const pendientes = new Set([...previas].filter((id) => !ids.has(id)))
+          return pendientes.size === previas.size ? previas : pendientes
+        })
+        setCargandoLeidas(false)
+        setErrorLeidas(null)
+      },
       (err) => {
         console.error(err)
-        setError(err.message || "No se pudieron cargar los leídos")
+        setErrorLeidas(err.message || "No se pudieron cargar los leídos")
+        setCargandoLeidas(false)
       }
     )
     return unsub
-  }, [uid, enabled])
+  }, [uid, enabled, intento])
+
+  const leidasIds = useMemo(
+    () => new Set([...leidasConfirmadas, ...leidasOptimistas]),
+    [leidasConfirmadas, leidasOptimistas]
+  )
 
   const items = useMemo(
     () => mergeNotificacionesConLeidas(raw, leidasIds),
@@ -71,10 +99,16 @@ export function useNotificaciones(opciones?: { enabled?: boolean }) {
 
   const marcarLeida = useCallback(
     async (id: string) => {
-      if (!uid) return
+      if (!uid) throw new Error("No hay una sesión activa para guardar el leído")
+      setLeidasOptimistas((previas) => new Set(previas).add(id))
       try {
         await marcarNotificacionLeida(uid, id)
       } catch (err) {
+        setLeidasOptimistas((previas) => {
+          const siguientes = new Set(previas)
+          siguientes.delete(id)
+          return siguientes
+        })
         console.error(err)
         throw err
       }
@@ -83,10 +117,20 @@ export function useNotificaciones(opciones?: { enabled?: boolean }) {
   )
 
   const marcarTodas = useCallback(async () => {
-    if (!uid) return
+    if (!uid) throw new Error("No hay una sesión activa para guardar los leídos")
     const ids = items.filter((n) => !n.leida).map((n) => n.id)
     if (ids.length === 0) return
-    await marcarTodasNotificacionesLeidas(uid, ids)
+    setLeidasOptimistas((previas) => new Set([...previas, ...ids]))
+    try {
+      await marcarTodasNotificacionesLeidas(uid, ids)
+    } catch (err) {
+      setLeidasOptimistas((previas) => {
+        const siguientes = new Set(previas)
+        for (const id of ids) siguientes.delete(id)
+        return siguientes
+      })
+      throw err
+    }
   }, [uid, items])
 
   const filtrar = useCallback(
@@ -105,11 +149,12 @@ export function useNotificaciones(opciones?: { enabled?: boolean }) {
     items,
     paraDropdown,
     noLeidas,
-    cargando,
-    error,
+    cargando: enabled && Boolean(uid) && (cargandoFeed || cargandoLeidas),
+    error: errorFeed ?? errorLeidas,
     marcarLeida,
     marcarTodas,
     filtrar,
     uid,
+    reintentar: () => setIntento((actual) => actual + 1),
   }
 }

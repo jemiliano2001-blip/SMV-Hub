@@ -75,6 +75,24 @@ export function tituloParaTipo(tipo: TipoNotificacion): string {
   return TITULOS[tipo]
 }
 
+/**
+ * Convierte el destino almacenado en Firestore a una ruta interna segura.
+ * `router.push()` no debe recibir esquemas ejecutables ni URLs externas.
+ */
+export function hrefSeguroNotificacion(href: string): string {
+  const valor = href.trim()
+  if (!valor.startsWith("/") || valor.startsWith("//")) return "/notificaciones"
+
+  try {
+    const base = new URL("https://smv-hub.local")
+    const destino = new URL(valor, base)
+    if (destino.origin !== base.origin) return "/notificaciones"
+    return `${destino.pathname}${destino.search}${destino.hash}`
+  } catch {
+    return "/notificaciones"
+  }
+}
+
 export function mergeNotificacionesConLeidas(
   notificaciones: readonly Notificacion[],
   leidasIds: ReadonlySet<string>
@@ -170,7 +188,7 @@ export async function marcarTodasNotificacionesLeidas(
   uid: string,
   ids: readonly string[]
 ): Promise<void> {
-  const pendientes = ids.filter(Boolean)
+  const pendientes = [...new Set(ids.filter(Boolean))]
   if (pendientes.length === 0) return
 
   const LOTE = 400

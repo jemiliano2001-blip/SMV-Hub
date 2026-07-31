@@ -29,6 +29,8 @@ import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 interface Props {
   departamento: Departamento
   semanaInicio: string
+  /** false → modo solo lectura: sin captura, sin acciones de lote ni borrado. */
+  puedeEditar: boolean
 }
 
 type CampoEditable = DiaSemana | 'notas'
@@ -36,7 +38,7 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 const FIN_DE_SEMANA = new Set<DiaSemana>(['sabado', 'domingo'])
 
-export default function HorasExtraGrid({ departamento, semanaInicio }: Props) {
+export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar }: Props) {
   const confirmar = useConfirmDialog()
   const {
     registros,
@@ -103,6 +105,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio }: Props) {
   )
 
   function iniciarEdicion(reg: HorasExtra, field: CampoEditable) {
+    if (!puedeEditar) return
     const valor = field === 'notas' ? reg.notas : reg[field]
     setActiveCell({ rowId: reg.id, field })
     setDraft(valor ?? '')
@@ -269,6 +272,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio }: Props) {
     <div className="space-y-4">
       {/* Acciones y progreso */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {puedeEditar && (
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -297,6 +301,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio }: Props) {
             Copiar semana anterior
           </button>
         </div>
+        )}
         {total > 0 && (
           <div className="text-sm text-gray-600">
             <span className="font-medium text-[#0369A1]">{conHoras}/{total}</span> empleados con horas
@@ -317,6 +322,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio }: Props) {
       )}
 
       {/* Agregar empleado */}
+      {puedeEditar && (
       <form onSubmit={handleAgregar} className="flex gap-3 max-w-md">
         <select
           required
@@ -341,6 +347,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio }: Props) {
           <Plus className="h-4 w-4" />
         </button>
       </form>
+      )}
 
       {/* Chips rápidos al editar */}
       {activeCell && activeCell.field !== 'notas' && (
@@ -437,18 +444,24 @@ export default function HorasExtraGrid({ departamento, semanaInicio }: Props) {
                             />
                           ) : (
                             <div
-                              role="button"
-                              tabIndex={0}
-                              onClick={() => iniciarEdicion(r, dia)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') iniciarEdicion(r, dia)
-                              }}
+                              {...(puedeEditar
+                                ? {
+                                    role: 'button' as const,
+                                    tabIndex: 0,
+                                    onClick: () => iniciarEdicion(r, dia),
+                                    onKeyDown: (e: React.KeyboardEvent) => {
+                                      if (e.key === 'Enter' || e.key === ' ') iniciarEdicion(r, dia)
+                                    },
+                                  }
+                                : {})}
                               title={
                                 advertencia
                                   ? 'Formato no reconocido — usa 2, 2.5 o 2 30'
                                   : undefined
                               }
-                              className={`w-full h-8 flex items-center justify-center gap-0.5 cursor-text rounded text-gray-700 hover:ring-1 hover:ring-gray-200 ${intensidadHeatmap(valor)}`}
+                              className={`w-full h-8 flex items-center justify-center gap-0.5 rounded text-gray-700 ${
+                                puedeEditar ? 'cursor-text hover:ring-1 hover:ring-gray-200' : ''
+                              } ${intensidadHeatmap(valor)}`}
                             >
                               {advertencia && (
                                 <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0" />
@@ -481,30 +494,41 @@ export default function HorasExtraGrid({ departamento, semanaInicio }: Props) {
                         />
                       ) : (
                         <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => iniciarEdicion(r, 'notas')}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') iniciarEdicion(r, 'notas')
-                          }}
-                          className="w-full h-8 px-2 flex items-center cursor-text hover:bg-gray-100 rounded text-gray-600 text-xs"
+                          {...(puedeEditar
+                            ? {
+                                role: 'button' as const,
+                                tabIndex: 0,
+                                onClick: () => iniciarEdicion(r, 'notas'),
+                                onKeyDown: (e: React.KeyboardEvent) => {
+                                  if (e.key === 'Enter' || e.key === ' ') iniciarEdicion(r, 'notas')
+                                },
+                              }
+                            : {})}
+                          className={`w-full h-8 px-2 flex items-center rounded text-gray-600 text-xs ${
+                            puedeEditar ? 'cursor-text hover:bg-gray-100' : ''
+                          }`}
                         >
-                          {r.notas || (
-                            <span className="text-gray-300 italic">Clic para nota...</span>
-                          )}
+                          {r.notas ||
+                            (puedeEditar ? (
+                              <span className="text-gray-300 italic">Clic para nota...</span>
+                            ) : (
+                              <span className="text-gray-300">—</span>
+                            ))}
                         </div>
                       )}
                     </td>
 
                     <td className="px-2 py-2">
-                      <button
-                        type="button"
-                        onClick={() => void handleEliminar(r.id, r.empleado)}
-                        className="text-gray-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded transition-colors"
-                        title="Remover fila"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {puedeEditar && (
+                        <button
+                          type="button"
+                          onClick={() => void handleEliminar(r.id, r.empleado)}
+                          className="text-gray-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded transition-colors"
+                          title="Remover fila"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 )
@@ -514,13 +538,19 @@ export default function HorasExtraGrid({ departamento, semanaInicio }: Props) {
         </table>
       </div>
 
-      <p className="text-xs text-gray-500">
-        Clic en celda para editar.{' '}
-        <kbd className="bg-gray-100 border border-gray-300 px-1 rounded text-gray-600">Tab</kbd> avanza,{' '}
-        <kbd className="bg-gray-100 border border-gray-300 px-1 rounded text-gray-600">Enter</kbd> baja,{' '}
-        <kbd className="bg-gray-100 border border-gray-300 px-1 rounded text-gray-600">Esc</kbd> cancela.
-        Auto-guardado al salir de cada celda.
-      </p>
+      {puedeEditar ? (
+        <p className="text-xs text-gray-500">
+          Clic en celda para editar.{' '}
+          <kbd className="bg-gray-100 border border-gray-300 px-1 rounded text-gray-600">Tab</kbd> avanza,{' '}
+          <kbd className="bg-gray-100 border border-gray-300 px-1 rounded text-gray-600">Enter</kbd> baja,{' '}
+          <kbd className="bg-gray-100 border border-gray-300 px-1 rounded text-gray-600">Esc</kbd> cancela.
+          Auto-guardado al salir de cada celda.
+        </p>
+      ) : (
+        <p className="text-xs text-gray-500">
+          Vista de solo lectura. La captura la realiza compras, contabilidad o automatización.
+        </p>
+      )}
     </div>
   )
 }

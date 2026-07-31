@@ -101,6 +101,7 @@ function FormNuevoUsuario({
     modulos: ModuloId[]
     esSuperAdmin: boolean
     atiendeDocumentosVenta: boolean
+    editaHorasExtra: boolean
     password?: string
   }) => Promise<void>
 }) {
@@ -109,6 +110,7 @@ function FormNuevoUsuario({
   const [modulos, setModulos] = useState<ModuloId[]>(() => modulosDePlantilla('compras'))
   const [esSuperAdmin, setEsSuperAdmin] = useState(false)
   const [atiendeDocumentosVenta, setAtiendeDocumentosVenta] = useState(false)
+  const [editaHorasExtra, setEditaHorasExtra] = useState(false)
   const [password, setPassword] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -134,6 +136,7 @@ function FormNuevoUsuario({
         modulos,
         esSuperAdmin,
         atiendeDocumentosVenta,
+        editaHorasExtra,
         password: password || undefined,
       })
       setEmail('')
@@ -141,6 +144,7 @@ function FormNuevoUsuario({
       setModulos(modulosDePlantilla('compras'))
       setEsSuperAdmin(false)
       setAtiendeDocumentosVenta(false)
+      setEditaHorasExtra(false)
       setPassword('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el usuario')
@@ -228,6 +232,15 @@ function FormNuevoUsuario({
           />
           Atiende documentos de venta (cola remisión/factura)
         </label>
+        <label className="flex items-center gap-2 text-xs text-slate-800 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={editaHorasExtra}
+            onChange={(e) => setEditaHorasExtra(e.target.checked)}
+            className="rounded border-slate-300 text-[#0369A1]"
+          />
+          Edita horas extra (además de admin/compras)
+        </label>
         {personalizado && (
           <span className="text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded">
             PERSONALIZADO
@@ -258,6 +271,7 @@ function ModalEditarPermisos({
     modulos: ModuloId[]
     esSuperAdmin: boolean
     atiendeDocumentosVenta: boolean
+    editaHorasExtra: boolean
   }) => Promise<void>
   onCerrar: () => void
 }) {
@@ -266,6 +280,9 @@ function ModalEditarPermisos({
   const [esSuperAdmin, setEsSuperAdmin] = useState(usuario.esSuperAdmin)
   const [atiendeDocumentosVenta, setAtiendeDocumentosVenta] = useState(
     usuario.atiendeDocumentosVenta === true
+  )
+  const [editaHorasExtra, setEditaHorasExtra] = useState(
+    usuario.editaHorasExtra === true
   )
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -280,7 +297,7 @@ function ModalEditarPermisos({
     setGuardando(true)
     setError(null)
     try {
-      await onGuardar({ plantilla, modulos, esSuperAdmin, atiendeDocumentosVenta })
+      await onGuardar({ plantilla, modulos, esSuperAdmin, atiendeDocumentosVenta, editaHorasExtra })
       onCerrar()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar')
@@ -339,6 +356,15 @@ function ModalEditarPermisos({
               className="rounded border-slate-300 text-[#0369A1]"
             />
             Atiende documentos de venta
+          </label>
+          <label className="flex items-center gap-2 text-xs text-slate-800 cursor-pointer mt-2">
+            <input
+              type="checkbox"
+              checked={editaHorasExtra}
+              onChange={(e) => setEditaHorasExtra(e.target.checked)}
+              className="rounded border-slate-300 text-[#0369A1]"
+            />
+            Edita horas extra (además de admin/compras)
           </label>
           {personalizado && (
             <span className="mt-4 text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded">
@@ -512,6 +538,7 @@ function UsuariosContent() {
     modulos: ModuloId[]
     esSuperAdmin: boolean
     atiendeDocumentosVenta: boolean
+    editaHorasExtra: boolean
     password?: string
   }) {
     const tempPassword = await crearUsuario(input)
@@ -523,6 +550,7 @@ function UsuariosContent() {
     modulos: ModuloId[]
     esSuperAdmin: boolean
     atiendeDocumentosVenta: boolean
+    editaHorasExtra: boolean
   }) {
     if (!editando) return
     setAccionError(null)

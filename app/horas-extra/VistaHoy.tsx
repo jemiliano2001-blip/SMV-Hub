@@ -16,9 +16,11 @@ import { Check, Loader2, AlertCircle } from 'lucide-react'
 interface Props {
   departamento: Departamento
   semanaInicio: string
+  /** false → modo solo lectura: sin captura ni chips. */
+  puedeEditar: boolean
 }
 
-export default function VistaHoy({ departamento, semanaInicio }: Props) {
+export default function VistaHoy({ departamento, semanaInicio, puedeEditar }: Props) {
   const {
     registros,
     loading,
@@ -141,7 +143,7 @@ export default function VistaHoy({ departamento, semanaInicio }: Props) {
             Semana del {semanaInicio}. Los cambios se reflejan en la grilla semanal.
           </p>
         </div>
-        {filas.length === 0 && (
+        {filas.length === 0 && puedeEditar && (
           <button
             type="button"
             onClick={() => void cargarEquipo(operadores)}
@@ -155,13 +157,15 @@ export default function VistaHoy({ departamento, semanaInicio }: Props) {
       {filas.length === 0 ? (
         <div className="text-center py-12 text-gray-500 border border-dashed border-gray-200 rounded-lg">
           <p>No hay empleados en esta semana.</p>
-          <button
-            type="button"
-            onClick={() => void cargarEquipo(operadores)}
-            className="mt-3 text-sm font-medium text-[#0369A1] hover:underline"
-          >
-            Cargar equipo
-          </button>
+          {puedeEditar && (
+            <button
+              type="button"
+              onClick={() => void cargarEquipo(operadores)}
+              className="mt-3 text-sm font-medium text-[#0369A1] hover:underline"
+            >
+              Cargar equipo
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -201,14 +205,15 @@ export default function VistaHoy({ departamento, semanaInicio }: Props) {
                     type="text"
                     inputMode="decimal"
                     value={valor}
+                    disabled={!puedeEditar}
                     onChange={(e) =>
                       actualizarValor(fila.id, fila.empleado, e.target.value, fila.reg)
                     }
                     onBlur={(e) =>
                       void guardar(fila.id, fila.empleado, e.target.value, fila.reg)
                     }
-                    placeholder="Horas hoy"
-                    className="w-full text-2xl font-bold text-center py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-[#0369A1] focus:ring-2 focus:ring-[#0369A1]/20"
+                    placeholder={puedeEditar ? 'Horas hoy' : 'Solo lectura'}
+                    className="w-full text-2xl font-bold text-center py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-[#0369A1] focus:ring-2 focus:ring-[#0369A1]/20 disabled:bg-gray-50 disabled:text-gray-500"
                   />
                   {isSaving && (
                     <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 animate-spin" />
@@ -218,6 +223,7 @@ export default function VistaHoy({ departamento, semanaInicio }: Props) {
                   )}
                 </div>
 
+                {puedeEditar && (
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {CHIPS_RAPIDOS.map((chip) => (
                     <button
@@ -232,6 +238,7 @@ export default function VistaHoy({ departamento, semanaInicio }: Props) {
                     </button>
                   ))}
                 </div>
+                )}
               </div>
             )
           })}
@@ -240,7 +247,9 @@ export default function VistaHoy({ departamento, semanaInicio }: Props) {
 
       <p className="text-xs text-gray-500 flex items-center gap-1">
         <AlertCircle className="h-3.5 w-3.5" />
-        Ideal para captura en piso desde el celular. Usa números (2, 2.5) o chips rápidos.
+        {puedeEditar
+          ? 'Ideal para captura en piso desde el celular. Usa números (2, 2.5) o chips rápidos.'
+          : 'Vista de solo lectura. La captura la realiza compras, contabilidad o automatización.'}
       </p>
     </div>
   )

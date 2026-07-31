@@ -12,6 +12,23 @@ import {
   type FiltroLeida,
   type FiltroOrigen,
 } from '@/lib/hooks/useNotificaciones'
+import { hrefSeguroNotificacion } from '@/lib/notificaciones'
+import type { OrigenModuloNotificacion } from '@/lib/schemas'
+
+const FILTROS_ORIGEN: readonly (readonly [FiltroOrigen, string])[] = [
+  ['todos', 'Todos'],
+  ['pedidos-almacen', 'Pedidos'],
+  ['requisiciones', 'Requisiciones'],
+  ['documentos-venta', 'Documentos'],
+  ['banos', 'Baños'],
+]
+
+const ETIQUETAS_ORIGEN: Record<OrigenModuloNotificacion, string> = {
+  'pedidos-almacen': 'pedido',
+  requisiciones: 'requisición',
+  'documentos-venta': 'documento',
+  banos: 'baño',
+}
 
 function formatearFecha(fecha: Date): string {
   return fecha.toLocaleString('es-MX', {
@@ -24,10 +41,20 @@ function formatearFecha(fecha: Date): string {
 }
 
 export default function NotificacionesView() {
-  const { filtrar, noLeidas, cargando, error, marcarLeida, marcarTodas } = useNotificaciones()
+  const {
+    items,
+    filtrar,
+    noLeidas,
+    cargando,
+    error,
+    marcarLeida,
+    marcarTodas,
+    reintentar,
+  } = useNotificaciones()
   const [origen, setOrigen] = useState<FiltroOrigen>('todos')
   const [leida, setLeida] = useState<FiltroLeida>('todas')
   const [marcando, setMarcando] = useState(false)
+  const [marcandoId, setMarcandoId] = useState<string | null>(null)
   const router = useRouter()
 
   const { usuario } = useUsuario()
@@ -36,6 +63,7 @@ export default function NotificacionesView() {
   const [resolviendoId, setResolviendoId] = useState<string | null>(null)
 
   const lista = filtrar(origen, leida)
+  const leidas = items.length - noLeidas
 
   async function onResolverSolicitud(solicitudId: string, decision: 'aprobar' | 'rechazar') {
     setResolviendoId(solicitudId)
@@ -70,7 +98,19 @@ export default function NotificacionesView() {
         toast.error('No se pudo marcar como leída. Intenta de nuevo.')
       }
     }
-    router.push(href)
+    router.push(hrefSeguroNotificacion(href))
+  }
+
+  async function onMarcarUna(id: string) {
+    setMarcandoId(id)
+    try {
+      await marcarLeida(id)
+      toast.success('Notificación marcada como leída')
+    } catch {
+      toast.error('No se pudo marcar como leída. Intenta de nuevo.')
+    } finally {
+      setMarcandoId(null)
+    }
   }
 
   async function onMarcarTodas() {
@@ -92,7 +132,7 @@ export default function NotificacionesView() {
         <p className="text-xs mt-1">{error}</p>
         <button
           type="button"
-          onClick={() => window.location.reload()}
+          onClick={reintentar}
           className="mt-3 text-xs font-bold underline"
         >
           Reintentar
@@ -105,17 +145,11 @@ export default function NotificacionesView() {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2 justify-between">
         <div className="flex flex-wrap gap-1.5">
-          {(
-            [
-              ['todos', 'Todos'],
-              ['pedidos-almacen', 'Pedidos'],
-              ['requisiciones', 'Requisiciones'],
-              ['banos', 'Baños'],
-            ] as const
-          ).map(([value, label]) => (
+          {FILTROS_ORIGEN.map(([value, label]) => (
             <button
               key={value}
               type="button"
+              aria-pressed={origen === value}
               onClick={() => setOrigen(value)}
               className={`rounded-md px-2.5 py-1 text-[11px] font-semibold border transition-colors ${
                 origen === value
@@ -129,14 +163,15 @@ export default function NotificacionesView() {
           <span className="w-px h-6 bg-slate-200 mx-1 self-center" />
           {(
             [
-              ['todas', 'Todas'],
-              ['no_leidas', 'No leídas'],
-              ['leidas', 'Leídas'],
+              ['todas', `Todas ${items.length}`],
+              ['no_leidas', `No leídas ${noLeidas}`],
+              ['leidas', `Leídas ${leidas}`],
             ] as const
           ).map(([value, label]) => (
             <button
               key={value}
               type="button"
+              aria-pressed={leida === value}
               onClick={() => setLeida(value)}
               className={`rounded-md px-2.5 py-1 text-[11px] font-semibold border transition-colors ${
                 leida === value
@@ -155,7 +190,7 @@ export default function NotificacionesView() {
           onClick={() => void onMarcarTodas()}
           className="text-[11px] font-bold text-[#0369A1] disabled:opacity-40 hover:underline"
         >
-          Marcar todas como leídas
+          {marcando ? 'Marcando…' : 'Marcar todas como leídas'}
         </button>
       </div>
 
@@ -167,7 +202,7 @@ export default function NotificacionesView() {
         <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center">
           <p className="text-sm font-semibold text-slate-700">Sin avisos</p>
           <p className="text-xs text-slate-500 mt-1">
-            Cuando haya pedidos de almacén o cambios en requisiciones, aparecerán aquí.
+            Los avisos nuevos de los módulos que operas aparecerán aquí.
           </p>
         </div>
       )}
@@ -180,6 +215,7 @@ export default function NotificacionesView() {
               tabIndex={0}
               onClick={() => void onClickFila(n.id, n.href, n.leida)}
               onKeyDown={(e) => {
+                if (e.target !== e.currentTarget) return
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault()
                   void onClickFila(n.id, n.href, n.leida)
@@ -201,11 +237,7 @@ export default function NotificacionesView() {
                       </Badge>
                     )}
                     <Badge variant="outline" className="text-[10px] font-mono">
-                      {n.origenModulo === 'pedidos-almacen'
-                        ? 'pedido'
-                        : n.origenModulo === 'banos'
-                          ? 'baño'
-                          : 'requisición'}
+                      {ETIQUETAS_ORIGEN[n.origenModulo]}
                     </Badge>
                   </div>
                   <p className="text-xs text-slate-600 mt-1">{n.cuerpo}</p>
@@ -237,6 +269,19 @@ export default function NotificacionesView() {
                     {n.creadoPorNombre ? ` · ${n.creadoPorNombre}` : ''}
                   </p>
                 </div>
+                {!n.leida && (
+                  <button
+                    type="button"
+                    disabled={marcandoId === n.id}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      void onMarcarUna(n.id)
+                    }}
+                    className="shrink-0 rounded-md border border-sky-200 bg-white px-2 py-1 text-[10px] font-bold text-[#0369A1] hover:bg-sky-50 disabled:opacity-50"
+                  >
+                    {marcandoId === n.id ? 'Marcando…' : 'Marcar leída'}
+                  </button>
+                )}
               </div>
             </div>
           </li>

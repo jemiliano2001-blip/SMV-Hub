@@ -212,9 +212,9 @@ export function tieneModulo(modulos: readonly ModuloId[] | null | undefined, mod
 }
 
 /**
- * Lectura del feed /ruta `/notificaciones`: módulo dedicado o cualquiera de los
- * orígenes v1 (pedidos-almacén / requisiciones), para no dejar fuera a quien ya
- * opera el taller sin backfill del módulo nuevo.
+ * Lectura del feed `/notificaciones`: módulo dedicado o cualquiera de sus
+ * módulos de origen. Debe mantenerse sincronizado con
+ * `puedeVerNotificaciones()` en `firestore.rules`.
  */
 export function puedeVerNotificaciones(
   modulos: readonly ModuloId[] | null | undefined
@@ -223,7 +223,9 @@ export function puedeVerNotificaciones(
   return (
     tieneModulo(modulos, "notificaciones") ||
     tieneModulo(modulos, "pedidos-almacen") ||
-    tieneModulo(modulos, "requisiciones")
+    tieneModulo(modulos, "requisiciones") ||
+    tieneModulo(modulos, "documentos-venta") ||
+    tieneModulo(modulos, "banos")
   )
 }
 
@@ -295,6 +297,23 @@ export function plantillaDesdeUsuarioLegacy(data: {
     return data.rol
   }
   return null
+}
+
+/**
+ * Edición de /horas-extra: super-admin, plantilla admin/compras (compras y
+ * contabilidad) o el flag por usuario `editaHorasExtra` (p. ej. el encargado
+ * de automatización). El resto —incluida la plantilla diseño— ve en solo
+ * lectura. Debe mantenerse sincronizado con `puedeEditarHorasExtra()` en
+ * `firestore.rules`.
+ */
+export function puedeEditarHorasExtra(u: {
+  plantilla?: Rol | null
+  esSuperAdmin?: boolean
+  editaHorasExtra?: boolean
+} | null | undefined): boolean {
+  if (!u) return false
+  if (u.esSuperAdmin === true || u.editaHorasExtra === true) return true
+  return u.plantilla === "admin" || u.plantilla === "compras"
 }
 
 export function puedeAtenderDocumentosVenta(u: {

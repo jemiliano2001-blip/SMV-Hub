@@ -5,6 +5,7 @@ import {
   modulosDePlantilla,
   modulosDesdeUsuarioLegacy,
   plantillaDesdeUsuarioLegacy,
+  puedeEditarHorasExtra,
   puedeVerNotificaciones,
   tieneModulo,
   tienePermiso,
@@ -46,16 +47,45 @@ describe("modulosDePlantilla", () => {
 })
 
 describe("puedeVerNotificaciones", () => {
-  it("true con notificaciones, pedidos-almacen o requisiciones", () => {
+  it("true con el módulo dedicado o cualquiera de los módulos de origen", () => {
     expect(puedeVerNotificaciones(["notificaciones"])).toBe(true)
     expect(puedeVerNotificaciones(["pedidos-almacen"])).toBe(true)
     expect(puedeVerNotificaciones(["requisiciones"])).toBe(true)
-    expect(puedeVerNotificaciones(["banos"])).toBe(false)
+    expect(puedeVerNotificaciones(["documentos-venta"])).toBe(true)
+    expect(puedeVerNotificaciones(["banos"])).toBe(true)
+    expect(puedeVerNotificaciones(["reportes"])).toBe(false)
     expect(puedeVerNotificaciones(null)).toBe(false)
   })
 
   it("diseño entra a /notificaciones vía requisiciones", () => {
     expect(tienePermiso(modulosDePlantilla("diseno"), "/notificaciones")).toBe(true)
+  })
+})
+
+describe("puedeEditarHorasExtra", () => {
+  it("admin y compras editan por plantilla", () => {
+    expect(puedeEditarHorasExtra({ plantilla: "admin" })).toBe(true)
+    expect(puedeEditarHorasExtra({ plantilla: "compras" })).toBe(true)
+  })
+
+  it("diseño y almacén no editan sin flag", () => {
+    expect(puedeEditarHorasExtra({ plantilla: "diseno" })).toBe(false)
+    expect(puedeEditarHorasExtra({ plantilla: "almacen" })).toBe(false)
+  })
+
+  it("el flag editaHorasExtra habilita sin importar plantilla (automatización/contabilidad)", () => {
+    expect(puedeEditarHorasExtra({ plantilla: "diseno", editaHorasExtra: true })).toBe(true)
+    expect(puedeEditarHorasExtra({ plantilla: "almacen", editaHorasExtra: true })).toBe(true)
+  })
+
+  it("super-admin siempre edita", () => {
+    expect(puedeEditarHorasExtra({ plantilla: "diseno", esSuperAdmin: true })).toBe(true)
+  })
+
+  it("null/undefined → false", () => {
+    expect(puedeEditarHorasExtra(null)).toBe(false)
+    expect(puedeEditarHorasExtra(undefined)).toBe(false)
+    expect(puedeEditarHorasExtra({})).toBe(false)
   })
 })
 

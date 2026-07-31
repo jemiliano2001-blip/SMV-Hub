@@ -10,6 +10,7 @@ export interface EstadoPermisos {
   modulos: ModuloId[] | null
   esSuperAdmin: boolean
   atiendeDocumentosVenta: boolean
+  editaHorasExtra: boolean
   cargando: boolean
 }
 
@@ -54,6 +55,7 @@ export function usePermisos(usuario: User | null): EstadoPermisos {
       modulos: null,
       esSuperAdmin: false,
       atiendeDocumentosVenta: false,
+      editaHorasExtra: false,
       cargando: false,
     }
   }
@@ -64,6 +66,7 @@ export function usePermisos(usuario: User | null): EstadoPermisos {
     modulos: permisos?.modulos ?? null,
     esSuperAdmin: permisos?.esSuperAdmin ?? false,
     atiendeDocumentosVenta: permisos?.atiendeDocumentosVenta ?? false,
+    editaHorasExtra: permisos?.editaHorasExtra ?? false,
     cargando,
   }
 }

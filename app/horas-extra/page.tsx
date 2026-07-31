@@ -6,13 +6,16 @@ import AuthGuard from '../AuthGuard'
 import HorasExtraGrid from './HorasExtraGrid'
 import VistaHoy from './VistaHoy'
 import ResumenMensual from './ResumenMensual'
+import { authBypassActivo, useUsuario } from '@/lib/auth'
+import { usePermisos } from '@/lib/hooks/useRol'
+import { puedeEditarHorasExtra } from '@/lib/roles'
 import type { Departamento } from '@/lib/schemas'
 import {
   getSemanaActualISO,
   offsetSemana,
   esSemanaActual,
 } from '@/lib/horas-extra-parse'
-import { CalendarDays, Grid3X3, BarChart3, ChevronLeft, ChevronRight } from 'lucide-react'
+import { CalendarDays, Grid3X3, BarChart3, ChevronLeft, ChevronRight, Eye } from 'lucide-react'
 
 type Tab = 'semana' | 'hoy' | 'resumen'
 
@@ -27,6 +30,16 @@ export default function HorasExtraPage() {
   const [departamento, setDepartamento] = useState<Departamento>('diseno')
   const [semana, setSemana] = useState(getSemanaActualISO)
   const [tab, setTab] = useState<Tab>(tabInicial)
+
+  const { usuario } = useUsuario()
+  const { plantilla, esSuperAdmin, editaHorasExtra, cargando: cargandoPermisos } = usePermisos(
+    authBypassActivo() ? null : usuario
+  )
+  // Edición restringida: admin/compras (incluye contabilidad), super-admin o el
+  // flag por usuario (automatización). Diseño y el resto: solo lectura.
+  const puedeEditar =
+    authBypassActivo() || puedeEditarHorasExtra({ plantilla, esSuperAdmin, editaHorasExtra })
+  const soloLectura = !cargandoPermisos && !puedeEditar
 
   return (
     <AuthGuard>
@@ -43,6 +56,12 @@ export default function HorasExtraPage() {
               <p className="text-xs text-slate-500 mt-0.5">
                 Registro utilitario de horas extraordinarias por departamento del taller.
               </p>
+              {soloLectura && (
+                <p className="inline-flex items-center gap-1.5 text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded mt-1.5">
+                  <Eye className="h-3 w-3" />
+                  Solo lectura — la captura la hace compras, contabilidad o automatización
+                </p>
+              )}
             </div>
 
             <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 w-fit print:hidden">
@@ -127,10 +146,10 @@ export default function HorasExtraPage() {
 
           <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5 overflow-x-auto print:shadow-none print:border-0">
             {tab === 'semana' && (
-              <HorasExtraGrid departamento={departamento} semanaInicio={semana} />
+              <HorasExtraGrid departamento={departamento} semanaInicio={semana} puedeEditar={puedeEditar} />
             )}
             {tab === 'hoy' && (
-              <VistaHoy departamento={departamento} semanaInicio={semana} />
+              <VistaHoy departamento={departamento} semanaInicio={semana} puedeEditar={puedeEditar} />
             )}
             {tab === 'resumen' && <ResumenMensual departamento={departamento} />}
           </div>

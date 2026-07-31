@@ -101,6 +101,7 @@ export interface NuevoUsuarioPayload {
   modulos?: ModuloId[]
   esSuperAdmin?: boolean
   atiendeDocumentosVenta?: boolean
+  editaHorasExtra?: boolean
   creadoPor: string
   /** Si se omite, se genera una temporal aleatoria. */
   password?: string
@@ -143,6 +144,7 @@ export async function crearUsuarioAdmin(payload: NuevoUsuarioPayload): Promise<U
     modulos,
     esSuperAdmin: payload.esSuperAdmin === true,
     atiendeDocumentosVenta: payload.atiendeDocumentosVenta === true,
+    editaHorasExtra: payload.editaHorasExtra === true,
     activo: true,
     proveedor: "password",
     creadoPor: payload.creadoPor,
@@ -158,6 +160,7 @@ export interface CambiosUsuarioAdmin {
   modulos?: ModuloId[]
   esSuperAdmin?: boolean
   atiendeDocumentosVenta?: boolean
+  editaHorasExtra?: boolean
   activo?: boolean
   /** @deprecated Usar plantilla (también reescribe modulos si no mandas modulos). */
   rol?: Rol
@@ -234,6 +237,10 @@ export async function actualizarUsuarioAdmin(
     update.atiendeDocumentosVenta = cambios.atiendeDocumentosVenta
   }
 
+  if (cambios.editaHorasExtra !== undefined) {
+    update.editaHorasExtra = cambios.editaHorasExtra
+  }
+
   if (cambios.activo !== undefined) {
     update.activo = cambios.activo
   }
@@ -286,6 +293,7 @@ interface DocUsuarioFirestore {
   modulos?: unknown
   esSuperAdmin?: unknown
   atiendeDocumentosVenta?: unknown
+  editaHorasExtra?: unknown
   activo?: unknown
   proveedor?: unknown
   creadoPor?: string
@@ -308,6 +316,7 @@ function mapearDocUsuario(id: string, data: DocUsuarioFirestore): Usuario | null
     modulos: modulosDesdeUsuarioLegacy(data),
     esSuperAdmin: esSuperAdminDesdeUsuarioLegacy(data),
     atiendeDocumentosVenta: data.atiendeDocumentosVenta === true,
+    editaHorasExtra: data.editaHorasExtra === true,
     activo: data.activo === true,
     proveedor,
     creadoPor: data.creadoPor ?? "",
@@ -421,6 +430,7 @@ export async function listarUsuariosAdmin(token?: string): Promise<Usuario[]> {
             modulos: modulosDePlantilla("admin"),
             esSuperAdmin: true,
             atiendeDocumentosVenta: false,
+            editaHorasExtra: false,
             activo: true,
             proveedor: "google",
             creadoPor: "sistema",

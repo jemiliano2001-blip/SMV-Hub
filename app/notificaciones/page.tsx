@@ -14,7 +14,7 @@ export default function NotificacionesPage() {
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Avisos del taller: pedidos de almacén y requisiciones.
+              Avisos de pedidos, requisiciones, documentos de venta y operación del taller.
             </p>
           </div>
           <NotificacionesView />

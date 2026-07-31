@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { useNotificaciones } from '@/lib/hooks/useNotificaciones'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
+import { hrefSeguroNotificacion } from '@/lib/notificaciones'
 import { puedeVerNotificaciones } from '@/lib/roles'
 
 function formatearRelativo(fecha: Date): string {
@@ -23,10 +24,20 @@ export default function NotificacionesBell() {
   const { usuario } = useUsuario()
   const { modulos } = usePermisos(authBypassActivo() ? null : usuario)
   const visible = authBypassActivo() || puedeVerNotificaciones(modulos)
-  const { paraDropdown, noLeidas, marcarLeida, cargando } = useNotificaciones({
+  const {
+    paraDropdown,
+    noLeidas,
+    marcarLeida,
+    marcarTodas,
+    cargando,
+    error,
+    reintentar,
+  } = useNotificaciones({
     enabled: visible,
+    uid: authBypassActivo() ? null : usuario?.uid,
   })
   const [abierto, setAbierto] = useState(false)
+  const [marcandoTodas, setMarcandoTodas] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
@@ -57,7 +68,19 @@ export default function NotificacionesBell() {
         toast.error('No se pudo marcar como leída')
       }
     }
-    router.push(href)
+    router.push(hrefSeguroNotificacion(href))
+  }
+
+  async function onMarcarTodas() {
+    setMarcandoTodas(true)
+    try {
+      await marcarTodas()
+      toast.success('Todas marcadas como leídas')
+    } catch {
+      toast.error('No se pudieron marcar como leídas')
+    } finally {
+      setMarcandoTodas(false)
+    }
   }
 
   return (
@@ -84,9 +107,25 @@ export default function NotificacionesBell() {
               Notificaciones
             </span>
             {noLeidas > 0 && (
-              <span className="text-[10px] font-bold text-red-600">{noLeidas} nuevas</span>
+              <button
+                type="button"
+                disabled={marcandoTodas}
+                onClick={() => void onMarcarTodas()}
+                className="text-[10px] font-bold text-[#0369A1] hover:underline disabled:opacity-50"
+              >
+                {marcandoTodas ? 'Marcando…' : `Marcar todas (${noLeidas})`}
+              </button>
             )}
           </div>
+
+          {error && (
+            <div className="flex items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-3 py-2 text-[10px] text-amber-800">
+              <span>No se pudo actualizar el estado de lectura.</span>
+              <button type="button" onClick={reintentar} className="font-bold underline">
+                Reintentar
+              </button>
+            </div>
+          )}
 
           <div className="max-h-80 overflow-y-auto">
             {cargando && (

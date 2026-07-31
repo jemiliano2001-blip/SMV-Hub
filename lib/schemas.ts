@@ -391,6 +391,8 @@ export const UsuarioSchema = z.object({
   activo: z.boolean().default(true),
   proveedor: ProveedorAuthSchema,
   atiendeDocumentosVenta: z.boolean().default(false),
+  /** Permite editar /horas-extra sin plantilla admin/compras (contabilidad, automatización). */
+  editaHorasExtra: z.boolean().default(false),
   creadoPor: z.string(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),

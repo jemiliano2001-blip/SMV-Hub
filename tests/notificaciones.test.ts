@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest"
 import { NotificacionSchema, TipoNotificacionSchema } from "@/lib/schemas"
 import {
   contarNoLeidas,
+  hrefSeguroNotificacion,
   mergeNotificacionesConLeidas,
   ordenarParaDropdown,
   tituloParaTipo,
@@ -85,5 +86,22 @@ describe("merge y conteo", () => {
     const orden = ordenarParaDropdown(merged)
     expect(orden[0].id).toBe("old")
     expect(orden[1].id).toBe("new")
+  })
+})
+
+describe("hrefSeguroNotificacion", () => {
+  it("conserva rutas internas con query string", () => {
+    expect(hrefSeguroNotificacion("/documentos-venta?solicitud=abc")).toBe(
+      "/documentos-venta?solicitud=abc"
+    )
+  })
+
+  it.each([
+    "javascript:alert(1)",
+    "https://example.com/phishing",
+    "//example.com/phishing",
+    "",
+  ])("rechaza destinos externos o ejecutables: %s", (href) => {
+    expect(hrefSeguroNotificacion(href)).toBe("/notificaciones")
   })
 })

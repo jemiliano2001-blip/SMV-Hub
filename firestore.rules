@@ -89,7 +89,13 @@ service cloud.firestore {
 
       // Leídos de notificaciones in-app: solo el dueño del uid.
       match /notificaciones_leidas/{notificacionId} {
-        allow read, create, update: if estaAutenticado()
+        // En lecturas no existe request.resource. Mantener la validación de
+        // payload únicamente en escrituras permite que el listener confirme
+        // los marcadores persistidos sin relajar el aislamiento por usuario.
+        allow read: if estaAutenticado()
+          && appCheckValido()
+          && request.auth.uid == uid;
+        allow create, update: if estaAutenticado()
           && appCheckValido()
           && request.auth.uid == uid
           && request.resource.data.keys().hasOnly(['leidoEn'])
@@ -447,18 +453,32 @@ service cloud.firestore {
              d.actualizadoEn is timestamp;
     }
 
+    // Edición restringida: super-admin, plantilla/rol admin o compras (compras
+    // y contabilidad) o el flag por usuario `editaHorasExtra` (automatización).
+    // Diseño y el resto: solo lectura. Mantener sincronizado con
+    // `puedeEditarHorasExtra()` en `lib/roles.ts`.
+    function puedeEditarHorasExtra() {
+      return esUsuarioAutorizado() && (
+        esCorreoBreakGlass() ||
+        esSuperAdminDoc() ||
+        docUsuario().rol in ['admin', 'compras'] ||
+        docUsuario().plantilla in ['admin', 'compras'] ||
+        ('editaHorasExtra' in docUsuario() && docUsuario().editaHorasExtra == true)
+      );
+    }
+
     match /horas-extra/{horaId} {
       allow read: if esUsuarioAutorizado();
 
-      allow create: if esUsuarioAutorizado()
+      allow create: if puedeEditarHorasExtra()
                     && horasExtraValido(request.resource.data);
 
-      allow update: if esUsuarioAutorizado()
+      allow update: if puedeEditarHorasExtra()
                     && horasExtraValido(request.resource.data)
                     && request.resource.data.creadoEn == resource.data.creadoEn
                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
 
-      allow delete: if esUsuarioAutorizado();
+      allow delete: if puedeEditarHorasExtra();
     }
 
     // ── Mapeos SAT validados por el equipo ───────────────────────────────────
