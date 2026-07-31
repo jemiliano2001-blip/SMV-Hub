@@ -254,7 +254,10 @@ jobs:
           NEXT_PUBLIC_FIRESTORE_DATABASE_ID: compras-americanas
           NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ secrets.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}
         run: |
-          deploy_targets="$(echo "${{ steps.deploy_targets.outputs.targets }}" | tr ',' '\n' | grep -v '^hosting$' | paste -sd, -)"
+          # Con `set -o pipefail`, `grep` sin matches sale 1 y tumba el paso
+          # antes de llegar al `if [ -z ... ]`. El `|| true` permite el caso
+          # "solo hosting" (deploy_targets vacío → exit 0 abajo).
+          deploy_targets="$(echo "${{ steps.deploy_targets.outputs.targets }}" | tr ',' '\n' | grep -v '^hosting$' | paste -sd, - || true)"
           if [ -z "$deploy_targets" ]; then
             echo "Solo cambió hosting (o nada desplegable) — sin deploy automático que hacer."
             exit 0
