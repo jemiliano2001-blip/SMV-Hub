@@ -103,8 +103,11 @@ jobs:
       - name: Install Frontend Dependencies
         run: npm ci --prefer-offline --no-audit || npm install --prefer-offline --no-audit
 
+      # Siempre: el tsc/tests del raíz importan módulos de functions/src
+      # (odoo-*-mapeo, reportes-integridad, auth) que a su vez importan
+      # firebase-functions — sin estas deps, `npx tsc --noEmit` truena con
+      # TS2307 aunque functions no haya cambiado.
       - name: Install Functions Dependencies
-        if: github.event_name == 'pull_request' || steps.deploy_targets.outputs.need_functions == 'true'
         working-directory: ./functions
         run: npm ci --prefer-offline --no-audit
 
