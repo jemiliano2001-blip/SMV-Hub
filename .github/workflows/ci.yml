@@ -122,6 +122,15 @@ jobs:
         if: github.event_name == 'pull_request'
         run: npm run test:coverage
 
+      # firebase-tools >= 14.6 exige JDK 21 para el emulador de Firestore; el
+      # runner ubuntu-latest trae uno más viejo por defecto y el paso truena
+      # con "firebase-tools no longer supports Java version before 21".
+      - name: Setup Java 21 (Firestore emulator)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
       - name: Run Firestore Integrity Emulator Tests
         run: npx --yes firebase-tools@15.24.0 emulators:exec --only firestore "npm run test:emulator"
 
