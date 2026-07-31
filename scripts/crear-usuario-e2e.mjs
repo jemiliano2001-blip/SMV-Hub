@@ -22,7 +22,10 @@ const BASE = "compras-americanas"
 const EMAIL = "admin@smv-hub-e2e.local"
 const PASSWORD = process.env.E2E_TEST_USER_PASSWORD ?? "admin1234"
 const PLANTILLA = "compras"
-const MODULOS = ["nueva-compra", "ordenes", "reportes"]
+// proveedores: e2e/reportes-integridad.spec.ts navega /proveedores/mis-casos;
+// sin el módulo, AuthGuard redirige al home y el spec truena con
+// "Mis casos asignados" not found.
+const MODULOS = ["nueva-compra", "ordenes", "reportes", "proveedores"]
 
 if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
   const adcCli = join(
