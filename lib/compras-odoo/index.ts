@@ -37,6 +37,7 @@ export {
   listarMedidasEnCategoria,
   listarMedidasParaMetal,
   tipoEfectivoItem,
+  esItemComprable,
   type FiltroRangoFamilia,
   type FiltroRangoMetal,
   type RangoPreciosFamilia,

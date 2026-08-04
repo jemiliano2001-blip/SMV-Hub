@@ -1,17 +1,6 @@
 'use client'
 
-import {
-  Building2,
-  Plus,
-  Printer,
-  Calculator,
-  ShieldCheck,
-  Award,
-  Clock,
-  Globe,
-  Sparkles,
-  AlertTriangle,
-} from 'lucide-react'
+import { Building2, Plus, Printer, Clock, Globe, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
@@ -24,11 +13,7 @@ interface HeaderCentroMandoProps {
   onMercadoChange: (mercado: 'usa' | 'mexico') => void
   onNuevoProveedor: () => void
   onGenerarPDF: () => void
-  onAbrirCalculadora: () => void
-  proveedoresFantasmaCount?: number
-  onAbrirMantenimiento?: () => void
   leadTimePromedio?: number
-  scorecardPromedio?: number
 }
 
 export default function HeaderCentroMando({
@@ -40,11 +25,7 @@ export default function HeaderCentroMando({
   onMercadoChange,
   onNuevoProveedor,
   onGenerarPDF,
-  onAbrirCalculadora,
-  proveedoresFantasmaCount = 0,
-  onAbrirMantenimiento,
   leadTimePromedio,
-  scorecardPromedio,
 }: HeaderCentroMandoProps) {
   return (
     <div className="space-y-4">
@@ -73,15 +54,6 @@ export default function HeaderCentroMando({
           {/* Botones de Acción Principal */}
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
             <Button
-              onClick={onAbrirCalculadora}
-              variant="outline"
-              className="bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-2xs gap-2 text-xs font-bold"
-            >
-              <Calculator className="w-4 h-4 text-emerald-600" />
-              Calculadora Landed Price
-            </Button>
-
-            <Button
               onClick={onGenerarPDF}
               variant="outline"
               className="bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-2xs gap-2 text-xs font-bold"
@@ -101,7 +73,7 @@ export default function HeaderCentroMando({
         </div>
 
         {/* Tarjetas KPI Internas */}
-        <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 md:grid-cols-4">
+        <div className="mt-4 grid grid-cols-1 gap-2 border-t border-slate-100 pt-3 sm:grid-cols-2">
           <div className="space-y-1 rounded-lg border border-slate-200/80 bg-slate-50 p-2.5">
             <div className="flex items-center justify-between text-xs text-slate-500 font-bold">
               <span>Fuentes Activas</span>
@@ -128,47 +100,6 @@ export default function HeaderCentroMando({
               )}
             </div>
           </div>
-
-          <div className="space-y-1 rounded-lg border border-slate-200/80 bg-slate-50 p-2.5">
-            <div className="flex items-center justify-between text-xs text-slate-500 font-bold">
-              <span>Scorecard 360°</span>
-              <Award className="w-4 h-4 text-amber-500" />
-            </div>
-            <div className="flex items-center gap-1 text-lg font-extrabold text-slate-900">
-              {scorecardPromedio != null ? (
-                <>⭐ {scorecardPromedio.toFixed(1)} <span className="text-xs font-normal text-slate-500">/ 5.0</span></>
-              ) : (
-                <span className="text-sm font-semibold text-slate-500">Sin datos</span>
-              )}
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onAbrirMantenimiento}
-            disabled={!onAbrirMantenimiento}
-            className={`w-full space-y-1 rounded-lg border p-2.5 text-left transition-all disabled:cursor-default ${
-              proveedoresFantasmaCount > 0
-                ? 'bg-amber-50 border-amber-200 text-amber-900 hover:bg-amber-100/80'
-                : 'bg-slate-50 border-slate-200/80 text-slate-700'
-            }`}
-          >
-            <div className="flex items-center justify-between text-xs font-bold">
-              <span>Mantenimiento</span>
-              {proveedoresFantasmaCount > 0 ? (
-                <AlertTriangle className="w-4 h-4 text-amber-600 animate-bounce" />
-              ) : (
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              )}
-            </div>
-            <div className="flex items-center gap-2 text-lg font-extrabold text-slate-900">
-              {proveedoresFantasmaCount > 0 ? (
-                <span className="text-amber-700">{proveedoresFantasmaCount} por vincular</span>
-              ) : (
-                <span className="text-emerald-700 text-sm font-bold">100% Vinculados</span>
-              )}
-            </div>
-          </button>
         </div>
       </div>
 

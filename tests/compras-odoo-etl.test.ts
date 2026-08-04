@@ -3,6 +3,7 @@ import {
   CATEGORIAS_PRODUCTO_REGISTRO,
   consolidarHistoricoCostos,
   construirItemDesdeLinea,
+  esItemComprable,
   idsHuerfanosCompras,
   listarTiposMetal,
   parseAtributosMetal,
@@ -210,6 +211,57 @@ describe("lote mixto PO + factura", () => {
     })
     expect(rPlastico.n).toBeGreaterThanOrEqual(1)
     expect(rPlastico.min).toBe(350)
+  })
+})
+
+describe("esItemComprable", () => {
+  it("descarta precio en 0; acepta cualquier ítem con precio > 0 sin importar esRfq", () => {
+    // Odoo permite capturar el precio de línea antes de aprobar la PO: una RFQ con
+    // precio real (ej. producción: 217 líneas RFQ con precio > 0) sí debe mostrarse.
+    expect(esItemComprable({ precioUnitario: 0 })).toBe(false)
+    expect(esItemComprable({ precioUnitario: 280 })).toBe(true)
+    const rfqConPrecio: { esRfq: boolean; precioUnitario: number } = { esRfq: true, precioUnitario: 35.88 }
+    expect(esItemComprable(rfqConPrecio)).toBe(true)
+  })
+
+  it("rangoPreciosPorFamilia ignora líneas en $0 aunque el resto del grupo sí tenga precio", () => {
+    const base = {
+      id: "1",
+      llaveItem: "k",
+      fuente: "po" as const,
+      odooDocId: 1,
+      odooLineId: 1,
+      referenciaDoc: "P1",
+      origenPo: null,
+      descripcion: "Solera 1/4 x 2",
+      cantidad: 1,
+      subtotal: 0,
+      fecha: "2026-08-01",
+      odooPartnerId: 1,
+      proveedorNombre: "X",
+      productOdooId: null,
+      claveProdServ: null,
+      satPendiente: true,
+      categoriaId: "metals",
+      tipoMetal: "acero_1018",
+      tipoInsumo: "acero_1018",
+      medida: "1/4x2",
+      unidad: null,
+      origen: "odoo" as const,
+      odooCategoria: null,
+      odooUom: null,
+      odooCostoEstandar: null,
+      odooRefInterna: null,
+      clasificadoPorIa: false,
+    }
+    const items: CompraOdooItemNormalizado[] = [
+      { ...base, id: "sin-precio", precioUnitario: 0, moneda: "MXN", esRfq: true },
+      { ...base, id: "con-precio-rfq", precioUnitario: 280, moneda: "MXN", esRfq: true },
+    ]
+
+    const rango = rangoPreciosPorFamilia(items, { categoriaId: "metals", tipo: "acero_1018" })
+    expect(rango.n).toBe(1)
+    expect(rango.min).toBe(280)
   })
 })
 

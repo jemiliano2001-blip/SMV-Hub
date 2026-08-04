@@ -35,8 +35,12 @@ Módulos actuales:
 - `/proveedores` — catálogo de proveedores de herramienta (USA Tooling); FK opcional `proveedorId`
   en órdenes/cotizaciones; inteligencia cruzada (precios históricos, lead time, scorecards) en
   `lib/proveedores-inteligencia-cruzada.ts`. Centro de mando con paneles dedicados: compras Odoo
-  (`PanelComprasOdoo.tsx`), detección de proveedores fantasma (`PanelProveedoresFantasma.tsx`),
-  calculadora de landed price (`CalculadoraLandedPrice.tsx`) e inteligencia 360 (`PanelInteligencia360.tsx`).
+  (`PanelComprasOdoo.tsx`) e inteligencia 360 (`PanelInteligencia360.tsx`). El comparador de precios
+  MX (`ComparadorPreciosInsumos.tsx`) solo muestra ítems de Odoo con `precioUnitario > 0`
+  (`lib/compras-odoo/rangos.ts` → `esItemComprable()`); el flag `esRfq` (PO aún no aprobada en
+  Odoo) **no** se usa como filtro — Odoo permite capturar precio de línea antes de aprobar la PO,
+  así que una RFQ con precio real sí cuenta. Los ítems en $0 siguen visibles para clasificación IA
+  y en la tabla diagnóstica de `PanelComprasOdoo.tsx`.
 - `/requisiciones` — gestión de requisiciones (CRUD vía `lib/requisiciones.ts` + hook `useRequisiciones`).
   Al crear una requisición, `SeccionRecomendacionInteligente.tsx` sugiere proveedor vía
   `lib/motor-recomendador-proveedores.ts`, un motor de scoring local/cliente y transparente.

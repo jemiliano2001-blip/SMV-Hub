@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { formatPrecio } from '@/lib/format'
 import { aMXN, aUSD, TIPO_CAMBIO_DEFAULT_USD_MXN } from '@/lib/tipo-cambio'
 import type { CompraOdooItem } from '@/lib/schemas'
-import { CATEGORIAS_PRODUCTO_REGISTRO, obtenerCategoriaDef } from '@/lib/compras-odoo'
+import { CATEGORIAS_PRODUCTO_REGISTRO, obtenerCategoriaDef, esItemComprable } from '@/lib/compras-odoo'
 
 type Props = {
   items: CompraOdooItem[]
@@ -32,12 +32,14 @@ export default function ComparadorPreciosInsumos({
   const [modoMoneda, setModoMoneda] = useState<'original' | 'MXN' | 'USD'>('original')
   const [agregados, setAgregados] = useState<Set<string>>(new Set())
 
-  // Filtrar ítems por texto y categoría
+  // Filtrar ítems por precio comprable, texto y categoría
   const itemsFiltrados = useMemo(() => {
     const qNorm = normalizarTexto(busqueda)
     const tokens = qNorm.split(/\s+/).filter(Boolean)
 
-    return items.filter((it) => {
+    const filtrados = items.filter((it) => {
+      if (!esItemComprable(it)) return false
+
       if (categoriaFiltro !== 'todas' && it.categoriaId !== categoriaFiltro) {
         return false
       }
@@ -53,19 +55,30 @@ export default function ComparadorPreciosInsumos({
       const textoCompleto = `${descNorm} ${tipoNorm} ${medNorm} ${provNorm} ${catOdooNorm}`
       return tokens.every((token) => textoCompleto.includes(token))
     })
-  }, [items, busqueda, categoriaFiltro])
 
-  // Calcular el precio mínimo en MXN por grupo/búsqueda para resaltar la mejor opción
+    if (tokens.length === 0) return filtrados
+
+    // Con búsqueda activa, ordenar por precio (MXN) ascendente para que lo más barato no se pierda en el tope de 150
+    return [...filtrados].sort((a, b) => {
+      const pxA = aMXN(a.precioUnitario, (a.moneda ?? 'MXN') as 'USD' | 'MXN', usdToMxn)
+      const pxB = aMXN(b.precioUnitario, (b.moneda ?? 'MXN') as 'USD' | 'MXN', usdToMxn)
+      return pxA - pxB
+    })
+  }, [items, busqueda, categoriaFiltro, usdToMxn])
+
+  // Calcular el precio mínimo en MXN por grupo, y cuántos proveedores distintos compiten en él
   const precioMinimoMxnPorItem = useMemo(() => {
-    const mapMin = new Map<string, number>()
+    const mapMin = new Map<string, { min: number; proveedores: Set<number> }>()
     for (const it of itemsFiltrados) {
-      if (it.precioUnitario <= 0) continue
       const pxMxn = aMXN(it.precioUnitario, (it.moneda ?? 'MXN') as 'USD' | 'MXN', usdToMxn)
       // Agrupar por descripción normalizada + medida
       const key = `${normalizarTexto(it.descripcion)}_${normalizarTexto(it.medida ?? '')}`
-      const minPrevio = mapMin.get(key)
-      if (minPrevio === undefined || pxMxn < minPrevio) {
-        mapMin.set(key, pxMxn)
+      const grupo = mapMin.get(key)
+      if (!grupo) {
+        mapMin.set(key, { min: pxMxn, proveedores: new Set([it.odooPartnerId]) })
+      } else {
+        grupo.proveedores.add(it.odooPartnerId)
+        if (pxMxn < grupo.min) grupo.min = pxMxn
       }
     }
     return mapMin
@@ -219,11 +232,11 @@ export default function ComparadorPreciosInsumos({
                   (it.moneda ?? 'MXN') as 'USD' | 'MXN',
                   usdToMxn
                 )
-                const minGroupMxn = precioMinimoMxnPorItem.get(keyGroup)
+                const grupo = precioMinimoMxnPorItem.get(keyGroup)
                 const esMejorPrecio =
-                  minGroupMxn !== undefined &&
-                  precioMxnActual > 0 &&
-                  Math.abs(precioMxnActual - minGroupMxn) < 0.05
+                  grupo !== undefined &&
+                  grupo.proveedores.size >= 2 &&
+                  Math.abs(precioMxnActual - grupo.min) < 0.05
 
                 // Formatear precio según el modo de moneda
                 let precioDisplay: string

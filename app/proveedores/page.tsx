@@ -44,7 +44,6 @@ import BandaRangoMetalConcepto from '@/app/proveedores/BandaRangoMetalConcepto'
 import HeaderCentroMando from './components/HeaderCentroMando'
 import DirectorioProveedores from './components/DirectorioProveedores'
 import DrawerDetalleProveedor from './components/DrawerDetalleProveedor'
-import CalculadoraLandedPrice from './components/CalculadoraLandedPrice'
 import PanelInteligencia360 from './components/PanelInteligencia360'
 import { listarItemsComprasOdoo } from '@/lib/compras-odoo-store'
 import { listarCotizaciones } from '@/lib/cotizaciones'
@@ -1258,7 +1257,6 @@ function ProveedoresContent() {
   // Scorecard modal y drawer lateral
   const [proveedorScorecard, setProveedorScorecard] = useState<Proveedor | null>(null)
   const [proveedorDetalle, setProveedorDetalle] = useState<Proveedor | null>(null)
-  const [calculadoraAbierta, setCalculadoraAbierta] = useState(false)
   const [guardandoScorecards, setGuardandoScorecards] = useState(false)
 
   const scorecardsAuto = useMemo(() => {
@@ -1272,11 +1270,6 @@ function ProveedoresContent() {
     if (tiempos.length === 0) return undefined
     return tiempos.reduce((suma, tiempo) => suma + tiempo, 0) / tiempos.length
   }, [todasCompras])
-
-  const scorecardPromedio = useMemo(() => {
-    if (scorecardsAuto.length === 0) return undefined
-    return scorecardsAuto.reduce((suma, scorecard) => suma + scorecard.promedioGeneral, 0) / scorecardsAuto.length
-  }, [scorecardsAuto])
 
   async function handleGenerarScorecards() {
     if (scorecardsAuto.length === 0) {
@@ -1348,10 +1341,7 @@ function ProveedoresContent() {
           onMercadoChange={(r) => setRegion(r)}
           onNuevoProveedor={abrirNuevo}
           onGenerarPDF={() => void abrirReportePO()}
-          onAbrirCalculadora={() => setCalculadoraAbierta(true)}
-          proveedoresFantasmaCount={0}
           leadTimePromedio={leadTimePromedio}
-          scorecardPromedio={scorecardPromedio}
         />
 
         {/* Navegación por Pestañas Principales */}
@@ -1692,12 +1682,6 @@ function ProveedoresContent() {
             abrirEditar(prov)
           }}
           onDelete={(id) => setIdEliminar(id)}
-        />
-
-        {/* Calculadora de Landed Price USA -> MX */}
-        <CalculadoraLandedPrice
-          open={calculadoraAbierta}
-          onOpenChange={setCalculadoraAbierta}
         />
 
         {/* Modal Formulario Proveedor */}

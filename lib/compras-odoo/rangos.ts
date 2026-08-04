@@ -46,6 +46,17 @@ export type RangoPreciosMetal = {
   precios: number[]
 }
 
+/**
+ * Un ítem sirve como referencia de precio solo si tiene precio unitario real.
+ * ponytail: `esRfq` (PO aún no aprobada en Odoo) NO se usa aquí — en la práctica Odoo
+ * permite capturar el precio de línea antes de aprobar la PO, así que muchas RFQ ya
+ * traen precio real (ej. producción: 217 líneas RFQ con precio > 0 vs. solo 200 en $0).
+ * Filtrar por esRfq escondería precios válidos. El único criterio es precioUnitario > 0.
+ */
+export function esItemComprable(item: { precioUnitario: number }): boolean {
+  return item.precioUnitario > 0
+}
+
 function medidaCoincide(a: string | null | undefined, b: string | null | undefined): boolean {
   if (!b) return true
   if (!a) return false
@@ -77,7 +88,7 @@ export function rangoPreciosPorFamilia(
     }
     if (!medidaCoincide(item.medida, filtro.medida)) continue
     if (filtro.moneda && item.moneda !== filtro.moneda) continue
-    if (item.precioUnitario < 0) continue
+    if (!esItemComprable(item)) continue
     precios.push(item.precioUnitario)
     if (!monedaUsada) monedaUsada = item.moneda
   }
