@@ -5,7 +5,6 @@ import { Printer, FileText, Table2 } from 'lucide-react'
 import { useCajaChica } from '@/lib/hooks/useCajaChica'
 import { filtrarMovimientosCajaChicaReporte, calcularTotalesReporteCaja } from '@/lib/reportes-caja-chica'
 import { formatPrecio } from '@/lib/format'
-import * as XLSX from 'xlsx'
 
 export default function ReportesCaja() {
   const [periodo, setPeriodo] = useState(() => {
@@ -22,8 +21,9 @@ export default function ReportesCaja() {
   )
   const { total, ivaTotal } = useMemo(() => calcularTotalesReporteCaja(filtrados), [filtrados])
 
-  const exportarExcel = () => {
+  const exportarExcel = async () => {
     if (filtrados.length === 0) return
+    const XLSX = await import('xlsx')
     
     // Preparar filas para Excel
     const datos = filtrados.map(m => {

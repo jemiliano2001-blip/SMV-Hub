@@ -2,7 +2,6 @@
 
 import AuthGuard from "@/app/AuthGuard"
 import { useMemo, useState } from "react"
-import * as XLSX from "xlsx"
 import { Loader2, AlertCircle, Download, Printer } from "lucide-react"
 import { useFinanzasFacturas } from "@/lib/hooks/useFinanzasFacturas"
 import {
@@ -35,7 +34,8 @@ function ReportesFinanzas() {
   const grupos = useMemo(() => agruparPorCliente(facturasPeriodo), [facturasPeriodo])
   const kpis = useMemo(() => calcularKpisFinanzas(facturasPeriodo), [facturasPeriodo])
 
-  function exportarExcel() {
+  async function exportarExcel() {
+    const XLSX = await import("xlsx")
     const filas = facturasPeriodo.map((f) => ({
       Cliente: f.cliente,
       Factura: f.numeroFactura,

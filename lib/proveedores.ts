@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore"
 import { db, getClienteAuth } from "@/lib/firebase"
 import { registrarAuditoria } from "@/lib/auditoria"
+import { formatearFecha } from "@/lib/firestore-helpers"
 import type {
   Proveedor,
   CategoriaProveedor,
@@ -422,12 +423,6 @@ export const PROVEEDORES_SEMILLA: NuevoProveedorPayload[] = [
   },
 ]
 
-function formatearFecha(fecha: unknown): string {
-  if (!fecha) return new Date().toISOString()
-  if (fecha instanceof Timestamp) return fecha.toDate().toISOString()
-  if (fecha instanceof Date) return fecha.toISOString()
-  return String(fecha)
-}
 
 function idSemillaProveedor(nombre: string): string {
   const normalizado = nombre

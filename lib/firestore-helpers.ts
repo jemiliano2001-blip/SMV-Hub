@@ -103,3 +103,11 @@ export async function actualizarLote(
   }
   return actualizadas
 }
+
+/** Convierte Timestamp / Date / string a ISO string. Fuente única (antes copiada en 3 archivos). */
+export function formatearFecha(fecha: unknown): string {
+  if (!fecha) return new Date().toISOString()
+  if (fecha instanceof Timestamp) return fecha.toDate().toISOString()
+  if (fecha instanceof Date) return fecha.toISOString()
+  return String(fecha)
+}

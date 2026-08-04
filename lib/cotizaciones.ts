@@ -1,10 +1,5 @@
 import {
-  collection,
-  doc,
-  addDoc,
-  getDoc,
   getDocs,
-  deleteDoc,
   query,
   orderBy,
   limit,
@@ -12,16 +7,11 @@ import {
   type QueryConstraint,
   type QueryDocumentSnapshot,
 } from "firebase/firestore"
-import { db } from "@/lib/firebase"
 import type { Cotizacion } from "@/lib/schemas"
-import { makeDateConverter, crearLote, eliminarLote, actualizarDocumento } from "@/lib/firestore-helpers"
-import { getClienteAuth } from "@/lib/firebase"
-import { registrarAuditoria } from "@/lib/auditoria"
+import { crearRepositorio } from "@/lib/repositorio"
 import { generarLlavePieza } from "@/lib/pieza-matching"
 
-const cotizacionConverter = makeDateConverter<Cotizacion>()
-const cotizacionesRef = () =>
-  collection(db, "cotizaciones").withConverter(cotizacionConverter)
+const repo = crearRepositorio<Cotizacion>({ coleccion: "cotizaciones" })
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
 
@@ -30,20 +20,12 @@ const cotizacionesRef = () =>
 export type NuevaCotizacionPayload = Omit<Cotizacion, "id" | "creadoEn" | "actualizadoEn">
 
 export async function crearCotizacion(payload: NuevaCotizacionPayload): Promise<string> {
-  const ahora = new Date()
   const llavePieza =
     payload.llavePieza || generarLlavePieza(payload.numeroParte, payload.descripcion)
-  const ref = await addDoc(cotizacionesRef(), {
-    ...payload,
-    llavePieza,
-    creadoEn: ahora,
-    actualizadoEn: ahora,
-  } as Cotizacion)
-  
-  const user = getClienteAuth().currentUser
-  await registrarAuditoria(user?.email, 'CREAR', 'cotizaciones', ref.id, `Creó cotización de ${payload.proveedor}`)
-  
-  return ref.id
+  return repo.crear(
+    { ...payload, llavePieza },
+    `Creó cotización de ${payload.proveedor}`
+  )
 }
 
 // Inserta muchas cotizaciones con writeBatch (atómico por lote, ≤500 escrituras).
@@ -56,19 +38,18 @@ export async function crearCotizacionesLote(
     ...p,
     llavePieza: p.llavePieza || generarLlavePieza(p.numeroParte, p.descripcion),
   }))
-  const result = await crearLote(cotizacionesRef, conLlave as Record<string, unknown>[], onProgreso)
-  const user = getClienteAuth().currentUser
-  await registrarAuditoria(user?.email, 'CREAR', 'cotizaciones', 'LOTE', `Creó ${payloads.length} cotizaciones`)
-  return result
+  return repo.crearEnLote(
+    conLlave as Record<string, unknown>[],
+    `Creó ${payloads.length} cotizaciones`,
+    onProgreso
+  )
 }
 
 // Ordena por fecha de cotización descendente; las que no tienen fecha caen al
 // final (Firestore coloca null antes, por eso se reordena en memoria).
 export async function listarCotizaciones(): Promise<Cotizacion[]> {
-  const snap = await getDocs(query(cotizacionesRef(), orderBy("creadoEn", "desc")))
-  return snap.docs
-    .map((d) => d.data())
-    .sort((a, b) => (b.fecha ?? "").localeCompare(a.fecha ?? ""))
+  const items = await repo.listar([orderBy("creadoEn", "desc")])
+  return items.sort((a, b) => (b.fecha ?? "").localeCompare(a.fecha ?? ""))
 }
 
 export type CursorCotizaciones = QueryDocumentSnapshot<Cotizacion>
@@ -93,7 +74,7 @@ export async function obtenerPaginaCotizaciones(
   if (cursor) restricciones.push(startAfter(cursor))
   restricciones.push(limit(tamanoSeguro + 1))
 
-  const snapshot = await getDocs(query(cotizacionesRef(), ...restricciones))
+  const snapshot = await getDocs(query(repo.ref(), ...restricciones))
   const hayMas = snapshot.docs.length > tamanoSeguro
   const documentos = snapshot.docs.slice(0, tamanoSeguro)
 
@@ -105,30 +86,22 @@ export async function obtenerPaginaCotizaciones(
 }
 
 export async function obtenerCotizacion(id: string): Promise<Cotizacion | null> {
-  const snap = await getDoc(doc(db, "cotizaciones", id).withConverter(cotizacionConverter))
-  return snap.exists() ? snap.data() : null
+  return repo.obtener(id)
 }
 
 export async function actualizarCotizacion(
   id: string,
   cambios: Partial<Omit<Cotizacion, "id" | "creadoEn">>
 ): Promise<void> {
-  await actualizarDocumento("cotizaciones", id, cambios as Record<string, unknown>)
-  const user = getClienteAuth().currentUser
-  await registrarAuditoria(user?.email, 'EDITAR', 'cotizaciones', id, `Actualizó cotización: ${Object.keys(cambios).join(', ')}`)
+  await repo.actualizar(id, cambios, `Actualizó cotización: ${Object.keys(cambios).join(', ')}`)
 }
 
 export async function eliminarCotizacion(id: string): Promise<void> {
-  await deleteDoc(doc(db, "cotizaciones", id))
-  const user = getClienteAuth().currentUser
-  await registrarAuditoria(user?.email, 'BORRAR', 'cotizaciones', id, `Eliminó cotización`)
+  await repo.eliminar(id, "Eliminó cotización")
 }
 
 export async function eliminarCotizacionesLote(ids: string[]): Promise<number> {
-  const result = await eliminarLote("cotizaciones", ids)
-  const user = getClienteAuth().currentUser
-  await registrarAuditoria(user?.email, 'BORRAR', 'cotizaciones', 'LOTE', `Eliminó ${ids.length} cotizaciones`)
-  return result
+  return repo.eliminarEnLote(ids, `Eliminó ${ids.length} cotizaciones`)
 }
 
 // Clave de deduplicación para re-importaciones del Sheet: una cotización se
@@ -147,6 +120,6 @@ export function claveDedupCotizacion(c: {
 // Devuelve las claves de dedup de todas las cotizaciones ya guardadas, para que
 // el preview de importación marque duplicados sin recargar toda la colección por fila.
 export async function clavesExistentes(): Promise<Set<string>> {
-  const snap = await getDocs(cotizacionesRef())
+  const snap = await getDocs(repo.ref())
   return new Set(snap.docs.map((d) => claveDedupCotizacion(d.data())))
 }

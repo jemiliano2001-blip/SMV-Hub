@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import LogoSMV from '@/app/LogoSMV'
 import PedidoAlmacenBadge from '@/app/pedidos-almacen/PedidoAlmacenBadge'
+import RadarOperativoWidget from '@/components/radar/RadarOperativoWidget'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
 import { tienePermiso } from '@/lib/roles'
@@ -417,6 +418,9 @@ export default function Home() {
             </div>
           )}
         </div>
+
+        {/* Radar de Salud Operativa (Orquestador + Sub-detectores) */}
+        <RadarOperativoWidget />
 
         {/* Buscador Rápido Utilitario (Búsqueda en Vivo) */}
         <div className="relative">

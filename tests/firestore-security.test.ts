@@ -10,7 +10,8 @@ describe("reglas de firestore para configuraciones", () => {
     const bloque = reglas.match(/match \/configuraciones\/\{configId\} \{([\s\S]*?)\n    \}/)?.[1]
 
     expect(bloque).toBeTruthy()
-    expect(bloque).toMatch(/allow read, create, update: if esUsuarioAutorizado\(\);/)
+    expect(bloque).toMatch(/allow read: if esUsuarioAutorizado\(\);/)
+    expect(bloque).toMatch(/allow create, update, delete: if esFinanzasAutorizado\(\);/)
   })
 })
 

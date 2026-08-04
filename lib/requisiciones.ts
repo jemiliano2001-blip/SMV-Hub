@@ -1,28 +1,26 @@
 import {
-  collection,
   doc,
-  addDoc,
-  deleteDoc,
   getDoc,
   getDocs,
   query,
   orderBy,
   limit,
   startAfter,
-  getCountFromServer,
   type QueryConstraint,
   type QueryDocumentSnapshot,
 } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { db, getClienteAuth } from "@/lib/firebase"
 import type { Requisicion } from "@/lib/schemas"
-import { makeDateConverter, actualizarDocumento, eliminarLote } from "@/lib/firestore-helpers"
-import { getClienteAuth } from "@/lib/firebase"
-import { registrarAuditoria } from "@/lib/auditoria"
+import { crearRepositorio } from "@/lib/repositorio"
 import { emitirNotificacion, tituloParaTipo } from "@/lib/notificaciones"
+import { makeDateConverter } from "@/lib/firestore-helpers"
 
 const requisicionConverter = makeDateConverter<Requisicion>()
-const requisicionesRef = () =>
-  collection(db, "requisiciones").withConverter(requisicionConverter)
+
+const repo = crearRepositorio<Requisicion>({
+  coleccion: "requisiciones",
+  converter: requisicionConverter,
+})
 
 function actorNotificacion(): { uid: string; nombre: string } {
   const user = getClienteAuth().currentUser
@@ -35,8 +33,7 @@ function actorNotificacion(): { uid: string; nombre: string } {
 export type NuevaRequisicionPayload = Omit<Requisicion, "id" | "creadoEn" | "actualizadoEn">
 
 export async function listarRequisiciones(): Promise<Requisicion[]> {
-  const snap = await getDocs(query(requisicionesRef(), orderBy("creadoEn", "desc")))
-  return snap.docs.map((d) => d.data())
+  return repo.listar([orderBy("creadoEn", "desc")])
 }
 
 export type CursorRequisiciones = QueryDocumentSnapshot<Requisicion>
@@ -61,7 +58,7 @@ export async function obtenerPaginaRequisiciones(
   if (cursor) restricciones.push(startAfter(cursor))
   restricciones.push(limit(tamanoSeguro + 1))
 
-  const snapshot = await getDocs(query(requisicionesRef(), ...restricciones))
+  const snapshot = await getDocs(query(repo.ref(), ...restricciones))
   const hayMas = snapshot.docs.length > tamanoSeguro
   const documentos = snapshot.docs.slice(0, tamanoSeguro)
 
@@ -73,24 +70,12 @@ export async function obtenerPaginaRequisiciones(
 }
 
 export async function contarRequisiciones(): Promise<number> {
-  const snapshot = await getCountFromServer(requisicionesRef())
-  return snapshot.data().count
+  return repo.contar()
 }
 
 export async function crearRequisicion(payload: NuevaRequisicionPayload): Promise<string> {
-  const ahora = new Date()
-  const ref = await addDoc(requisicionesRef(), {
-    ...payload,
-    creadoEn: ahora,
-    actualizadoEn: ahora,
-  } as Requisicion)
-
-  const user = getClienteAuth().currentUser
-  await registrarAuditoria(
-    user?.email,
-    "CREAR",
-    "requisiciones",
-    ref.id,
+  const id = await repo.crear(
+    payload,
     `Creó requisición para ${payload.tienda || "proveedor no especificado"}`
   )
 
@@ -101,7 +86,7 @@ export async function crearRequisicion(payload: NuevaRequisicionPayload): Promis
     titulo: tituloParaTipo("requisicion_creada"),
     cuerpo: resumen,
     origenModulo: "requisiciones",
-    origenId: ref.id,
+    origenId: id,
     audiencia: "requisiciones",
     destinatarioUid: null,
     href: "/requisiciones",
@@ -109,7 +94,7 @@ export async function crearRequisicion(payload: NuevaRequisicionPayload): Promis
     creadoPorNombre: actor.nombre,
   })
 
-  return ref.id
+  return id
 }
 
 export async function actualizarRequisicion(
@@ -122,14 +107,9 @@ export async function actualizarRequisicion(
     if (prev.exists()) estadoAnterior = prev.data().estado
   }
 
-  await actualizarDocumento("requisiciones", id, cambios as Record<string, unknown>)
-
-  const user = getClienteAuth().currentUser
-  await registrarAuditoria(
-    user?.email,
-    "EDITAR",
-    "requisiciones",
+  await repo.actualizar(
     id,
+    cambios,
     `Actualizó requisición: ${Object.keys(cambios).join(", ")}`
   )
 
@@ -156,20 +136,9 @@ export async function actualizarRequisicion(
 }
 
 export async function eliminarRequisicion(id: string): Promise<void> {
-  await deleteDoc(doc(db, "requisiciones", id))
-  const user = getClienteAuth().currentUser
-  await registrarAuditoria(user?.email, "BORRAR", "requisiciones", id, `Eliminó requisición`)
+  await repo.eliminar(id, "Eliminó requisición")
 }
 
 export async function eliminarRequisicionesLote(ids: string[]): Promise<number> {
-  const result = await eliminarLote("requisiciones", ids)
-  const user = getClienteAuth().currentUser
-  await registrarAuditoria(
-    user?.email,
-    "BORRAR",
-    "requisiciones",
-    "LOTE",
-    `Eliminó ${ids.length} requisiciones`
-  )
-  return result
+  return repo.eliminarEnLote(ids, `Eliminó ${ids.length} requisiciones`)
 }

@@ -1,23 +1,16 @@
 import {
-  collection,
-  addDoc,
-  getDocs,
-  getDoc,
   doc,
+  getDoc,
   query,
   orderBy,
   onSnapshot,
 } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { db, getClienteAuth } from "@/lib/firebase"
 import type { PedidoAlmacen, NuevoPedidoAlmacen } from "@/lib/schemas"
-import { makeDateConverter, actualizarDocumento } from "@/lib/firestore-helpers"
-import { getClienteAuth } from "@/lib/firebase"
-import { registrarAuditoria } from "@/lib/auditoria"
+import { crearRepositorio } from "@/lib/repositorio"
 import { emitirNotificacion, tituloParaTipo } from "@/lib/notificaciones"
 
-const pedidoAlmacenConverter = makeDateConverter<PedidoAlmacen>()
-const pedidosAlmacenRef = () =>
-  collection(db, "pedidos-almacen").withConverter(pedidoAlmacenConverter)
+const repo = crearRepositorio<PedidoAlmacen>({ coleccion: "pedidos-almacen" })
 
 function actorNotificacion(): { uid: string; nombre: string } {
   const user = getClienteAuth().currentUser
@@ -28,15 +21,14 @@ function actorNotificacion(): { uid: string; nombre: string } {
 }
 
 export async function listarPedidosAlmacen(): Promise<PedidoAlmacen[]> {
-  const snap = await getDocs(query(pedidosAlmacenRef(), orderBy("creadoEn", "desc")))
-  return snap.docs.map((d) => d.data())
+  return repo.listar([orderBy("creadoEn", "desc")])
 }
 
 export function suscribirPedidosAlmacen(
   onData: (pedidos: PedidoAlmacen[]) => void,
   onError?: (err: Error) => void
 ): () => void {
-  const q = query(pedidosAlmacenRef(), orderBy("creadoEn", "desc"))
+  const q = query(repo.ref(), orderBy("creadoEn", "desc"))
   return onSnapshot(
     q,
     (snap) => {
@@ -50,21 +42,12 @@ export function suscribirPedidosAlmacen(
 }
 
 export async function crearPedidoAlmacen(payload: NuevoPedidoAlmacen): Promise<string> {
-  const ahora = new Date()
-  const ref = await addDoc(pedidosAlmacenRef(), {
-    ...payload,
-    estado: "pendiente" as const,
-    ordenIdVinculada: null,
-    creadoEn: ahora,
-    actualizadoEn: ahora,
-  } as PedidoAlmacen)
-
-  const user = getClienteAuth().currentUser
-  await registrarAuditoria(
-    user?.email,
-    "CREAR",
-    "pedidos-almacen",
-    ref.id,
+  const id = await repo.crear(
+    {
+      ...payload,
+      estado: "pendiente" as const,
+      ordenIdVinculada: null,
+    },
     `Pidió compra: ${payload.descripcion}`
   )
 
@@ -76,7 +59,7 @@ export async function crearPedidoAlmacen(payload: NuevoPedidoAlmacen): Promise<s
       ? `Urgente: ${payload.descripcion}`
       : payload.descripcion,
     origenModulo: "pedidos-almacen",
-    origenId: ref.id,
+    origenId: id,
     audiencia: "pedidos-almacen",
     destinatarioUid: null,
     href: "/pedidos-almacen",
@@ -84,7 +67,7 @@ export async function crearPedidoAlmacen(payload: NuevoPedidoAlmacen): Promise<s
     creadoPorNombre: actor.nombre,
   })
 
-  return ref.id
+  return id
 }
 
 export async function marcarPedidoAlmacenComprado(id: string, ordenId: string): Promise<void> {
@@ -94,17 +77,9 @@ export async function marcarPedidoAlmacenComprado(id: string, ordenId: string): 
       ? (prev.data()?.descripcion as string)
       : id
 
-  await actualizarDocumento("pedidos-almacen", id, {
-    estado: "comprado" as const,
-    ordenIdVinculada: ordenId,
-  })
-
-  const user = getClienteAuth().currentUser
-  await registrarAuditoria(
-    user?.email,
-    "EDITAR",
-    "pedidos-almacen",
+  await repo.actualizar(
     id,
+    { estado: "comprado" as const, ordenIdVinculada: ordenId },
     `Marcó como comprado, vinculado a orden ${ordenId}`
   )
 
@@ -130,10 +105,7 @@ export async function cancelarPedidoAlmacen(id: string): Promise<void> {
       ? (prev.data()?.descripcion as string)
       : id
 
-  await actualizarDocumento("pedidos-almacen", id, { estado: "cancelado" as const })
-
-  const user = getClienteAuth().currentUser
-  await registrarAuditoria(user?.email, "EDITAR", "pedidos-almacen", id, "Canceló pedido")
+  await repo.actualizar(id, { estado: "cancelado" as const }, "Canceló pedido")
 
   const actor = actorNotificacion()
   await emitirNotificacion({

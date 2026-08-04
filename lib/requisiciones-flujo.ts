@@ -30,6 +30,7 @@ import { getClienteAuth } from "@/lib/firebase"
 import { registrarAuditoria } from "@/lib/auditoria"
 import { emitirNotificacion, tituloParaTipo } from "@/lib/notificaciones"
 import { fechaHoyLocal } from "@/lib/format"
+import { formatearFecha } from "@/lib/firestore-helpers"
 
 const COLECCION_REQUISICIONES = "requisiciones"
 const COLECCION_COTIZACIONES_REQ = "cotizaciones_requisicion"
@@ -54,12 +55,7 @@ export type NuevaRequisicionFlujoPayload = {
   }>
 }
 
-function formatearFecha(fecha: unknown): string {
-  if (!fecha) return new Date().toISOString()
-  if (fecha instanceof Timestamp) return fecha.toDate().toISOString()
-  if (fecha instanceof Date) return fecha.toISOString()
-  return String(fecha)
-}
+
 
 export async function crearRequisicionFlujo(payload: NuevaRequisicionFlujoPayload): Promise<Requisicion> {
   const docRef = doc(collection(db, COLECCION_REQUISICIONES))

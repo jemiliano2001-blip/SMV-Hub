@@ -19,7 +19,6 @@ import {
 } from "@/lib/reportes-contables-ia"
 import { extraerEntradasHistorialSat } from "@/lib/sat/extraer-historial-ordenes"
 import { Loader2, AlertCircle, FileSpreadsheet, Printer, Sparkles, CheckCircle2, History, RefreshCw } from "lucide-react"
-import * as XLSX from "xlsx"
 import { listarLotesContables, crearLoteContable, type ReporteContableLote } from "@/lib/reportes-contables"
 import { useConfirmDialog } from "@/components/ConfirmDialogProvider"
 import { toast } from "sonner"
@@ -372,7 +371,8 @@ export default function ReporteContableView() {
     }
   }
 
-  const exportarExcel = () => {
+  const exportarExcel = async () => {
+    const XLSX = await import("xlsx")
     const filas = lineas.map(l => ({
       "Fecha": l.dia ? l.dia.toISOString().split("T")[0] : "",
       "Proveedor": l.proveedor,

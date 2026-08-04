@@ -825,8 +825,8 @@ service cloud.firestore {
     // ── Configuraciones generales (Sincronización de Cotizaciones, etc.) ──────
 
     match /configuraciones/{configId} {
-      allow read, create, update: if esUsuarioAutorizado();
-      allow delete: if esUsuarioAutorizado();
+      allow read: if esUsuarioAutorizado();
+      allow create, update, delete: if esFinanzasAutorizado();
     }
 
     // ── Documentos de venta (solicitudes remisión/factura + espejo Odoo) ─────

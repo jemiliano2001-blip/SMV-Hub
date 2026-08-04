@@ -18,6 +18,7 @@ import type {
   CategoriaProveedor,
 } from "@/lib/schemas"
 import { fechaHoyLocal } from "@/lib/format"
+import { formatearFecha } from "@/lib/firestore-helpers"
 
 const COLECCION_COMPRAS = "compras_proveedores"
 const COLECCION_EVALUACIONES = "evaluaciones_proveedores"
@@ -26,12 +27,7 @@ const COLECCION_COTIZACIONES = "cotizaciones_comparador"
 export type NuevaCompraPayload = Omit<CompraProveedor, "id" | "creadoEn">
 export type NuevaCotizacionComparacionPayload = Omit<CotizacionComparacion, "id" | "creadoEn" | "actualizadoEn">
 
-function formatearFecha(fecha: unknown): string {
-  if (!fecha) return new Date().toISOString()
-  if (fecha instanceof Timestamp) return fecha.toDate().toISOString()
-  if (fecha instanceof Date) return fecha.toISOString()
-  return String(fecha)
-}
+
 
 // ── 1. HISTORIAL DE COMPRAS ───────────────────────────────────────────────────
 
