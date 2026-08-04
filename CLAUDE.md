@@ -72,6 +72,8 @@ npx tsc --noEmit       # verificación TypeScript sin emitir archivos
 npm test               # corre la suite de Vitest una vez
 npm run test:watch     # Vitest en modo watch
 npm run test:coverage  # Vitest con reporte de cobertura
+npm run test:rules     # Reglas de Firestore (requiere Firestore emulator corriendo)
+npm run test:emulator  # test:rules + tests/reportes-integridad-emulator.test.ts
 npm run test:e2e        # Playwright: pruebas de accesibilidad (axe-core) sobre login/proveedores
 npm run test:e2e:headed # igual, con navegador visible
 
@@ -83,6 +85,10 @@ npx vitest run tests/reportes.test.ts
 npm run sat:import          # importación estándar
 npm run sat:import:phpcfdi  # importación desde el catálogo phpcfdi
 ```
+
+Los tests `test:rules`/`test:emulator` usan `@firebase/rules-unit-testing` y se saltan
+automáticamente si no hay `FIRESTORE_EMULATOR_HOST` — para correrlos localmente:
+`npx firebase-tools emulators:exec --only firestore "npm run test:emulator"`.
 
 La suite E2E también incluye `e2e/camino-dinero.spec.ts`: usa autenticación real,
 escribe únicamente en `smv-brain-dev`, stubea Gemini y valida compra → orden →

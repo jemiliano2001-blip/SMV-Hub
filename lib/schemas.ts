@@ -485,6 +485,15 @@ export const OrigenModuloNotificacionSchema = z.enum([
 ])
 export type OrigenModuloNotificacion = z.infer<typeof OrigenModuloNotificacionSchema>
 
+/** Grupo que puede ver la notificación además de su destinatario directo. */
+export const AudienciaNotificacionSchema = z.enum([
+  "pedidos-almacen",
+  "requisiciones",
+  "banos",
+  "documentos-venta",
+])
+export type AudienciaNotificacion = z.infer<typeof AudienciaNotificacionSchema>
+
 export const NotificacionSchema = z.object({
   id: z.string(),
   tipo: TipoNotificacionSchema,
@@ -492,6 +501,9 @@ export const NotificacionSchema = z.object({
   cuerpo: z.string(),
   origenModulo: OrigenModuloNotificacionSchema,
   origenId: z.string().min(1),
+  audiencia: AudienciaNotificacionSchema,
+  /** Solicitante que debe ver el aviso aunque no pertenezca al grupo de atención. */
+  destinatarioUid: z.string().min(1).nullable(),
   href: z.string().min(1),
   creadoEn: z.date(),
   actualizadoEn: z.date(),

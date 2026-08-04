@@ -105,6 +105,61 @@ export async function listarOrdenesEnRango(
   return snap.docs.map((d) => d.data())
 }
 
+function fechaFacturaISO(dia: Date): string {
+  const yyyy = dia.getFullYear()
+  const mm = String(dia.getMonth() + 1).padStart(2, "0")
+  const dd = String(dia.getDate()).padStart(2, "0")
+  return `${yyyy}-${mm}-${dd}`
+}
+
+/** Carga órdenes por fecha de captura o fecha de factura y deduplica ambas consultas. */
+export async function listarOrdenesParaReporte(
+  desde: Date,
+  hasta: Date
+): Promise<OrdenCompra[]> {
+  const inicio = new Date(desde)
+  inicio.setHours(0, 0, 0, 0)
+  const fin = new Date(hasta)
+  fin.setHours(23, 59, 59, 999)
+  const inicioFactura = fechaFacturaISO(inicio)
+  const finFactura = fechaFacturaISO(fin)
+
+  const [porCreacion, porFactura] = await Promise.all([
+    getDocs(
+      query(
+        ordenesRef(),
+        where("creadoEn", ">=", inicio),
+        where("creadoEn", "<=", fin),
+        orderBy("creadoEn", "desc")
+      )
+    ),
+    getDocs(
+      query(
+        ordenesRef(),
+        where("fechaFactura", ">=", inicioFactura),
+        where("fechaFactura", "<=", finFactura),
+        orderBy("fechaFactura", "desc")
+      )
+    ),
+  ])
+
+  const unicas = new Map<string, OrdenCompra>()
+  for (const snap of [...porCreacion.docs, ...porFactura.docs]) {
+    unicas.set(snap.id, snap.data())
+  }
+  return [...unicas.values()]
+}
+
+/** Órdenes de un lote contable, incluyendo lotes históricos fuera de la ventana reciente. */
+export async function listarOrdenesPorReporteContable(
+  reporteContableId: string
+): Promise<OrdenCompra[]> {
+  const snap = await getDocs(
+    query(ordenesRef(), where("reporteContableId", "==", reporteContableId))
+  )
+  return snap.docs.map((d) => d.data())
+}
+
 export type CursorOrdenes = QueryDocumentSnapshot<OrdenCompra>
 
 export interface PaginaOrdenes {

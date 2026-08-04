@@ -29,12 +29,15 @@ export default function VistaHoy({ departamento, semanaInicio, puedeEditar }: Pr
     editarDias,
     cargarEquipo,
   } = useHorasExtra(semanaInicio, departamento)
-  const { operadores, loading: loadingOps } = useOperadores()
+  const { operadores, loading: loadingOps, error: errorOps } = useOperadores()
 
   const diaHoy = getDiaSemanaActual()
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [guardando, setGuardando] = useState<Record<string, boolean>>({})
+  const [cargandoEquipo, setCargandoEquipo] = useState(false)
+  const [errorCargarEquipo, setErrorCargarEquipo] = useState<string | null>(null)
   const debounceRefs = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  const guardandoRefs = useRef<Record<string, boolean>>({})
 
   const operadoresDept = useMemo(
     () =>
@@ -64,10 +67,12 @@ export default function VistaHoy({ departamento, semanaInicio, puedeEditar }: Pr
     valor: string,
     reg?: HorasExtra
   ) {
+    if (guardandoRefs.current[filaId]) return
     const normalizado = valor.trim() === '' ? null : valor.trim()
     const actual = reg ? reg[diaHoy] : null
     if (actual === normalizado) return
 
+    guardandoRefs.current[filaId] = true
     setGuardando((g) => ({ ...g, [filaId]: true }))
     try {
       if (reg) {
@@ -92,12 +97,21 @@ export default function VistaHoy({ departamento, semanaInicio, puedeEditar }: Pr
     } catch (err) {
       console.error('Error guardando horas del día:', err)
     } finally {
+      guardandoRefs.current[filaId] = false
       setGuardando((g) => ({ ...g, [filaId]: false }))
       setDrafts((d) => {
         const next = { ...d }
         delete next[filaId]
         return next
       })
+    }
+  }
+
+  function cancelarDebounce(filaId: string) {
+    const timer = debounceRefs.current[filaId]
+    if (timer) {
+      clearTimeout(timer)
+      delete debounceRefs.current[filaId]
     }
   }
 
@@ -108,10 +122,12 @@ export default function VistaHoy({ departamento, semanaInicio, puedeEditar }: Pr
     reg?: HorasExtra
   ) {
     setDrafts((d) => ({ ...d, [filaId]: valor }))
-    if (debounceRefs.current[filaId]) clearTimeout(debounceRefs.current[filaId])
-    debounceRefs.current[filaId] = setTimeout(() => {
+    cancelarDebounce(filaId)
+    const timer = setTimeout(() => {
+      if (debounceRefs.current[filaId] === timer) delete debounceRefs.current[filaId]
       void guardar(filaId, empleado, valor, reg)
     }, 500)
+    debounceRefs.current[filaId] = timer
   }
 
   function aplicarChip(
@@ -120,16 +136,32 @@ export default function VistaHoy({ departamento, semanaInicio, puedeEditar }: Pr
     chip: string,
     reg?: HorasExtra
   ) {
+    cancelarDebounce(filaId)
     setDrafts((d) => ({ ...d, [filaId]: chip }))
     void guardar(filaId, empleado, chip, reg)
+  }
+
+  async function cargarEquipoSeguro() {
+    setCargandoEquipo(true)
+    setErrorCargarEquipo(null)
+    try {
+      await cargarEquipo(operadores)
+    } catch (err) {
+      console.error('Error cargando equipo de horas extra:', err)
+      setErrorCargarEquipo(
+        err instanceof Error ? err.message : 'No se pudo cargar el equipo'
+      )
+    } finally {
+      setCargandoEquipo(false)
+    }
   }
 
   if (loading || loadingOps) {
     return <div className="animate-pulse h-48 bg-gray-100 rounded-lg" />
   }
 
-  if (error) {
-    return <div className="text-red-600 bg-red-50 p-4 rounded-lg text-sm">{error}</div>
+  if (error || errorOps) {
+    return <div className="text-red-600 bg-red-50 p-4 rounded-lg text-sm">{error ?? errorOps}</div>
   }
 
   return (
@@ -144,27 +176,35 @@ export default function VistaHoy({ departamento, semanaInicio, puedeEditar }: Pr
           </p>
         </div>
         {filas.length === 0 && puedeEditar && (
-          <button
-            type="button"
-            onClick={() => void cargarEquipo(operadores)}
-            className="text-sm font-medium text-[#0369A1] hover:underline"
-          >
-            Cargar equipo del departamento
-          </button>
+           <button
+             type="button"
+             onClick={() => void cargarEquipoSeguro()}
+             disabled={cargandoEquipo}
+             className="text-sm font-medium text-[#0369A1] hover:underline"
+           >
+             {cargandoEquipo ? 'Cargando equipo…' : 'Cargar equipo del departamento'}
+           </button>
         )}
       </div>
 
-      {filas.length === 0 ? (
+       {errorCargarEquipo && (
+         <div className="text-red-700 bg-red-50 border border-red-200 p-3 rounded-lg text-sm">
+           {errorCargarEquipo}
+         </div>
+       )}
+
+       {filas.length === 0 ? (
         <div className="text-center py-12 text-gray-500 border border-dashed border-gray-200 rounded-lg">
           <p>No hay empleados en esta semana.</p>
           {puedeEditar && (
-            <button
-              type="button"
-              onClick={() => void cargarEquipo(operadores)}
-              className="mt-3 text-sm font-medium text-[#0369A1] hover:underline"
-            >
-              Cargar equipo
-            </button>
+             <button
+               type="button"
+               onClick={() => void cargarEquipoSeguro()}
+               disabled={cargandoEquipo}
+               className="mt-3 text-sm font-medium text-[#0369A1] hover:underline"
+             >
+               {cargandoEquipo ? 'Cargando equipo…' : 'Cargar equipo'}
+             </button>
           )}
         </div>
       ) : (
@@ -209,9 +249,10 @@ export default function VistaHoy({ departamento, semanaInicio, puedeEditar }: Pr
                     onChange={(e) =>
                       actualizarValor(fila.id, fila.empleado, e.target.value, fila.reg)
                     }
-                    onBlur={(e) =>
+                    onBlur={(e) => {
+                      cancelarDebounce(fila.id)
                       void guardar(fila.id, fila.empleado, e.target.value, fila.reg)
-                    }
+                    }}
                     placeholder={puedeEditar ? 'Horas hoy' : 'Solo lectura'}
                     className="w-full text-2xl font-bold text-center py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-[#0369A1] focus:ring-2 focus:ring-[#0369A1]/20 disabled:bg-gray-50 disabled:text-gray-500"
                   />

@@ -43,8 +43,8 @@ export default function HeaderCentroMando({
   onAbrirCalculadora,
   proveedoresFantasmaCount = 0,
   onAbrirMantenimiento,
-  leadTimePromedio = 3.5,
-  scorecardPromedio = 4.8,
+  leadTimePromedio,
+  scorecardPromedio,
 }: HeaderCentroMandoProps) {
   return (
     <div className="space-y-4">
@@ -121,7 +121,11 @@ export default function HeaderCentroMando({
               <Clock className="w-4 h-4 text-sky-600" />
             </div>
             <div className="text-lg font-extrabold text-slate-900">
-              {leadTimePromedio} <span className="text-xs font-normal text-slate-500">días hábiles</span>
+              {leadTimePromedio != null ? (
+                <>{leadTimePromedio.toFixed(1)} <span className="text-xs font-normal text-slate-500">días hábiles</span></>
+              ) : (
+                <span className="text-sm font-semibold text-slate-500">Sin datos</span>
+              )}
             </div>
           </div>
 
@@ -131,7 +135,11 @@ export default function HeaderCentroMando({
               <Award className="w-4 h-4 text-amber-500" />
             </div>
             <div className="flex items-center gap-1 text-lg font-extrabold text-slate-900">
-              ⭐ {scorecardPromedio.toFixed(1)} <span className="text-xs font-normal text-slate-500">/ 5.0</span>
+              {scorecardPromedio != null ? (
+                <>⭐ {scorecardPromedio.toFixed(1)} <span className="text-xs font-normal text-slate-500">/ 5.0</span></>
+              ) : (
+                <span className="text-sm font-semibold text-slate-500">Sin datos</span>
+              )}
             </div>
           </div>
 

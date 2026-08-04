@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { getClienteAuth } from "@/lib/firebase"
 import {
+  audienciasNotificacionParaUsuario,
   contarNoLeidas,
   marcarNotificacionLeida,
   marcarTodasNotificacionesLeidas,
@@ -9,12 +10,18 @@ import {
   suscribirNotificaciones,
   suscribirNotificacionesLeidas,
 } from "@/lib/notificaciones"
-import type { NotificacionConLeida, OrigenModuloNotificacion } from "@/lib/schemas"
+import type { ModuloId, NotificacionConLeida, OrigenModuloNotificacion } from "@/lib/schemas"
 
 export type FiltroLeida = "todas" | "no_leidas" | "leidas"
 export type FiltroOrigen = "todos" | OrigenModuloNotificacion
 
-export function useNotificaciones(opciones?: { enabled?: boolean; uid?: string | null }) {
+export function useNotificaciones(opciones?: {
+  enabled?: boolean
+  uid?: string | null
+  modulos?: readonly ModuloId[] | null
+  esSuperAdmin?: boolean
+  atiendeDocumentosVenta?: boolean
+}) {
   const enabled = opciones?.enabled !== false
   const uid =
     opciones && "uid" in opciones
@@ -28,6 +35,16 @@ export function useNotificaciones(opciones?: { enabled?: boolean; uid?: string |
   const [errorFeed, setErrorFeed] = useState<string | null>(null)
   const [errorLeidas, setErrorLeidas] = useState<string | null>(null)
   const [intento, setIntento] = useState(0)
+  const audiencias = useMemo(
+    () =>
+      audienciasNotificacionParaUsuario({
+        modulos: opciones?.modulos,
+        esSuperAdmin: opciones?.esSuperAdmin === true,
+        atiendeDocumentosVenta: opciones?.atiendeDocumentosVenta === true,
+      }),
+    [opciones?.atiendeDocumentosVenta, opciones?.esSuperAdmin, opciones?.modulos]
+  )
+  const claveAudiencias = audiencias.join(",")
 
   useEffect(() => {
     if (!enabled || !uid) {
@@ -45,13 +62,14 @@ export function useNotificaciones(opciones?: { enabled?: boolean; uid?: string |
         setCargandoFeed(false)
         setErrorFeed(null)
       },
+      { uid, audiencias },
       (err) => {
         setErrorFeed(err.message || "No se pudieron cargar las notificaciones")
         setCargandoFeed(false)
       }
     )
     return unsub
-  }, [enabled, uid, intento])
+  }, [audiencias, claveAudiencias, enabled, intento, uid])
 
   useEffect(() => {
     if (!enabled || !uid) {

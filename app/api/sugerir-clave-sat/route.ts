@@ -15,6 +15,7 @@ import { ErrorIA } from "@/lib/extraer-ia"
 const ItemRequestSchema = z.object({
   descripcion: z.string(),
   proveedor: z.string().optional(),
+  terminosPrevios: z.string().max(1000).optional(),
 })
 
 const HistorialEntradaSchema = z.object({

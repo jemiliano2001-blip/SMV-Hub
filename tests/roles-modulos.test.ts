@@ -56,8 +56,8 @@ describe("modulosDePlantilla", () => {
 })
 
 describe("puedeVerNotificaciones", () => {
-  it("true con el módulo dedicado o cualquiera de los módulos de origen", () => {
-    expect(puedeVerNotificaciones(["notificaciones"])).toBe(true)
+  it("true con un módulo de audiencia, pero no con el módulo genérico", () => {
+    expect(puedeVerNotificaciones(["notificaciones"])).toBe(false)
     expect(puedeVerNotificaciones(["pedidos-almacen"])).toBe(true)
     expect(puedeVerNotificaciones(["requisiciones"])).toBe(true)
     expect(puedeVerNotificaciones(["documentos-venta"])).toBe(true)

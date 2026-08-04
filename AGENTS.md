@@ -19,7 +19,7 @@ When configuring or updating Gemini models, ALWAYS refer to [https://ai.google.d
 - SAT suggestions must be correct across every entry point (`/nueva-compra`, lote en `/ordenes`, `/reportes/contable`, `/claves-sat`), not only one module; prefer hybrid UX (one primary clave + 2–3 visible alternatives from the same local ranking).
 - In `/proveedores`, keep USA and México markets separated; prefer one unified proveedores surface over many secondary panels; price intelligence should cover metales, plásticos, herramientas, and other insumos — not metals-only.
 - In `/documentos-venta`, prefer a simplified UX (including chat) for sales users who are not strong with computers; label/search the customer PO as "órdenes de compra", not jargon-only "PO".
-- In `/horas-extra`, only compras, contabilidad, and automatización personnel should be able to edit; diseño (and everyone else) is read-only. Enforce in Firestore rules, not just UI. There is no contabilidad/automatización plantilla — use a per-user flag (pattern like `atiendeDocumentosVenta`). Pending implementation as of 2026-07-31.
+- In `/horas-extra`, only compras, contabilidad, and automatización personnel should be able to edit; diseño (and everyone else) is read-only. Enforced in both `lib/roles.ts` (`puedeEditarHorasExtra`) and `firestore.rules` (`puedeEditarHorasExtra()`) — keep them in sync. A dedicated `automatizacion` plantilla (`cotizaciones`, `requisiciones`, `horas-extra`, `notificaciones`) edits horas-extra same as admin/compras; `editaHorasExtra` remains only for one-off individual exceptions on other plantillas.
 
 ## Learned Workspace Facts
 

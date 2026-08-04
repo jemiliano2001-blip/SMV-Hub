@@ -16,37 +16,42 @@ export interface EstadoPermisos {
 
 /** Resuelve módulos + super-admin del usuario autenticado. */
 export function usePermisos(usuario: User | null): EstadoPermisos {
-  const [permisos, setPermisos] = useState<PermisosUsuario | null>(null)
-  // Arranca en true: si `usuario` pasa de null a un User real en el mismo
-  // render (onAuthStateChanged hace setUsuario+setCargando(false) juntos),
-  // este hook no debe reportar "cargando: false" antes de que su propio
-  // efecto corra — eso haría que un usuario válido parezca "sin rol" por un
-  // instante y se le cierre la sesión de más. Ver AuthProvider.tsx.
-  const [cargando, setCargando] = useState(true)
+  const [estado, setEstado] = useState<{
+    uid: string | null
+    permisos: PermisosUsuario | null
+    cargando: boolean
+  }>({ uid: null, permisos: null, cargando: false })
   const vigente = useRef(0)
+  const uid = usuario?.uid ?? null
+  const [uidSesion, setUidSesion] = useState<string | null>(uid)
 
-  async function cargar(u: User, idPeticion: number) {
-    setCargando(true)
-    try {
-      const p = await obtenerPermisosUsuario(u.uid, u.email)
-      if (vigente.current === idPeticion) {
-        setPermisos(p)
-        setCargando(false)
-      }
-    } catch (err) {
-      console.error("Error al resolver permisos de usuario:", err)
-      if (vigente.current === idPeticion) {
-        setPermisos(null)
-        setCargando(false)
-      }
-    }
+  // La lectura de permisos pertenece a una sesión, no solo a un uid. Cuando
+  // Firebase emite null al cerrar sesión y después el mismo usuario vuelve a
+  // entrar, el resultado anterior ya no es válido. Ajustamos el estado durante
+  // el render para que React lo vuelva a evaluar antes de exponer un "sin
+  // permisos" intermedio al proveedor global de autenticación.
+  if (uid !== uidSesion) {
+    setUidSesion(uid)
+    setEstado({ uid, permisos: null, cargando: uid !== null })
   }
 
   useEffect(() => {
-    if (!usuario) return
     const idPeticion = ++vigente.current
-    void cargar(usuario, idPeticion)
-  }, [usuario])
+    if (!usuario) return
+
+    void obtenerPermisosUsuario(usuario.uid, usuario.email)
+      .then((permisos) => {
+        if (vigente.current === idPeticion) {
+          setEstado({ uid: usuario.uid, permisos, cargando: false })
+        }
+      })
+      .catch((err) => {
+        console.error("Error al resolver permisos de usuario:", err)
+        if (vigente.current === idPeticion) {
+          setEstado({ uid: usuario.uid, permisos: null, cargando: false })
+        }
+      })
+  }, [uid, usuario])
 
   if (!usuario) {
     return {
@@ -59,6 +64,10 @@ export function usePermisos(usuario: User | null): EstadoPermisos {
       cargando: false,
     }
   }
+
+  const estadoActual = estado.uid === usuario.uid
+  const cargando = !estadoActual || estado.cargando
+  const permisos = !cargando && estadoActual ? estado.permisos : null
 
   return {
     rol: permisos?.plantilla ?? null,

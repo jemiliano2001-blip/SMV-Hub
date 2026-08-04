@@ -22,7 +22,9 @@ function formatearRelativo(fecha: Date): string {
 
 export default function NotificacionesBell() {
   const { usuario } = useUsuario()
-  const { modulos } = usePermisos(authBypassActivo() ? null : usuario)
+  const { modulos, esSuperAdmin, atiendeDocumentosVenta, cargando: cargandoPermisos } = usePermisos(
+    authBypassActivo() ? null : usuario
+  )
   const visible = authBypassActivo() || puedeVerNotificaciones(modulos)
   const {
     paraDropdown,
@@ -33,8 +35,11 @@ export default function NotificacionesBell() {
     error,
     reintentar,
   } = useNotificaciones({
-    enabled: visible,
+    enabled: visible && !cargandoPermisos,
     uid: authBypassActivo() ? null : usuario?.uid,
+    modulos,
+    esSuperAdmin,
+    atiendeDocumentosVenta,
   })
   const [abierto, setAbierto] = useState(false)
   const [marcandoTodas, setMarcandoTodas] = useState(false)

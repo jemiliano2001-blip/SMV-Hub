@@ -104,6 +104,8 @@ export async function crearRequisicionFlujo(payload: NuevaRequisicionFlujoPayloa
     cuerpo: `${folio}: ${nuevaData.descripcion}`,
     origenModulo: "requisiciones",
     origenId: docRef.id,
+    audiencia: "requisiciones",
+    destinatarioUid: null,
     href: "/requisiciones",
     creadoPorUid: user?.uid ?? "",
     creadoPorNombre: user?.displayName || user?.email || "Usuario",

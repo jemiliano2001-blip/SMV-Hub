@@ -138,11 +138,15 @@ export default function DocumentosVentaView() {
           <ModoVentasView
             solicitudes={solicitudes}
             mensajes={mensajes}
+            sos={sosFiltradas}
+            busquedaSo={busqueda}
+            onBusquedaSoChange={setBusqueda}
             uid={usuario.uid}
             nombre={nombre}
             solicitudId={solicitudId}
             onAbrir={setSolicitudId}
             onCerrarDetalle={() => setSolicitudId(null)}
+            onCrear={crearSolicitud}
             onActualizarEstado={actualizarEstado}
             onEnviarMensaje={agregarMensaje}
           />
@@ -197,6 +201,7 @@ export default function DocumentosVentaView() {
       {!loading && tab === 'nueva' && (
         <NuevaSolicitudPanel
           sos={sosFiltradas}
+          solicitudesActivas={solicitudes}
           busqueda={busqueda}
           onBusquedaChange={setBusqueda}
           uid={usuario?.uid ?? ''}

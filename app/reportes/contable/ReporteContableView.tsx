@@ -2,7 +2,12 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react"
 import Link from "next/link"
-import { listarOrdenesEnRango, actualizarClavesSatLote } from "@/lib/ordenes"
+import {
+  listarOrdenes,
+  listarOrdenesEnRango,
+  listarOrdenesPorReporteContable,
+  actualizarClavesSatLote,
+} from "@/lib/ordenes"
 import { aplanarLineas, type Linea } from "@/lib/reportes"
 import type { OrdenCompra } from "@/lib/schemas"
 import { getClienteAuth } from "@/lib/firebase"
@@ -68,6 +73,7 @@ export default function ReporteContableView() {
   const [progresoIa, setProgresoIa] = useState<{ actual: number; total: number } | null>(null)
   const [resultadoIa, setResultadoIa] = useState<string | null>(null)
   const [guardandoLote, setGuardandoLote] = useState(false)
+  const [cargandoHistorial, setCargandoHistorial] = useState(false)
   const [resugieriendo, setResugieriendo] = useState<Set<string>>(new Set())
   const [errorResugerir, setErrorResugerir] = useState<string | null>(null)
   const [altsPorLinea, setAltsPorLinea] = useState<
@@ -91,6 +97,43 @@ export default function ReporteContableView() {
       setError(MSG_ERROR)
     } finally {
       setCargando(false)
+    }
+  }, [])
+
+  const seleccionarLote = useCallback(async (id: string) => {
+    setLoteSeleccionado(id)
+    if (ordenes.some((orden) => orden.reporteContableId === id)) return
+
+    setCargando(true)
+    setError(null)
+    try {
+      const historicas = await listarOrdenesPorReporteContable(id)
+      setOrdenes((actuales) => {
+        const porId = new Map(actuales.map((orden) => [orden.id, orden]))
+        for (const orden of historicas) porId.set(orden.id, orden)
+        return [...porId.values()]
+      })
+    } catch {
+      setError("No se pudo cargar el lote histórico. Verifica tu conexión.")
+    } finally {
+      setCargando(false)
+    }
+  }, [ordenes])
+
+  const cargarHistorialCompleto = useCallback(async () => {
+    setCargandoHistorial(true)
+    try {
+      const historicas = await listarOrdenes()
+      setOrdenes((actuales) => {
+        const porId = new Map(actuales.map((orden) => [orden.id, orden]))
+        for (const orden of historicas) porId.set(orden.id, orden)
+        return [...porId.values()]
+      })
+      toast.success("Historial completo cargado")
+    } catch {
+      toast.error("No se pudo cargar el historial completo")
+    } finally {
+      setCargandoHistorial(false)
     }
   }, [])
 
@@ -175,7 +218,7 @@ export default function ReporteContableView() {
     let avance = 0
     try {
       const token = await user.getIdToken()
-      const historialEntradas = extraerEntradasHistorialSat(ordenesFiltradas)
+      const historialEntradas = extraerEntradasHistorialSat(ordenes)
       let resumen = crearResumenProcesamiento()
 
       for (const chunk of chunks) {
@@ -406,7 +449,7 @@ export default function ReporteContableView() {
           <button 
             onClick={() => {
               setTab("historial")
-              if (!loteSeleccionado && lotes.length > 0) setLoteSeleccionado(lotes[0].id)
+               if (!loteSeleccionado && lotes.length > 0) void seleccionarLote(lotes[0].id)
             }}
             className={`pb-2 px-1 font-medium transition-colors flex items-center ${tab === "historial" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"}`}
           >
@@ -428,7 +471,7 @@ export default function ReporteContableView() {
                   lotes.map(lote => (
                     <button
                       key={lote.id}
-                      onClick={() => setLoteSeleccionado(lote.id)}
+                      onClick={() => void seleccionarLote(lote.id)}
                       className={`text-left px-3 py-3 rounded-lg border text-sm transition-colors ${loteSeleccionado === lote.id ? "bg-blue-50 border-blue-200" : "bg-white border-gray-200 hover:bg-gray-50"}`}
                     >
                       <div className="font-medium text-gray-900">{lote.id}</div>
@@ -450,12 +493,23 @@ export default function ReporteContableView() {
                 </h1>
                 <p className="text-sm text-gray-500 mt-1">
                   {tab === "pendientes" 
-                    ? "Todas las compras no enviadas. Revisa y guarda el lote al finalizar."
+                    ? "Compras no enviadas de los últimos 12 meses. Carga el historial completo si necesitas buscar más atrás."
                     : "Modo solo lectura. Visualizando un lote cerrado del historial."}
                 </p>
               </div>
               
               <div className="flex flex-wrap items-center gap-3">
+                {tab === "pendientes" && (
+                  <button
+                    type="button"
+                    onClick={() => void cargarHistorialCompleto()}
+                    disabled={cargandoHistorial}
+                    className="flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    {cargandoHistorial && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    {cargandoHistorial ? "Cargando historial..." : "Cargar historial completo"}
+                  </button>
+                )}
                 {/* Selector de moneda */}
                 {monedas.length > 1 && (
                   <select 

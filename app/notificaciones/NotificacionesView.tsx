@@ -41,8 +41,11 @@ function formatearFecha(fecha: Date): string {
 }
 
 export default function NotificacionesView() {
+  const { usuario } = useUsuario()
+  const { modulos, esSuperAdmin, atiendeDocumentosVenta, cargando: cargandoPermisos } = usePermisos(
+    authBypassActivo() ? null : usuario
+  )
   const {
-    items,
     filtrar,
     noLeidas,
     cargando,
@@ -50,20 +53,27 @@ export default function NotificacionesView() {
     marcarLeida,
     marcarTodas,
     reintentar,
-  } = useNotificaciones()
+  } = useNotificaciones({
+    enabled: !cargandoPermisos,
+    uid: authBypassActivo() ? null : usuario?.uid,
+    modulos,
+    esSuperAdmin,
+    atiendeDocumentosVenta,
+  })
   const [origen, setOrigen] = useState<FiltroOrigen>('todos')
   const [leida, setLeida] = useState<FiltroLeida>('todas')
   const [marcando, setMarcando] = useState(false)
   const [marcandoId, setMarcandoId] = useState<string | null>(null)
   const router = useRouter()
 
-  const { usuario } = useUsuario()
-  const { esSuperAdmin } = usePermisos(authBypassActivo() ? null : usuario)
   const pendientesBanos = useSolicitudesBorradoBanosPendientes(esSuperAdmin)
   const [resolviendoId, setResolviendoId] = useState<string | null>(null)
 
+  const listaOrigen = filtrar(origen, 'todas')
   const lista = filtrar(origen, leida)
-  const leidas = items.length - noLeidas
+  const noLeidasOrigen = listaOrigen.filter((item) => !item.leida).length
+  const leidasOrigen = listaOrigen.length - noLeidasOrigen
+  const solicitudesPendientes = Array.from(pendientesBanos.values())
 
   async function onResolverSolicitud(solicitudId: string, decision: 'aprobar' | 'rechazar') {
     setResolviendoId(solicitudId)
@@ -163,9 +173,9 @@ export default function NotificacionesView() {
           <span className="w-px h-6 bg-slate-200 mx-1 self-center" />
           {(
             [
-              ['todas', `Todas ${items.length}`],
-              ['no_leidas', `No leídas ${noLeidas}`],
-              ['leidas', `Leídas ${leidas}`],
+              ['todas', `Todas ${listaOrigen.length}`],
+              ['no_leidas', `No leídas ${noLeidasOrigen}`],
+              ['leidas', `Leídas ${leidasOrigen}`],
             ] as const
           ).map(([value, label]) => (
             <button
@@ -193,6 +203,52 @@ export default function NotificacionesView() {
           {marcando ? 'Marcando…' : 'Marcar todas como leídas'}
         </button>
       </div>
+
+      {esSuperAdmin && solicitudesPendientes.length > 0 && (
+        <section className="rounded-xl border border-amber-200 bg-amber-50/60 p-3.5">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <h2 className="text-sm font-semibold text-amber-900">
+              Solicitudes de borrado pendientes ({solicitudesPendientes.length})
+            </h2>
+            <span className="text-[10px] text-amber-700">Disponibles aunque el aviso ya no esté en el feed</span>
+          </div>
+          <ul className="space-y-2">
+            {solicitudesPendientes.map((solicitud) => (
+              <li key={solicitud.id} className="rounded-lg border border-amber-200 bg-white p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0 text-xs text-slate-700">
+                    <p className="font-semibold text-slate-900">
+                      {solicitud.registroResumen.operador} · {solicitud.registroResumen.bano} ({solicitud.registroResumen.fecha})
+                    </p>
+                    <p className="mt-0.5">Motivo: {solicitud.motivo}{solicitud.nota ? ` · ${solicitud.nota}` : ''}</p>
+                    <p className="mt-0.5 text-[10px] text-slate-400">
+                      {solicitud.solicitadoPorNombre} · {formatearFecha(solicitud.creadoEn)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      disabled={resolviendoId === solicitud.id}
+                      onClick={() => void onResolverSolicitud(solicitud.id, 'aprobar')}
+                      className="text-[11px] font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-2.5 py-1 rounded-md disabled:opacity-50"
+                    >
+                      Aprobar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={resolviendoId === solicitud.id}
+                      onClick={() => void onResolverSolicitud(solicitud.id, 'rechazar')}
+                      className="text-[11px] font-semibold bg-red-100 text-red-700 hover:bg-red-200 px-2.5 py-1 rounded-md disabled:opacity-50"
+                    >
+                      Rechazar
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {cargando && (
         <p className="text-sm text-slate-500 py-8 text-center">Cargando notificaciones…</p>

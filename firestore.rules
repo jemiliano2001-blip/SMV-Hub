@@ -266,17 +266,17 @@ service cloud.firestore {
     }
 
     match /almacen-entradas/{entradaId} {
-      allow read: if esUsuarioAutorizado();
+      allow read: if esUsuarioAutorizado() && tieneModulo('almacen');
 
-      allow create: if esUsuarioAutorizado()
+      allow create: if esUsuarioAutorizado() && tieneModulo('almacen')
                     && entradaAlmacenValida(request.resource.data);
 
-      allow update: if esUsuarioAutorizado()
+      allow update: if esUsuarioAutorizado() && tieneModulo('almacen')
                     && entradaAlmacenValida(request.resource.data)
                     && request.resource.data.creadoEn == resource.data.creadoEn
                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
 
-      allow delete: if esUsuarioAutorizado();
+      allow delete: if esUsuarioAutorizado() && tieneModulo('almacen');
     }
 
     function salidaAlmacenValida(d) {
@@ -289,36 +289,32 @@ service cloud.firestore {
     }
 
     match /almacen-salidas/{salidaId} {
-      allow read: if esUsuarioAutorizado();
+      allow read: if esUsuarioAutorizado() && tieneModulo('almacen');
 
-      allow create: if esUsuarioAutorizado()
+      allow create: if esUsuarioAutorizado() && tieneModulo('almacen')
                     && salidaAlmacenValida(request.resource.data);
 
-      allow update: if esUsuarioAutorizado()
+      allow update: if esUsuarioAutorizado() && tieneModulo('almacen')
                     && salidaAlmacenValida(request.resource.data)
                     && request.resource.data.creadoEn == resource.data.creadoEn
                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
 
-      allow delete: if esUsuarioAutorizado();
+      allow delete: if esUsuarioAutorizado() && tieneModulo('almacen');
     }
 
     // ── Pedidos de almacén (captura móvil: "necesito que compres X") ────────
 
-    // Rol legacy del usuario (compat docs sin modulos[]).
-    function rolUsuario() {
-      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol;
-    }
-
     function esPedidoAlmacenCreador() {
       return esUsuarioAutorizado() &&
-        (esCorreoBreakGlass() || tieneModulo('pedidos-almacen') || rolUsuario() in ['admin', 'compras', 'almacen']);
+        tieneModulo('pedidos-almacen');
     }
 
     // Solo quien compra puede cambiar el estado del pedido o vincularlo a una
     // orden — el encargado de almacén únicamente crea, no gestiona el estado.
     function esPedidoAlmacenGestor() {
       return esUsuarioAutorizado() &&
-        (esCorreoBreakGlass() || tieneModulo('nueva-compra') || rolUsuario() in ['admin', 'compras']);
+        tieneModulo('pedidos-almacen') &&
+        tieneModulo('nueva-compra');
     }
 
     function pedidoAlmacenValido(d) {
@@ -332,7 +328,7 @@ service cloud.firestore {
     }
 
     match /pedidos-almacen/{pedidoId} {
-      allow read: if esUsuarioAutorizado();
+      allow read: if esUsuarioAutorizado() && tieneModulo('pedidos-almacen');
 
       allow create: if esPedidoAlmacenCreador()
                     && pedidoAlmacenValido(request.resource.data)
@@ -350,58 +346,87 @@ service cloud.firestore {
 
     // ── Notificaciones in-app (Operación del Taller) ─────────────────────────
 
-    function puedeVerNotificaciones() {
-      return esUsuarioAutorizado() && (
-        esCorreoBreakGlass() ||
-        tieneModulo('notificaciones') ||
-        tieneModulo('pedidos-almacen') ||
-        tieneModulo('requisiciones') ||
-        tieneModulo('documentos-venta') ||
-        tieneModulo('banos')
-      );
-    }
-
-    function puedeCrearNotificacion() {
-      return esUsuarioAutorizado() && (
-        esCorreoBreakGlass() ||
+    // La consulta del cliente se divide por audiencia y destinatario. Esta
+    // función debe poder evaluar cada documento de esas consultas por separado.
+    function puedeVerNotificacion(d) {
+      return esUsuarioAutorizado() &&
+        d.keys().hasAll(['audiencia', 'destinatarioUid']) &&
         (
-          request.resource.data.origenModulo == 'pedidos-almacen' &&
-          (tieneModulo('pedidos-almacen') || rolUsuario() in ['admin', 'compras', 'almacen'])
-        ) ||
-        (
-          request.resource.data.origenModulo == 'requisiciones' &&
-          (tieneModulo('requisiciones') || rolUsuario() in ['admin', 'compras', 'diseno'])
-        ) ||
-        (
-          request.resource.data.origenModulo == 'documentos-venta' &&
-          tieneModulo('documentos-venta')
-        )
-      );
+          d.destinatarioUid == request.auth.uid ||
+          (d.audiencia == 'pedidos-almacen' && tieneModulo('pedidos-almacen')) ||
+          (d.audiencia == 'requisiciones' && tieneModulo('requisiciones')) ||
+          (d.audiencia == 'documentos-venta' && atiendeDocumentosVenta()) ||
+          (d.audiencia == 'banos' && esSuperAdminDoc())
+        );
     }
 
     function notificacionValida(d) {
-      return d.tipo in [
+      return d.keys().hasAll([
+               'tipo', 'titulo', 'cuerpo', 'origenModulo', 'origenId',
+               'audiencia', 'destinatarioUid', 'href', 'creadoPorUid',
+               'creadoPorNombre', 'creadoEn', 'actualizadoEn'
+             ]) &&
+             d.tipo in [
                'pedido_almacen_creado',
                'pedido_almacen_estado',
                'requisicion_creada',
                'requisicion_estado',
+               'banos_solicitud_creada',
+               'banos_solicitud_resuelta',
                'solicitud_documento_creada',
-               'solicitud_documento_estado'
+               'solicitud_documento_estado',
+               'solicitud_documento_mensaje'
              ] &&
              d.titulo is string &&
              d.cuerpo is string &&
-             d.origenModulo in ['pedidos-almacen', 'requisiciones', 'documentos-venta'] &&
+             d.origenModulo in ['pedidos-almacen', 'requisiciones', 'documentos-venta', 'banos'] &&
              d.origenId is string &&
+             d.audiencia in ['pedidos-almacen', 'requisiciones', 'documentos-venta', 'banos'] &&
+             (d.destinatarioUid == null || d.destinatarioUid is string) &&
              d.href is string &&
              d.creadoPorUid is string &&
              d.creadoPorNombre is string &&
              d.creadoEn is timestamp &&
-             d.actualizadoEn is timestamp;
+             d.actualizadoEn is timestamp &&
+             (
+               (d.tipo in ['pedido_almacen_creado', 'pedido_almacen_estado'] &&
+                d.origenModulo == 'pedidos-almacen' && d.audiencia == 'pedidos-almacen' &&
+                d.destinatarioUid == null) ||
+               (d.tipo in ['requisicion_creada', 'requisicion_estado'] &&
+                d.origenModulo == 'requisiciones' && d.audiencia == 'requisiciones' &&
+                d.destinatarioUid == null) ||
+               (d.tipo in ['solicitud_documento_creada', 'solicitud_documento_estado', 'solicitud_documento_mensaje'] &&
+                d.origenModulo == 'documentos-venta' && d.audiencia == 'documentos-venta' &&
+                d.destinatarioUid is string) ||
+               (d.tipo in ['banos_solicitud_creada', 'banos_solicitud_resuelta'] &&
+                d.origenModulo == 'banos' && d.audiencia == 'banos' &&
+                d.destinatarioUid is string)
+             );
+    }
+
+    function puedeCrearNotificacion() {
+      return esUsuarioAutorizado() &&
+        request.resource.data.creadoPorUid == request.auth.uid &&
+        notificacionValida(request.resource.data) &&
+        (
+          (esCorreoBreakGlass() && request.resource.data.audiencia != 'banos') ||
+          (
+            (request.resource.data.audiencia == 'pedidos-almacen' &&
+             tieneModulo('pedidos-almacen')) ||
+            (request.resource.data.audiencia == 'requisiciones' &&
+             tieneModulo('requisiciones')) ||
+            (request.resource.data.audiencia == 'documentos-venta' &&
+             tieneModulo('documentos-venta') &&
+             exists(/databases/$(database)/documents/solicitudes_documento/$(request.resource.data.origenId)) &&
+             get(/databases/$(database)/documents/solicitudes_documento/$(request.resource.data.origenId)).data.solicitadoPorUid ==
+               request.resource.data.destinatarioUid)
+          )
+        );
     }
 
     match /notificaciones/{notificacionId} {
-      allow read: if puedeVerNotificaciones();
-      allow create: if puedeCrearNotificacion() && notificacionValida(request.resource.data);
+      allow read: if puedeVerNotificacion(resource.data);
+      allow create: if puedeCrearNotificacion();
       allow update, delete: if false;
     }
 
@@ -578,8 +603,9 @@ service cloud.firestore {
     }
 
     match /reportes_contables/{reporteId} {
-      allow read: if esUsuarioAutorizado();
-      allow create: if esUsuarioAutorizado() && reporteContableValido(request.resource.data);
+      allow read: if esUsuarioAutorizado() && tieneModulo('reportes');
+      allow create: if esUsuarioAutorizado() && tieneModulo('reportes')
+                    && reporteContableValido(request.resource.data);
       allow update, delete: if false;
     }
 
@@ -587,10 +613,6 @@ service cloud.firestore {
     // Más sensible que compras: requiere módulo finanzas o super-admin.
     // Nunca se escribe desde el navegador — solo el Cloud Function de sync vía
     // Admin SDK, que ignora estas reglas.
-
-    function esAdminRol() {
-      return esSuperAdminDoc();
-    }
 
     function esFinanzasAutorizado() {
       return esUsuarioAutorizado() &&
@@ -659,50 +681,60 @@ service cloud.firestore {
     // validación de tipos por campo queda deferida. Las cláusulas de inmutabilidad
     // son las mismas que ya corren en prod para /ordenes y /cotizaciones.
 
+    function esProveedoresEditor() {
+      return esUsuarioAutorizado() &&
+        (esCorreoBreakGlass() || tieneModulo('proveedores') || esSuperAdminDoc());
+    }
+
     match /proveedores/{proveedorId} {
-      allow read, delete: if esUsuarioAutorizado();
-      allow create: if esUsuarioAutorizado()
+      allow read: if esProveedoresAutorizado();
+      allow delete: if esProveedoresEditor();
+      allow create: if esProveedoresEditor()
                     && request.resource.data.creadoEn is timestamp;
-      allow update: if esUsuarioAutorizado()
+      allow update: if esProveedoresEditor()
                     && request.resource.data.creadoEn == resource.data.creadoEn
                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
     }
 
     // Matriz de proveedor primario/backup por categoría (antes solo en useState local).
     match /proveedores_matriz_backup/{docId} {
-      allow read, create, update: if esUsuarioAutorizado();
-      allow delete: if esUsuarioAutorizado();
+      allow read: if esProveedoresAutorizado();
+      allow create, update, delete: if esProveedoresEditor();
     }
 
     match /compras_proveedores/{compraId} {
-      allow read, delete: if esUsuarioAutorizado();
-      allow create: if esUsuarioAutorizado()
+      allow read: if esProveedoresAutorizado();
+      allow delete: if esProveedoresEditor();
+      allow create: if esProveedoresEditor()
                     && request.resource.data.creadoEn is timestamp;
-      allow update: if esUsuarioAutorizado()
+      allow update: if esProveedoresEditor()
                     && request.resource.data.creadoEn == resource.data.creadoEn;
     }
 
     match /evaluaciones_proveedores/{evalId} {
-      allow read, delete: if esUsuarioAutorizado();
-      allow create: if esUsuarioAutorizado()
+      allow read: if esProveedoresAutorizado();
+      allow delete: if esProveedoresEditor();
+      allow create: if esProveedoresEditor()
                     && request.resource.data.creadoEn is timestamp;
-      allow update: if esUsuarioAutorizado()
+      allow update: if esProveedoresEditor()
                     && request.resource.data.creadoEn == resource.data.creadoEn;
     }
 
     match /cotizaciones_comparador/{cotId} {
-      allow read, delete: if esUsuarioAutorizado();
-      allow create: if esUsuarioAutorizado()
+      allow read: if esProveedoresAutorizado();
+      allow delete: if esProveedoresEditor();
+      allow create: if esProveedoresEditor()
                     && request.resource.data.creadoEn is timestamp;
-      allow update: if esUsuarioAutorizado()
+      allow update: if esProveedoresEditor()
                     && request.resource.data.creadoEn == resource.data.creadoEn;
     }
 
     match /cotizaciones_requisicion/{cotId} {
-      allow read, delete: if esUsuarioAutorizado();
-      allow create: if esUsuarioAutorizado()
+      allow read: if esProveedoresAutorizado();
+      allow delete: if esProveedoresEditor();
+      allow create: if esProveedoresEditor()
                     && request.resource.data.creadoEn is timestamp;
-      allow update: if esUsuarioAutorizado()
+      allow update: if esProveedoresEditor()
                     && request.resource.data.creadoEn == resource.data.creadoEn;
     }
 
@@ -817,18 +849,6 @@ service cloud.firestore {
       );
     }
 
-    function solicitudDocumentoCreateValida(d) {
-      return d.tipo in ['factura', 'remision'] &&
-             d.estado == 'pendiente' &&
-             d.odooSoId is number &&
-             d.odooSoName is string &&
-             d.partnerName is string &&
-             d.solicitadoPorUid == request.auth.uid &&
-             d.solicitadoPorNombre is string &&
-             d.creadoEn is timestamp &&
-             d.actualizadoEn is timestamp;
-    }
-
     match /ventas_odoo_so/{soId} {
       allow read: if esDocumentosVentaAutorizado();
       allow write: if false;
@@ -842,8 +862,11 @@ service cloud.firestore {
     match /solicitudes_documento/{solicitudId} {
       allow read: if puedeLeerSolicitudDocumento();
 
-      allow create: if esDocumentosVentaAutorizado()
-                    && solicitudDocumentoCreateValida(request.resource.data);
+      // La creación pasa por /api/documentos-venta/solicitudes, que valida la
+      // SO actual y reserva cantidades dentro de una transacción Admin. No
+      // aceptar creates directos evita que una pestaña antigua salte esa
+      // reserva y vuelva a introducir solicitudes duplicadas.
+      allow create: if false;
 
       allow update: if esDocumentosVentaAutorizado()
                     && request.resource.data.creadoEn == resource.data.creadoEn

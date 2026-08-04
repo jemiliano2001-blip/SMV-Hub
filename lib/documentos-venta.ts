@@ -8,6 +8,7 @@ import {
   orderBy,
   limit,
   onSnapshot,
+  runTransaction,
   Timestamp,
   type FirestoreDataConverter,
   type QueryDocumentSnapshot,
@@ -24,7 +25,7 @@ import {
   MensajeSolicitudDocumentoSchema,
   NuevaSolicitudDocumentoSchema,
 } from "@/lib/schemas"
-import { makeDateConverter, actualizarDocumento } from "@/lib/firestore-helpers"
+import { makeDateConverter } from "@/lib/firestore-helpers"
 import { registrarAuditoria } from "@/lib/auditoria"
 import { emitirNotificacion, tituloParaTipo } from "@/lib/notificaciones"
 import { puedeTransicionarEstado, validarPartidasRemision } from "@/lib/documentos-venta-helpers"
@@ -67,10 +68,6 @@ function actorNotificacion(): { uid: string; nombre: string } {
   }
 }
 
-function etiquetaTipo(tipo: SolicitudDocumento["tipo"]): string {
-  return tipo === "factura" ? "Factura" : "Remisión"
-}
-
 export async function crearSolicitudDocumento(
   data: NuevaSolicitudDocumento,
   opts?: { lineasSo?: readonly { odooLineId: number; qtyPending: number }[] }
@@ -86,39 +83,22 @@ export async function crearSolicitudDocumento(
     if (err) throw new Error(err)
   }
 
-  const ahora = new Date()
-  const ref = await addDoc(solicitudesRef(), {
-    ...parsed,
-    folioOdoo: null,
-    motivoRechazo: null,
-    atendidoPorUid: null,
-    atendidoPorNombre: null,
-    creadoEn: ahora,
-    actualizadoEn: ahora,
-  } as SolicitudDocumento)
+  const token = await getClienteAuth().currentUser?.getIdToken()
+  if (!token) throw new Error("Inicia sesión para crear una solicitud")
 
-  const user = getClienteAuth().currentUser
-  await registrarAuditoria(
-    user?.email,
-    "CREAR",
-    COLECCION,
-    ref.id,
-    `Creó solicitud de ${etiquetaTipo(parsed.tipo)} para SO ${parsed.odooSoName}`
-  )
-
-  const actor = actorNotificacion()
-  await emitirNotificacion({
-    tipo: "solicitud_documento_creada",
-    titulo: tituloParaTipo("solicitud_documento_creada"),
-    cuerpo: `${etiquetaTipo(parsed.tipo)} · ${parsed.odooSoName} · ${parsed.partnerName}`,
-    origenModulo: "documentos-venta",
-    origenId: ref.id,
-    href: `/documentos-venta?solicitud=${ref.id}`,
-    creadoPorUid: actor.uid,
-    creadoPorNombre: actor.nombre,
+  const response = await fetch("/api/documentos-venta/solicitudes", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(parsed),
   })
-
-  return ref.id
+  const body = await response.json().catch(() => ({})) as { id?: string; error?: string }
+  if (!response.ok || !body.id) {
+    throw new Error(body.error || "No se pudo crear la solicitud")
+  }
+  return body.id
 }
 
 export async function actualizarEstadoSolicitudDocumento(args: {
@@ -145,28 +125,56 @@ export async function actualizarEstadoSolicitudDocumento(args: {
     throw new Error("Motivo de rechazo requerido")
   }
 
-  const prev = await getDoc(doc(db, COLECCION, args.id).withConverter(solicitudConverter))
-  const resumenSo =
-    prev.exists() && typeof prev.data().odooSoName === "string"
-      ? prev.data().odooSoName
-      : args.id
+  let estadoAnterior: EstadoSolicitudDocumento | null = null
+  let resumenSo = args.id
+  let solicitadoPorUid: string | null = null
+  const ref = doc(db, COLECCION, args.id)
 
-  const cambios: Record<string, unknown> = { estado: args.hacia }
+  await runTransaction(db, async (tx) => {
+    const actualSnap = await tx.get(ref)
+    if (!actualSnap.exists()) throw new Error("Solicitud no encontrada")
 
-  if (args.esAtendedor) {
-    cambios.atendidoPorUid = args.uid
-    cambios.atendidoPorNombre = args.nombre
-  }
+    const actual = actualSnap.data() as Partial<SolicitudDocumento>
+    const estadoActual = actual.estado
+    if (
+      estadoActual !== "pendiente" &&
+      estadoActual !== "en_proceso" &&
+      estadoActual !== "completada" &&
+      estadoActual !== "rechazada"
+    ) {
+      throw new Error("Estado actual inválido")
+    }
+    if (estadoActual !== args.desde) {
+      throw new Error("La solicitud cambió en otra pestaña; recarga e inténtalo de nuevo")
+    }
+    if (!puedeTransicionarEstado(estadoActual, args.hacia, {
+      esAtendedor: args.esAtendedor,
+      esSolicitante: args.esSolicitante,
+    })) {
+      throw new Error("Transición de estado no permitida")
+    }
 
-  if (args.hacia === "rechazada") {
-    cambios.motivoRechazo = (args.motivoRechazo ?? "").trim()
-  }
+    estadoAnterior = estadoActual
+    resumenSo = typeof actual.odooSoName === "string" ? actual.odooSoName : args.id
+    solicitadoPorUid = typeof actual.solicitadoPorUid === "string" ? actual.solicitadoPorUid : null
 
-  if (args.folioOdoo !== undefined) {
-    cambios.folioOdoo = args.folioOdoo
-  }
+    const cambios: Record<string, unknown> = { estado: args.hacia }
+    if (args.esAtendedor) {
+      cambios.atendidoPorUid = args.uid
+      cambios.atendidoPorNombre = args.nombre
+    }
+    if (args.hacia === "rechazada") {
+      cambios.motivoRechazo = (args.motivoRechazo ?? "").trim()
+    }
+    if (args.folioOdoo !== undefined) {
+      cambios.folioOdoo = args.folioOdoo
+    }
 
-  await actualizarDocumento(COLECCION, args.id, cambios)
+    tx.update(ref, {
+      ...cambios,
+      actualizadoEn: Timestamp.fromDate(new Date()),
+    })
+  })
 
   const user = getClienteAuth().currentUser
   await registrarAuditoria(
@@ -174,7 +182,7 @@ export async function actualizarEstadoSolicitudDocumento(args: {
     "EDITAR",
     COLECCION,
     args.id,
-    `Estado ${args.desde} → ${args.hacia} (SO ${resumenSo})`
+    `Estado ${estadoAnterior ?? args.desde} → ${args.hacia} (SO ${resumenSo})`
   )
 
   const actor = actorNotificacion()
@@ -184,6 +192,8 @@ export async function actualizarEstadoSolicitudDocumento(args: {
     cuerpo: `SO ${resumenSo}: ${args.desde} → ${args.hacia}`,
     origenModulo: "documentos-venta",
     origenId: args.id,
+    audiencia: "documentos-venta",
+    destinatarioUid: solicitadoPorUid,
     href: `/documentos-venta?solicitud=${args.id}`,
     creadoPorUid: actor.uid,
     creadoPorNombre: actor.nombre,
@@ -218,6 +228,18 @@ export function suscribirSolicitudesDocumento(
   )
 }
 
+/**
+ * Recupera una solicitud concreta para resolver deep links que quedaron fuera
+ * de la ventana de la suscripción (por ejemplo, una solicitud antigua).
+ * Las reglas de Firestore siguen siendo la autorización efectiva.
+ */
+export async function obtenerSolicitudDocumento(
+  solicitudId: string
+): Promise<SolicitudDocumento | null> {
+  const snap = await getDoc(doc(db, COLECCION, solicitudId).withConverter(solicitudConverter))
+  return snap.exists() ? snap.data() : null
+}
+
 export async function agregarMensajeSolicitud(
   solicitudId: string,
   texto: string,
@@ -249,6 +271,8 @@ export async function agregarMensajeSolicitud(
         cuerpo: `Nuevo mensaje · ${etiqueta} ${sol.odooSoName}`,
         origenModulo: "documentos-venta",
         origenId: solicitudId,
+        audiencia: "documentos-venta",
+        destinatarioUid: sol.solicitadoPorUid,
         href: `/documentos-venta?solicitud=${solicitudId}`,
         creadoPorUid: actor.uid || autorUid,
         creadoPorNombre: actor.nombre || autorNombre,

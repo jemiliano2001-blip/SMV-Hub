@@ -61,6 +61,26 @@ export async function POST(request: Request) {
       return Response.json({ error: "Ya hay una solicitud pendiente para este registro" }, { status: 409 })
     }
 
+    // Una evaluacion IA con rechazo de alta confianza es una decision final
+    // para ese registro. Sin este freno, el mismo usuario puede reintentar
+    // infinitamente hasta obtener una respuesta distinta.
+    if (!esSuperAdmin) {
+      const solicitudesPrevias = await adminDb
+        .collection("solicitudes_borrado_banos")
+        .where("registroId", "==", registroId)
+        .get()
+      const iaYaRechazo = solicitudesPrevias.docs.some((doc) => {
+        const data = doc.data() as { estado?: string; reglaAutoAplicada?: string }
+        return data.estado === "rechazada" && data.reglaAutoAplicada === "ia_rechazada"
+      })
+      if (iaYaRechazo) {
+        return Response.json(
+          { error: "La IA ya rechazo esta solicitud; un super-admin debe revisar el registro." },
+          { status: 409 }
+        )
+      }
+    }
+
     const relacionadosSnap = await adminDb
       .collection("registros-bano")
       .where("operador", "==", registro.operador)
@@ -107,6 +127,8 @@ export async function POST(request: Request) {
         cuerpo: `${registro.operador} · ${registro.bano} (${registro.fecha}) — ${iaConConfianza?.motivo ?? "el registro se conserva"}`,
         origenModulo: "banos",
         origenId: solicitudRef.id,
+        audiencia: "banos",
+        destinatarioUid: auth.uid,
         href: "/banos",
         creadoPorUid: auth.uid,
         creadoPorNombre: solicitadoPorNombre,
@@ -115,7 +137,8 @@ export async function POST(request: Request) {
     }
 
     if (regla === "ia_aprobada") {
-      await solicitudRef.set({
+      const batch = adminDb.batch()
+      batch.set(solicitudRef, {
         registroId,
         registroResumen,
         motivo,
@@ -128,7 +151,8 @@ export async function POST(request: Request) {
         creadoEn: FieldValue.serverTimestamp(),
         actualizadoEn: FieldValue.serverTimestamp(),
       })
-      await adminDb.collection("registros-bano").doc(registroId).delete()
+      batch.delete(adminDb.collection("registros-bano").doc(registroId))
+      await batch.commit()
       await registrarAuditoriaServer(
         auth.email,
         "BORRAR",
@@ -142,6 +166,8 @@ export async function POST(request: Request) {
         cuerpo: `${registro.operador} · ${registro.bano} (${registro.fecha}) se borró automáticamente — regla: ${regla}`,
         origenModulo: "banos",
         origenId: solicitudRef.id,
+        audiencia: "banos",
+        destinatarioUid: auth.uid,
         href: "/banos",
         creadoPorUid: auth.uid,
         creadoPorNombre: solicitadoPorNombre,
@@ -149,7 +175,8 @@ export async function POST(request: Request) {
       return Response.json({ estado: "auto_aprobada", regla, evaluacionIa }, { status: 201 })
     }
 
-    await solicitudRef.set({
+    const batch = adminDb.batch()
+    batch.set(solicitudRef, {
       registroId,
       registroResumen,
       motivo,
@@ -161,13 +188,16 @@ export async function POST(request: Request) {
       creadoEn: FieldValue.serverTimestamp(),
       actualizadoEn: FieldValue.serverTimestamp(),
     })
-    await adminDb.collection("registros-bano").doc(registroId).update({ solicitudBorradoEstado: "pendiente" })
+    batch.update(adminDb.collection("registros-bano").doc(registroId), { solicitudBorradoEstado: "pendiente" })
+    await batch.commit()
     await emitirNotificacionServer({
       tipo: "banos_solicitud_creada",
       titulo: "Solicitud de borrado de baño",
       cuerpo: `${registro.operador} · ${registro.bano} (${registro.fecha}) — motivo: ${motivo}${nota ? `: ${nota}` : ""}`,
       origenModulo: "banos",
       origenId: solicitudRef.id,
+      audiencia: "banos",
+      destinatarioUid: auth.uid,
       href: "/banos",
       creadoPorUid: auth.uid,
       creadoPorNombre: solicitadoPorNombre,

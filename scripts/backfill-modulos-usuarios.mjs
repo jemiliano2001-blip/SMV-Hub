@@ -29,6 +29,8 @@ const MODULOS_POR_PLANTILLA = {
     "operadores",
     "horas-extra",
     "banos",
+    "notificaciones",
+    "documentos-venta",
     "finanzas",
     "auditoria",
     "usuarios",
@@ -45,9 +47,12 @@ const MODULOS_POR_PLANTILLA = {
     "operadores",
     "horas-extra",
     "banos",
+    "notificaciones",
+    "documentos-venta",
   ],
   diseno: ["cotizaciones", "requisiciones", "horas-extra"],
-  almacen: ["almacen", "pedidos-almacen", "banos"],
+  automatizacion: ["cotizaciones", "requisiciones", "horas-extra", "notificaciones"],
+  almacen: ["almacen", "pedidos-almacen", "banos", "notificaciones", "documentos-venta"],
 }
 
 if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
@@ -79,12 +84,14 @@ for (const doc of snap.docs) {
     data.plantilla === "admin" ||
     data.plantilla === "compras" ||
     data.plantilla === "diseno" ||
-    data.plantilla === "almacen"
+    data.plantilla === "almacen" ||
+    data.plantilla === "automatizacion"
       ? data.plantilla
       : data.rol === "admin" ||
           data.rol === "compras" ||
           data.rol === "diseno" ||
-          data.rol === "almacen"
+          data.rol === "almacen" ||
+          data.rol === "automatizacion"
         ? data.rol
         : null
 

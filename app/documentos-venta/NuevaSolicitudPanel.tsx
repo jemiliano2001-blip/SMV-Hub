@@ -3,13 +3,19 @@
 import { useMemo, useState } from 'react'
 import type {
   NuevaSolicitudDocumento,
+  SolicitudDocumento,
   TipoSolicitudDocumento,
   VentaOdooSo,
 } from '@/lib/schemas'
-import { validarPartidasRemision, ordenCompraEfectiva } from '@/lib/documentos-venta-helpers'
+import {
+  lineasDisponiblesParaSolicitud,
+  ordenCompraEfectiva,
+  validarPartidasRemision,
+} from '@/lib/documentos-venta-helpers'
 
 type Props = {
   sos: VentaOdooSo[]
+  solicitudesActivas: SolicitudDocumento[]
   busqueda: string
   onBusquedaChange: (q: string) => void
   uid: string
@@ -22,6 +28,7 @@ type Props = {
 
 export default function NuevaSolicitudPanel({
   sos,
+  solicitudesActivas,
   busqueda,
   onBusquedaChange,
   uid,
@@ -37,13 +44,17 @@ export default function NuevaSolicitudPanel({
   const [errorLocal, setErrorLocal] = useState<string | null>(null)
 
   const so = useMemo(() => sos.find((s) => s.id === soId) ?? null, [sos, soId])
+  const lineasDisponibles = useMemo(
+    () => (so ? lineasDisponiblesParaSolicitud(so.lineas, solicitudesActivas, so.odooId) : []),
+    [so, solicitudesActivas]
+  )
 
   function elegirSo(s: VentaOdooSo) {
     setSoId(s.id)
     setErrorLocal(null)
     const nextQty: Record<number, number> = {}
     const nextSel = new Set<number>()
-    for (const l of s.lineas) {
+    for (const l of lineasDisponiblesParaSolicitud(s.lineas, solicitudesActivas, s.odooId)) {
       if (l.qtyPending > 0) {
         nextQty[l.odooLineId] = l.qtyPending
         nextSel.add(l.odooLineId)
@@ -59,7 +70,7 @@ export default function NuevaSolicitudPanel({
 
     const partidas =
       tipo === 'remision'
-        ? so.lineas
+        ? lineasDisponibles
             .filter((l) => seleccionadas.has(l.odooLineId))
             .map((l) => ({
               odooLineId: l.odooLineId,
@@ -71,7 +82,7 @@ export default function NuevaSolicitudPanel({
     const errPartidas = validarPartidasRemision(
       tipo,
       partidas,
-      so.lineas.map((l) => ({ odooLineId: l.odooLineId, qtyPending: l.qtyPending }))
+      lineasDisponibles.map((l) => ({ odooLineId: l.odooLineId, qtyPending: l.qtyPending }))
     )
     if (errPartidas) {
       setErrorLocal(errPartidas)
@@ -95,7 +106,7 @@ export default function NuevaSolicitudPanel({
     setEnviando(true)
     try {
       await onCrear(payload, {
-        lineasSo: so.lineas.map((l) => ({
+        lineasSo: lineasDisponibles.map((l) => ({
           odooLineId: l.odooLineId,
           qtyPending: l.qtyPending,
         })),
@@ -184,7 +195,7 @@ export default function NuevaSolicitudPanel({
                 <span className="w-20 text-right">Solicitar</span>
               </div>
               <ul className="space-y-2">
-                {so.lineas.map((l) => {
+                {lineasDisponibles.map((l) => {
                   const checked = seleccionadas.has(l.odooLineId)
                   return (
                     <li

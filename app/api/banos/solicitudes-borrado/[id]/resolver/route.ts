@@ -52,8 +52,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     const nuevoEstado = parsed.data.decision === "aprobar" ? "aprobada" : "rechazada"
 
+    const registroRef = adminDb.collection("registros-bano").doc(solicitud.registroId)
     if (nuevoEstado === "aprobada") {
-      await adminDb.collection("registros-bano").doc(solicitud.registroId).delete()
+      // delete() es idempotente: si el registro ya desaparecio, la solicitud
+      // aun puede cerrarse y no queda bloqueada en estado pendiente.
+      await registroRef.delete()
       await registrarAuditoriaServer(
         auth.email,
         "BORRAR",
@@ -62,10 +65,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         `Aprobó solicitud de ${solicitud.solicitadoPorNombre}: eliminó registro de ${solicitud.registroResumen.operador}`
       )
     } else {
-      await adminDb
-        .collection("registros-bano")
-        .doc(solicitud.registroId)
-        .update({ solicitudBorradoEstado: FieldValue.delete() })
+      // Un registro borrado entre la solicitud y la resolucion no debe hacer
+      // fallar el rechazo ni recrear un documento vacio.
+      const registroSnap = await registroRef.get()
+      if (registroSnap.exists) {
+        await registroRef.set({ solicitudBorradoEstado: FieldValue.delete() }, { merge: true })
+      }
     }
 
     await solicitudRef.update({
@@ -84,6 +89,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       }`,
       origenModulo: "banos",
       origenId: id,
+      audiencia: "banos",
+      destinatarioUid: solicitud.solicitadoPorUid,
       href: "/banos",
       creadoPorUid: auth.uid,
       creadoPorNombre: auth.email,

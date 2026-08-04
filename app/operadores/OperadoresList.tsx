@@ -197,10 +197,19 @@ export default function OperadoresList() {
       setEditandoId(null)
       return
     }
+    const existe = operadores.some(
+      (op) => op.id !== id && op.nombre.trim().toLowerCase() === nuevo.toLowerCase()
+    )
+    if (existe) {
+      setErrorForm(`"${nuevo}" ya existe en el catálogo`)
+      return
+    }
     try {
       await editarOperador(id, { nombre: nuevo })
+      setErrorForm(null)
     } catch (err) {
       console.error('Error editando nombre:', err)
+      setErrorForm('No se pudo actualizar el operador. Intenta de nuevo.')
     } finally {
       setEditandoId(null)
     }

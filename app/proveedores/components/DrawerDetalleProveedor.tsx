@@ -37,13 +37,7 @@ export default function DrawerDetalleProveedor({
   onClose,
   onEdit,
   onDelete,
-  scorecard = {
-    promedioGeneral: 4.8,
-    leadTimePromedio: 3.5,
-    leadTimeReal: 3.2,
-    ordenesAprobadas: 12,
-    totalOrdenes: 13,
-  },
+  scorecard,
 }: DrawerDetalleProveedorProps) {
   if (!open || !proveedor) return null
 
@@ -112,17 +106,17 @@ export default function DrawerDetalleProveedor({
                 <span className="flex items-center gap-1.5">
                   <Award className="w-4 h-4 text-indigo-400" /> Scorecard 360° SMV Hub
                 </span>
-                <span>⭐ {scorecard.promedioGeneral.toFixed(1)} / 5.0</span>
+                <span>{scorecard ? `⭐ ${scorecard.promedioGeneral.toFixed(1)} / 5.0` : 'Sin datos'}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-xs pt-1">
                 <div className="p-2.5 rounded-lg bg-slate-800 border border-slate-700">
                   <div className="text-slate-400 text-[10px]">Lead Time Prometido</div>
-                  <div className="font-bold text-white text-sm">{scorecard.leadTimePromedio} días</div>
+                  <div className="font-bold text-white text-sm">{scorecard?.leadTimePromedio ?? 'Sin datos'}{scorecard ? ' días' : ''}</div>
                 </div>
                 <div className="p-2.5 rounded-lg bg-slate-800 border border-slate-700">
                   <div className="text-slate-400 text-[10px]">Lead Time Real (Odoo)</div>
-                  <div className="font-bold text-emerald-400 text-sm">{scorecard.leadTimeReal} días</div>
+                  <div className="font-bold text-emerald-400 text-sm">{scorecard?.leadTimeReal ?? 'Sin datos'}{scorecard ? ' días' : ''}</div>
                 </div>
               </div>
             </div>

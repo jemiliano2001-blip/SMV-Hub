@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react"
 import Link from "next/link"
-import { listarOrdenesEnRango } from "@/lib/ordenes"
+import { listarOrdenesParaReporte } from "@/lib/ordenes"
 import {
   filtrarPorRango,
   aplanarLineas,
@@ -38,15 +38,6 @@ function tituloReporte(desde: Date, hasta: Date): string {
   return `${desde.toLocaleDateString(loc, opt)} — ${hasta.toLocaleDateString(loc, opt)}`
 }
 
-/** Ensanchar query de creadoEn para no perder órdenes con fechaFactura en el período. */
-function margenConsulta(desde: Date, hasta: Date): { desdeQ: Date; hastaQ: Date } {
-  const desdeQ = new Date(desde)
-  desdeQ.setDate(desdeQ.getDate() - 45)
-  const hastaQ = new Date(hasta)
-  hastaQ.setDate(hastaQ.getDate() + 45)
-  return { desdeQ, hastaQ }
-}
-
 export default function ReporteView({
   initialTab = "integridad",
 }: {
@@ -65,8 +56,7 @@ export default function ReporteView({
     setCargando(true)
     setError(null)
     try {
-      const { desdeQ, hastaQ } = margenConsulta(periodo.desde, periodo.hasta)
-      const brutas = await listarOrdenesEnRango(desdeQ, hastaQ)
+      const brutas = await listarOrdenesParaReporte(periodo.desde, periodo.hasta)
       setOrdenes(filtrarPorRango(brutas, periodo.desde, periodo.hasta))
     } catch {
       setError(MSG_ERROR)

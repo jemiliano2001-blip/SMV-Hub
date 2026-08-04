@@ -101,3 +101,36 @@ export function validarPartidasRemision(
   }
   return null
 }
+
+/**
+ * Descuenta remisiones pendientes o en proceso para evitar que un solicitante
+ * vuelva a pedir una partida antes de que Odoo actualice qtyPending.
+ */
+export function lineasDisponiblesParaSolicitud<
+  T extends { odooLineId: number; qtyPending: number }
+>(
+  lineasSo: readonly T[],
+  solicitudes: readonly Pick<SolicitudDocumento, "odooSoId" | "estado" | "partidas">[],
+  odooSoId: number
+): T[] {
+  const yaSolicitado = new Map<number, number>()
+  for (const solicitud of solicitudes) {
+    if (
+      solicitud.odooSoId !== odooSoId ||
+      (solicitud.estado !== "pendiente" && solicitud.estado !== "en_proceso")
+    ) {
+      continue
+    }
+    for (const partida of solicitud.partidas) {
+      yaSolicitado.set(
+        partida.odooLineId,
+        (yaSolicitado.get(partida.odooLineId) ?? 0) + partida.qtySolicitada
+      )
+    }
+  }
+
+  return lineasSo.map((linea) => ({
+    ...linea,
+    qtyPending: Math.max(0, linea.qtyPending - (yaSolicitado.get(linea.odooLineId) ?? 0)),
+  }))
+}

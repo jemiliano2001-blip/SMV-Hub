@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fira_Code, Fira_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
+import { SesionProvider } from "@/lib/auth";
 import { AppCheckProvider } from "@/components/AppCheckProvider";
 import NavBar from "@/app/NavBar";
 import { Toaster } from "@/components/ui/sonner";
@@ -37,13 +38,15 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-sans">
         <WebVitals />
         <AppCheckProvider>
-          <AuthProvider>
-            <ConfirmDialogProvider>
-              <NavBar />
-              {children}
-              <Toaster />
-            </ConfirmDialogProvider>
-          </AuthProvider>
+          <SesionProvider>
+            <AuthProvider>
+              <ConfirmDialogProvider>
+                <NavBar />
+                {children}
+                <Toaster />
+              </ConfirmDialogProvider>
+            </AuthProvider>
+          </SesionProvider>
         </AppCheckProvider>
       </body>
     </html>

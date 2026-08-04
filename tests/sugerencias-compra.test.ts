@@ -204,6 +204,21 @@ describe("completarCamposItem", () => {
     expect(out.requisitor).toBe("Lorena")
   })
 
+  it("does not use the global mode for a provider without history", () => {
+    const historial = [
+      makeHistorico({ proveedor: "Proveedor A", empresa: "APX", cuentaCargo: "SO1", requisitor: "Ana" }),
+      makeHistorico({ proveedor: "Proveedor B", empresa: "OHD", cuentaCargo: "SO2", requisitor: "Beto" }),
+    ]
+
+    const out = completarCamposItem(
+      { descripcion: "Empaque especial", empresa: "", cuentaCargo: "", requisitor: "" },
+      "Proveedor nuevo",
+      historial
+    )
+
+    expect(out).toEqual({ empresa: "", cuentaCargo: "", requisitor: "" })
+  })
+
   it("solo completa los campos vacíos, deja intactos los llenos", () => {
     const historial = [makeHistorico({ empresa: "APX", cuentaCargo: "SO9", requisitor: "Ana" })]
     const out = completarCamposItem(

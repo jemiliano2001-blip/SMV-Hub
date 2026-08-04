@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { NotificacionSchema, TipoNotificacionSchema } from "@/lib/schemas"
 import {
+  audienciasNotificacionParaUsuario,
   contarNoLeidas,
   hrefSeguroNotificacion,
   mergeNotificacionesConLeidas,
@@ -16,6 +17,8 @@ function fakeNotif(partial: Partial<Notificacion> & Pick<Notificacion, "id" | "t
     cuerpo: "detalle",
     origenModulo: partial.tipo.startsWith("pedido") ? "pedidos-almacen" : "requisiciones",
     origenId: "abc",
+    audiencia: partial.tipo.startsWith("pedido") ? "pedidos-almacen" : "requisiciones",
+    destinatarioUid: null,
     href: "/pedidos-almacen",
     creadoEn: ahora,
     actualizadoEn: ahora,
@@ -35,6 +38,21 @@ describe("TipoNotificacionSchema", () => {
     ]) {
       expect(TipoNotificacionSchema.parse(t)).toBe(t)
     }
+  })
+})
+
+describe("audiencias de notificaciones", () => {
+  it("separa módulos de operación, baños y atención de ventas", () => {
+    expect(audienciasNotificacionParaUsuario({
+      modulos: ["pedidos-almacen", "requisiciones"],
+      esSuperAdmin: false,
+      atiendeDocumentosVenta: false,
+    })).toEqual(["pedidos-almacen", "requisiciones"])
+    expect(audienciasNotificacionParaUsuario({
+      modulos: ["notificaciones"],
+      esSuperAdmin: true,
+      atiendeDocumentosVenta: false,
+    })).toEqual(["banos", "documentos-venta"])
   })
 })
 

@@ -430,6 +430,22 @@ export default function RegistroBanoList() {
                             <Check className="h-3.5 w-3.5" />
                             Llegó
                           </button>
+                          {!puedeEliminar && !!usuario?.uid && r.creadoPorUid === usuario.uid && (
+                            r.solicitudBorradoEstado === 'pendiente' ? (
+                              <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md whitespace-nowrap">
+                                Pendiente
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => abrirModalSolicitud(r)}
+                                title="Solicitar eliminación (un súper admin la revisará)"
+                                className="text-[10px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md transition-colors whitespace-nowrap"
+                              >
+                                Solicitar eliminación
+                              </button>
+                            )
+                          )}
                         </div>
                       </td>
                     </tr>

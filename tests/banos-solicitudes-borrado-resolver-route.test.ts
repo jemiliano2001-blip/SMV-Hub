@@ -33,12 +33,19 @@ function fakeSolicitudDoc(overrides: Record<string, unknown> = {}) {
   }
 }
 
-function makeFakeAdminDb(opts: { solicitudDoc?: ReturnType<typeof fakeSolicitudDoc> | { exists: false } }) {
+function makeFakeAdminDb(opts: {
+  solicitudDoc?: ReturnType<typeof fakeSolicitudDoc> | { exists: false }
+  registroExiste?: boolean
+}) {
   const solicitudDocRef = {
     get: vi.fn().mockResolvedValue(opts.solicitudDoc ?? fakeSolicitudDoc()),
     update: vi.fn().mockResolvedValue(undefined),
   }
-  const registroDocRef = { delete: vi.fn().mockResolvedValue(undefined), update: vi.fn().mockResolvedValue(undefined) }
+  const registroDocRef = {
+    get: vi.fn().mockResolvedValue({ exists: opts.registroExiste !== false }),
+    delete: vi.fn().mockResolvedValue(undefined),
+    set: vi.fn().mockResolvedValue(undefined),
+  }
 
   return {
     collection: vi.fn((name: string) => {
@@ -127,7 +134,21 @@ describe("POST /api/banos/solicitudes-borrado/[id]/resolver", () => {
     expect(res.status).toBe(200)
     expect(body).toEqual({ estado: "rechazada" })
     expect(fakeAdminDb.__registroDocRef.delete).not.toHaveBeenCalled()
-    expect(fakeAdminDb.__registroDocRef.update).toHaveBeenCalled()
+    expect(fakeAdminDb.__registroDocRef.set).toHaveBeenCalledWith(
+      { solicitudBorradoEstado: expect.anything() },
+      { merge: true }
+    )
+    expect(fakeAdminDb.__solicitudDocRef.update).toHaveBeenCalledWith(
+      expect.objectContaining({ estado: "rechazada" })
+    )
+  })
+
+  it("rechazar tambien cierra la solicitud si el registro ya fue borrado", async () => {
+    fakeAdminDb = makeFakeAdminDb({ registroExiste: false })
+    const res = await POST(makeRequest({ decision: "rechazar" }), ctx())
+
+    expect(res.status).toBe(200)
+    expect(fakeAdminDb.__registroDocRef.set).not.toHaveBeenCalled()
     expect(fakeAdminDb.__solicitudDocRef.update).toHaveBeenCalledWith(
       expect.objectContaining({ estado: "rechazada" })
     )

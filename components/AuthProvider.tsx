@@ -1,5 +1,5 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { authBypassActivo, cerrarSesion, useUsuario } from '@/lib/auth'
 import { useRol } from '@/lib/hooks/useRol'
@@ -13,6 +13,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const esLogin = pathname === '/login'
+  const usuarioProcesadoSinAcceso = useRef<string | null>(null)
 
   const usuarioNoAutorizado =
     !cargando &&
@@ -22,8 +23,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     !rol
 
   useEffect(() => {
+    if (!usuario) usuarioProcesadoSinAcceso.current = null
+
     if (!cargando && !usuario && pathname !== '/login') {
-      router.push('/login')
+      router.replace('/login')
       return
     }
 
@@ -33,18 +36,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (usuarioNoAutorizado) {
-      void cerrarSesion().then(() => {
-        router.replace('/login?error=no_autorizado')
-      })
+      if (usuarioProcesadoSinAcceso.current === usuario?.uid) return
+      usuarioProcesadoSinAcceso.current = usuario?.uid ?? null
+      void cerrarSesion()
+        .catch((error) => {
+          console.error('No se pudo cerrar la sesión no autorizada:', error)
+        })
+        .finally(() => {
+          router.replace('/login?error=no_autorizado')
+        })
       return
     }
 
     if (!cargando && !cargandoRol && usuario && pathname === '/login') {
-      router.push('/')
+      router.replace('/')
     }
   }, [usuario, cargando, cargandoRol, router, pathname, usuarioNoAutorizado])
 
-  if (!esLogin && (cargando || (!!usuario && !authBypassActivo() && cargandoRol) || usuarioNoAutorizado)) {
+  if (
+    cargando ||
+    usuarioNoAutorizado ||
+    (!esLogin && (!usuario || (!!usuario && !authBypassActivo() && cargandoRol)))
+  ) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0369A1]"></div>

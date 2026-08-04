@@ -11,7 +11,7 @@ import {
   type NuevaHorasExtraPayload,
 } from "@/lib/horas-extra"
 import {
-  calcularTotalHoras,
+  calcularTotalHorasPersistible,
   offsetSemana,
 } from "@/lib/horas-extra-parse"
 import { areaCorrespondeDepartamento } from "@/lib/operadores-departamento"
@@ -47,13 +47,6 @@ function payloadVacio(
     martes: null,
     notas,
   }
-}
-
-function calcularTotalPayload(
-  payload: Partial<Pick<HorasExtra, "miercoles" | "jueves" | "viernes" | "sabado" | "domingo" | "lunes" | "martes">>
-): number | null {
-  const total = calcularTotalHoras(payload)
-  return total > 0 ? total : null
 }
 
 export function useHorasExtra(semanaInicioFiltro?: string, departamentoFiltro?: Departamento) {
@@ -111,7 +104,7 @@ export function useHorasExtra(semanaInicioFiltro?: string, departamentoFiltro?: 
 
     await crearHorasExtra({
       ...payload,
-      totalHoras: calcularTotalPayload(payload),
+      totalHoras: calcularTotalHorasPersistible(payload),
     })
   }
 
@@ -128,7 +121,7 @@ export function useHorasExtra(semanaInicioFiltro?: string, departamentoFiltro?: 
     if (!reg) return
 
     const combined = { ...reg, ...dias }
-    const totalHoras = calcularTotalPayload(combined) ?? combined.totalHoras
+    const totalHoras = calcularTotalHorasPersistible(combined)
 
     await actualizarHorasExtra(id, { ...dias, totalHoras })
     setRegistros((prev) =>

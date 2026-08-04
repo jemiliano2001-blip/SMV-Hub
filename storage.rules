@@ -50,9 +50,10 @@ service firebase.storage {
 
     // Fotos de pedidos de almacén: solo usuarios autorizados.
     match /pedidos-almacen/{imagen=**} {
-      allow read: if esUsuarioAutorizado();
+      allow read: if esUsuarioAutorizado() && tieneModulo('pedidos-almacen');
 
       allow write: if esUsuarioAutorizado()
+                   && tieneModulo('pedidos-almacen')
                    && request.resource.size < 10 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }

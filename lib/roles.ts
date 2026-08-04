@@ -221,16 +221,15 @@ export function tieneModulo(modulos: readonly ModuloId[] | null | undefined, mod
 }
 
 /**
- * Lectura del feed `/notificaciones`: módulo dedicado o cualquiera de sus
- * módulos de origen. Debe mantenerse sincronizado con
- * `puedeVerNotificaciones()` en `firestore.rules`.
+ * Lectura de `/notificaciones`: se concede por un módulo que tenga una
+ * audiencia real (el módulo genérico no abre un feed global). Debe mantenerse sincronizado con
+ * `puedeVerNotificacion()` en `firestore.rules`.
  */
 export function puedeVerNotificaciones(
   modulos: readonly ModuloId[] | null | undefined
 ): boolean {
   if (!modulos) return false
   return (
-    tieneModulo(modulos, "notificaciones") ||
     tieneModulo(modulos, "pedidos-almacen") ||
     tieneModulo(modulos, "requisiciones") ||
     tieneModulo(modulos, "documentos-venta") ||
@@ -243,7 +242,7 @@ export function puedeVerNotificaciones(
  * - null/undefined modulos → sin acceso
  * - `/` siempre permitido si hay lista (usuario activo con permisos cargados)
  * - `/usuarios` exige el módulo `usuarios` (la API además exige esSuperAdmin)
- * - `/notificaciones` usa `puedeVerNotificaciones` (OR de módulos)
+ * - `/notificaciones` usa `puedeVerNotificaciones` (módulos de audiencia)
  */
 export function tienePermiso(
   modulos: readonly ModuloId[] | null | undefined,

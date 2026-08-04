@@ -27,6 +27,8 @@ import {
   listarOrdenes,
   listarOrdenesRecientes,
   listarOrdenesEnRango,
+  listarOrdenesParaReporte,
+  listarOrdenesPorReporteContable,
   obtenerPaginaOrdenes,
   contarOrdenes,
   obtenerOrden,
@@ -266,6 +268,32 @@ describe("lib/ordenes CRUD operations", () => {
       expect(where).toHaveBeenCalledWith("creadoEn", ">=", desde)
       expect(where).toHaveBeenCalledWith("creadoEn", "<=", hasta)
       expect(orderBy).toHaveBeenCalledWith("creadoEn", "desc")
+    })
+  })
+
+  describe("consultas de reportes", () => {
+    it("combina órdenes por fecha de captura y fecha de factura sin duplicarlas", async () => {
+      const creado = { id: "creado", data: () => ({ id: "creado" }) }
+      const facturado = { id: "facturado", data: () => ({ id: "facturado" }) }
+      const duplicado = { id: "creado", data: () => ({ id: "creado", fechaFactura: "2026-06-10" }) }
+      vi.mocked(getDocs)
+        .mockResolvedValueOnce({ docs: [creado] } as unknown as QuerySnapshot)
+        .mockResolvedValueOnce({ docs: [facturado, duplicado] } as unknown as QuerySnapshot)
+
+      const result = await listarOrdenesParaReporte(
+        new Date("2026-06-01T00:00:00"),
+        new Date("2026-06-30T23:59:59")
+      )
+
+      expect(where).toHaveBeenCalledWith("fechaFactura", ">=", "2026-06-01")
+      expect(where).toHaveBeenCalledWith("fechaFactura", "<=", "2026-06-30")
+      expect(result.map((orden) => orden.id)).toEqual(["creado", "facturado"])
+    })
+
+    it("consulta directamente las órdenes de un lote contable histórico", async () => {
+      vi.mocked(getDocs).mockResolvedValueOnce({ docs: [] } as unknown as QuerySnapshot)
+      await listarOrdenesPorReporteContable("LOTE-ANTIGUO")
+      expect(where).toHaveBeenCalledWith("reporteContableId", "==", "LOTE-ANTIGUO")
     })
   })
 

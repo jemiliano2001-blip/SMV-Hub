@@ -8,7 +8,7 @@ import type { NuevaOrdenPayload } from '@/lib/ordenes'
 import { crearOrden, actualizarOrden } from '@/lib/ordenes'
 import { getClienteAuth } from '@/lib/firebase'
 
-import { normalizarClaveProdServ } from '@/lib/sat/normalizar'
+import { validarClaveProdServCatalogo } from '@/lib/sat/validar-clave'
 import { toast } from 'sonner'
 
 type ItemForm = {
@@ -146,7 +146,7 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
     try {
       // Parse numbers
       const parsedItems: ItemFactura[] = formData.items.map(i => {
-        const claveProdServ = normalizarClaveProdServ(i.claveProdServ)
+        const claveProdServ = validarClaveProdServCatalogo(i.claveProdServ)
         return {
           descripcion: i.descripcion,
           descripcionSimplificada: '',

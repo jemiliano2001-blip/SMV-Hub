@@ -61,6 +61,7 @@ function makeFakeAdminDb(opts: {
   registroDoc?: ReturnType<typeof fakeRegistroDoc> | { exists: false }
   relacionados?: ReturnType<typeof fakeRegistroDoc>[]
   yaPendiente?: boolean
+  iaRechazada?: boolean
 }) {
   const registroDocRef = {
     get: vi.fn().mockResolvedValue(opts.registroDoc ?? fakeRegistroDoc("registro-1")),
@@ -68,8 +69,21 @@ function makeFakeAdminDb(opts: {
     update: vi.fn().mockResolvedValue(undefined),
   }
   const nuevaSolicitudRef = { id: "solicitud-1", set: vi.fn().mockResolvedValue(undefined) }
+  const batch = {
+    set: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    delete: vi.fn().mockReturnThis(),
+    commit: vi.fn().mockResolvedValue(undefined),
+  }
   const relacionadosChain = makeQueryChain({ empty: !(opts.relacionados && opts.relacionados.length > 0), docs: opts.relacionados })
   const pendienteChain = makeQueryChain({ empty: !opts.yaPendiente })
+  const previasChain = makeQueryChain({
+    empty: !opts.iaRechazada,
+    docs: opts.iaRechazada
+      ? [{ data: () => ({ estado: "rechazada", reglaAutoAplicada: "ia_rechazada" }) }]
+      : [],
+  })
+  let consultasSolicitudes = 0
 
   return {
     collection: vi.fn((name: string) => {
@@ -77,12 +91,20 @@ function makeFakeAdminDb(opts: {
         return { doc: vi.fn(() => registroDocRef), where: relacionadosChain.where }
       }
       if (name === "solicitudes_borrado_banos") {
-        return { doc: vi.fn(() => nuevaSolicitudRef), where: pendienteChain.where }
+        return {
+          doc: vi.fn(() => nuevaSolicitudRef),
+          where: vi.fn(() => {
+            consultasSolicitudes += 1
+            return consultasSolicitudes === 1 ? pendienteChain : previasChain
+          }),
+        }
       }
       throw new Error(`colección no mockeada en test: ${name}`)
     }),
+    batch: vi.fn(() => batch),
     __registroDocRef: registroDocRef,
     __nuevaSolicitudRef: nuevaSolicitudRef,
+    __batch: batch,
   }
 }
 
@@ -151,6 +173,14 @@ describe("POST /api/banos/solicitudes-borrado", () => {
     expect(res.status).toBe(409)
   })
 
+  it("bloquea reenvios despues de un rechazo de IA", async () => {
+    fakeAdminDb = makeFakeAdminDb({ iaRechazada: true })
+    const res = await POST(makeRequest({ registroId: "registro-1", motivo: "duplicado" }))
+
+    expect(res.status).toBe(409)
+    expect(mockEvaluarSolicitudBorradoConIa).not.toHaveBeenCalled()
+  })
+
   it("auto-aprueba y borra cuando hay un duplicado a menos de 10 min", async () => {
     fakeAdminDb = makeFakeAdminDb({
       relacionados: [
@@ -165,7 +195,7 @@ describe("POST /api/banos/solicitudes-borrado", () => {
     expect(res.status).toBe(201)
     expect(body.estado).toBe("auto_aprobada")
     expect(body.regla).toBe("ia_aprobada")
-    expect(fakeAdminDb.__registroDocRef.delete).toHaveBeenCalled()
+    expect(fakeAdminDb.__batch.delete).toHaveBeenCalled()
     expect(mockRegistrarAuditoriaServer).toHaveBeenCalled()
     expect(mockEmitirNotificacionServer).toHaveBeenCalledWith(
       expect.objectContaining({ tipo: "banos_solicitud_resuelta", origenModulo: "banos" })
@@ -183,7 +213,7 @@ describe("POST /api/banos/solicitudes-borrado", () => {
     expect(res.status).toBe(201)
     expect(body.estado).toBe("auto_aprobada")
     expect(body.regla).toBe("ia_aprobada")
-    expect(fakeAdminDb.__registroDocRef.delete).toHaveBeenCalled()
+    expect(fakeAdminDb.__batch.delete).toHaveBeenCalled()
   })
 
   it("deja pendiente cuando ninguna regla aplica, y marca el registro", async () => {
@@ -193,7 +223,11 @@ describe("POST /api/banos/solicitudes-borrado", () => {
     expect(res.status).toBe(201)
     expect(body).toEqual({ estado: "pendiente" })
     expect(fakeAdminDb.__registroDocRef.delete).not.toHaveBeenCalled()
-    expect(fakeAdminDb.__registroDocRef.update).toHaveBeenCalledWith({ solicitudBorradoEstado: "pendiente" })
+    expect(fakeAdminDb.__batch.update).toHaveBeenCalledWith(
+      expect.anything(),
+      { solicitudBorradoEstado: "pendiente" }
+    )
+    expect(fakeAdminDb.__batch.commit).toHaveBeenCalled()
     expect(mockEmitirNotificacionServer).toHaveBeenCalledWith(
       expect.objectContaining({ tipo: "banos_solicitud_creada" })
     )

@@ -1,7 +1,7 @@
 'use client'
 
 import LogoSMV from "@/app/LogoSMV"
-import { useState, useEffect, Suspense } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { iniciarSesionConGoogle, iniciarSesionConEmailYPassword, cerrarSesion, useUsuario } from '@/lib/auth'
 import { obtenerRolUsuario } from '@/lib/usuarios'
@@ -38,12 +38,6 @@ function LoginForm() {
   const [password, setPassword] = useState('')
   const router = useRouter()
   const { usuario, cargando: cargandoSesion } = useUsuario()
-
-  useEffect(() => {
-    if (!cargandoSesion && usuario) {
-      router.replace('/')
-    }
-  }, [cargandoSesion, usuario, router])
 
   const mensajeError = error ?? errorDesdeQuery
 

@@ -4,6 +4,7 @@ import { useState, useEffect, Fragment } from 'react'
 import { Loader2, X, Search, Check, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
 import type { OrdenCompra, ItemFactura } from '@/lib/schemas'
 import { normalizarClaveProdServ } from '@/lib/sat/normalizar'
+import { validarClaveProdServCatalogo } from '@/lib/sat/validar-clave'
 import { actualizarClavesSatLote } from '@/lib/ordenes'
 import { getClienteAuth } from '@/lib/firebase'
 import { extraerEntradasHistorialSat } from '@/lib/sat/extraer-historial-ordenes'
@@ -213,9 +214,9 @@ export default function ModalSugerirClavesSat({
   }
 
   const handleAplicar = async () => {
-    const filasAplicar = filas.filter((f) => f.aplicar && normalizarClaveProdServ(f.claveProdServ))
+    const filasAplicar = filas.filter((f) => f.aplicar && validarClaveProdServCatalogo(f.claveProdServ))
     if (filasAplicar.length === 0) {
-      setError('Selecciona al menos una fila con una clave SAT válida de 8 dígitos.')
+      setError('Selecciona al menos una fila con una clave SAT existente en el catálogo.')
       return
     }
 
@@ -225,7 +226,7 @@ export default function ModalSugerirClavesSat({
     try {
       const porOrden = new Map<string, Map<number, string>>()
       for (const fila of filasAplicar) {
-        const clave = normalizarClaveProdServ(fila.claveProdServ)
+        const clave = validarClaveProdServCatalogo(fila.claveProdServ)
         if (!clave) continue
         if (!porOrden.has(fila.ordenId)) porOrden.set(fila.ordenId, new Map())
         porOrden.get(fila.ordenId)!.set(fila.itemIndex, clave)
@@ -264,7 +265,7 @@ export default function ModalSugerirClavesSat({
         await guardarAsignacionesSatValidadas(
           filasAplicar.map((f) => ({
             descripcion: f.descripcion,
-            claveProdServ: normalizarClaveProdServ(f.claveProdServ)!,
+             claveProdServ: validarClaveProdServCatalogo(f.claveProdServ)!,
             validadoPor: email,
           }))
         )
@@ -281,7 +282,7 @@ export default function ModalSugerirClavesSat({
     }
   }
 
-  const filasConClave = filas.filter((f) => f.aplicar && normalizarClaveProdServ(f.claveProdServ)).length
+  const filasConClave = filas.filter((f) => f.aplicar && validarClaveProdServCatalogo(f.claveProdServ)).length
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 overflow-y-auto">

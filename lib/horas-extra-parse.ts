@@ -44,7 +44,10 @@ export function getMiercolesSemana(fecha: Date): Date {
 }
 
 export function formatSemanaISO(fecha: Date): string {
-  return fecha.toISOString().split("T")[0]
+  const anio = fecha.getFullYear()
+  const mes = String(fecha.getMonth() + 1).padStart(2, "0")
+  const dia = String(fecha.getDate()).padStart(2, "0")
+  return `${anio}-${mes}-${dia}`
 }
 
 export function getSemanaActualISO(): string {
@@ -106,6 +109,14 @@ export function calcularTotalHoras(
   dias: Partial<Record<DiaSemana, string | null>>
 ): number {
   return DIAS_SEMANA.reduce((sum, dia) => sum + parseHoras(dias[dia] ?? null), 0)
+}
+
+/** Valor persistible: sin horas capturadas se representa como null, no como un total anterior. */
+export function calcularTotalHorasPersistible(
+  dias: Partial<Record<DiaSemana, string | null>>
+): number | null {
+  const total = calcularTotalHoras(dias)
+  return total > 0 ? total : null
 }
 
 export function registroTieneHoras(

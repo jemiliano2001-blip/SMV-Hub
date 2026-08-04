@@ -1,6 +1,13 @@
 'use client'
 
-import { useEffect, useState } from "react"
+import {
+  createContext,
+  createElement,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react"
 import {
   GoogleAuthProvider,
   signInWithPopup,
@@ -64,8 +71,10 @@ export interface EstadoSesion {
   cargando: boolean
 }
 
-// Hook que sigue el estado de autenticación en tiempo real.
-export function useUsuario(): EstadoSesion {
+const SesionContext = createContext<EstadoSesion | null>(null)
+
+/** Una única suscripción a Firebase Auth para todo el árbol de la app. */
+function useSesionFirebase(): EstadoSesion {
   // En modo debug arrancamos con el usuario simulado y sin estado de carga.
   // Estado inicial null en modo normal: no tocamos Firebase Auth en el servidor.
   const [usuario, setUsuario] = useState<User | null>(
@@ -96,4 +105,19 @@ export function useUsuario(): EstadoSesion {
   }, [])
 
   return { usuario, cargando }
+}
+
+/** Provee una sesión consistente a navegación, permisos y pantallas. */
+export function SesionProvider({ children }: { children: ReactNode }) {
+  const sesion = useSesionFirebase()
+  return createElement(SesionContext.Provider, { value: sesion }, children)
+}
+
+/** Estado de la sesión compartido por toda la aplicación. */
+export function useUsuario(): EstadoSesion {
+  const sesion = useContext(SesionContext)
+  if (!sesion) {
+    throw new Error("useUsuario debe usarse dentro de SesionProvider")
+  }
+  return sesion
 }

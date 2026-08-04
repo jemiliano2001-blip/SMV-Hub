@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Plus, Trash2, Upload, X, AlertTriangle, FileText } from 'lucide-react'
+import { Loader2, Plus, Trash2, Upload, X, AlertTriangle, FileText, Sparkles } from 'lucide-react'
 import WhatsAppIcon from '@/components/WhatsAppIcon'
 import { z } from 'zod'
 import { getClienteAuth } from '@/lib/firebase'
@@ -21,8 +21,12 @@ import {
   type ExtraccionInvoice,
   type ItemFactura,
 } from '@/lib/schemas'
+import { validarClaveProdServCatalogo } from '@/lib/sat/validar-clave'
 
 type FormInput = z.input<typeof NuevaCompraFormSchema>
+
+type AlternativaSat = { clave: string; descripcionSat: string }
+type SugerenciaSat = { claveProdServ: string | null; alternativas: AlternativaSat[] }
 
 const ITEM_VACIO: ItemFactura = {
   descripcion: '',
@@ -78,6 +82,9 @@ export default function NuevaCompraForm({
 
   const historialRef = useRef<ItemHistorico[]>([])
   const [historialListo, setHistorialListo] = useState(false)
+  const [sugerenciasSat, setSugerenciasSat] = useState<Record<string, SugerenciaSat>>({})
+  const [sugiriendoSat, setSugiriendoSat] = useState<Set<string>>(new Set())
+  const [errorSat, setErrorSat] = useState<string | null>(null)
 
   const {
     register,
@@ -209,6 +216,65 @@ export default function NuevaCompraForm({
     return register(name, {
       setValueAs: (v: string) => (v === '' || v === null || v === undefined ? null : Number(v)),
     })
+  }
+
+  async function sugerirSatParaItem(index: number, fieldId: string) {
+    const item = getValues(`items.${index}`)
+    const descripcion = item?.descripcion?.trim()
+    if (!descripcion) {
+      setErrorSat('Escribe una descripción antes de sugerir la clave SAT.')
+      return
+    }
+
+    setErrorSat(null)
+    setSugiriendoSat((prev) => new Set(prev).add(fieldId))
+    try {
+      const token = await getClienteAuth().currentUser?.getIdToken()
+      if (!token) throw new Error('Inicia sesión para sugerir una clave SAT.')
+      const res = await fetch('/api/sugerir-clave-sat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          items: [{
+            descripcion,
+            proveedor: typeof proveedorWatch === 'string' ? proveedorWatch : undefined,
+          }],
+        }),
+      })
+      const data = await res.json() as {
+        error?: string
+        sugerencias?: Array<{ claveProdServ: string | null; alternativas?: AlternativaSat[] }>
+      }
+      if (!res.ok) throw new Error(data.error || 'No se pudo generar la sugerencia SAT')
+      const sugerencia = data.sugerencias?.[0]
+      if (!sugerencia) throw new Error('No se encontró una clave SAT para esta descripción.')
+
+      const valor: SugerenciaSat = {
+        claveProdServ: sugerencia.claveProdServ ?? null,
+        alternativas: sugerencia.alternativas ?? [],
+      }
+      setSugerenciasSat((prev) => ({ ...prev, [fieldId]: valor }))
+      if (valor.claveProdServ) {
+        setValue(`items.${index}.claveProdServ`, valor.claveProdServ, { shouldDirty: true, shouldValidate: true })
+        setValue(`items.${index}.satPendiente`, false, { shouldDirty: true })
+      }
+    } catch (error) {
+      setErrorSat(error instanceof Error ? error.message : 'No se pudo sugerir la clave SAT')
+    } finally {
+      setSugiriendoSat((prev) => {
+        const next = new Set(prev)
+        next.delete(fieldId)
+        return next
+      })
+    }
+  }
+
+  function aplicarClaveSat(index: number, clave: string) {
+    setValue(`items.${index}.claveProdServ`, clave, { shouldDirty: true, shouldValidate: true })
+    setValue(`items.${index}.satPendiente`, false, { shouldDirty: true })
   }
 
   const procesarArchivoFactura = useCallback(async (file: File) => {
@@ -366,7 +432,15 @@ export default function NuevaCompraForm({
 
   async function onSubmit(data: NuevaCompraForm) {
     if (duplicadoDetectado) return
-    await onExternalSubmit?.(data, imagen ?? undefined, notificarWhatsApp)
+    const items = data.items.map((item) => {
+      const claveProdServ = validarClaveProdServCatalogo(item.claveProdServ)
+      return {
+        ...item,
+        claveProdServ,
+        satPendiente: claveProdServ === null,
+      }
+    })
+    await onExternalSubmit?.({ ...data, items }, imagen ?? undefined, notificarWhatsApp)
   }
 
   const itemsError =
@@ -563,6 +637,11 @@ export default function NuevaCompraForm({
         </div>
 
         {itemsError && <p className={cls.error + ' mb-3'}>{itemsError}</p>}
+        {errorSat && (
+          <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            {errorSat}
+          </p>
+        )}
 
         <div className="space-y-4">
           {fields.map((field, i) => (
@@ -587,6 +666,60 @@ export default function NuevaCompraForm({
               <div>
                 <label className={cls.label}>Descripción</label>
                 <input {...register(`items.${i}.descripcion`)} className={cls.input} disabled={extrayendo} />
+              </div>
+
+              <div className="rounded-md border border-sky-100 bg-sky-50/50 p-3">
+                <div className="flex flex-wrap items-end gap-2">
+                  <div className="min-w-0 flex-1">
+                    <label className={cls.label}>Clave SAT</label>
+                    <input
+                      {...register(`items.${i}.claveProdServ`)}
+                      className={`${cls.inputSm} font-mono`}
+                      placeholder="8 dígitos (opcional)"
+                      inputMode="numeric"
+                      maxLength={8}
+                      disabled={extrayendo}
+                      onChange={(event) => {
+                        const valor = event.target.value.trim() || null
+                        const valida = validarClaveProdServCatalogo(valor) !== null
+                        setValue(`items.${i}.claveProdServ`, valor, { shouldDirty: true, shouldValidate: true })
+                        setValue(`items.${i}.satPendiente`, !valida, { shouldDirty: true })
+                      }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void sugerirSatParaItem(i, field.id)}
+                    disabled={extrayendo || sugiriendoSat.has(field.id)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-sky-200 bg-white px-3 py-2 text-xs font-semibold text-sky-700 hover:bg-sky-100 disabled:opacity-50"
+                  >
+                    {sugiriendoSat.has(field.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                    {sugiriendoSat.has(field.id) ? 'Sugerir...' : 'Sugerir SAT'}
+                  </button>
+                </div>
+                {errors.items?.[i]?.claveProdServ && (
+                  <p className={cls.error}>{errors.items[i]?.claveProdServ?.message}</p>
+                )}
+                {sugerenciasSat[field.id] && (
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                    <span className="text-slate-500">Alternativas:</span>
+                    {sugerenciasSat[field.id].alternativas.length === 0 ? (
+                      <span className="text-slate-500">ninguna</span>
+                    ) : (
+                      sugerenciasSat[field.id].alternativas.map((alternativa) => (
+                        <button
+                          key={alternativa.clave}
+                          type="button"
+                          title={alternativa.descripcionSat}
+                          onClick={() => aplicarClaveSat(i, alternativa.clave)}
+                          className="rounded border border-sky-200 bg-white px-1.5 py-0.5 font-mono text-sky-800 hover:bg-sky-100"
+                        >
+                          {alternativa.clave}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-3 gap-3">

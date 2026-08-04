@@ -187,7 +187,9 @@ function sugerirCampo(
   }
 
   // 5. Global → moda del campo en todo el historial.
-  return modaPesada(historial.map((registro) => ({ registro, peso: 1 })), campo)
+  // Without evidence from this provider or a workshop-tool default, leave the
+  // field empty instead of leaking a global historical value into the purchase.
+  return ""
 }
 
 /**

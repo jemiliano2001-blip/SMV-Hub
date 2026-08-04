@@ -5,6 +5,7 @@ import {
   agregarMensajeSolicitud,
   actualizarEstadoSolicitudDocumento,
   crearSolicitudDocumento,
+  obtenerSolicitudDocumento,
   suscribirMensajesSolicitud,
   suscribirSolicitudesDocumento,
 } from "@/lib/documentos-venta"
@@ -32,6 +33,7 @@ export function useDocumentosVenta(opts: {
   const [sos, setSos] = useState<VentaOdooSo[]>([])
   const [syncState, setSyncState] = useState<EstadoSyncVentasOdoo | null>(null)
   const [solicitudesRaw, setSolicitudesRaw] = useState<SolicitudDocumento[]>([])
+  const [solicitudDirecta, setSolicitudDirecta] = useState<SolicitudDocumento | null>(null)
   const [mensajes, setMensajes] = useState<MensajeSolicitudDocumento[]>([])
   const [loading, setLoading] = useState(true)
   const [sincronizando, setSincronizando] = useState(false)
@@ -81,6 +83,30 @@ export function useDocumentosVenta(opts: {
   }, [atiende, uid])
 
   useEffect(() => {
+    if (!solicitudIdSeleccionada || !uid) {
+      const timer = window.setTimeout(() => setSolicitudDirecta(null), 0)
+      return () => window.clearTimeout(timer)
+    }
+    if (solicitudesRaw.some((s) => s.id === solicitudIdSeleccionada)) {
+      const timer = window.setTimeout(() => setSolicitudDirecta(null), 0)
+      return () => window.clearTimeout(timer)
+    }
+
+    let activo = true
+    void obtenerSolicitudDocumento(solicitudIdSeleccionada)
+      .then((solicitud) => {
+        if (activo) setSolicitudDirecta(solicitud)
+      })
+      .catch((err) => {
+        if (!activo) return
+        setError(err instanceof Error ? err.message : "No se pudo abrir la solicitud")
+      })
+    return () => {
+      activo = false
+    }
+  }, [solicitudIdSeleccionada, solicitudesRaw, uid])
+
+  useEffect(() => {
     if (!solicitudIdSeleccionada) {
       const id = window.setTimeout(() => setMensajes([]), 0)
       return () => window.clearTimeout(id)
@@ -101,10 +127,15 @@ export function useDocumentosVenta(opts: {
   }, [solicitudIdSeleccionada])
 
   const solicitudes = useMemo(() => {
-    if (atiende) return solicitudesRaw
-    if (!uid) return []
-    return solicitudesRaw.filter((s) => s.solicitadoPorUid === uid)
-  }, [solicitudesRaw, atiende, uid])
+    const base = atiende
+      ? solicitudesRaw
+      : uid
+        ? solicitudesRaw.filter((s) => s.solicitadoPorUid === uid)
+        : []
+    if (!solicitudDirecta || base.some((s) => s.id === solicitudDirecta.id)) return base
+    if (!atiende && solicitudDirecta.solicitadoPorUid !== uid) return base
+    return [solicitudDirecta, ...base]
+  }, [solicitudesRaw, solicitudDirecta, atiende, uid])
 
   const clearError = useCallback(() => {
     setError(null)

@@ -55,6 +55,11 @@ export default function DetalleVentasSimple({
   const tipoLabel = solicitud.tipo === 'factura' ? 'Factura' : 'Remisión'
 
   async function cambiarEstado(hacia: EstadoSolicitudDocumento) {
+    const motivoLimpio = motivo.trim()
+    if (hacia === 'rechazada' && !motivoLimpio) {
+      setError('Escribe el motivo antes de cancelar la solicitud')
+      return
+    }
     setBusy(true)
     setError(null)
     try {
@@ -67,7 +72,7 @@ export default function DetalleVentasSimple({
         uid,
         nombre,
         folioOdoo: hacia === 'completada' ? folio.trim() || null : undefined,
-        motivoRechazo: hacia === 'rechazada' ? motivo.trim() || 'Cancelada' : undefined,
+        motivoRechazo: hacia === 'rechazada' ? motivoLimpio : undefined,
       })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo actualizar')
@@ -106,6 +111,21 @@ export default function DetalleVentasSimple({
             <p className="text-xs font-semibold text-slate-500">
               {etiquetaEstadoSolicitudDocumento(solicitud.estado)}
             </p>
+            {solicitud.atendidoPorNombre && (
+              <p className="text-xs text-slate-500">
+                Atiende {solicitud.atendidoPorNombre}
+              </p>
+            )}
+            {solicitud.folioOdoo && (
+              <p className="text-xs text-emerald-700">
+                Folio Odoo: {solicitud.folioOdoo}
+              </p>
+            )}
+            {solicitud.motivoRechazo && (
+              <p className="text-xs text-red-700">
+                Motivo: {solicitud.motivoRechazo}
+              </p>
+            )}
           </div>
           <button
             type="button"
@@ -179,17 +199,17 @@ export default function DetalleVentasSimple({
                     Listo
                   </button>
                   <label className="block text-sm font-semibold text-slate-700">
-                    Motivo si cancelas
+                    Motivo obligatorio al cancelar
                     <input
                       value={motivo}
                       onChange={(e) => setMotivo(e.target.value)}
                       className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-base"
-                      placeholder="Opcional"
+                      placeholder="Indica por qué se cancela"
                     />
                   </label>
                   <button
                     type="button"
-                    disabled={busy}
+                    disabled={busy || !motivo.trim()}
                     onClick={() => void cambiarEstado('rechazada')}
                     className="w-full text-base font-bold py-3 rounded-xl border-2 border-red-200 text-red-700 disabled:opacity-50"
                   >

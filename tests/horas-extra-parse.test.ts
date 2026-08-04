@@ -3,8 +3,10 @@ import {
   parseHoras,
   parseHorasConEstado,
   calcularTotalHoras,
+  calcularTotalHorasPersistible,
   registroTieneHoras,
   getMiercolesSemana,
+  formatSemanaISO,
   offsetSemana,
   getDiaSemanaActual,
   estadoCelda,
@@ -52,6 +54,10 @@ describe("calcularTotalHoras", () => {
     })
     expect(total).toBeCloseTo(6.5)
   })
+
+  it("limpia el total persistido cuando se borra la ultima hora", () => {
+    expect(calcularTotalHorasPersistible({ miercoles: "0", jueves: null })).toBeNull()
+  })
 })
 
 describe("registroTieneHoras", () => {
@@ -71,6 +77,12 @@ describe("semana miércoles", () => {
   it("desplaza semanas", () => {
     expect(offsetSemana("2026-07-01", 1)).toBe("2026-07-08")
     expect(offsetSemana("2026-07-08", -1)).toBe("2026-07-01")
+  })
+})
+
+describe("formatSemanaISO", () => {
+  it("conserva la fecha local al formatear semanas", () => {
+    expect(formatSemanaISO(new Date(2026, 6, 29, 18, 0, 0))).toBe("2026-07-29")
   })
 })
 

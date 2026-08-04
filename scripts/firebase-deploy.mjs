@@ -84,6 +84,7 @@ function deployPath() {
 
 const deployEnv = {
   ...resolvedEnv,
+  FIREBASE_DEPLOY_PROJECT: projectFromFirebaseArgs(firebaseArgs) ?? "",
   PATH: deployPath(),
   NODE_OPTIONS: /--max[_-]old[_-]space[_-]size/i.test(nodeOptions)
     ? nodeOptions

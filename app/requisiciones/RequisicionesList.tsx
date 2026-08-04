@@ -525,12 +525,25 @@ export default function RequisicionesList() {
         </div>
 
         {tabVista === 'flujo' && (
-          <button
-            onClick={() => setModalNuevaFlujo(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#0369A1] hover:bg-[#0284C7] text-white text-xs font-bold rounded-xl shadow-xs transition-transform active:scale-95"
-          >
-            <Plus className="h-4 w-4" /> + Nueva Requisición (Tooling)
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {!coleccionCompleta && (
+              <button
+                type="button"
+                onClick={() => void cargarTodas().catch(() => undefined)}
+                disabled={cargandoCompleto}
+                className="flex items-center gap-1.5 px-3 py-2 border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-800 text-xs font-bold rounded-xl disabled:opacity-50"
+              >
+                {cargandoCompleto && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {cargandoCompleto ? 'Cargando historial...' : 'Completar KPIs'}
+              </button>
+            )}
+            <button
+              onClick={() => setModalNuevaFlujo(true)}
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#0369A1] hover:bg-[#0284C7] text-white text-xs font-bold rounded-xl shadow-xs transition-transform active:scale-95"
+            >
+              <Plus className="h-4 w-4" /> + Nueva Requisición (Tooling)
+            </button>
+          </div>
         )}
       </div>
 
@@ -565,19 +578,23 @@ export default function RequisicionesList() {
             <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-2xs space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700">En Cotización</span>
               <p className="text-xl font-extrabold text-amber-900 font-mono">
-                {todasFlujo.filter((r) => r.estatusFlujo === 'cotizando' || r.estatusFlujo === 'enviada').length}
+                {coleccionCompleta
+                  ? todasFlujo.filter((r) => !r.estatusFlujo || r.estatusFlujo === 'cotizando' || r.estatusFlujo === 'enviada').length
+                  : '—'}
               </p>
             </div>
             <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 shadow-2xs space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700">Ganador Seleccionado</span>
               <p className="text-xl font-extrabold text-purple-900 font-mono">
-                {todasFlujo.filter((r) => r.estatusFlujo === 'aprobada').length}
+                {coleccionCompleta ? todasFlujo.filter((r) => r.estatusFlujo === 'aprobada').length : '—'}
               </p>
             </div>
             <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-2xs space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">OC Generadas</span>
               <p className="text-xl font-extrabold text-emerald-900 font-mono">
-                {todasFlujo.filter((r) => r.estatusFlujo === 'convertida_a_oc' || r.estado === 'comprado').length}
+                {coleccionCompleta
+                  ? todasFlujo.filter((r) => r.estatusFlujo === 'convertida_a_oc' || r.estado === 'comprado').length
+                  : '—'}
               </p>
             </div>
           </div>

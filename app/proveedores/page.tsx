@@ -1265,6 +1265,19 @@ function ProveedoresContent() {
     return generarScorecardsDesdeOrdenes(ordenesScorecard, todasCompras, todosProveedores)
   }, [ordenesScorecard, todasCompras, todosProveedores])
 
+  const leadTimePromedio = useMemo(() => {
+    const tiempos = todasCompras
+      .map((compra) => compra.leadTimeRealDias)
+      .filter((tiempo): tiempo is number => typeof tiempo === 'number' && tiempo >= 0)
+    if (tiempos.length === 0) return undefined
+    return tiempos.reduce((suma, tiempo) => suma + tiempo, 0) / tiempos.length
+  }, [todasCompras])
+
+  const scorecardPromedio = useMemo(() => {
+    if (scorecardsAuto.length === 0) return undefined
+    return scorecardsAuto.reduce((suma, scorecard) => suma + scorecard.promedioGeneral, 0) / scorecardsAuto.length
+  }, [scorecardsAuto])
+
   async function handleGenerarScorecards() {
     if (scorecardsAuto.length === 0) {
       toast.error('No hay compras suficientes registradas para generar scorecards')
@@ -1337,8 +1350,8 @@ function ProveedoresContent() {
           onGenerarPDF={() => void abrirReportePO()}
           onAbrirCalculadora={() => setCalculadoraAbierta(true)}
           proveedoresFantasmaCount={0}
-          leadTimePromedio={3.5}
-          scorecardPromedio={4.8}
+          leadTimePromedio={leadTimePromedio}
+          scorecardPromedio={scorecardPromedio}
         />
 
         {/* Navegación por Pestañas Principales */}

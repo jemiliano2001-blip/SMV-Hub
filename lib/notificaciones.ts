@@ -8,13 +8,16 @@ import {
   orderBy,
   query,
   setDoc,
-  writeBatch,
   Timestamp,
+  where,
+  writeBatch,
   type FirestoreDataConverter,
   type QueryDocumentSnapshot,
 } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import type {
+  AudienciaNotificacion,
+  ModuloId,
   Notificacion,
   NotificacionConLeida,
   NotificacionLeida,
@@ -42,6 +45,8 @@ const notificacionConverter: FirestoreDataConverter<Notificacion> = {
       cuerpo: d.cuerpo ?? "",
       origenModulo: d.origenModulo,
       origenId: d.origenId,
+      audiencia: d.audiencia,
+      destinatarioUid: d.destinatarioUid ?? null,
       href: d.href,
       creadoPorUid: d.creadoPorUid ?? "",
       creadoPorNombre: d.creadoPorNombre ?? "",
@@ -75,10 +80,7 @@ export function tituloParaTipo(tipo: TipoNotificacion): string {
   return TITULOS[tipo]
 }
 
-/**
- * Convierte el destino almacenado en Firestore a una ruta interna segura.
- * `router.push()` no debe recibir esquemas ejecutables ni URLs externas.
- */
+/** Convierte el destino almacenado a una ruta interna segura. */
 export function hrefSeguroNotificacion(href: string): string {
   const valor = href.trim()
   if (!valor.startsWith("/") || valor.startsWith("//")) return "/notificaciones"
@@ -97,17 +99,14 @@ export function mergeNotificacionesConLeidas(
   notificaciones: readonly Notificacion[],
   leidasIds: ReadonlySet<string>
 ): NotificacionConLeida[] {
-  return notificaciones.map((n) => ({
-    ...n,
-    leida: leidasIds.has(n.id),
-  }))
+  return notificaciones.map((n) => ({ ...n, leida: leidasIds.has(n.id) }))
 }
 
 export function contarNoLeidas(items: readonly NotificacionConLeida[]): number {
   return items.reduce((acc, n) => (n.leida ? acc : acc + 1), 0)
 }
 
-/** Ordena no leídas primero, luego por fecha desc (ya suelen venir ordenadas). */
+/** Ordena no leídas primero, luego por fecha descendente. */
 export function ordenarParaDropdown(
   items: readonly NotificacionConLeida[]
 ): NotificacionConLeida[] {
@@ -128,10 +127,7 @@ export async function crearNotificacion(payload: NuevaNotificacion): Promise<str
   return ref.id
 }
 
-/**
- * Emite una notificación sin tumbar el flujo origen si falla.
- * Devuelve el id o null si hubo error.
- */
+/** Emite una notificación sin tumbar el flujo origen si falla. */
 export async function emitirNotificacion(
   payload: NuevaNotificacion
 ): Promise<string | null> {
@@ -143,22 +139,81 @@ export async function emitirNotificacion(
   }
 }
 
+export function audienciasNotificacionParaUsuario(args: {
+  modulos: readonly ModuloId[] | null | undefined
+  esSuperAdmin: boolean
+  atiendeDocumentosVenta: boolean
+}): AudienciaNotificacion[] {
+  const audiencias: AudienciaNotificacion[] = []
+  if (args.modulos?.includes("pedidos-almacen")) audiencias.push("pedidos-almacen")
+  if (args.modulos?.includes("requisiciones")) audiencias.push("requisiciones")
+  if (args.esSuperAdmin) audiencias.push("banos")
+  if (args.esSuperAdmin || args.atiendeDocumentosVenta) audiencias.push("documentos-venta")
+  return audiencias
+}
+
 export function suscribirNotificaciones(
   onData: (items: Notificacion[]) => void,
-  onError?: (err: Error) => void,
-  limiteDocs: number = LIMITE_DEFAULT
+  opciones: {
+    uid: string
+    audiencias: readonly AudienciaNotificacion[]
+    limiteDocs?: number
+  },
+  onError?: (err: Error) => void
 ): () => void {
-  const q = query(notificacionesRef(), orderBy("creadoEn", "desc"), limit(limiteDocs))
-  return onSnapshot(
-    q,
-    (snap) => {
-      onData(snap.docs.map((d) => d.data()))
-    },
-    (err) => {
-      console.error("Error en suscripción a notificaciones:", err)
-      onError?.(err)
+  const limiteDocs = opciones.limiteDocs ?? LIMITE_DEFAULT
+  const audiencias = [...new Set(opciones.audiencias)]
+  const consultas = [
+    query(
+      notificacionesRef(),
+      where("destinatarioUid", "==", opciones.uid),
+      orderBy("creadoEn", "desc"),
+      limit(limiteDocs)
+    ),
+    ...audiencias.map((audiencia) =>
+      query(
+        notificacionesRef(),
+        where("audiencia", "==", audiencia),
+        orderBy("creadoEn", "desc"),
+        limit(limiteDocs)
+      )
+    ),
+  ]
+  const resultados = new Map<number, Notificacion[]>()
+  const inicializadas = new Set<number>()
+  let cerrada = false
+
+  const emitirCombinadas = () => {
+    if (cerrada || inicializadas.size !== consultas.length) return
+    const porId = new Map<string, Notificacion>()
+    for (const lista of resultados.values()) {
+      for (const notificacion of lista) porId.set(notificacion.id, notificacion)
     }
+    onData(
+      [...porId.values()]
+        .sort((a, b) => b.creadoEn.getTime() - a.creadoEn.getTime())
+        .slice(0, limiteDocs)
+    )
+  }
+
+  const desuscribir = consultas.map((consulta, indice) =>
+    onSnapshot(
+      consulta,
+      (snap) => {
+        resultados.set(indice, snap.docs.map((d) => d.data()))
+        inicializadas.add(indice)
+        emitirCombinadas()
+      },
+      (err) => {
+        console.error("Error en suscripción a notificaciones:", err)
+        onError?.(err)
+      }
+    )
   )
+  return () => {
+    cerrada = true
+    desuscribir.forEach((fn) => fn())
+  }
 }
 
 export function suscribirNotificacionesLeidas(
@@ -168,9 +223,7 @@ export function suscribirNotificacionesLeidas(
 ): () => void {
   return onSnapshot(
     leidasRef(uid),
-    (snap) => {
-      onData(new Set(snap.docs.map((d) => d.id)))
-    },
+    (snap) => onData(new Set(snap.docs.map((d) => d.id))),
     (err) => {
       console.error("Error en suscripción a notificaciones leídas:", err)
       onError?.(err)
@@ -179,9 +232,7 @@ export function suscribirNotificacionesLeidas(
 }
 
 export async function marcarNotificacionLeida(uid: string, notificacionId: string): Promise<void> {
-  await setDoc(doc(leidasRef(uid), notificacionId), {
-    leidoEn: Timestamp.now(),
-  })
+  await setDoc(doc(leidasRef(uid), notificacionId), { leidoEn: Timestamp.now() })
 }
 
 export async function marcarTodasNotificacionesLeidas(
@@ -196,14 +247,12 @@ export async function marcarTodasNotificacionesLeidas(
     const grupo = pendientes.slice(i, i + LOTE)
     const batch = writeBatch(db)
     const ahora = Timestamp.now()
-    for (const id of grupo) {
-      batch.set(doc(leidasRef(uid), id), { leidoEn: ahora })
-    }
+    for (const id of grupo) batch.set(doc(leidasRef(uid), id), { leidoEn: ahora })
     await batch.commit()
   }
 }
 
-/** Solo para tests / listados one-shot. */
+/** Solo para tests y listados de una sola consulta. */
 export async function listarNotificacionesLeidasIds(uid: string): Promise<Set<string>> {
   const snap = await getDocs(leidasRef(uid))
   return new Set(snap.docs.map((d) => d.id))

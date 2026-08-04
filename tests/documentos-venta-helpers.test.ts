@@ -6,6 +6,7 @@ import {
   ordenCompraSolicitud,
   particionarSolicitudesVentas,
   puedeTransicionarEstado,
+  lineasDisponiblesParaSolicitud,
   validarPartidasRemision,
 } from "@/lib/documentos-venta-helpers"
 import type { SolicitudDocumento, VentaOdooSo } from "@/lib/schemas"
@@ -183,5 +184,32 @@ describe("validarPartidasRemision", () => {
     expect(
       validarPartidasRemision("remision", [{ odooLineId: 10, qtySolicitada: 5 }], lineas)
     ).toBeNull()
+  })
+})
+
+describe("lineasDisponiblesParaSolicitud", () => {
+  it("descuenta solicitudes activas de la misma SO sin contar las resueltas", () => {
+    const lineas = [{ odooLineId: 10, qtyPending: 5 }]
+    const solicitudes = [
+      {
+        odooSoId: 100,
+        estado: "pendiente" as const,
+        partidas: [{ odooLineId: 10, productName: "Pieza", qtySolicitada: 2 }],
+      },
+      {
+        odooSoId: 100,
+        estado: "en_proceso" as const,
+        partidas: [{ odooLineId: 10, productName: "Pieza", qtySolicitada: 1 }],
+      },
+      {
+        odooSoId: 100,
+        estado: "completada" as const,
+        partidas: [{ odooLineId: 10, productName: "Pieza", qtySolicitada: 1 }],
+      },
+    ]
+
+    expect(lineasDisponiblesParaSolicitud(lineas, solicitudes, 100)).toEqual([
+      { odooLineId: 10, qtyPending: 2 },
+    ])
   })
 })
