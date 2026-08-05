@@ -42,7 +42,7 @@ export default function ReportesCaja() {
     () => filtrarMovimientosCajaChicaReporte(movimientos, conFactura),
     [movimientos, conFactura]
   )
-  const { total, ivaTotal } = useMemo(() => calcularTotalesReporteCaja(filtrados), [filtrados])
+  const { total } = useMemo(() => calcularTotalesReporteCaja(filtrados), [filtrados])
 
   const etiquetaModo = useMemo(() => {
     if (modoFiltro === 'CICLO_ACTIVO') return 'Ciclo Activo (Sin corte)'
@@ -65,7 +65,6 @@ export default function ReportesCaja() {
         Comprobante: m.comprobante,
         'Monto ($)': m.monto,
       }
-      if (conFactura) fila['IVA Estimado ($)'] = m.ivaEstimado || 0
       return fila
     })
 
@@ -82,7 +81,6 @@ export default function ReportesCaja() {
       Fecha: 'TOTALES',
       'Monto ($)': total,
     }
-    if (conFactura) filaTotal['IVA Estimado ($)'] = ivaTotal
     datos.push(filaTotal)
 
     const worksheet = XLSX.utils.json_to_sheet(datos)
@@ -94,7 +92,6 @@ export default function ReportesCaja() {
       { wch: 15 },
       { wch: 15 },
     ]
-    if (conFactura) wscols.push({ wch: 15 })
     worksheet['!cols'] = wscols
 
     const workbook = XLSX.utils.book_new()
@@ -104,7 +101,7 @@ export default function ReportesCaja() {
     XLSX.writeFile(workbook, `Reporte_CajaChica_${sufijoModo}${conFactura ? '_ConFactura' : '_SinFactura'}.xlsx`)
   }
 
-  const columnas = conFactura ? 7 : 6
+  const columnas = 6
 
   return (
     <div className="space-y-4 print:space-y-6">
@@ -217,7 +214,6 @@ export default function ReportesCaja() {
               <th className="px-4 py-3 print:px-2 print:py-2">Categoría</th>
               <th className="px-4 py-3 print:px-2 print:py-2">Comprobante</th>
               <th className="px-4 py-3 text-right print:px-2 print:py-2">Monto</th>
-              {conFactura && <th className="px-4 py-3 text-right print:px-2 print:py-2">IVA est.</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 print:divide-gray-300">
@@ -264,11 +260,6 @@ export default function ReportesCaja() {
                   <td className="px-4 py-3 text-right font-medium text-gray-900 tabular-nums print:px-2 print:py-2">
                     {formatPrecio(m.monto, 'MXN')}
                   </td>
-                  {conFactura && (
-                    <td className="px-4 py-3 text-right text-gray-600 tabular-nums print:px-2 print:py-2">
-                      {formatPrecio(m.ivaEstimado, 'MXN')}
-                    </td>
-                  )}
                 </tr>
               ))
             )}
@@ -282,11 +273,6 @@ export default function ReportesCaja() {
                 <td className="px-4 py-3 text-right tabular-nums print:px-2 print:py-3">
                   {formatPrecio(total, 'MXN')}
                 </td>
-                {conFactura && (
-                  <td className="px-4 py-3 text-right tabular-nums print:px-2 print:py-3">
-                    {formatPrecio(ivaTotal, 'MXN')}
-                  </td>
-                )}
               </tr>
             </tfoot>
           )}
