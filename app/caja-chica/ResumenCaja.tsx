@@ -110,18 +110,20 @@ export default function ResumenCaja() {
       return
     }
 
-    const aceptado = await confirmar({
-      title: 'Realizar Corte de Caja y Reabastecimiento',
-      description: `Se cerrarán los movimientos del ciclo actual por ${formatearDinero(totalSalidas)} y se registrará automáticamente la Entrada de reabastecimiento.\n\n¿Deseas continuar?`,
-      confirmLabel: 'Confirmar Corte',
-    })
-    if (!aceptado) return
+    const montoRes = window.prompt(
+      `Confirma o edita el monto que recibirás como reabastecimiento / depósito (Gastado en ciclo: $${totalSalidas}):`,
+      totalSalidas.toString()
+    )
+    if (montoRes === null) return // usuario canceló
+
+    const montoParsed = parseFloat(montoRes)
+    const montoFinal = Number.isNaN(montoParsed) || montoParsed < 0 ? totalSalidas : montoParsed
 
     setIsCorteLoading(true)
     try {
-      const res = await realizarCorteCaja()
+      const res = await realizarCorteCaja(undefined, montoFinal)
       toast.success(
-        `¡${res.corte.folio} realizado con éxito! Se reabastecieron ${formatearDinero(res.corte.totalSalidas)}.`
+        `¡${res.corte.folio} realizado con éxito! Se reabastecieron ${formatearDinero(res.corte.saldoReembolsado)}.`
       )
     } catch (error) {
       console.error(error)

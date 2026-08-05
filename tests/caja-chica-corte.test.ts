@@ -85,4 +85,14 @@ describe("Lógica de Ciclo Activo y Corte de Caja", () => {
     const activos = filtrarCicloActivo(movimientos)
     expect(activos.map((m) => m.id)).toEqual(["1"])
   })
+
+  it("permite personalizar el monto de reabastecimiento en el resumen de corte", () => {
+    const activos = [
+      movimientoBase({ id: "1", tipo: "SALIDA", monto: 10000 }),
+    ]
+    const resumen = calcularResumenCiclo(activos)
+    const montoPersonalizado = 7221
+    expect(resumen.totalSalidas).toBe(10000)
+    expect(montoPersonalizado).toBe(7221)
+  })
 })

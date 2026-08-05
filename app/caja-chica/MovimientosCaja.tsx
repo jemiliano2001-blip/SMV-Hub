@@ -268,6 +268,7 @@ export default function MovimientosCaja() {
   // Modal para confirmar Corte de Caja
   const [modalCorteOpen, setModalCorteOpen] = useState(false)
   const [notaCorte, setNotaCorte] = useState('')
+  const [montoReabastecimientoInput, setMontoReabastecimientoInput] = useState('')
   const [haciendoCorte, setHaciendoCorte] = useState(false)
 
   const cargarHistorialCortes = useCallback(() => {
@@ -302,16 +303,25 @@ export default function MovimientosCaja() {
   const handleConfirmarCorte = async () => {
     setHaciendoCorte(true)
     try {
-      const res = await realizarCorteCaja(notaCorte)
+      const montoRepoParsed = montoReabastecimientoInput.trim() !== ''
+        ? parseFloat(montoReabastecimientoInput)
+        : totalSalidasAcumuladas
+      const montoFinal = Number.isNaN(montoRepoParsed) || montoRepoParsed < 0
+        ? totalSalidasAcumuladas
+        : montoRepoParsed
+
+      const res = await realizarCorteCaja(notaCorte, montoFinal)
       toast.success(
-        `¡${res.corte.folio} realizado con éxito! Se registraron ${res.movimientosCortadosCount} movimientos y el reabastecimiento por ${formatearDinero(res.corte.totalSalidas)}.`
+        `¡${res.corte.folio} realizado con éxito! Se registraron ${res.movimientosCortadosCount} movimientos y la entrada de reabastecimiento por ${formatearDinero(res.corte.saldoReembolsado)}.`
       )
       setModalCorteOpen(false)
       setNotaCorte('')
+      setMontoReabastecimientoInput('')
       cargarHistorialCortes()
     } catch (err: unknown) {
       console.error(err)
       const msg = err instanceof Error ? err.message : 'No se pudo realizar el corte de caja.'
+      toast.error(msg)
     } finally {
       setHaciendoCorte(false)
     }
@@ -621,14 +631,21 @@ export default function MovimientosCaja() {
               </div>
             </div>
 
-            <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-lg text-xs text-emerald-800 space-y-1">
-              <div className="flex items-center gap-1.5 font-bold">
-                <Sparkles className="h-4 w-4 shrink-0 text-emerald-600" />
-                <span>Reabastecimiento Automático</span>
-              </div>
-              <p className="text-[11px] text-emerald-700 leading-normal">
-                Al confirmar, se guardará el reporte de corte y se registrará automáticamente una{' '}
-                <strong>ENTRADA por {formatearDinero(totalSalidasAcumuladas)}</strong> para reiniciar tu fondo fijo del nuevo ciclo.
+            <div>
+              <label className="block text-xs font-semibold text-slate-800 mb-1">
+                Monto real a depositar / reabastecer ($)
+              </label>
+              <input
+                type="number"
+                step="any"
+                min="0"
+                value={montoReabastecimientoInput}
+                onChange={(e) => setMontoReabastecimientoInput(e.target.value)}
+                placeholder={totalSalidasAcumuladas.toString()}
+                className="w-full text-xs font-mono p-2.5 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-900 bg-white"
+              />
+              <p className="text-[11px] text-slate-500 mt-1">
+                Por defecto se deposita el gasto total del ciclo ({formatearDinero(totalSalidasAcumuladas)}), pero puedes ajustarlo si te entregan un monto parcial (ej. $7,221.00 por comprobantes pendientes).
               </p>
             </div>
 
@@ -637,7 +654,7 @@ export default function MovimientosCaja() {
               <textarea
                 value={notaCorte}
                 onChange={(e) => setNotaCorte(e.target.value)}
-                placeholder="Ej. Entregado a Contabilidad / Folio de cheque o transferencia..."
+                placeholder="Ej. Se reciben $7,221 por viáticos de Brownsville pendientes de entregar..."
                 rows={2}
                 className="w-full text-xs p-2.5 border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1]"
               />

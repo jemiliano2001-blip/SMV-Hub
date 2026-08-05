@@ -160,7 +160,12 @@ export type CrearCorteResultado = {
   movimientosCortadosCount: number
 }
 
-export async function crearCorteCaja(options?: { nota?: string }): Promise<CrearCorteResultado> {
+export type OpcionesCorteCajaPayload = {
+  nota?: string
+  montoReabastecimiento?: number
+}
+
+export async function crearCorteCaja(options?: OpcionesCorteCajaPayload): Promise<CrearCorteResultado> {
   // 1. Obtener movimientos del ciclo activo
   const activos = await listarMovimientosCajaChica({ modo: "CICLO_ACTIVO" })
 
@@ -183,7 +188,15 @@ export async function crearCorteCaja(options?: { nota?: string }): Promise<Crear
     }
   })
 
-  // 2. Generar Folio
+  // 2. Determinar monto de reabastecimiento/reembolso entregado
+  const montoReposicion =
+    typeof options?.montoReabastecimiento === "number" &&
+    Number.isFinite(options.montoReabastecimiento) &&
+    options.montoReabastecimiento >= 0
+      ? options.montoReabastecimiento
+      : totalSalidas
+
+  // 3. Generar Folio
   const cortesExistentes = await listarCortesCaja()
   const numConsecutivo = cortesExistentes.length + 1
   const hoy = fechaHoyLocal()
@@ -193,7 +206,7 @@ export async function crearCorteCaja(options?: { nota?: string }): Promise<Crear
   const user = getClienteAuth().currentUser
   const creadoPor = user?.email ?? "Administración"
 
-  // 3. Crear documento de corte en Firestore
+  // 4. Crear documento de corte en Firestore
   const corteRef = doc(collection(db, "caja_chica_cortes"))
   const ahora = new Date()
 
@@ -204,7 +217,7 @@ export async function crearCorteCaja(options?: { nota?: string }): Promise<Crear
     fechaCierre: hoy,
     totalEntradas,
     totalSalidas,
-    saldoReembolsado: totalSalidas,
+    saldoReembolsado: montoReposicion,
     cantidadMovimientos: activos.length,
     creadoPor,
     creadoEn: ahora,
@@ -214,7 +227,7 @@ export async function crearCorteCaja(options?: { nota?: string }): Promise<Crear
 
   await setDoc(corteRef, corteData)
 
-  // 4. Batch update movimientos a estado CORTADO con el corteId
+  // 5. Batch update movimientos a estado CORTADO con el corteId
   const batch = writeBatch(db)
   activos.forEach((m) => {
     const docRef = doc(db, "caja_chica_movimientos", m.id)
@@ -226,8 +239,8 @@ export async function crearCorteCaja(options?: { nota?: string }): Promise<Crear
   })
   await batch.commit()
 
-  // 5. Generar automáticamente la ENTRADA de reabastecimiento para el nuevo ciclo
-  if (totalSalidas > 0) {
+  // 6. Generar la ENTRADA de reabastecimiento para el nuevo ciclo si montoReposicion > 0
+  if (montoReposicion > 0) {
     await crearMovimientoCajaChica({
       fecha: hoy,
       periodo: hoy.substring(0, 7),
@@ -238,8 +251,8 @@ export async function crearCorteCaja(options?: { nota?: string }): Promise<Crear
       comprobante: "NINGUNO",
       deducible: false,
       tipo: "ENTRADA",
-      monto: totalSalidas,
-      costoReal: totalSalidas,
+      monto: montoReposicion,
+      costoReal: montoReposicion,
       ivaEstimado: 0,
       verificado: true,
       estadoCorte: "ACTIVO",
@@ -251,7 +264,7 @@ export async function crearCorteCaja(options?: { nota?: string }): Promise<Crear
     "CREAR",
     "caja_chica_cortes",
     corteRef.id,
-    `Realizó ${folio}: ${activos.length} movimientos cerrados, total reembolsado $${totalSalidas}`
+    `Realizó ${folio}: ${activos.length} movimientos cerrados, total gastado $${totalSalidas}, reembolsado $${montoReposicion}`
   )
 
   return {

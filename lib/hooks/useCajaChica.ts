@@ -67,9 +67,9 @@ export function useCajaChica(filtro?: string | OpcionesFiltroCaja) {
     }
   }
 
-  const realizarCorteCaja = async (nota?: string) => {
+  const realizarCorteCaja = async (nota?: string, montoReabastecimiento?: number) => {
     try {
-      const res = await crearCorteCaja({ nota })
+      const res = await crearCorteCaja({ nota, montoReabastecimiento })
       await cargarMovimientos()
       return res
     } catch (err: unknown) {
