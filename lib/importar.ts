@@ -149,12 +149,16 @@ const MAPA_ESTADO: Record<string, EstadoOrden> = {
   rejected: "rechazada",
 }
 
-// Rechaza esquemas no-http(s) para prevenir XSS vía javascript: URIs
+// Rechaza esquemas no-http(s) para prevenir XSS vía javascript: URIs. Auto-agrega https:// si falta protocolo.
 export function sanitizarUrl(raw: string): string | null {
-  if (!raw) return null
+  if (!raw || !raw.trim()) return null
+  let trimmed = raw.trim()
+  if (!/^https?:\/\//i.test(trimmed) && /^[a-z0-9-]+\.[a-z0-9]+/i.test(trimmed)) {
+    trimmed = `https://${trimmed}`
+  }
   try {
-    const proto = new URL(raw).protocol
-    return /^https?:$/i.test(proto) ? raw : null
+    const proto = new URL(trimmed).protocol
+    return /^https?:$/i.test(proto) ? trimmed : null
   } catch {
     return null
   }

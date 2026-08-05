@@ -32,6 +32,8 @@ export const ExtraccionInvoiceSchema = z.object({
   impuestos: z.number().nullable(),
   total: z.number().nullable(),
   items: z.array(ItemFacturaSchema).default([]),
+  linkProveedor: z.string().nullable().optional().default(null),
+  fechaEntrega: z.string().nullable().optional().default(null),
 })
 
 export type ExtraccionInvoice = z.infer<typeof ExtraccionInvoiceSchema>
@@ -44,6 +46,8 @@ export const CamposManualSchema = z.object({
   empresa: z.string().optional().default(""),
   cuentaCargo: z.string().optional().default(""),
   destino: z.string().optional().default(""),
+  linkProveedor: z.string().nullable().optional().default(null),
+  fechaEntrega: z.string().nullable().optional().default(null),
 })
 
 export type CamposManual = z.infer<typeof CamposManualSchema>

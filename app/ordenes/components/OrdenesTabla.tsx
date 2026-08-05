@@ -1,8 +1,9 @@
 /* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · tone: utilitario · scope: ordenes-tabla */
 import type { Dispatch, SetStateAction } from 'react'
-import { CheckCircle2, Eye, Tags, Trash2, XCircle } from 'lucide-react'
+import { CheckCircle2, ExternalLink, Eye, Tags, Trash2, XCircle } from 'lucide-react'
 import type { OrdenCompra } from '@/lib/schemas'
 import { formatPrecio } from '@/lib/format'
+import { sanitizarUrl } from '@/lib/importar'
 import {
   formatFechaOrden,
   cuentaCargoEfectiva,
@@ -124,6 +125,7 @@ export default function OrdenesTabla({
           <tbody className="divide-y divide-slate-100">
             {ordenesFiltradas.map((orden) => {
               const fechas = formatFechaOrden(orden)
+              const linkNorm = orden.linkProveedor ? sanitizarUrl(orden.linkProveedor) : null
               return (
               <tr 
                 key={orden.id} 
@@ -141,6 +143,18 @@ export default function OrdenesTabla({
                 <td className="px-3 py-2.5 font-semibold text-slate-900 truncate max-w-[140px]" title={orden.proveedor}>
                   <span className="inline-flex items-center gap-1.5 w-full">
                     <span className="truncate">{orden.proveedor}</span>
+                    {linkNorm && (
+                      <a
+                        href={linkNorm}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-[#0369A1] hover:text-sky-700 p-0.5 rounded transition-colors shrink-0"
+                        title="Abrir enlace de compra / proveedor"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    )}
                     {ordenTieneSatPendiente(orden) && (
                       <span title="Falta clave SAT en algún ítem" aria-label="SAT pendiente">
                         <Tags className="h-3.5 w-3.5 text-amber-600 shrink-0" />

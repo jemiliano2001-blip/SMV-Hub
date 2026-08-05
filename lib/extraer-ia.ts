@@ -107,6 +107,8 @@ const EXTRACCION_INVOICE_SCHEMA = {
     envio: { type: "number", nullable: true },
     impuestos: { type: "number", nullable: true },
     total: { type: "number", nullable: true },
+    linkProveedor: { type: "string", nullable: true },
+    fechaEntrega: { type: "string", nullable: true },
     items: { type: "array", items: ITEM_FACTURA_SCHEMA },
   },
   required: [

@@ -34,6 +34,7 @@ import {
   verificarDuplicadosEnLote,
   esOrdenDuplicada,
   claveFacturaProveedor,
+  sanitizarUrl,
 } from "@/lib/importar"
 import type { FilaParseada } from "@/lib/importar"
 import type { ExtraccionInvoice, ItemFactura } from "@/lib/schemas"
@@ -618,5 +619,24 @@ describe("importarOrdenes", () => {
     const { importadas } = await importarOrdenes(filas)
     expect(mockCrearOrdenesLote.mock.calls[0][0]).toHaveLength(0)
     expect(importadas).toBe(0)
+  })
+})
+
+// ── sanitizarUrl ─────────────────────────────────────────────────────────────
+
+describe("sanitizarUrl", () => {
+  it("mantiene URLs con https y http intactas", () => {
+    expect(sanitizarUrl("https://www.mcmaster.com/123")).toBe("https://www.mcmaster.com/123")
+    expect(sanitizarUrl("http://amazon.com/item")).toBe("http://amazon.com/item")
+  })
+
+  it("agrega automáticamente https:// si el usuario omite el protocolo", () => {
+    expect(sanitizarUrl("mcmaster.com/12345")).toBe("https://mcmaster.com/12345")
+    expect(sanitizarUrl("www.ebay.com/itm/123")).toBe("https://www.ebay.com/itm/123")
+  })
+
+  it("rechaza URIs maliciosos o vacíos", () => {
+    expect(sanitizarUrl("javascript:alert(1)")).toBeNull()
+    expect(sanitizarUrl("")).toBeNull()
   })
 })

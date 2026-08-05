@@ -9,6 +9,7 @@ import {
 } from '@/lib/ordenes-display'
 import WhatsAppIcon from '@/components/WhatsAppIcon'
 import { normalizarClaveProdServ } from '@/lib/sat/normalizar'
+import { sanitizarUrl } from '@/lib/importar'
 import type { OrdenCompra } from '@/lib/schemas'
 import { Calendar, CheckCircle2, Edit2, ExternalLink, Tags, Trash2, X, XCircle } from 'lucide-react'
 import OrdenBadgeEstado from './OrdenBadgeEstado'
@@ -34,6 +35,7 @@ export default function OrdenDetallesModal({
   onSugerirSat,
 }: OrdenDetallesModalProps) {
   const [copiado, setCopiado] = useState(false)
+  const linkNorm = orden.linkProveedor ? sanitizarUrl(orden.linkProveedor) : null
 
   const handleNotificarWhatsApp = async () => {
     const msg = generarMensajeWhatsApp(orden)
@@ -48,84 +50,90 @@ export default function OrdenDetallesModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs overflow-y-auto font-sans">
-      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col my-8 border border-slate-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs font-sans animate-fade-in">
+      <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl shadow-xl flex flex-col overflow-hidden border border-slate-100">
+        
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3.5 shrink-0 bg-slate-50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-slate-900 tracking-tight">Detalles de Orden de Compra</h2>
-              <span className="text-[10px] font-mono font-bold bg-sky-50 text-sky-800 border border-sky-200 px-1.5 py-0.5 rounded">
-                EUA
-              </span>
+              <h2 className="text-base font-bold text-slate-900">Detalles de Orden de Compra</h2>
+              <span className="text-[10px] font-mono uppercase bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-bold">EUA</span>
             </div>
-            <p className="text-xs text-slate-500 font-mono mt-0.5">ID: {orden.id}</p>
+            <p className="text-xs font-mono text-slate-400 mt-0.5">ID: {orden.id}</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={onEdit}
-              className="px-3 py-1.5 text-xs font-bold text-[#0369A1] hover:bg-sky-50 rounded-lg transition-colors flex items-center gap-1 border border-sky-200"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#0369A1] bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg transition-colors"
             >
-              <Edit2 className="h-3.5 w-3.5" />
-              Editar
+              <Edit2 className="h-3.5 w-3.5" /> Editar
             </button>
-            <div className="w-px h-4 bg-slate-200 mx-1"></div>
             <button
               onClick={onClose}
-              className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+              aria-label="Cerrar modal"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
         </div>
 
-        {/* Scrollable Content */}
-        <div className="p-5 overflow-y-auto space-y-5 flex-1">
-          {/* Top Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200">
-              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Proveedor y Estado</span>
-              <div className="mt-1 font-bold text-slate-900 text-base truncate" title={orden.proveedor}>{orden.proveedor}</div>
-              <div className="mt-2"><OrdenBadgeEstado estado={orden.estado} /></div>
+        {/* Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          
+          {/* Status & Provider Header Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-slate-50/70 p-4 rounded-xl border border-slate-100">
+              <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold">Proveedor y Estado</p>
+              <h3 className="text-sm font-bold text-slate-900 mt-1 truncate" title={orden.proveedor}>{orden.proveedor}</h3>
+              <div className="mt-2 flex items-center gap-2">
+                <OrdenBadgeEstado estado={orden.estado} />
+              </div>
             </div>
-            <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200">
-              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Requisitor e Info</span>
-              <div className="mt-1 text-xs font-semibold text-slate-900">Requisitor: <span className="font-normal text-slate-700">{orden.requisitor}</span></div>
-              <div className="mt-1 text-xs font-semibold text-slate-900">Empresa: <span className="font-normal text-slate-700">{orden.empresa}</span></div>
+
+            <div className="bg-slate-50/70 p-4 rounded-xl border border-slate-100">
+              <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold">Requisitor e Info</p>
+              <p className="text-xs text-slate-700 mt-1"><strong>Requisitor:</strong> {orden.requisitor || '—'}</p>
+              <p className="text-xs text-slate-700 mt-0.5"><strong>Empresa:</strong> {orden.empresa || '—'}</p>
             </div>
-            <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200">
-              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Orden y Total</span>
-              <div className="mt-1 text-xs font-semibold text-slate-900">Orden de Trabajo: <span className="font-mono text-slate-700">{orden.ordenTrabajo}</span></div>
-              <div className="mt-1 text-xs font-semibold text-slate-900">Total: <span className="text-[#0369A1] font-mono font-bold">{formatPrecio(orden.total, orden.moneda)}</span></div>
+
+            <div className="bg-slate-50/70 p-4 rounded-xl border border-slate-100">
+              <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold">Orden y Total</p>
+              <p className="text-xs text-slate-700 mt-1"><strong>Orden de Trabajo:</strong> {orden.ordenTrabajo || '—'}</p>
+              <p className="text-xs font-bold text-slate-900 mt-0.5">Total: <span className="font-mono text-[#0369A1]">{formatPrecio(orden.total, orden.moneda)}</span></p>
             </div>
           </div>
 
-          {/* Extra Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
-            <div className="space-y-2.5">
+          {/* Billing & Deliveries Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
               <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 border-b border-slate-200 pb-1">Facturación</h3>
-              <div className="grid grid-cols-2 gap-y-1.5 text-xs">
-                <span className="text-slate-500 font-mono">N° Factura:</span>
-                <span className="text-slate-900 font-mono font-bold">{orden.numeroFactura || '-'}</span>
-                
-                <span className="text-slate-500 font-mono">Fecha Factura:</span>
-                <span className="text-slate-900 font-mono">{orden.fechaFactura || '-'}</span>
-
-                <span className="text-slate-500 font-mono">Subtotal:</span>
-                <span className="text-slate-900 font-mono">{formatPrecio(orden.subtotal, orden.moneda)}</span>
-
-                {orden.envio != null && orden.envio !== 0 && (
-                  <>
-                    <span className="text-slate-500 font-mono">Envío:</span>
-                    <span className="text-slate-900 font-mono">{formatPrecio(orden.envio, orden.moneda)}</span>
-                  </>
-                )}
-
-                <span className="text-slate-500 font-mono">Impuestos (Tax):</span>
-                <span className="text-slate-900 font-mono">{formatPrecio(orden.impuestos, orden.moneda)}</span>
-
-                <span className="text-slate-500 font-mono">Total:</span>
-                <span className="text-slate-900 font-mono font-bold">{formatPrecio(orden.total, orden.moneda)}</span>
+              <div className="space-y-1.5 text-xs text-slate-600">
+                <div className="flex justify-between">
+                  <span>N° Factura:</span>
+                  <span className="font-mono text-slate-900 font-bold">{orden.numeroFactura || '—'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Fecha Factura:</span>
+                  <span className="font-mono text-slate-900">{orden.fechaFactura || '—'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span className="font-mono">{formatPrecio(orden.subtotal, orden.moneda)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Envío:</span>
+                  <span className="font-mono">{formatPrecio(orden.envio, orden.moneda)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Impuestos (Tax):</span>
+                  <span className="font-mono">{formatPrecio(orden.impuestos, orden.moneda)}</span>
+                </div>
+                <div className="flex justify-between pt-1 border-t border-slate-100 font-bold text-slate-900">
+                  <span>Total:</span>
+                  <span className="font-mono text-[#0369A1]">{formatPrecio(orden.total, orden.moneda)}</span>
+                </div>
               </div>
             </div>
 
@@ -138,23 +146,23 @@ export default function OrdenDetallesModal({
                     <span className="font-mono"><strong>Fecha de Entrega:</strong> {orden.fechaEntrega}</span>
                   </div>
                 )}
-                {orden.linkProveedor && /^https?:\/\//i.test(orden.linkProveedor) && (
+                {linkNorm && (
                   <div className="flex items-center gap-2 text-slate-800 bg-slate-50 p-2 rounded-lg border border-slate-200">
-                    <ExternalLink className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                    <ExternalLink className="h-3.5 w-3.5 text-[#0369A1] shrink-0" />
                     <span className="truncate flex-1">
                       <strong>Link Proveedor:</strong>{' '}
                       <a
-                        href={orden.linkProveedor}
+                        href={linkNorm}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[#0369A1] hover:underline"
+                        className="text-[#0369A1] font-semibold hover:underline"
                       >
-                        Ir al sitio del proveedor
+                        Ir al sitio / enlace de compra
                       </a>
                     </span>
                   </div>
                 )}
-                {!orden.fechaEntrega && !orden.linkProveedor && (
+                {!orden.fechaEntrega && !linkNorm && (
                   <p className="text-slate-400 italic text-xs font-mono">No hay información adicional de entrega o proveedor.</p>
                 )}
               </div>

@@ -8,7 +8,7 @@ import WhatsAppIcon from '@/components/WhatsAppIcon'
 import { z } from 'zod'
 import { getClienteAuth } from '@/lib/firebase'
 import { buscarPorFacturaYProveedor, listarOrdenesRecientes } from '@/lib/ordenes'
-import { esOrdenDuplicada } from '@/lib/importar'
+import { esOrdenDuplicada, sanitizarUrl } from '@/lib/importar'
 import { validarCuadreFactura, validarImpuestoTexas } from '@/lib/factura-montos'
 import {
   aplanarHistorial,
@@ -105,6 +105,8 @@ export default function NuevaCompraForm({
       empresa: '',
       cuentaCargo: '',
       destino: '',
+      linkProveedor: '',
+      fechaEntrega: '',
     },
   })
 
@@ -353,6 +355,8 @@ export default function NuevaCompraForm({
         envio: ext.envio ?? null,
         impuestos: ext.impuestos,
         total: ext.total,
+        linkProveedor: ext.linkProveedor ? sanitizarUrl(ext.linkProveedor) ?? '' : '',
+        fechaEntrega: ext.fechaEntrega ?? '',
         items,
         requisitor: '',
         ordenTrabajo: '',
@@ -432,6 +436,9 @@ export default function NuevaCompraForm({
 
   async function onSubmit(data: NuevaCompraForm) {
     if (duplicadoDetectado) return
+    const rawLink = data.linkProveedor?.trim() || null
+    const linkProveedor = rawLink ? sanitizarUrl(rawLink) : null
+    const fechaEntrega = data.fechaEntrega?.trim() || null
     const items = data.items.map((item) => {
       const claveProdServ = validarClaveProdServCatalogo(item.claveProdServ)
       return {
@@ -440,7 +447,11 @@ export default function NuevaCompraForm({
         satPendiente: claveProdServ === null,
       }
     })
-    await onExternalSubmit?.({ ...data, items }, imagen ?? undefined, notificarWhatsApp)
+    await onExternalSubmit?.(
+      { ...data, linkProveedor, fechaEntrega, items },
+      imagen ?? undefined,
+      notificarWhatsApp
+    )
   }
 
   const itemsError =
@@ -618,6 +629,29 @@ export default function NuevaCompraForm({
           <div>
             <label className={cls.label}>Total</label>
             <input {...numReg('total')} type="number" step="any" min="0" className={cls.input} placeholder="0.00" disabled={extrayendo} />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className={cls.label}>Link de compra / proveedor (opcional)</label>
+            <input
+              {...register('linkProveedor')}
+              className={cls.input}
+              placeholder="https://www.mcmaster.com/... o enlace del producto/tienda"
+              disabled={extrayendo}
+            />
+            <p className="mt-1 text-[11px] text-gray-500">
+              Guarda el enlace a la tienda o producto para consultar rápidamente donde se compró y tiempos de entrega.
+            </p>
+          </div>
+
+          <div>
+            <label className={cls.label}>Fecha estimada de entrega (opcional)</label>
+            <input
+              {...register('fechaEntrega')}
+              type="date"
+              className={cls.input}
+              disabled={extrayendo}
+            />
           </div>
         </div>
       </section>
