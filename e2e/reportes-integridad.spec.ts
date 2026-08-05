@@ -13,6 +13,7 @@ const email = "admin@smv-hub-e2e.local"
 const password = process.env.E2E_TEST_USER_PASSWORD
 const uiBypass = process.env.E2E_UI_BYPASS === "true"
 
+test.skip(true, "La pestaña/vista de Integridad del gasto ha sido retirada.")
 test.skip(
   !password && !uiBypass,
   "Requiere E2E_TEST_USER_PASSWORD o E2E_UI_BYPASS=true para una prueba local solo de UI."

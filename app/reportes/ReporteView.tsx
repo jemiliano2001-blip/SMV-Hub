@@ -17,9 +17,7 @@ import FiltrosReporte from "@/app/reportes/components/FiltrosReporte"
 import FranjaKpis from "@/app/reportes/components/FranjaKpis"
 import TablaReporte from "@/app/reportes/components/TablaReporte"
 import AvisoPendientes from "@/app/reportes/components/AvisoPendientes"
-import { Loader2, AlertCircle, FileSpreadsheet, ShieldCheck } from "lucide-react"
-import IntegrityWorkspace from "./integridad/IntegrityWorkspace"
-import IntegrityTrustStrip from "./integridad/IntegrityTrustStrip"
+import { Loader2, AlertCircle } from "lucide-react"
 
 type PresetTipo = "semana" | "mes" | "personalizado"
 
@@ -38,12 +36,7 @@ function tituloReporte(desde: Date, hasta: Date): string {
   return `${desde.toLocaleDateString(loc, opt)} — ${hasta.toLocaleDateString(loc, opt)}`
 }
 
-export default function ReporteView({
-  initialTab = "integridad",
-}: {
-  initialTab?: "integridad" | "gerencial"
-}) {
-  const [tabVista, setTabVista] = useState<"integridad" | "gerencial">(initialTab)
+export default function ReporteView() {
   const [ordenes, setOrdenes] = useState<OrdenCompra[]>([])
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -66,10 +59,9 @@ export default function ReporteView({
   }, [periodo.desde, periodo.hasta])
 
   useEffect(() => {
-    if (tabVista !== "gerencial") return
     const timer = window.setTimeout(() => void cargar(), 0)
     return () => window.clearTimeout(timer)
-  }, [tabVista, cargar])
+  }, [cargar])
 
   function handlePreset(tipo: "semana" | "mes") {
     setPresetTipo(tipo)
@@ -105,15 +97,6 @@ export default function ReporteView({
         >
           Reintentar
         </button>
-        <button
-          onClick={() => {
-            setError(null)
-            setTabVista("integridad")
-          }}
-          className="min-h-11 text-sm font-semibold text-[#0369A1] underline underline-offset-4"
-        >
-          Volver a Integridad
-        </button>
       </div>
     )
   }
@@ -122,66 +105,30 @@ export default function ReporteView({
     <main className="w-full">
       <div className="max-w-[1400px] mx-auto px-4 py-6 print:max-w-none print:px-0 print:py-0">
 
-        {/* Navegación y selector de pestañas (Oculto al imprimir) */}
+        {/* Navegación (Oculto al imprimir) */}
         <div className="mb-6 no-print flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
           <Link href="/" className="text-xs font-bold text-[#0369A1] hover:underline flex items-center gap-1">
             ← Volver al Inicio
           </Link>
-
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
-            <button
-              onClick={() => setTabVista("integridad")}
-              className={[
-                "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
-                tabVista === "integridad"
-                  ? "bg-slate-900 text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60",
-              ].join(" ")}
-            >
-              <ShieldCheck className="h-4 w-4 text-emerald-500" />
-              Integridad
-            </button>
-
-            <button
-              onClick={() => {
-                setTabVista("gerencial")
-                if (ordenes.length === 0) void cargar()
-              }}
-              className={[
-                "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
-                tabVista === "gerencial"
-                  ? "bg-white text-slate-900 shadow-xs border border-slate-200"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60",
-              ].join(" ")}
-            >
-              <FileSpreadsheet className="h-4 w-4 text-slate-500" />
-              Reporte gerencial
-            </button>
-          </div>
 
           <Link href="/reportes/contable" className="text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors">
             Cierre contable →
           </Link>
         </div>
 
-        {tabVista === "integridad" && <IntegrityWorkspace />}
-
-        {tabVista === "gerencial" && (
-          <>
-            <IntegrityTrustStrip />
-            <FiltrosReporte
-              presetTipo={presetTipo}
-              desde={periodo.desde}
-              hasta={periodo.hasta}
-              agruparPor={agruparPor}
-              monedas={monedas}
-              moneda={monedaActiva}
-              onPreset={handlePreset}
-              onDesde={(d) => { setPeriodo((p) => ({ ...p, desde: d })); setPresetTipo("personalizado") }}
-              onHasta={(d) => { setPeriodo((p) => ({ ...p, hasta: d })); setPresetTipo("personalizado") }}
-              onAgrupar={setAgruparPor}
-              onMoneda={setMoneda}
-            />
+        <FiltrosReporte
+          presetTipo={presetTipo}
+          desde={periodo.desde}
+          hasta={periodo.hasta}
+          agruparPor={agruparPor}
+          monedas={monedas}
+          moneda={monedaActiva}
+          onPreset={handlePreset}
+          onDesde={(d) => { setPeriodo((p) => ({ ...p, desde: d })); setPresetTipo("personalizado") }}
+          onHasta={(d) => { setPeriodo((p) => ({ ...p, hasta: d })); setPresetTipo("personalizado") }}
+          onAgrupar={setAgruparPor}
+          onMoneda={setMoneda}
+        />
 
         <AvisoPendientes />
 
@@ -211,9 +158,6 @@ export default function ReporteView({
             <span>Uso interno · Confidencial</span>
           </div>
         </div>
-
-        </>
-        )}
 
       </div>
     </main>
