@@ -1,7 +1,21 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Search, Trophy, Plus, Building2, Check, DollarSign } from 'lucide-react'
+import {
+  Search,
+  Trophy,
+  Plus,
+  Building2,
+  Check,
+  DollarSign,
+  Info,
+  X,
+  FileText,
+  Tag,
+  Package,
+  Calendar,
+  Layers,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { formatPrecio } from '@/lib/format'
 import { aMXN, aUSD, TIPO_CAMBIO_DEFAULT_USD_MXN } from '@/lib/tipo-cambio'
@@ -29,10 +43,24 @@ export default function ComparadorPreciosInsumos({
 }: Props) {
   const [busqueda, setBusqueda] = useState('')
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>('todas')
+  const [proveedorFiltro, setProveedorFiltro] = useState<string>('todos')
+  const [tipoDocFiltro, setTipoDocFiltro] = useState<'todos' | 'po_confirmada' | 'rfq' | 'factura'>('todos')
   const [modoMoneda, setModoMoneda] = useState<'original' | 'MXN' | 'USD'>('original')
   const [agregados, setAgregados] = useState<Set<string>>(new Set())
+  const [itemDetalle, setItemDetalle] = useState<CompraOdooItem | null>(null)
 
-  // Filtrar ítems por precio comprable, texto y categoría
+  // Lista única de proveedores para el filtro
+  const listaProveedores = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const it of items) {
+      if (it.proveedorNombre) {
+        map.set(it.proveedorNombre, it.proveedorNombre)
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b))
+  }, [items])
+
+  // Filtrar ítems por precio comprable, texto, categoría, proveedor y tipo de documento
   const itemsFiltrados = useMemo(() => {
     const qNorm = normalizarTexto(busqueda)
     const tokens = qNorm.split(/\s+/).filter(Boolean)
@@ -44,6 +72,20 @@ export default function ComparadorPreciosInsumos({
         return false
       }
 
+      if (proveedorFiltro !== 'todos' && it.proveedorNombre !== proveedorFiltro) {
+        return false
+      }
+
+      if (tipoDocFiltro === 'po_confirmada' && (it.fuente !== 'po' || it.esRfq)) {
+        return false
+      }
+      if (tipoDocFiltro === 'rfq' && (it.fuente !== 'po' || !it.esRfq)) {
+        return false
+      }
+      if (tipoDocFiltro === 'factura' && it.fuente !== 'factura') {
+        return false
+      }
+
       if (tokens.length === 0) return true
 
       const descNorm = normalizarTexto(it.descripcion)
@@ -51,27 +93,29 @@ export default function ComparadorPreciosInsumos({
       const medNorm = normalizarTexto(it.medida ?? '')
       const provNorm = normalizarTexto(it.proveedorNombre)
       const catOdooNorm = normalizarTexto(it.odooCategoria ?? '')
+      const refDocNorm = normalizarTexto(it.referenciaDoc ?? '')
+      const refIntNorm = normalizarTexto(it.odooRefInterna ?? '')
+      const satNorm = normalizarTexto(it.claveProdServ ?? '')
 
-      const textoCompleto = `${descNorm} ${tipoNorm} ${medNorm} ${provNorm} ${catOdooNorm}`
+      const textoCompleto = `${descNorm} ${tipoNorm} ${medNorm} ${provNorm} ${catOdooNorm} ${refDocNorm} ${refIntNorm} ${satNorm}`
       return tokens.every((token) => textoCompleto.includes(token))
     })
 
     if (tokens.length === 0) return filtrados
 
-    // Con búsqueda activa, ordenar por precio (MXN) ascendente para que lo más barato no se pierda en el tope de 150
+    // Con búsqueda activa, ordenar por precio (MXN) ascendente para que lo más barato destaque arriba
     return [...filtrados].sort((a, b) => {
       const pxA = aMXN(a.precioUnitario, (a.moneda ?? 'MXN') as 'USD' | 'MXN', usdToMxn)
       const pxB = aMXN(b.precioUnitario, (b.moneda ?? 'MXN') as 'USD' | 'MXN', usdToMxn)
       return pxA - pxB
     })
-  }, [items, busqueda, categoriaFiltro, usdToMxn])
+  }, [items, busqueda, categoriaFiltro, proveedorFiltro, tipoDocFiltro, usdToMxn])
 
-  // Calcular el precio mínimo en MXN por grupo, y cuántos proveedores distintos compiten en él
+  // Calcular el precio mínimo en MXN por grupo
   const precioMinimoMxnPorItem = useMemo(() => {
     const mapMin = new Map<string, { min: number; proveedores: Set<number> }>()
     for (const it of itemsFiltrados) {
       const pxMxn = aMXN(it.precioUnitario, (it.moneda ?? 'MXN') as 'USD' | 'MXN', usdToMxn)
-      // Agrupar por descripción normalizada + medida
       const key = `${normalizarTexto(it.descripcion)}_${normalizarTexto(it.medida ?? '')}`
       const grupo = mapMin.get(key)
       if (!grupo) {
@@ -85,7 +129,7 @@ export default function ComparadorPreciosInsumos({
   }, [itemsFiltrados, usdToMxn])
 
   function handleAgregar(item: CompraOdooItem) {
-    onAgregarAPresupuesto(item, 1)
+    onAgregarAPresupuesto(item, item.cantidad > 0 ? item.cantidad : 1)
     setAgregados((prev) => new Set(prev).add(item.id))
     setTimeout(() => {
       setAgregados((prev) => {
@@ -103,10 +147,10 @@ export default function ComparadorPreciosInsumos({
         <div>
           <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
             <Search className="h-4 w-4 text-sky-600" />
-            Comparador Inteligente de Precios y Proveedores
+            Comparador Inteligente de Precios y Catálogos Odoo
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Busca cualquier solera, acero, fresa o insumo para ver qué proveedor ofrece el mejor precio.
+            Analiza insumos, cotizaciones, órdenes de compra y facturas para obtener el mejor precio por proveedor.
           </p>
         </div>
 
@@ -152,15 +196,16 @@ export default function ComparadorPreciosInsumos({
       </div>
 
       {/* Inputs de Filtro */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-        <div className="sm:col-span-3 relative">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        {/* Búsqueda por Texto */}
+        <div className="sm:col-span-2 relative">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder='Buscar material o especificación (ej. "solera 1/4 x 2", "redondo 6061", "fresa 1/2")…'
-            className="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50"
+            placeholder='Buscar por material, SKU, ref, clave SAT (ej. "D-2", "broca 3/8", "P00552")…'
+            className="w-full pl-9 pr-8 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50"
           />
           {busqueda && (
             <button
@@ -173,6 +218,23 @@ export default function ComparadorPreciosInsumos({
           )}
         </div>
 
+        {/* Filtro por Proveedor */}
+        <div>
+          <select
+            value={proveedorFiltro}
+            onChange={(e) => setProveedorFiltro(e.target.value)}
+            className="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 font-semibold text-slate-700"
+          >
+            <option value="todos">Todos los Proveedores ({listaProveedores.length})</option>
+            {listaProveedores.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Filtro por Familia */}
         <div>
           <select
             value={categoriaFiltro}
@@ -189,28 +251,86 @@ export default function ComparadorPreciosInsumos({
         </div>
       </div>
 
+      {/* Selector de Pestaña de Estado de Documento */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2 text-xs">
+        <span className="font-bold text-slate-500 mr-1 flex items-center gap-1">
+          <FileText className="h-3.5 w-3.5" /> Filtrar Documento:
+        </span>
+
+        <button
+          type="button"
+          onClick={() => setTipoDocFiltro('todos')}
+          className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+            tipoDocFiltro === 'todos'
+              ? 'bg-slate-900 text-white shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          Todos los Documentos
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setTipoDocFiltro('po_confirmada')}
+          className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
+            tipoDocFiltro === 'po_confirmada'
+              ? 'bg-emerald-700 text-white shadow-xs'
+              : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+          Órdenes de Compra
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setTipoDocFiltro('rfq')}
+          className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
+            tipoDocFiltro === 'rfq'
+              ? 'bg-sky-700 text-white shadow-xs'
+              : 'bg-sky-50 text-sky-800 hover:bg-sky-100 border border-sky-200'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-sky-400 inline-block"></span>
+          Solicitudes / Cotizaciones
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setTipoDocFiltro('factura')}
+          className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
+            tipoDocFiltro === 'factura'
+              ? 'bg-purple-700 text-white shadow-xs'
+              : 'bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-200'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-purple-400 inline-block"></span>
+          Facturas Publicadas
+        </button>
+      </div>
+
       {/* Resultados de Búsqueda */}
       <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
-        <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 flex items-center justify-between">
+        <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs font-extrabold text-slate-700">
-            {itemsFiltrados.length} resultados encontrados
+            {itemsFiltrados.length} resultados encontrados {proveedorFiltro !== 'todos' ? `para "${proveedorFiltro}"` : ''}
           </span>
           {busqueda && (
             <span className="text-[11px] text-slate-500 font-mono">
-              Filtro: &quot;{busqueda}&quot;
+              Búsqueda: &quot;{busqueda}&quot;
             </span>
           )}
         </div>
 
-        <div className="overflow-x-auto max-h-96">
+        <div className="overflow-x-auto max-h-[500px]">
           <table className="w-full text-left text-xs">
-            <thead className="sticky top-0 bg-slate-100 text-slate-600 font-bold uppercase tracking-wider text-[10px]">
+            <thead className="sticky top-0 bg-slate-100 text-slate-600 font-bold uppercase tracking-wider text-[10px] z-10 shadow-xs">
               <tr>
                 <th className="px-3 py-2.5">Proveedor</th>
                 <th className="px-3 py-2.5">Descripción Material</th>
                 <th className="px-3 py-2.5">Familia / Tipo</th>
-                <th className="px-3 py-2.5">Medida</th>
-                <th className="px-3 py-2.5">Doc. Ref</th>
+                <th className="px-3 py-2.5 text-center">Cant. / UdM</th>
+                <th className="px-3 py-2.5">Doc. Ref / Estado</th>
                 <th className="px-3 py-2.5">Fecha</th>
                 <th className="px-3 py-2.5 text-right">Precio Unitario</th>
                 <th className="px-3 py-2.5 text-center">Acción</th>
@@ -219,13 +339,13 @@ export default function ComparadorPreciosInsumos({
             <tbody className="divide-y divide-slate-100">
               {itemsFiltrados.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-400 text-xs">
-                    No se encontraron insumos que coincidan con la búsqueda.
+                  <td colSpan={8} className="px-4 py-12 text-center text-slate-400 text-xs">
+                    No se encontraron insumos o compras que coincidan con los filtros aplicados.
                   </td>
                 </tr>
               )}
 
-              {itemsFiltrados.slice(0, 150).map((it) => {
+              {itemsFiltrados.slice(0, 300).map((it) => {
                 const keyGroup = `${normalizarTexto(it.descripcion)}_${normalizarTexto(it.medida ?? '')}`
                 const precioMxnActual = aMXN(
                   it.precioUnitario,
@@ -257,57 +377,103 @@ export default function ComparadorPreciosInsumos({
                 }
 
                 const yaAgregado = agregados.has(it.id)
+                const unidadTexto = it.unidad || it.odooUom || 'Pza'
 
                 return (
                   <tr
                     key={it.id}
-                    className={`hover:bg-slate-50 transition-colors ${
+                    className={`hover:bg-sky-50/50 transition-colors cursor-pointer ${
                       esMejorPrecio ? 'bg-amber-50/40' : ''
                     }`}
+                    onClick={() => setItemDetalle(it)}
                   >
-                    <td className="px-3 py-2 font-bold text-slate-900 flex items-center gap-1.5">
-                      <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate max-w-[160px]">{it.proveedorNombre}</span>
+                    {/* Proveedor */}
+                    <td className="px-3 py-2.5 font-bold text-slate-900">
+                      <div className="flex items-center gap-1.5">
+                        <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        <span className="truncate max-w-[150px]" title={it.proveedorNombre}>
+                          {it.proveedorNombre}
+                        </span>
+                      </div>
                     </td>
 
-                    <td className="px-3 py-2 max-w-[240px]">
-                      <p className="font-semibold text-slate-900 truncate" title={it.descripcion}>
+                    {/* Descripción & Detalles del Material */}
+                    <td className="px-3 py-2.5 max-w-[260px]">
+                      <p className="font-bold text-slate-900 truncate" title={it.descripcion}>
                         {it.descripcion}
                       </p>
-                      {it.odooCategoria && (
-                        <p className="text-[10px] text-slate-400 font-mono truncate">
-                          {it.odooCategoria}
-                        </p>
-                      )}
-                    </td>
-
-                    <td className="px-3 py-2">
-                      <div className="flex flex-col gap-0.5">
-                        <Badge variant="outline" className="w-fit text-[10px] font-mono">
-                          {obtenerCategoriaDef(it.categoriaId)?.etiqueta ?? it.categoriaId}
-                        </Badge>
-
-                        {(it.tipoInsumo || it.tipoMetal) && (
-                          <span className="text-[10px] text-slate-600 font-mono">
-                            {it.tipoInsumo ?? it.tipoMetal}
+                      <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                        {it.odooRefInterna && (
+                          <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-1 py-0 rounded border border-slate-200">
+                            SKU: {it.odooRefInterna}
+                          </span>
+                        )}
+                        {it.claveProdServ && (
+                          <span className="text-[10px] font-mono bg-blue-50 text-blue-700 px-1 py-0 rounded border border-blue-200">
+                            SAT: {it.claveProdServ}
+                          </span>
+                        )}
+                        {it.odooCategoria && !it.odooRefInterna && !it.claveProdServ && (
+                          <span className="text-[10px] text-slate-400 font-mono truncate max-w-[180px]">
+                            {it.odooCategoria}
                           </span>
                         )}
                       </div>
                     </td>
 
-                    <td className="px-3 py-2 font-mono font-medium text-slate-700">
-                      {it.medida ?? '—'}
+                    {/* Familia / Tipo */}
+                    <td className="px-3 py-2.5">
+                      <div className="flex flex-col gap-0.5">
+                        <Badge variant="outline" className="w-fit text-[10px] font-mono">
+                          {obtenerCategoriaDef(it.categoriaId)?.etiqueta ?? it.categoriaId}
+                        </Badge>
+                        {(it.tipoInsumo || it.tipoMetal || it.medida) && (
+                          <span className="text-[10px] text-slate-600 font-mono">
+                            {[it.tipoInsumo ?? it.tipoMetal, it.medida].filter(Boolean).join(' · ')}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
-                    <td className="px-3 py-2 font-mono text-[11px] text-slate-500">
-                      {it.referenciaDoc}
+                    {/* Cantidad & UdM */}
+                    <td className="px-3 py-2.5 text-center font-mono font-bold text-slate-800">
+                      <div className="inline-flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-md text-[11px] border border-slate-200">
+                        <Package className="h-3 w-3 text-slate-500" />
+                        <span>{it.cantidad} {unidadTexto}</span>
+                      </div>
                     </td>
 
-                    <td className="px-3 py-2 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                    {/* Doc. Ref & Badge de Estado */}
+                    <td className="px-3 py-2.5">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-mono text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                          <FileText className="h-3 w-3 text-slate-400" />
+                          {it.referenciaDoc}
+                        </span>
+
+                        {it.fuente === 'factura' ? (
+                          <span className="text-[9px] font-extrabold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.2 rounded w-fit">
+                            Factura
+                          </span>
+                        ) : it.esRfq ? (
+                          <span className="text-[9px] font-extrabold text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.2 rounded w-fit">
+                            Cotización
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded w-fit">
+                            Orden de compra
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Fecha */}
+                    <td className="px-3 py-2.5 font-mono text-[11px] text-slate-500 whitespace-nowrap">
                       {it.fecha ?? '—'}
                     </td>
 
-                    <td className="px-3 py-2 text-right">
+                    {/* Precio Unitario */}
+                    <td className="px-3 py-2.5 text-right">
                       <div className="flex flex-col items-end gap-0.5">
                         <span
                           className={`font-mono font-extrabold text-sm ${
@@ -315,6 +481,9 @@ export default function ComparadorPreciosInsumos({
                           }`}
                         >
                           {precioDisplay}
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-mono">
+                          / {unidadTexto}
                         </span>
 
                         {esMejorPrecio && (
@@ -326,26 +495,37 @@ export default function ComparadorPreciosInsumos({
                       </div>
                     </td>
 
-                    <td className="px-3 py-2 text-center">
-                      <button
-                        type="button"
-                        onClick={() => handleAgregar(it)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-md transition-all ${
-                          yaAgregado
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-sky-50 text-sky-700 hover:bg-sky-600 hover:text-white border border-sky-200'
-                        }`}
-                      >
-                        {yaAgregado ? (
-                          <>
-                            <Check className="h-3 w-3" /> Agregado
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="h-3 w-3" /> Presupuesto
-                          </>
-                        )}
-                      </button>
+                    {/* Acción */}
+                    <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setItemDetalle(it)}
+                          title="Ver ficha completa de la compra"
+                          className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+                        >
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAgregar(it)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-md transition-all ${
+                            yaAgregado
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-sky-50 text-sky-700 hover:bg-sky-600 hover:text-white border border-sky-200'
+                          }`}
+                        >
+                          {yaAgregado ? (
+                            <>
+                              <Check className="h-3 w-3" /> Agregado
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-3 w-3" /> Presupuesto
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )
@@ -354,6 +534,102 @@ export default function ComparadorPreciosInsumos({
           </table>
         </div>
       </div>
+
+      {/* Modal / Drawer Ficha de Detalle de Compra Odoo */}
+      {itemDetalle && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full p-6 space-y-4 animate-in fade-in zoom-in duration-150">
+            <div className="flex items-start justify-between border-b border-slate-200 pb-3">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 font-mono">
+                  Ficha de Registro Odoo #{itemDetalle.odooDocId}
+                </span>
+                <h3 className="text-base font-extrabold text-slate-900 mt-0.5">
+                  {itemDetalle.descripcion}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setItemDetalle(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                  <Building2 className="h-3 w-3" /> Proveedor
+                </span>
+                <p className="font-extrabold text-slate-900 text-sm">{itemDetalle.proveedorNombre}</p>
+                <p className="text-[11px] text-slate-500 font-mono">Partner ID: #{itemDetalle.odooPartnerId}</p>
+              </div>
+
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                  <FileText className="h-3 w-3" /> Documento Odoo
+                </span>
+                <p className="font-extrabold text-slate-900 text-sm">{itemDetalle.referenciaDoc}</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  {itemDetalle.fuente === 'factura' ? (
+                    <Badge className="bg-purple-100 text-purple-800 border-purple-300 text-[10px]">Factura de Proveedor</Badge>
+                  ) : itemDetalle.esRfq ? (
+                    <Badge className="bg-sky-100 text-sky-800 border-sky-300 text-[10px]">Solicitud de Cotización (RFQ)</Badge>
+                  ) : (
+                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px]">Orden de Compra Confirmada</Badge>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                  <Package className="h-3 w-3" /> Cantidad y Medida
+                </span>
+                <p className="font-extrabold text-slate-900 text-sm">
+                  {itemDetalle.cantidad} {itemDetalle.unidad || itemDetalle.odooUom || 'Pieza'}
+                </p>
+                {itemDetalle.medida && (
+                  <p className="text-[11px] text-slate-600 font-mono">Espec: {itemDetalle.medida}</p>
+                )}
+              </div>
+
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                  <DollarSign className="h-3 w-3" /> Precio Unitario & Subtotal
+                </span>
+                <p className="font-extrabold text-emerald-700 text-sm font-mono">
+                  {formatPrecio(itemDetalle.precioUnitario, itemDetalle.moneda === 'USD' ? 'USD' : 'MXN')}
+                </p>
+                <p className="text-[11px] text-slate-500 font-mono">
+                  Subtotal: {formatPrecio(itemDetalle.subtotal, itemDetalle.moneda === 'USD' ? 'USD' : 'MXN')} {itemDetalle.moneda}
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-200 pt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+              <span className="flex items-center gap-1 font-mono">
+                <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                Fecha: {itemDetalle.fecha ?? 'Sin fecha'}
+              </span>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleAgregar(itemDetalle)
+                    setItemDetalle(null)
+                  }}
+                  className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5"
+                >
+                  <Plus className="h-4 w-4" /> Agregar al Presupuesto
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+
