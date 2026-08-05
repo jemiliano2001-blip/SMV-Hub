@@ -3,18 +3,20 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { useCajaChica } from '@/lib/hooks/useCajaChica'
-import { Wallet, TrendingDown, CreditCard, AlertTriangle, Settings, PiggyBank, Save, RefreshCw } from 'lucide-react'
-import { fechaHoyLocal } from '@/lib/format'
+import { Wallet, TrendingDown, CreditCard, AlertTriangle, Settings, PiggyBank, Save, RefreshCw, Scissors, Filter } from 'lucide-react'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { toast } from 'sonner'
-import { obtenerFondoFijoCajaChica, guardarFondoFijoCajaChica } from '@/lib/caja-chica'
+import { obtenerFondoFijoCajaChica, guardarFondoFijoCajaChica, type ModoFiltroCaja, listarCortesCaja, type CorteCaja } from '@/lib/caja-chica'
 
 export default function ResumenCaja() {
   const confirmar = useConfirmDialog()
+  const [modoFiltro, setModoFiltro] = useState<ModoFiltroCaja>('CICLO_ACTIVO')
   const [periodo, setPeriodo] = useState(() => {
     const hoy = new Date()
     return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`
   })
+  const [corteIdSel, setCorteIdSel] = useState<string>('')
+  const [cortesHistorial, setCortesHistorial] = useState<CorteCaja[]>([])
 
   const [fondoFijo, setFondoFijo] = useState<number>(0)
   const [isEditingFondo, setIsEditingFondo] = useState(false)
@@ -22,8 +24,17 @@ export default function ResumenCaja() {
   const [isCorteLoading, setIsCorteLoading] = useState(false)
   const [guardandoFondo, setGuardandoFondo] = useState(false)
 
-  // El fondo fijo vive en Firestore (antes solo en localStorage: cada dispositivo
-  // veía un límite distinto y perdía la alerta de "80% consumido").
+  useEffect(() => {
+    listarCortesCaja()
+      .then((res) => {
+        setCortesHistorial(res)
+        if (res.length > 0 && !corteIdSel) {
+          setCorteIdSel(res[0].id)
+        }
+      })
+      .catch((err) => console.error('Error cargando historial de cortes:', err))
+  }, [corteIdSel])
+
   useEffect(() => {
     obtenerFondoFijoCajaChica()
       .then((valor) => {
@@ -41,6 +52,7 @@ export default function ResumenCaja() {
       await guardarFondoFijoCajaChica(val)
       setFondoFijo(val)
       setIsEditingFondo(false)
+      toast.success('Fondo fijo actualizado correctamente.')
     } catch (err) {
       console.error('Error guardando fondo fijo:', err)
       toast.error('No se pudo guardar el fondo fijo. Intenta de nuevo.')
@@ -49,14 +61,22 @@ export default function ResumenCaja() {
     }
   }
 
-  const { movimientos, loading, agregarMovimiento } = useCajaChica(periodo)
+  const filtroActual = useMemo(() => {
+    return {
+      modo: modoFiltro,
+      periodo,
+      corteId: corteIdSel,
+    }
+  }, [modoFiltro, periodo, corteIdSel])
+
+  const { movimientos, loading, realizarCorteCaja } = useCajaChica(filtroActual)
 
   const { totalEntradas, totalSalidas, saldo, gastosPorCategoria } = useMemo(() => {
     let totalEntradas = 0
     let totalSalidas = 0
     const categorias: Record<string, number> = {}
 
-    movimientos.forEach(m => {
+    movimientos.forEach((m) => {
       if (m.tipo === 'ENTRADA') {
         totalEntradas += m.monto
       } else {
@@ -73,7 +93,7 @@ export default function ResumenCaja() {
       totalEntradas,
       totalSalidas,
       saldo: totalEntradas - totalSalidas,
-      gastosPorCategoria: categoriasArray
+      gastosPorCategoria: categoriasArray,
     }
   }, [movimientos])
 
@@ -86,38 +106,26 @@ export default function ResumenCaja() {
 
   const handleCorteReabastecimiento = async () => {
     if (totalSalidas <= 0) {
-      toast.info("No hay gastos registrados para reembolsar en este periodo.")
+      toast.info('No hay gastos acumulados para reembolsar en este ciclo.')
       return
     }
 
     const aceptado = await confirmar({
-      title: 'Registrar reabastecimiento automático',
-      description: `Se registrará un reabastecimiento por ${formatearDinero(totalSalidas)}.\n\nConfirma que entregarás el reporte a Finanzas para solicitar el reembolso.`,
-      confirmLabel: 'Registrar reabastecimiento',
+      title: 'Realizar Corte de Caja y Reabastecimiento',
+      description: `Se cerrarán los movimientos del ciclo actual por ${formatearDinero(totalSalidas)} y se registrará automáticamente la Entrada de reabastecimiento.\n\n¿Deseas continuar?`,
+      confirmLabel: 'Confirmar Corte',
     })
     if (!aceptado) return
-    
+
     setIsCorteLoading(true)
     try {
-      await agregarMovimiento({
-        fecha: fechaHoyLocal(),
-        periodo: periodo,
-        descripcion: 'Reabastecimiento por Corte de Caja',
-        proveedor: 'Finanzas',
-        categoria: 'Recarga de Caja',
-        solicitante: 'Administración',
-        comprobante: 'NINGUNO',
-        deducible: false,
-        tipo: 'ENTRADA',
-        monto: totalSalidas,
-        costoReal: totalSalidas,
-        ivaEstimado: 0,
-        verificado: true
-      })
-      toast.success('Corte y reabastecimiento registrado. Descarga el reporte para Finanzas.')
+      const res = await realizarCorteCaja()
+      toast.success(
+        `¡${res.corte.folio} realizado con éxito! Se reabastecieron ${formatearDinero(res.corte.totalSalidas)}.`
+      )
     } catch (error) {
       console.error(error)
-      toast.error('Ocurrió un error al registrar el reabastecimiento.')
+      toast.error('Ocurrió un error al registrar el corte de caja.')
     } finally {
       setIsCorteLoading(false)
     }
@@ -127,22 +135,59 @@ export default function ResumenCaja() {
     <div className="space-y-4 font-sans">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
         <div>
-          <h2 className="text-sm font-bold text-slate-900 tracking-tight">Resumen Ejecutivo del Periodo</h2>
+          <h2 className="text-sm font-bold text-slate-900 tracking-tight">Resumen Ejecutivo del Ciclo</h2>
           <p className="text-xs text-slate-500">Métricas consolidadas de caja chica y consumo de fondo.</p>
         </div>
-        <input
-          type="month"
-          value={periodo}
-          onChange={(e) => setPeriodo(e.target.value)}
-          className="px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1] font-mono text-slate-900"
-        />
+
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex items-center gap-1.5 text-xs">
+            <Filter className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            <select
+              value={modoFiltro}
+              onChange={(e) => setModoFiltro(e.target.value as ModoFiltroCaja)}
+              className="px-2.5 py-1.5 text-xs font-bold bg-white border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1]"
+            >
+              <option value="CICLO_ACTIVO">⚡ Ciclo Activo (Sin corte)</option>
+              <option value="TODOS">📋 Todos los Movimientos</option>
+              <option value="PERIODO">📅 Por Mes Calendario</option>
+              <option value="CORTE">🔖 Por Corte Realizado</option>
+            </select>
+          </div>
+
+          {modoFiltro === 'PERIODO' && (
+            <input
+              type="month"
+              value={periodo}
+              onChange={(e) => setPeriodo(e.target.value)}
+              className="px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1] font-mono text-slate-900"
+            />
+          )}
+
+          {modoFiltro === 'CORTE' && (
+            <select
+              value={corteIdSel}
+              onChange={(e) => setCorteIdSel(e.target.value)}
+              className="px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1] font-mono text-slate-900"
+            >
+              {cortesHistorial.length === 0 ? (
+                <option value="">Sin cortes</option>
+              ) : (
+                cortesHistorial.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.folio} ({c.fechaCierre}) — ${c.saldoReembolsado.toFixed(2)}
+                  </option>
+                ))
+              )}
+            </select>
+          )}
+        </div>
       </div>
 
       {loading ? (
         <div className="animate-pulse space-y-4">
           <div className="h-28 bg-slate-200/60 rounded-xl"></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[1, 2, 3].map(i => (
+            {[1, 2, 3].map((i) => (
               <div key={i} className="h-20 bg-slate-200/60 rounded-xl"></div>
             ))}
           </div>
@@ -159,78 +204,106 @@ export default function ResumenCaja() {
                     <h3>Control de Fondo Fijo (Sistema Imprest)</h3>
                   </div>
                   {!isEditingFondo && (
-                    <button onClick={() => setIsEditingFondo(true)} className="text-slate-400 hover:text-[#0369A1] transition-colors p-1" title="Configurar Límite">
+                    <button
+                      onClick={() => setIsEditingFondo(true)}
+                      className="text-slate-400 hover:text-[#0369A1] transition-colors p-1"
+                      title="Configurar Límite"
+                    >
                       <Settings className="h-3.5 w-3.5" />
                     </button>
                   )}
                 </div>
-                
+
                 {isEditingFondo ? (
                   <div className="flex items-center gap-2">
                     <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs">$</span>
-                      <input 
-                        type="number" 
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs">
+                        $
+                      </span>
+                      <input
+                        type="number"
                         value={fondoInput}
                         onChange={(e) => setFondoInput(e.target.value)}
                         className="pl-6 pr-3 py-1 text-xs border border-slate-300 rounded-md focus:border-[#0369A1] focus:outline-none font-mono"
                         placeholder="Ej: 5000"
                       />
                     </div>
-                    <button onClick={guardarFondoFijo} disabled={guardandoFondo} className="bg-[#0369A1] text-white p-1 rounded hover:bg-[#0284C7] transition-colors disabled:opacity-50">
+                    <button
+                      onClick={guardarFondoFijo}
+                      disabled={guardandoFondo}
+                      className="bg-[#0369A1] text-white p-1 rounded hover:bg-[#0284C7] transition-colors disabled:opacity-50"
+                    >
                       <Save className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 ) : (
                   <div>
                     {fondoFijo === 0 ? (
-                      <p className="text-xs text-slate-500">Haz clic en el engrane para definir el límite del fondo fijo.</p>
+                      <p className="text-xs text-slate-500">
+                        Haz clic en el engrane para definir el límite del fondo fijo.
+                      </p>
                     ) : (
                       <div className="space-y-2.5">
                         <div className="flex justify-between text-xs font-mono">
-                          <span className="text-slate-600">Límite Establecido: <strong className="text-slate-900">{formatearDinero(fondoFijo)}</strong></span>
-                          <span className="text-slate-600">Gastado: <strong className="text-slate-900">{formatearDinero(totalSalidas)}</strong></span>
+                          <span className="text-slate-600">
+                            Límite Establecido:{' '}
+                            <strong className="text-slate-900">{formatearDinero(fondoFijo)}</strong>
+                          </span>
+                          <span className="text-slate-600">
+                            Gastado:{' '}
+                            <strong className="text-slate-900">{formatearDinero(totalSalidas)}</strong>
+                          </span>
                         </div>
-                        
+
                         <div className="w-full bg-slate-100 rounded-full h-2">
                           <div
-                            className={`h-2 rounded-full transition-all ${requiereReabastecimiento ? 'bg-rose-500' : 'bg-[#0369A1]'}`}
+                            className={`h-2 rounded-full transition-all ${
+                              requiereReabastecimiento ? 'bg-rose-500' : 'bg-[#0369A1]'
+                            }`}
                             style={{ width: `${Math.min(porcentajeConsumido, 100)}%` }}
                           ></div>
                         </div>
 
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
                           <div>
-                            <p className={`text-xs font-mono font-medium ${requiereReabastecimiento ? 'text-rose-600' : 'text-slate-500'}`}>
+                            <p
+                              className={`text-xs font-mono font-medium ${
+                                requiereReabastecimiento ? 'text-rose-600' : 'text-slate-500'
+                              }`}
+                            >
                               {porcentajeConsumido.toFixed(1)}% Consumido del Límite
                             </p>
                             <p className="text-xs font-bold font-mono text-[#0369A1] mt-0.5">
                               Monto a Reembolsar: {formatearDinero(totalSalidas)}
                             </p>
                           </div>
-                          
-                          <button 
-                            onClick={handleCorteReabastecimiento}
-                            disabled={isCorteLoading || totalSalidas === 0}
-                            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 disabled:opacity-50 active:scale-[0.98]"
-                          >
-                            <RefreshCw className={`h-3.5 w-3.5 ${isCorteLoading ? 'animate-spin' : ''}`} />
-                            Hacer Corte Automático
-                          </button>
+
+                          {modoFiltro === 'CICLO_ACTIVO' && (
+                            <button
+                              onClick={handleCorteReabastecimiento}
+                              disabled={isCorteLoading || totalSalidas === 0}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs disabled:opacity-50 active:scale-[0.98]"
+                            >
+                              <Scissors
+                                className={`h-3.5 w-3.5 ${isCorteLoading ? 'animate-spin' : ''}`}
+                              />
+                              Hacer Corte de Caja
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
                   </div>
                 )}
               </div>
-              
-              {requiereReabastecimiento && fondoFijo > 0 && (
+
+              {requiereReabastecimiento && fondoFijo > 0 && modoFiltro === 'CICLO_ACTIVO' && (
                 <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 flex-1 flex gap-2.5 items-start">
                   <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
                   <div>
                     <h4 className="text-xs font-bold text-rose-800">Fondo al Límite</h4>
                     <p className="text-[11px] text-rose-700 mt-0.5 leading-relaxed">
-                      El consumo superó el 80%. Exporta tu reporte y presiona <strong>Hacer Corte Automático</strong> para reabastecer {formatearDinero(totalSalidas)}.
+                      El consumo superó el 80%. Presiona <strong>Hacer Corte de Caja</strong> para generar el reporte de gastos y reabastecer {formatearDinero(totalSalidas)}.
                     </p>
                   </div>
                 </div>
@@ -242,8 +315,12 @@ export default function ResumenCaja() {
             <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-[11px] font-mono uppercase tracking-wider text-slate-500 font-semibold">Total Recargas</p>
-                  <p className="text-xl font-bold font-mono text-slate-900 mt-1">{formatearDinero(totalEntradas)}</p>
+                  <p className="text-[11px] font-mono uppercase tracking-wider text-slate-500 font-semibold">
+                    Total Recargas
+                  </p>
+                  <p className="text-xl font-bold font-mono text-slate-900 mt-1">
+                    {formatearDinero(totalEntradas)}
+                  </p>
                 </div>
                 <div className="p-2.5 bg-emerald-50 rounded-lg text-emerald-700">
                   <Wallet className="h-5 w-5" />
@@ -254,8 +331,12 @@ export default function ResumenCaja() {
             <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-[11px] font-mono uppercase tracking-wider text-slate-500 font-semibold">Total Gastos</p>
-                  <p className="text-xl font-bold font-mono text-slate-900 mt-1">{formatearDinero(totalSalidas)}</p>
+                  <p className="text-[11px] font-mono uppercase tracking-wider text-slate-500 font-semibold">
+                    Total Gastos
+                  </p>
+                  <p className="text-xl font-bold font-mono text-slate-900 mt-1">
+                    {formatearDinero(totalSalidas)}
+                  </p>
                 </div>
                 <div className="p-2.5 bg-rose-50 rounded-lg text-rose-700">
                   <TrendingDown className="h-5 w-5" />
@@ -266,8 +347,14 @@ export default function ResumenCaja() {
             <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-[11px] font-mono uppercase tracking-wider text-slate-500 font-semibold">Saldo del Periodo</p>
-                  <p className={`text-xl font-bold font-mono mt-1 ${saldo >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>
+                  <p className="text-[11px] font-mono uppercase tracking-wider text-slate-500 font-semibold">
+                    Saldo del Ciclo
+                  </p>
+                  <p
+                    className={`text-xl font-bold font-mono mt-1 ${
+                      saldo >= 0 ? 'text-slate-900' : 'text-rose-600'
+                    }`}
+                  >
                     {formatearDinero(saldo)}
                   </p>
                 </div>
@@ -280,10 +367,14 @@ export default function ResumenCaja() {
 
           <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
-              <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-700">Gastos por Categoría</h3>
+              <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-700">
+                Gastos por Categoría
+              </h3>
             </div>
             {gastosPorCategoria.length === 0 ? (
-              <div className="p-6 text-center text-slate-500 text-xs font-mono">No hay gastos en este periodo.</div>
+              <div className="p-6 text-center text-slate-500 text-xs font-mono">
+                No hay gastos registrados para la vista seleccionada.
+              </div>
             ) : (
               <div className="p-4 space-y-3">
                 {gastosPorCategoria.map((cat, i) => {
@@ -292,7 +383,9 @@ export default function ResumenCaja() {
                     <div key={i} className="space-y-1">
                       <div className="flex justify-between text-xs">
                         <span className="font-semibold text-slate-700">{cat.nombre}</span>
-                        <span className="font-mono text-slate-900">{formatearDinero(cat.monto)} ({porcentaje.toFixed(1)}%)</span>
+                        <span className="font-mono text-slate-900">
+                          {formatearDinero(cat.monto)} ({porcentaje.toFixed(1)}%)
+                        </span>
                       </div>
                       <div className="w-full bg-slate-100 rounded-full h-1.5">
                         <div

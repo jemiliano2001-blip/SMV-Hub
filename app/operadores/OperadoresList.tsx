@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { useOperadores } from '@/lib/hooks/useOperadores'
+import { useUsuarios } from '@/lib/hooks/useUsuarios'
 import { departamentoDesdeArea } from '@/lib/operadores-departamento'
 import type { Area, Operador } from '@/lib/schemas'
-import { Plus, Search, UserCheck, UserX, Download, Check, X } from 'lucide-react'
+import { Plus, Search, UserCheck, UserX, Download, Check, X, Mail } from 'lucide-react'
 
 const SIN_HORAS_EXTRA_TITULO = 'Esta área no participa en horas extra (no tiene departamento equivalente en /horas-extra)'
 
@@ -32,6 +33,7 @@ const AREA_COLORS: Record<Area, string> = {
 
 type OperadorCardProps = {
   op: Operador
+  correoVinculado?: string | null
   editando: boolean
   nombreEditado: string
   onNombreEditadoChange: (v: string) => void
@@ -45,6 +47,7 @@ type OperadorCardProps = {
 // Tarjeta para < md: mismos datos y acciones que la fila de tabla, sin scroll horizontal.
 function OperadorCard({
   op,
+  correoVinculado,
   editando,
   nombreEditado,
   onNombreEditadoChange,
@@ -85,15 +88,28 @@ function OperadorCard({
             >
               {op.nombre}
             </p>
-            <select
-              value={op.area}
-              onChange={(e) => onCambiarArea(e.target.value as Area)}
-              className={`mt-1 text-xs font-medium px-2 py-0.5 rounded-full border cursor-pointer ${AREA_COLORS[op.area]}`}
-            >
-              {AREAS.map((a) => (
-                <option key={a.value} value={a.value}>{a.label}</option>
-              ))}
-            </select>
+            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+              <select
+                value={op.area}
+                onChange={(e) => onCambiarArea(e.target.value as Area)}
+                className={`text-xs font-medium px-2 py-0.5 rounded-full border cursor-pointer ${AREA_COLORS[op.area]}`}
+              >
+                {AREAS.map((a) => (
+                  <option key={a.value} value={a.value}>{a.label}</option>
+                ))}
+              </select>
+
+              {correoVinculado ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  <Mail className="w-3 h-3 text-emerald-600" />
+                  {correoVinculado}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-400 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-full">
+                  Sin correo
+                </span>
+              )}
+            </div>
             {!departamentoDesdeArea(op.area) && (
               <p className="mt-0.5 text-[10px] text-gray-400" title={SIN_HORAS_EXTRA_TITULO}>
                 No aplica a horas extra
@@ -127,6 +143,18 @@ export default function OperadoresList() {
     cambiarArea,
   } = useOperadores()
 
+  const { usuarios } = useUsuarios()
+
+  function obtenerCorreoVinculado(opId: string, opNombre: string): string | null {
+    const porId = usuarios.find((u) => u.operadorId === opId)
+    if (porId) return porId.email
+    const porNombre = usuarios.find(
+      (u) => u.operadorNombre?.trim().toLowerCase() === opNombre.trim().toLowerCase()
+    )
+    if (porNombre) return porNombre.email
+    return null
+  }
+
   const [busqueda, setBusqueda] = useState('')
   const [filtroArea, setFiltroArea] = useState<Area | 'todas'>('todas')
   const [mostrarInactivos, setMostrarInactivos] = useState(false)
@@ -142,7 +170,8 @@ export default function OperadoresList() {
     if (filtroArea !== 'todas' && op.area !== filtroArea) return false
     if (busqueda) {
       const q = busqueda.toLowerCase()
-      return op.nombre.toLowerCase().includes(q)
+      const correo = obtenerCorreoVinculado(op.id, op.nombre)?.toLowerCase() || ''
+      return op.nombre.toLowerCase().includes(q) || correo.includes(q)
     }
     return true
   })
@@ -216,9 +245,14 @@ export default function OperadoresList() {
   }
 
   const exportarCSV = () => {
-    const encabezados = ['Nombre', 'Area', 'Estado']
-    const filas = filtrados.map(r => [r.nombre, r.area, r.activo ? 'Activo' : 'Inactivo'])
-    const csvContent = [encabezados, ...filas].map(e => e.join(',')).join('\n')
+    const encabezados = ['Nombre', 'Area', 'Correo Vinculado', 'Estado']
+    const filas = filtrados.map((r) => [
+      r.nombre,
+      r.area,
+      obtenerCorreoVinculado(r.id, r.nombre) || 'Sin correo',
+      r.activo ? 'Activo' : 'Inactivo',
+    ])
+    const csvContent = [encabezados, ...filas].map((e) => e.join(',')).join('\n')
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -289,7 +323,7 @@ export default function OperadoresList() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por nombre…"
+              placeholder="Buscar por nombre o correo…"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0369A1]/20 focus:border-[#0369A1]"
@@ -360,6 +394,7 @@ export default function OperadoresList() {
             <OperadorCard
               key={op.id}
               op={op}
+              correoVinculado={obtenerCorreoVinculado(op.id, op.nombre)}
               editando={editandoId === op.id}
               nombreEditado={nombreEditado}
               onNombreEditadoChange={setNombreEditado}
@@ -380,89 +415,105 @@ export default function OperadoresList() {
             <tr className="bg-gray-50 border-b border-gray-200">
               <th className="text-left px-4 py-3 font-medium text-gray-500">Nombre</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">Área</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Correo Vinculado</th>
               <th className="text-center px-4 py-3 font-medium text-gray-500">Estado</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filtrados.length === 0 ? (
               <tr>
-                <td colSpan={3} className="text-center py-12 text-gray-400">
+                <td colSpan={4} className="text-center py-12 text-gray-400">
                   {busqueda ? 'Sin resultados para la búsqueda' : 'No hay operadores registrados'}
                 </td>
               </tr>
             ) : (
-              filtrados.map((op) => (
-                <tr
-                  key={op.id}
-                  className={`hover:bg-gray-50 transition-colors ${!op.activo ? 'opacity-50' : ''}`}
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${AREA_COLORS[op.area]}`}>
-                        {getInitials(op.nombre)}
-                      </div>
-                      {editandoId === op.id ? (
-                        <div className="flex items-center gap-1.5 flex-1 max-w-[200px]">
-                          <input
-                            type="text"
-                            value={nombreEditado}
-                            onChange={(e) => setNombreEditado(e.target.value)}
-                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-[#0369A1]"
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') guardarEdicion(op.id)
-                              if (e.key === 'Escape') setEditandoId(null)
-                            }}
-                          />
-                          <button onClick={() => guardarEdicion(op.id)} className="text-emerald-600 bg-emerald-50 rounded p-1 hover:bg-emerald-100"><Check className="w-4 h-4" /></button>
-                          <button onClick={() => setEditandoId(null)} className="text-red-600 bg-red-50 rounded p-1 hover:bg-red-100"><X className="w-4 h-4" /></button>
+              filtrados.map((op) => {
+                const correo = obtenerCorreoVinculado(op.id, op.nombre)
+                return (
+                  <tr
+                    key={op.id}
+                    className={`hover:bg-gray-50 transition-colors ${!op.activo ? 'opacity-50' : ''}`}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${AREA_COLORS[op.area]}`}>
+                          {getInitials(op.nombre)}
                         </div>
+                        {editandoId === op.id ? (
+                          <div className="flex items-center gap-1.5 flex-1 max-w-[200px]">
+                            <input
+                              type="text"
+                              value={nombreEditado}
+                              onChange={(e) => setNombreEditado(e.target.value)}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-[#0369A1]"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') guardarEdicion(op.id)
+                                if (e.key === 'Escape') setEditandoId(null)
+                              }}
+                            />
+                            <button onClick={() => guardarEdicion(op.id)} className="text-emerald-600 bg-emerald-50 rounded p-1 hover:bg-emerald-100"><Check className="w-4 h-4" /></button>
+                            <button onClick={() => setEditandoId(null)} className="text-red-600 bg-red-50 rounded p-1 hover:bg-red-100"><X className="w-4 h-4" /></button>
+                          </div>
+                        ) : (
+                          <span 
+                            className="font-medium text-gray-900 cursor-pointer hover:text-[#0369A1] hover:underline"
+                            onClick={() => { setEditandoId(op.id); setNombreEditado(op.nombre); }}
+                            title="Clic para editar"
+                          >
+                            {op.nombre}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={op.area}
+                        onChange={(e) => handleCambiarArea(op.id, e.target.value as Area)}
+                        className={`text-xs font-medium px-2.5 py-1 rounded-full border cursor-pointer ${AREA_COLORS[op.area]}`}
+                      >
+                        {AREAS.map((a) => (
+                          <option key={a.value} value={a.value}>{a.label}</option>
+                        ))}
+                      </select>
+                      {!departamentoDesdeArea(op.area) && (
+                        <p className="mt-0.5 text-[10px] text-gray-400" title={SIN_HORAS_EXTRA_TITULO}>
+                          No aplica a horas extra
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {correo ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-mono text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                          <Mail className="w-3.5 h-3.5 text-emerald-600" />
+                          {correo}
+                        </span>
                       ) : (
-                        <span 
-                          className="font-medium text-gray-900 cursor-pointer hover:text-[#0369A1] hover:underline"
-                          onClick={() => { setEditandoId(op.id); setNombreEditado(op.nombre); }}
-                          title="Clic para editar"
-                        >
-                          {op.nombre}
+                        <span className="inline-flex items-center gap-1 text-xs font-mono text-slate-400 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
+                          Sin correo
                         </span>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <select
-                      value={op.area}
-                      onChange={(e) => handleCambiarArea(op.id, e.target.value as Area)}
-                      className={`text-xs font-medium px-2.5 py-1 rounded-full border cursor-pointer ${AREA_COLORS[op.area]}`}
-                    >
-                      {AREAS.map((a) => (
-                        <option key={a.value} value={a.value}>{a.label}</option>
-                      ))}
-                    </select>
-                    {!departamentoDesdeArea(op.area) && (
-                      <p className="mt-0.5 text-[10px] text-gray-400" title={SIN_HORAS_EXTRA_TITULO}>
-                        No aplica a horas extra
-                      </p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => handleToggle(op.id, op.activo)}
-                      className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${
-                        op.activo
-                          ? 'bg-green-50 text-green-700 hover:bg-green-100'
-                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                      }`}
-                      title={op.activo ? 'Clic para desactivar' : 'Clic para activar'}
-                    >
-                      {op.activo ? (
-                        <><UserCheck className="h-3.5 w-3.5" /> Activo</>
-                      ) : (
-                        <><UserX className="h-3.5 w-3.5" /> Inactivo</>
-                      )}
-                    </button>
-                  </td>
-                </tr>
-              ))
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => handleToggle(op.id, op.activo)}
+                        className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${
+                          op.activo
+                            ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}
+                        title={op.activo ? 'Clic para desactivar' : 'Clic para activar'}
+                      >
+                        {op.activo ? (
+                          <><UserCheck className="h-3.5 w-3.5" /> Activo</>
+                        ) : (
+                          <><UserX className="h-3.5 w-3.5" /> Inactivo</>
+                        )}
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })
             )}
           </tbody>
         </table>

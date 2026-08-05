@@ -109,5 +109,23 @@ describe("POST /api/usuarios", () => {
     expect(res.status).toBe(409)
     const body = await res.json()
     expect(body.error).toMatch(/ya tiene cuenta/i)
+  it("crea el usuario con operador vinculado y retorna 201", async () => {
+    mockCrear.mockResolvedValue({ uid: "uid-operador", tempPassword: "abc123" })
+    const res = await POST(
+      makeRequest("POST", {
+        email: "operador@ejemplo.com",
+        plantilla: "almacen",
+        operadorId: "op-101",
+        operadorNombre: "Juan Pérez",
+      })
+    )
+    expect(res.status).toBe(201)
+    expect(mockCrear).toHaveBeenCalledWith({
+      email: "operador@ejemplo.com",
+      plantilla: "almacen",
+      operadorId: "op-101",
+      operadorNombre: "Juan Pérez",
+      creadoPor: "jemiliano2001@gmail.com",
+    })
   })
 })

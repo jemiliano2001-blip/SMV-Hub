@@ -9,48 +9,91 @@ import {
   orderBy,
   where,
   serverTimestamp,
+  writeBatch,
 } from "firebase/firestore"
 import { db, getClienteAuth } from "@/lib/firebase"
-import type { MovimientoCajaChica } from "@/lib/schemas"
+import type { MovimientoCajaChica, CorteCaja } from "@/lib/schemas"
+export type { CorteCaja }
 import { makeDateConverter, actualizarDocumento } from "@/lib/firestore-helpers"
 import { registrarAuditoria } from "@/lib/auditoria"
+import { fechaHoyLocal } from "@/lib/format"
 
 const movimientoConverter = makeDateConverter<MovimientoCajaChica>()
 const cajaChicaRef = () => collection(db, "caja_chica_movimientos").withConverter(movimientoConverter)
+
+const corteConverter = makeDateConverter<CorteCaja>()
+const cajaChicaCortesRef = () => collection(db, "caja_chica_cortes").withConverter(corteConverter)
 
 const COLECCION_CONFIG = "caja_chica_config"
 const DOC_FONDO_FIJO = "fondo_fijo"
 const COLECCION_ARQUEOS = "caja_chica_arqueos"
 
-export type NuevoMovimientoCajaPayload = Omit<MovimientoCajaChica, "id" | "creadoEn" | "actualizadoEn">
+export type NuevoMovimientoCajaPayload = Omit<MovimientoCajaChica, "id" | "creadoEn" | "actualizadoEn" | "estadoCorte"> & {
+  estadoCorte?: MovimientoCajaChica["estadoCorte"]
+}
 
-export async function listarMovimientosCajaChica(periodo?: string): Promise<MovimientoCajaChica[]> {
-  // periodo format: "YYYY-MM"
+export type ModoFiltroCaja = "CICLO_ACTIVO" | "TODOS" | "CORTE" | "PERIODO"
+
+export type OpcionesFiltroCaja = {
+  modo?: ModoFiltroCaja
+  corteId?: string
+  periodo?: string
+}
+
+export async function listarMovimientosCajaChica(
+  filtro?: string | OpcionesFiltroCaja
+): Promise<MovimientoCajaChica[]> {
+  const opts: OpcionesFiltroCaja =
+    typeof filtro === "string"
+      ? { modo: "PERIODO", periodo: filtro }
+      : filtro ?? { modo: "CICLO_ACTIVO" }
+
+  const modo = opts.modo ?? "CICLO_ACTIVO"
+
+  // Traer lista de Firestore ordenada por fecha desc, creadoEn desc
   let q = query(cajaChicaRef(), orderBy("fecha", "desc"), orderBy("creadoEn", "desc"))
-  
-  if (periodo) {
+
+  if (modo === "PERIODO" && opts.periodo) {
     q = query(
       cajaChicaRef(),
-      where("periodo", "==", periodo),
+      where("periodo", "==", opts.periodo),
       orderBy("fecha", "desc"),
       orderBy("creadoEn", "desc")
     )
   }
-  
+
   const snap = await getDocs(q)
-  return snap.docs.map((d) => d.data()).filter((m) => !m.anulado)
+  const todos = snap.docs.map((d) => d.data()).filter((m) => !m.anulado)
+
+  if (modo === "CICLO_ACTIVO") {
+    // Muestra todos los movimientos acumulados que aún NO han sido cortados
+    return todos.filter((m) => m.estadoCorte !== "CORTADO" && !m.corteId)
+  }
+
+  if (modo === "CORTE" && opts.corteId) {
+    return todos.filter((m) => m.corteId === opts.corteId)
+  }
+
+  return todos
 }
 
 export async function crearMovimientoCajaChica(payload: NuevoMovimientoCajaPayload): Promise<string> {
   const ahora = new Date()
   const ref = await addDoc(cajaChicaRef(), {
     ...payload,
+    estadoCorte: payload.estadoCorte ?? "ACTIVO",
     creadoEn: ahora,
     actualizadoEn: ahora,
   } as MovimientoCajaChica)
 
   const user = getClienteAuth().currentUser
-  await registrarAuditoria(user?.email, "CREAR", "caja_chica_movimientos", ref.id, `Registró movimiento de caja chica (${payload.tipo}): $${payload.monto} - ${payload.descripcion}`)
+  await registrarAuditoria(
+    user?.email,
+    "CREAR",
+    "caja_chica_movimientos",
+    ref.id,
+    `Registró movimiento de caja chica (${payload.tipo}): $${payload.monto} - ${payload.descripcion}`
+  )
 
   return ref.id
 }
@@ -61,18 +104,23 @@ export async function actualizarMovimientoCajaChica(
 ): Promise<void> {
   await actualizarDocumento("caja_chica_movimientos", id, cambios as Record<string, unknown>)
   const user = getClienteAuth().currentUser
-  await registrarAuditoria(user?.email, "EDITAR", "caja_chica_movimientos", id, `Actualizó movimiento de caja chica: ${Object.keys(cambios).join(', ')}`)
+  await registrarAuditoria(
+    user?.email,
+    "EDITAR",
+    "caja_chica_movimientos",
+    id,
+    `Actualizó movimiento de caja chica: ${Object.keys(cambios).join(", ")}`
+  )
 }
 
 // Soft delete: preserva el registro (trazabilidad de movimientos de dinero real)
-// en vez de un borrado duro. `listarMovimientosCajaChica` ya filtra los anulados.
 export async function eliminarMovimientoCajaChica(id: string): Promise<void> {
   await actualizarDocumento("caja_chica_movimientos", id, { anulado: true })
   const user = getClienteAuth().currentUser
   await registrarAuditoria(user?.email, "BORRAR", "caja_chica_movimientos", id, "Anuló movimiento de caja chica")
 }
 
-// ── Fondo fijo (compartido en Firestore, ya no solo en localStorage del navegador) ──
+// ── Fondo fijo (compartido en Firestore) ────────────────────────────────────
 
 export async function obtenerFondoFijoCajaChica(): Promise<number> {
   const snap = await getDoc(doc(db, COLECCION_CONFIG, DOC_FONDO_FIJO))
@@ -90,7 +138,126 @@ export async function guardarFondoFijoCajaChica(valor: number): Promise<void> {
     actualizadoEn: serverTimestamp(),
   })
   const user = getClienteAuth().currentUser
-  await registrarAuditoria(user?.email, "EDITAR", COLECCION_CONFIG, DOC_FONDO_FIJO, `Actualizó el fondo fijo de caja chica a $${valor}`)
+  await registrarAuditoria(
+    user?.email,
+    "EDITAR",
+    COLECCION_CONFIG,
+    DOC_FONDO_FIJO,
+    `Actualizó el fondo fijo de caja chica a $${valor}`
+  )
+}
+
+// ── Cortes de Caja (Cierre de ciclo activo & Reabastecimiento automático) ────
+
+export async function listarCortesCaja(): Promise<CorteCaja[]> {
+  const q = query(cajaChicaCortesRef(), orderBy("creadoEn", "desc"))
+  const snap = await getDocs(q)
+  return snap.docs.map((d) => d.data())
+}
+
+export type CrearCorteResultado = {
+  corte: CorteCaja
+  movimientosCortadosCount: number
+}
+
+export async function crearCorteCaja(options?: { nota?: string }): Promise<CrearCorteResultado> {
+  // 1. Obtener movimientos del ciclo activo
+  const activos = await listarMovimientosCajaChica({ modo: "CICLO_ACTIVO" })
+
+  if (activos.length === 0) {
+    throw new Error("No hay movimientos activos acumulados para realizar un corte de caja.")
+  }
+
+  let totalEntradas = 0
+  let totalSalidas = 0
+  let fechaInicio = fechaHoyLocal()
+
+  activos.forEach((m) => {
+    if (m.tipo === "ENTRADA") {
+      totalEntradas += m.monto
+    } else {
+      totalSalidas += m.monto
+    }
+    if (m.fecha && m.fecha < fechaInicio) {
+      fechaInicio = m.fecha
+    }
+  })
+
+  // 2. Generar Folio
+  const cortesExistentes = await listarCortesCaja()
+  const numConsecutivo = cortesExistentes.length + 1
+  const hoy = fechaHoyLocal()
+  const anio = new Date().getFullYear()
+  const folio = `CORTE-${anio}-${String(numConsecutivo).padStart(3, "0")}`
+
+  const user = getClienteAuth().currentUser
+  const creadoPor = user?.email ?? "Administración"
+
+  // 3. Crear documento de corte en Firestore
+  const corteRef = doc(collection(db, "caja_chica_cortes"))
+  const ahora = new Date()
+
+  const corteData: CorteCaja = {
+    id: corteRef.id,
+    folio,
+    fechaInicio,
+    fechaCierre: hoy,
+    totalEntradas,
+    totalSalidas,
+    saldoReembolsado: totalSalidas,
+    cantidadMovimientos: activos.length,
+    creadoPor,
+    creadoEn: ahora,
+    actualizadoEn: ahora,
+    nota: options?.nota,
+  }
+
+  await setDoc(corteRef, corteData)
+
+  // 4. Batch update movimientos a estado CORTADO con el corteId
+  const batch = writeBatch(db)
+  activos.forEach((m) => {
+    const docRef = doc(db, "caja_chica_movimientos", m.id)
+    batch.update(docRef, {
+      estadoCorte: "CORTADO",
+      corteId: corteRef.id,
+      actualizadoEn: serverTimestamp(),
+    })
+  })
+  await batch.commit()
+
+  // 5. Generar automáticamente la ENTRADA de reabastecimiento para el nuevo ciclo
+  if (totalSalidas > 0) {
+    await crearMovimientoCajaChica({
+      fecha: hoy,
+      periodo: hoy.substring(0, 7),
+      descripcion: `Reabastecimiento de Caja Chica (${folio})`,
+      proveedor: "Finanzas",
+      categoria: "Recarga de Caja",
+      solicitante: creadoPor,
+      comprobante: "NINGUNO",
+      deducible: false,
+      tipo: "ENTRADA",
+      monto: totalSalidas,
+      costoReal: totalSalidas,
+      ivaEstimado: 0,
+      verificado: true,
+      estadoCorte: "ACTIVO",
+    })
+  }
+
+  await registrarAuditoria(
+    creadoPor,
+    "CREAR",
+    "caja_chica_cortes",
+    corteRef.id,
+    `Realizó ${folio}: ${activos.length} movimientos cerrados, total reembolsado $${totalSalidas}`
+  )
+
+  return {
+    corte: corteData,
+    movimientosCortadosCount: activos.length,
+  }
 }
 
 // ── Arqueos de caja (conteo físico vs saldo teórico) ─────────────────────────

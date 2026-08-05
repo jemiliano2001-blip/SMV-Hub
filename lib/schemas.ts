@@ -360,6 +360,8 @@ export const UsuarioSchema = z.object({
   atiendeDocumentosVenta: z.boolean().default(false),
   /** Permite editar /horas-extra sin plantilla admin/compras (contabilidad, automatización). */
   editaHorasExtra: z.boolean().default(false),
+  operadorId: z.string().nullable().optional(),
+  operadorNombre: z.string().nullable().optional(),
   creadoPor: z.string(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
@@ -619,6 +621,9 @@ export type TipoMovimientoCaja = z.infer<typeof TipoMovimientoCajaSchema>
 export const ComprobanteCajaSchema = z.enum(["FACTURA", "VALE", "TICKET", "NINGUNO"])
 export type ComprobanteCaja = z.infer<typeof ComprobanteCajaSchema>
 
+export const EstadoCorteCajaSchema = z.enum(["ACTIVO", "CORTADO"])
+export type EstadoCorteCaja = z.infer<typeof EstadoCorteCajaSchema>
+
 export const MovimientoCajaChicaSchema = z.object({
   id: z.string(),
   fecha: z.string(), // YYYY-MM-DD
@@ -635,6 +640,8 @@ export const MovimientoCajaChicaSchema = z.object({
   ivaEstimado: z.number().min(0),
   verificado: z.boolean().default(false),
   anulado: z.boolean().optional(),
+  corteId: z.string().nullable().optional(),
+  estadoCorte: EstadoCorteCajaSchema.optional().default("ACTIVO"),
   archivoUrl: z.string().nullable().optional(),
   archivoNombre: z.string().nullable().optional(),
   archivoPath: z.string().nullable().optional(),
@@ -642,6 +649,23 @@ export const MovimientoCajaChicaSchema = z.object({
   actualizadoEn: z.date(),
 })
 export type MovimientoCajaChica = z.infer<typeof MovimientoCajaChicaSchema>
+
+export const CorteCajaSchema = z.object({
+  id: z.string(),
+  folio: z.string(), // ej. CORTE-2026-001
+  fechaInicio: z.string(), // YYYY-MM-DD del movimiento más antiguo del ciclo
+  fechaCierre: z.string(), // YYYY-MM-DD del día en que se hizo el corte
+  totalEntradas: z.number().min(0),
+  totalSalidas: z.number().min(0),
+  saldoReembolsado: z.number().min(0),
+  cantidadMovimientos: z.number().min(0),
+  creadoPor: z.string(),
+  creadoEn: z.date(),
+  actualizadoEn: z.date(),
+  nota: z.string().optional(),
+})
+export type CorteCaja = z.infer<typeof CorteCajaSchema>
+
 
 // ── Finanzas: facturación de clientes (espejo de solo lectura de Odoo) ───────
 // Campos confirmados contra Odoo real (Fase 0, 2026-07-15): account.move,

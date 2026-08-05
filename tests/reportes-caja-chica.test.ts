@@ -22,6 +22,7 @@ function movimientoBase(overrides: Partial<MovimientoCajaChica> = {}): Movimient
     costoReal: 500,
     ivaEstimado: 80,
     verificado: false,
+    estadoCorte: "ACTIVO",
     creadoEn: ahora,
     actualizadoEn: ahora,
     ...overrides,

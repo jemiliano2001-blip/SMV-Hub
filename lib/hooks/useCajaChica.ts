@@ -5,19 +5,24 @@ import {
   crearMovimientoCajaChica,
   actualizarMovimientoCajaChica,
   eliminarMovimientoCajaChica,
-  NuevoMovimientoCajaPayload
+  crearCorteCaja,
+  NuevoMovimientoCajaPayload,
+  OpcionesFiltroCaja
 } from '@/lib/caja-chica'
 
-export function useCajaChica(periodo?: string) {
+export function useCajaChica(filtro?: string | OpcionesFiltroCaja) {
   const [movimientos, setMovimientos] = useState<MovimientoCajaChica[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Serialización simple para useCallback dependency si es un objeto
+  const filtroKey = typeof filtro === 'object' ? JSON.stringify(filtro) : filtro ?? 'CICLO_ACTIVO'
 
   const cargarMovimientos = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      const data = await listarMovimientosCajaChica(periodo)
+      const data = await listarMovimientosCajaChica(filtro)
       setMovimientos(data)
     } catch (err: unknown) {
       console.error("Error cargando caja chica:", err)
@@ -25,10 +30,10 @@ export function useCajaChica(periodo?: string) {
     } finally {
       setLoading(false)
     }
-  }, [periodo])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtroKey])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     cargarMovimientos()
   }, [cargarMovimientos])
 
@@ -62,6 +67,17 @@ export function useCajaChica(periodo?: string) {
     }
   }
 
+  const realizarCorteCaja = async (nota?: string) => {
+    try {
+      const res = await crearCorteCaja({ nota })
+      await cargarMovimientos()
+      return res
+    } catch (err: unknown) {
+      console.error("Error realizando corte de caja:", err)
+      throw err
+    }
+  }
+
   return {
     movimientos,
     loading,
@@ -69,6 +85,7 @@ export function useCajaChica(periodo?: string) {
     agregarMovimiento,
     actualizarMovimiento,
     borrarMovimiento,
+    realizarCorteCaja,
     recargar: cargarMovimientos,
   }
 }

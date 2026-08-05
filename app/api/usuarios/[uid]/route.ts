@@ -13,6 +13,8 @@ const CambiosUsuarioSchema = z
     esSuperAdmin: z.boolean().optional(),
     atiendeDocumentosVenta: z.boolean().optional(),
     editaHorasExtra: z.boolean().optional(),
+    operadorId: z.string().nullable().optional(),
+    operadorNombre: z.string().nullable().optional(),
     activo: z.boolean().optional(),
   })
   .refine(
@@ -23,6 +25,8 @@ const CambiosUsuarioSchema = z
       c.esSuperAdmin !== undefined ||
       c.atiendeDocumentosVenta !== undefined ||
       c.editaHorasExtra !== undefined ||
+      c.operadorId !== undefined ||
+      c.operadorNombre !== undefined ||
       c.activo !== undefined,
     { message: "Debe incluir al menos un campo a actualizar" }
   )

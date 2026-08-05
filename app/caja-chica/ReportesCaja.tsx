@@ -1,19 +1,42 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { Printer, FileText, Table2 } from 'lucide-react'
+import { useMemo, useState, useEffect } from 'react'
+import { Printer, FileText, Table2, Filter } from 'lucide-react'
 import { useCajaChica } from '@/lib/hooks/useCajaChica'
 import { filtrarMovimientosCajaChicaReporte, calcularTotalesReporteCaja } from '@/lib/reportes-caja-chica'
 import { formatPrecio } from '@/lib/format'
+import { listarCortesCaja, type CorteCaja, type ModoFiltroCaja } from '@/lib/caja-chica'
 
 export default function ReportesCaja() {
+  const [modoFiltro, setModoFiltro] = useState<ModoFiltroCaja>('CICLO_ACTIVO')
   const [periodo, setPeriodo] = useState(() => {
     const hoy = new Date()
     return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`
   })
+  const [corteIdSel, setCorteIdSel] = useState<string>('')
+  const [cortesHistorial, setCortesHistorial] = useState<CorteCaja[]>([])
   const [conFactura, setConFactura] = useState(true)
 
-  const { movimientos, loading, error } = useCajaChica(periodo)
+  useEffect(() => {
+    listarCortesCaja()
+      .then((res) => {
+        setCortesHistorial(res)
+        if (res.length > 0 && !corteIdSel) {
+          setCorteIdSel(res[0].id)
+        }
+      })
+      .catch((err) => console.error('Error cargando historial de cortes:', err))
+  }, [corteIdSel])
+
+  const filtroActual = useMemo(() => {
+    return {
+      modo: modoFiltro,
+      periodo,
+      corteId: corteIdSel,
+    }
+  }, [modoFiltro, periodo, corteIdSel])
+
+  const { movimientos, loading, error } = useCajaChica(filtroActual)
 
   const filtrados = useMemo(
     () => filtrarMovimientosCajaChicaReporte(movimientos, conFactura),
@@ -21,53 +44,64 @@ export default function ReportesCaja() {
   )
   const { total, ivaTotal } = useMemo(() => calcularTotalesReporteCaja(filtrados), [filtrados])
 
+  const etiquetaModo = useMemo(() => {
+    if (modoFiltro === 'CICLO_ACTIVO') return 'Ciclo Activo (Sin corte)'
+    if (modoFiltro === 'TODOS') return 'Todos los Movimientos Históricos'
+    if (modoFiltro === 'PERIODO') return `Mes ${periodo}`
+    const c = cortesHistorial.find((item) => item.id === corteIdSel)
+    return c ? `${c.folio} (${c.fechaCierre})` : 'Corte de Caja'
+  }, [modoFiltro, periodo, corteIdSel, cortesHistorial])
+
   const exportarExcel = async () => {
     if (filtrados.length === 0) return
     const XLSX = await import('xlsx')
-    
-    // Preparar filas para Excel
-    const datos = filtrados.map(m => {
+
+    const datos = filtrados.map((m) => {
       const fila: Record<string, string | number> = {
-        'Fecha': m.fecha,
-        'Descripción': m.descripcion,
+        Fecha: m.fecha,
+        Descripción: m.descripcion,
         'Proveedor / Lugar': m.proveedor,
-        'Categoría': m.categoria,
-        'Comprobante': m.comprobante,
-        'Monto ($)': m.monto
+        Categoría: m.categoria,
+        Comprobante: m.comprobante,
+        'Monto ($)': m.monto,
       }
       if (conFactura) fila['IVA Estimado ($)'] = m.ivaEstimado || 0
       return fila
     })
-    
-    // Fila vacía de separación
-    datos.push({ 'Fecha': '', 'Descripción': '', 'Proveedor / Lugar': '', 'Categoría': '', 'Comprobante': '', 'Monto ($)': '' })
-    
-    // Fila de totales
+
+    datos.push({
+      Fecha: '',
+      Descripción: '',
+      'Proveedor / Lugar': '',
+      Categoría: '',
+      Comprobante: '',
+      'Monto ($)': '',
+    })
+
     const filaTotal: Record<string, string | number> = {
-      'Fecha': 'TOTALES',
-      'Monto ($)': total
+      Fecha: 'TOTALES',
+      'Monto ($)': total,
     }
     if (conFactura) filaTotal['IVA Estimado ($)'] = ivaTotal
     datos.push(filaTotal)
-    
+
     const worksheet = XLSX.utils.json_to_sheet(datos)
-    
-    // Ajustar anchos de columnas
     const wscols = [
-      {wch: 12}, // Fecha
-      {wch: 40}, // Descripción
-      {wch: 25}, // Proveedor
-      {wch: 15}, // Categoría
-      {wch: 15}, // Comprobante
-      {wch: 15}  // Monto
+      { wch: 12 },
+      { wch: 40 },
+      { wch: 25 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
     ]
-    if (conFactura) wscols.push({wch: 15})
+    if (conFactura) wscols.push({ wch: 15 })
     worksheet['!cols'] = wscols
-    
+
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte Caja Chica')
-    
-    XLSX.writeFile(workbook, `Reporte_CajaChica_${periodo}${conFactura ? '_ConFactura' : '_SinFactura'}.xlsx`)
+
+    const sufijoModo = modoFiltro.toLowerCase()
+    XLSX.writeFile(workbook, `Reporte_CajaChica_${sufijoModo}${conFactura ? '_ConFactura' : '_SinFactura'}.xlsx`)
   }
 
   const columnas = conFactura ? 7 : 6
@@ -75,21 +109,57 @@ export default function ReportesCaja() {
   return (
     <div className="space-y-4 print:space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <div className="flex flex-wrap items-center gap-3">
-          <input
-            type="month"
-            value={periodo}
-            onChange={(e) => setPeriodo(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1]"
-          />
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Selector de Modo */}
+          <div className="flex items-center gap-1.5 text-xs">
+            <Filter className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+            <select
+              value={modoFiltro}
+              onChange={(e) => setModoFiltro(e.target.value as ModoFiltroCaja)}
+              className="px-3 py-2 text-xs font-bold border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1] text-gray-800"
+            >
+              <option value="CICLO_ACTIVO">⚡ Ciclo Activo (Sin corte)</option>
+              <option value="TODOS">📋 Todos los Movimientos</option>
+              <option value="PERIODO">📅 Por Mes Calendario</option>
+              <option value="CORTE">🔖 Por Corte Realizado</option>
+            </select>
+          </div>
+
+          {modoFiltro === 'PERIODO' && (
+            <input
+              type="month"
+              value={periodo}
+              onChange={(e) => setPeriodo(e.target.value)}
+              className="px-3 py-2 text-xs font-mono border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1]"
+            />
+          )}
+
+          {modoFiltro === 'CORTE' && (
+            <select
+              value={corteIdSel}
+              onChange={(e) => setCorteIdSel(e.target.value)}
+              className="px-3 py-2 text-xs font-mono border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1]"
+            >
+              {cortesHistorial.length === 0 ? (
+                <option value="">Sin cortes realizados</option>
+              ) : (
+                cortesHistorial.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.folio} ({c.fechaCierre}) — ${c.saldoReembolsado.toFixed(2)}
+                  </option>
+                ))
+              )}
+            </select>
+          )}
+
           <div className="flex bg-gray-200/50 p-1 rounded-lg">
             {([true, false] as const).map((valor) => (
               <button
                 key={String(valor)}
                 onClick={() => setConFactura(valor)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
                   conFactura === valor
-                    ? 'bg-white text-[#0369A1] shadow-sm'
+                    ? 'bg-white text-[#0369A1] shadow-xs'
                     : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
@@ -98,6 +168,7 @@ export default function ReportesCaja() {
             ))}
           </div>
         </div>
+
         <div className="flex gap-2">
           <button
             onClick={exportarExcel}
@@ -129,7 +200,7 @@ export default function ReportesCaja() {
             <h2 className="text-xl font-bold text-gray-700 mt-1 uppercase tracking-wider">Reporte de Caja Chica</h2>
           </div>
           <div className="text-right text-sm text-gray-800">
-            <p><span className="font-semibold">Periodo:</span> {periodo}</p>
+            <p><span className="font-semibold">Selección:</span> {etiquetaModo}</p>
             <p><span className="font-semibold">Filtro:</span> Gastos {conFactura ? 'Con Factura' : 'Sin Factura'}</p>
             <p><span className="font-semibold">Fecha de Emisión:</span> {new Date().toLocaleDateString('es-MX')}</p>
           </div>
@@ -159,14 +230,17 @@ export default function ReportesCaja() {
             ) : filtrados.length === 0 ? (
               <tr>
                 <td colSpan={columnas} className="px-4 py-8 text-center text-gray-500">
-                  Sin movimientos {conFactura ? 'con factura' : 'sin factura'} en este periodo.
+                  Sin movimientos {conFactura ? 'con factura' : 'sin factura'} para esta selección.
                 </td>
               </tr>
             ) : (
               filtrados.map((m) => (
                 <tr key={m.id} className="hover:bg-gray-50 print:hover:bg-white">
                   <td className="px-4 py-3 text-gray-900 print:px-2 print:py-2">{m.fecha}</td>
-                  <td className="px-4 py-3 text-gray-900 max-w-[220px] truncate print:max-w-none print:whitespace-normal print:px-2 print:py-2" title={m.descripcion}>
+                  <td
+                    className="px-4 py-3 text-gray-900 max-w-[220px] truncate print:max-w-none print:whitespace-normal print:px-2 print:py-2"
+                    title={m.descripcion}
+                  >
                     {m.descripcion}
                   </td>
                   <td className="px-4 py-3 text-gray-600 print:px-2 print:py-2">{m.proveedor}</td>
@@ -205,9 +279,13 @@ export default function ReportesCaja() {
                 <td className="px-4 py-3 print:px-2 print:py-3" colSpan={5}>
                   TOTAL
                 </td>
-                <td className="px-4 py-3 text-right tabular-nums print:px-2 print:py-3">{formatPrecio(total, 'MXN')}</td>
+                <td className="px-4 py-3 text-right tabular-nums print:px-2 print:py-3">
+                  {formatPrecio(total, 'MXN')}
+                </td>
                 {conFactura && (
-                  <td className="px-4 py-3 text-right tabular-nums print:px-2 print:py-3">{formatPrecio(ivaTotal, 'MXN')}</td>
+                  <td className="px-4 py-3 text-right tabular-nums print:px-2 print:py-3">
+                    {formatPrecio(ivaTotal, 'MXN')}
+                  </td>
                 )}
               </tr>
             </tfoot>

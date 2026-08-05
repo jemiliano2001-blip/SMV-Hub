@@ -12,6 +12,8 @@ export interface UsuarioAdmin {
   esSuperAdmin: boolean
   atiendeDocumentosVenta: boolean
   editaHorasExtra: boolean
+  operadorId?: string | null
+  operadorNombre?: string | null
   activo: boolean
   proveedor: "google" | "password"
   creadoPor: string
@@ -26,6 +28,8 @@ export interface CrearUsuarioInput {
   esSuperAdmin?: boolean
   atiendeDocumentosVenta?: boolean
   editaHorasExtra?: boolean
+  operadorId?: string | null
+  operadorNombre?: string | null
   password?: string
 }
 
@@ -35,6 +39,8 @@ export interface ActualizarUsuarioInput {
   esSuperAdmin?: boolean
   atiendeDocumentosVenta?: boolean
   editaHorasExtra?: boolean
+  operadorId?: string | null
+  operadorNombre?: string | null
   activo?: boolean
 }
 
@@ -80,6 +86,8 @@ export function useUsuarios() {
             esSuperAdmin: u.esSuperAdmin === true,
             atiendeDocumentosVenta: u.atiendeDocumentosVenta === true,
             editaHorasExtra: u.editaHorasExtra === true,
+            operadorId: u.operadorId ?? null,
+            operadorNombre: u.operadorNombre ?? null,
           }))
         )
       }

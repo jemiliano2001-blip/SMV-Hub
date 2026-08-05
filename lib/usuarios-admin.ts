@@ -102,6 +102,8 @@ export interface NuevoUsuarioPayload {
   esSuperAdmin?: boolean
   atiendeDocumentosVenta?: boolean
   editaHorasExtra?: boolean
+  operadorId?: string | null
+  operadorNombre?: string | null
   creadoPor: string
   /** Si se omite, se genera una temporal aleatoria. */
   password?: string
@@ -145,6 +147,8 @@ export async function crearUsuarioAdmin(payload: NuevoUsuarioPayload): Promise<U
     esSuperAdmin: payload.esSuperAdmin === true,
     atiendeDocumentosVenta: payload.atiendeDocumentosVenta === true,
     editaHorasExtra: payload.editaHorasExtra === true,
+    operadorId: payload.operadorId ?? null,
+    operadorNombre: payload.operadorNombre ?? null,
     activo: true,
     proveedor: "password",
     creadoPor: payload.creadoPor,
@@ -161,6 +165,8 @@ export interface CambiosUsuarioAdmin {
   esSuperAdmin?: boolean
   atiendeDocumentosVenta?: boolean
   editaHorasExtra?: boolean
+  operadorId?: string | null
+  operadorNombre?: string | null
   activo?: boolean
   /** @deprecated Usar plantilla (también reescribe modulos si no mandas modulos). */
   rol?: Rol
@@ -241,6 +247,14 @@ export async function actualizarUsuarioAdmin(
     update.editaHorasExtra = cambios.editaHorasExtra
   }
 
+  if (cambios.operadorId !== undefined) {
+    update.operadorId = cambios.operadorId
+  }
+
+  if (cambios.operadorNombre !== undefined) {
+    update.operadorNombre = cambios.operadorNombre
+  }
+
   if (cambios.activo !== undefined) {
     update.activo = cambios.activo
   }
@@ -294,6 +308,8 @@ interface DocUsuarioFirestore {
   esSuperAdmin?: unknown
   atiendeDocumentosVenta?: unknown
   editaHorasExtra?: unknown
+  operadorId?: unknown
+  operadorNombre?: unknown
   activo?: unknown
   proveedor?: unknown
   creadoPor?: string
@@ -317,6 +333,8 @@ function mapearDocUsuario(id: string, data: DocUsuarioFirestore): Usuario | null
     esSuperAdmin: esSuperAdminDesdeUsuarioLegacy(data),
     atiendeDocumentosVenta: data.atiendeDocumentosVenta === true,
     editaHorasExtra: data.editaHorasExtra === true,
+    operadorId: typeof data.operadorId === "string" ? data.operadorId : null,
+    operadorNombre: typeof data.operadorNombre === "string" ? data.operadorNombre : null,
     activo: data.activo === true,
     proveedor,
     creadoPor: data.creadoPor ?? "",

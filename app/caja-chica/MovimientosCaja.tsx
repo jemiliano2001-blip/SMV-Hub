@@ -1,11 +1,28 @@
 /* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · tone: utilitario · scope: movimientos-caja */
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useCajaChica } from '@/lib/hooks/useCajaChica'
-import { Plus, Search, Trash2, Edit2, CheckCircle, FileText, Filter, AlertTriangle, UserCheck } from 'lucide-react'
+import {
+  Plus,
+  Search,
+  Trash2,
+  Edit2,
+  CheckCircle,
+  FileText,
+  Filter,
+  AlertTriangle,
+  UserCheck,
+  Scissors,
+  Calendar,
+  History,
+  Sparkles,
+  RefreshCw,
+} from 'lucide-react'
 import ModalMovimientoCaja from './ModalMovimientoCaja'
 import type { MovimientoCajaChica } from '@/lib/schemas'
+import { listarCortesCaja, type CorteCaja, type ModoFiltroCaja } from '@/lib/caja-chica'
+import { toast } from 'sonner'
 
 type FiltroTipo = 'TODOS' | 'ENTRADA' | 'SALIDA'
 type FiltroEstado = 'TODOS' | 'VERIFICADO' | 'PENDIENTE'
@@ -23,9 +40,23 @@ type AccionesMovimiento = {
 
 function MovimientoRow({ m, onVerificar, onEditar, onBorrar }: AccionesMovimiento) {
   const isVale = m.comprobante === 'VALE'
+  const isCortado = m.estadoCorte === 'CORTADO'
+
   return (
     <tr className={`hover:bg-slate-50/80 transition-colors text-xs ${isVale ? 'bg-amber-50/30' : ''}`}>
-      <td className="px-3 py-2.5 font-mono text-slate-700">{m.fecha}</td>
+      <td className="px-3 py-2.5 font-mono text-slate-700">
+        <div className="flex items-center gap-1.5">
+          <span>{m.fecha}</span>
+          {isCortado && (
+            <span
+              className="bg-slate-100 text-slate-600 border border-slate-200 px-1 py-0.2 rounded text-[9px] font-mono"
+              title="Este movimiento pertenece a un corte ya realizado"
+            >
+              CORTADO
+            </span>
+          )}
+        </div>
+      </td>
       <td className="px-3 py-2.5 font-medium text-slate-900 max-w-[220px] truncate" title={m.descripcion}>
         <span>{m.descripcion}</span>
         {isVale && (
@@ -101,13 +132,16 @@ function MovimientoRow({ m, onVerificar, onEditar, onBorrar }: AccionesMovimient
 
 function MovimientoCard({ m, onVerificar, onEditar, onBorrar }: AccionesMovimiento) {
   const isVale = m.comprobante === 'VALE'
+  const isCortado = m.estadoCorte === 'CORTADO'
+
   return (
     <div className={`p-3.5 border rounded-lg shadow-xs space-y-2.5 mb-2.5 ${isVale ? 'bg-amber-50/40 border-amber-200' : 'bg-white border-slate-200'}`}>
       <div className="flex justify-between items-start gap-2">
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[11px] font-mono text-slate-500">{m.fecha}</span>
             {isVale && <span className="bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.2 rounded text-[9px] font-mono font-bold">VALE</span>}
+            {isCortado && <span className="bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.2 rounded text-[9px] font-mono">CORTADO</span>}
           </div>
           <h4 className="text-xs font-bold text-slate-900 mt-0.5 break-words">{m.descripcion}</h4>
         </div>
@@ -196,13 +230,32 @@ function SkeletonRow() {
 }
 
 export default function MovimientosCaja() {
-  const [periodo, setPeriodo] = useState(() => {
+  const [modoFiltro, setModoFiltro] = useState<ModoFiltroCaja>('CICLO_ACTIVO')
+  const [periodoSel, setPeriodoSel] = useState(() => {
     const hoy = new Date()
     return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`
   })
+  const [corteIdSel, setCorteIdSel] = useState<string>('')
+  const [cortesHistorial, setCortesHistorial] = useState<CorteCaja[]>([])
 
-  const { movimientos, loading, error, agregarMovimiento, borrarMovimiento, actualizarMovimiento } =
-    useCajaChica(periodo)
+  const filtroActual = useMemo(() => {
+    return {
+      modo: modoFiltro,
+      periodo: periodoSel,
+      corteId: corteIdSel,
+    }
+  }, [modoFiltro, periodoSel, corteIdSel])
+
+  const {
+    movimientos,
+    loading,
+    error,
+    agregarMovimiento,
+    borrarMovimiento,
+    actualizarMovimiento,
+    realizarCorteCaja,
+  } = useCajaChica(filtroActual)
+
   const [busqueda, setBusqueda] = useState('')
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>('TODOS')
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>('TODOS')
@@ -212,11 +265,57 @@ export default function MovimientosCaja() {
   const [initialValores, setInitialValores] = useState<Partial<MovimientoCajaChica> | undefined>(undefined)
   const [movimientoABorrar, setMovimientoABorrar] = useState<MovimientoCajaChica | null>(null)
 
-  const saldoPeriodo = useMemo(() => {
-    return movimientos.reduce((acc, m) => {
-      return m.tipo === 'ENTRADA' ? acc + m.monto : acc - m.monto
-    }, 0)
+  // Modal para confirmar Corte de Caja
+  const [modalCorteOpen, setModalCorteOpen] = useState(false)
+  const [notaCorte, setNotaCorte] = useState('')
+  const [haciendoCorte, setHaciendoCorte] = useState(false)
+
+  const cargarHistorialCortes = useCallback(() => {
+    listarCortesCaja()
+      .then((res) => {
+        setCortesHistorial(res)
+        if (res.length > 0 && !corteIdSel) {
+          setCorteIdSel(res[0].id)
+        }
+      })
+      .catch((err) => console.error('Error cargando historial de cortes:', err))
+  }, [corteIdSel])
+
+  useEffect(() => {
+    cargarHistorialCortes()
+  }, [cargarHistorialCortes])
+
+  const { totalSalidasAcumuladas, totalEntradasAcumuladas, saldoCalculado } = useMemo(() => {
+    let totalEntradas = 0
+    let totalSalidas = 0
+    movimientos.forEach((m) => {
+      if (m.tipo === 'ENTRADA') totalEntradas += m.monto
+      else totalSalidas += m.monto
+    })
+    return {
+      totalEntradasAcumuladas: totalEntradas,
+      totalSalidasAcumuladas: totalSalidas,
+      saldoCalculado: totalEntradas - totalSalidas,
+    }
   }, [movimientos])
+
+  const handleConfirmarCorte = async () => {
+    setHaciendoCorte(true)
+    try {
+      const res = await realizarCorteCaja(notaCorte)
+      toast.success(
+        `¡${res.corte.folio} realizado con éxito! Se registraron ${res.movimientosCortadosCount} movimientos y el reabastecimiento por ${formatearDinero(res.corte.totalSalidas)}.`
+      )
+      setModalCorteOpen(false)
+      setNotaCorte('')
+      cargarHistorialCortes()
+    } catch (err: unknown) {
+      console.error(err)
+      const msg = err instanceof Error ? err.message : 'No se pudo realizar el corte de caja.'
+    } finally {
+      setHaciendoCorte(false)
+    }
+  }
 
   const handleEliminar = async () => {
     if (movimientoABorrar) {
@@ -243,52 +342,88 @@ export default function MovimientosCaja() {
 
   const handleNuevoVale = () => {
     setMovimientoEditar(null)
-    setInitialValores({ 
-      tipo: 'SALIDA', 
+    setInitialValores({
+      tipo: 'SALIDA',
       comprobante: 'VALE',
       descripcion: 'Préstamo provisional para gasto',
-      proveedor: 'Pendiente'
+      proveedor: 'Pendiente',
     })
     setModalOpen(true)
   }
 
   const filtrados = useMemo(() => {
-    const query = busqueda.toLowerCase()
-    return movimientos.filter(m => {
-      const matchBusqueda = m.descripcion.toLowerCase().includes(query) ||
-                            m.proveedor.toLowerCase().includes(query) ||
-                            m.solicitante.toLowerCase().includes(query) ||
-                            m.categoria.toLowerCase().includes(query)
+    const queryStr = busqueda.toLowerCase()
+    return movimientos.filter((m) => {
+      const matchBusqueda =
+        m.descripcion.toLowerCase().includes(queryStr) ||
+        m.proveedor.toLowerCase().includes(queryStr) ||
+        m.solicitante.toLowerCase().includes(queryStr) ||
+        m.categoria.toLowerCase().includes(queryStr)
       const matchTipo = filtroTipo === 'TODOS' || m.tipo === filtroTipo
-      const matchEstado = filtroEstado === 'TODOS' ||
-                         (filtroEstado === 'VERIFICADO' && m.verificado) ||
-                         (filtroEstado === 'PENDIENTE' && !m.verificado)
+      const matchEstado =
+        filtroEstado === 'TODOS' ||
+        (filtroEstado === 'VERIFICADO' && m.verificado) ||
+        (filtroEstado === 'PENDIENTE' && !m.verificado)
       return matchBusqueda && matchTipo && matchEstado
     })
   }, [movimientos, busqueda, filtroTipo, filtroEstado])
 
   return (
     <div className="space-y-4 font-sans">
-      {/* Header & Balance Utilitario */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-        <div>
-          <p className="text-xs font-mono font-medium text-slate-500 uppercase tracking-wider">Saldo acumulado del periodo</p>
-          <p className={`text-2xl font-bold font-mono tracking-tight ${saldoPeriodo >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>
-            {formatearDinero(saldoPeriodo)}
-          </p>
+      {/* Header & Balance Utilitario del Ciclo */}
+      <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200">
+          <div>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs font-mono font-medium text-slate-500 uppercase tracking-wider">
+                {modoFiltro === 'CICLO_ACTIVO' ? 'Saldo del Ciclo Activo' : 'Saldo de los Movimientos'}
+              </p>
+              {modoFiltro === 'CICLO_ACTIVO' && (
+                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold px-1.5 py-0.2 rounded border border-emerald-300">
+                  EN CURSO
+                </span>
+              )}
+            </div>
+            <p
+              className={`text-2xl font-bold font-mono tracking-tight ${saldoCalculado >= 0 ? 'text-slate-900' : 'text-rose-600'}`}
+            >
+              {formatearDinero(saldoCalculado)}
+            </p>
+          </div>
+
+          <div className="pt-2 sm:pt-0 sm:pl-4">
+            <p className="text-xs font-mono font-medium text-slate-500 uppercase tracking-wider">
+              Total a Reembolsar (Gastos)
+            </p>
+            <p className="text-lg font-bold font-mono text-rose-700 tabular-nums">
+              {formatearDinero(totalSalidasAcumuladas)}
+            </p>
+          </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap gap-2 w-full lg:w-auto justify-end">
+          {modoFiltro === 'CICLO_ACTIVO' && (
+            <button
+              onClick={() => setModalCorteOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 justify-center shadow-xs active:scale-[0.98] w-full sm:w-auto"
+              title="Cerrar el ciclo acumulado actual y generar el reembolso automático"
+            >
+              <Scissors className="h-4 w-4" />
+              Hacer Corte de Caja
+            </button>
+          )}
+
           <button
             onClick={handleNuevoVale}
-            className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 justify-center active:scale-[0.98]"
+            className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 justify-center active:scale-[0.98] flex-1 sm:flex-none"
           >
             <UserCheck className="h-4 w-4" />
-            Nuevo Vale (Préstamo)
+            Nuevo Vale
           </button>
+
           <button
             onClick={handleNuevoGasto}
-            className="bg-[#0369A1] hover:bg-[#0284C7] text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 justify-center shadow-xs active:scale-[0.98]"
+            className="bg-[#0369A1] hover:bg-[#0284C7] text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 justify-center shadow-xs active:scale-[0.98] flex-1 sm:flex-none"
           >
             <Plus className="h-4 w-4" />
             Nuevo Movimiento
@@ -296,20 +431,21 @@ export default function MovimientosCaja() {
         </div>
       </div>
 
-      {/* Toolbar de Filtros Rápido */}
+      {/* Toolbar de Filtros y Selección de Ciclo / Corte */}
       <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-3">
         <div className="flex flex-col lg:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar por descripción, proveedor..."
+              placeholder="Buscar por descripción, proveedor, solicitante..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1] focus:ring-1 focus:ring-[#0369A1] text-slate-900"
             />
           </div>
-          <div className="flex flex-wrap sm:flex-nowrap gap-2">
+
+          <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
             <div className="flex items-center gap-1.5 text-xs w-full sm:w-auto">
               <Filter className="h-3.5 w-3.5 text-slate-400 shrink-0" />
               <select
@@ -322,6 +458,7 @@ export default function MovimientosCaja() {
                 <option value="SALIDA">Salidas</option>
               </select>
             </div>
+
             <div className="flex items-center gap-1.5 text-xs w-full sm:w-auto">
               <select
                 value={filtroEstado}
@@ -333,12 +470,47 @@ export default function MovimientosCaja() {
                 <option value="PENDIENTE">Pendientes</option>
               </select>
             </div>
-            <input
-              type="month"
-              value={periodo}
-              onChange={(e) => setPeriodo(e.target.value)}
-              className="w-full sm:w-auto px-2.5 py-1.5 bg-white text-xs border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1] font-mono"
-            />
+
+            {/* Selector de Modo de Vista (Ciclo Activo / Todos / Mes / Corte) */}
+            <div className="flex items-center gap-1.5 text-xs w-full sm:w-auto">
+              <select
+                value={modoFiltro}
+                onChange={(e) => setModoFiltro(e.target.value as ModoFiltroCaja)}
+                className="w-full sm:w-auto px-2.5 py-1.5 bg-white text-xs font-bold text-slate-800 border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1]"
+              >
+                <option value="CICLO_ACTIVO">⚡ Ciclo Activo (Sin corte)</option>
+                <option value="TODOS">📋 Todos los Movimientos</option>
+                <option value="PERIODO">📅 Filtrar por Mes Calendario</option>
+                <option value="CORTE">🔖 Filtrar por Corte Realizado</option>
+              </select>
+            </div>
+
+            {modoFiltro === 'PERIODO' && (
+              <input
+                type="month"
+                value={periodoSel}
+                onChange={(e) => setPeriodoSel(e.target.value)}
+                className="w-full sm:w-auto px-2.5 py-1.5 bg-white text-xs border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1] font-mono"
+              />
+            )}
+
+            {modoFiltro === 'CORTE' && (
+              <select
+                value={corteIdSel}
+                onChange={(e) => setCorteIdSel(e.target.value)}
+                className="w-full sm:w-auto px-2.5 py-1.5 bg-white text-xs border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1] font-mono"
+              >
+                {cortesHistorial.length === 0 ? (
+                  <option value="">Sin cortes realizados</option>
+                ) : (
+                  cortesHistorial.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.folio} ({c.fechaCierre}) — {formatearDinero(c.totalSalidas)}
+                    </option>
+                  ))
+                )}
+              </select>
+            )}
           </div>
         </div>
       </div>
@@ -377,7 +549,7 @@ export default function MovimientosCaja() {
             ) : filtrados.length === 0 ? (
               <tr>
                 <td colSpan={10} className="px-4 py-8 text-center text-slate-500 font-mono text-xs">
-                  Sin movimientos registrados para el filtro seleccionado.
+                  Sin movimientos registrados para la vista seleccionada.
                 </td>
               </tr>
             ) : (
@@ -419,6 +591,87 @@ export default function MovimientosCaja() {
           ))
         )}
       </div>
+
+      {/* Modal Realizar Corte de Caja */}
+      {modalCorteOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200 space-y-4">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+              <div className="p-2.5 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200">
+                <Scissors className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Realizar Corte de Caja Chica</h3>
+                <p className="text-xs text-slate-500">Cierre de ciclo activo y solicitud de reembolso</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-2 text-xs font-mono">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Movimientos en el ciclo:</span>
+                <span className="font-bold text-slate-900">{movimientos.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Total de Entradas:</span>
+                <span className="text-emerald-700">{formatearDinero(totalEntradasAcumuladas)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Total Gastado (Reembolso):</span>
+                <span className="text-rose-700 font-bold">{formatearDinero(totalSalidasAcumuladas)}</span>
+              </div>
+            </div>
+
+            <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-lg text-xs text-emerald-800 space-y-1">
+              <div className="flex items-center gap-1.5 font-bold">
+                <Sparkles className="h-4 w-4 shrink-0 text-emerald-600" />
+                <span>Reabastecimiento Automático</span>
+              </div>
+              <p className="text-[11px] text-emerald-700 leading-normal">
+                Al confirmar, se guardará el reporte de corte y se registrará automáticamente una{' '}
+                <strong>ENTRADA por {formatearDinero(totalSalidasAcumuladas)}</strong> para reiniciar tu fondo fijo del nuevo ciclo.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">Notas u observaciones del corte (opcional)</label>
+              <textarea
+                value={notaCorte}
+                onChange={(e) => setNotaCorte(e.target.value)}
+                placeholder="Ej. Entregado a Contabilidad / Folio de cheque o transferencia..."
+                rows={2}
+                className="w-full text-xs p-2.5 border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1]"
+              />
+            </div>
+
+            <div className="flex gap-2 justify-end pt-2">
+              <button
+                onClick={() => setModalCorteOpen(false)}
+                disabled={haciendoCorte}
+                className="px-3.5 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmarCorte}
+                disabled={haciendoCorte}
+                className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+              >
+                {haciendoCorte ? (
+                  <>
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    Procesando Corte...
+                  </>
+                ) : (
+                  <>
+                    <Scissors className="h-3.5 w-3.5" />
+                    Confirmar Corte
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Confirmación de Borrado */}
       {movimientoABorrar && (

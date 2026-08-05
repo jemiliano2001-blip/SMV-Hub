@@ -12,6 +12,8 @@ const NuevoUsuarioSchema = z.object({
   esSuperAdmin: z.boolean().optional(),
   atiendeDocumentosVenta: z.boolean().optional(),
   editaHorasExtra: z.boolean().optional(),
+  operadorId: z.string().nullable().optional(),
+  operadorNombre: z.string().nullable().optional(),
   password: z.string().min(6).optional(),
 }).refine((d) => d.plantilla !== undefined || d.rol !== undefined, {
   message: "Debe incluir plantilla o rol",
