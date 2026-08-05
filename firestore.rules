@@ -569,6 +569,20 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Cortes de caja chica (cierre de ciclo activo & reposición)
+    match /caja_chica_cortes/{corteId} {
+      allow read: if esUsuarioAutorizado() && (esCorreoBreakGlass() || tieneModulo('caja-chica'));
+      allow create: if esUsuarioAutorizado()
+                    && (esCorreoBreakGlass() || tieneModulo('caja-chica'));
+      allow update, delete: if esUsuarioAutorizado() && (esCorreoBreakGlass() || tieneModulo('caja-chica'));
+    }
+
+    // Notificaciones in-app
+    match /notificaciones/{notificacionId} {
+      allow read: if esUsuarioAutorizado();
+      allow create, update, delete: if esUsuarioAutorizado();
+    }
+
     // ── Reportes Contables ───────────────────────────────────────────────────
 
     function reporteContableValido(d) {
