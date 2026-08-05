@@ -35,7 +35,6 @@ import {
   UserCog,
   Users,
   Wallet,
-  Wrench,
   X
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -192,15 +191,6 @@ const NAV_CARDS: readonly TarjetaNavegacion[] = [
     grupo: 'operacion',
     tags: ['requisicion', 'solicitud', 'ingenieria', 'automatizacion'],
   },
-  {
-    href: '/ordenes-servicio',
-    icon: Wrench,
-    label: 'Órdenes de servicio',
-    desc: 'Seguimiento a OTs enviadas con proveedores externos.',
-    grupo: 'operacion',
-    tags: ['ot', 'servicio', 'maquinado', 'externo', 'fisher'],
-  },
-
   // ── Personal ──────────────────────────────────────────
   {
     href: '/operadores',

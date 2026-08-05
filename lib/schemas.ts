@@ -301,38 +301,6 @@ export const RequisicionSchema = z.object({
 })
 export type Requisicion = z.infer<typeof RequisicionSchema>
 
-// ── Orden de servicio (seguimiento de OTs con proveedores externos — hoja Fisher) ──
-
-export const EstatusOrdenServicioSchema = z.enum([
-  "pendiente",
-  "en_proceso",
-  "detenida",
-  "entregada",
-  "cancelado",
-])
-export type EstatusOrdenServicio = z.infer<typeof EstatusOrdenServicioSchema>
-
-export const OrdenServicioSchema = z.object({
-  id: z.string(),
-  estatus: EstatusOrdenServicioSchema.default("pendiente"),
-  fechaOC: z.string().nullable(),        // YYYY-MM-DD: fecha de la orden de compra
-  numOC: z.string().nullable(),          // número de OC: "MXN050116"
-  requisitor: z.string(),
-  ingAcargo: z.string().nullable(),      // ingeniero a cargo
-  ordenTrabajo: z.string().nullable(),   // número de OT
-  descripcion: z.string().min(1),
-  cantidad: z.string().nullable(),       // texto libre: "12", "1 pza", "3 mts"
-  cantidadEntregada: z.number().nullable().optional().default(null),
-  cantidadPendiente: z.number().nullable().optional().default(null),
-  tiempoEntrega: z.string().nullable(),  // texto libre: "6 dias h", "??"
-  fechaEntrega: z.string().nullable(),   // texto o YYYY-MM-DD: "??", "8 al 15 abril"
-  fechaEntregaActualizada: z.string().nullable().optional().default(null),
-  nota: z.string().nullable().optional().default(null),
-  creadoEn: z.date(),
-  actualizadoEn: z.date(),
-})
-export type OrdenServicio = z.infer<typeof OrdenServicioSchema>
-
 // ── Catálogo de operadores (fuente de verdad de nombres/roles) ────────────────
 
 export const AreaSchema = z.enum(["taller", "diseno", "automatizacion", "cnc", "limpieza", "administracion"])
@@ -365,7 +333,6 @@ export const ModuloIdSchema = z.enum([
   "caja-chica",
   "almacen",
   "pedidos-almacen",
-  "ordenes-servicio",
   "operadores",
   "horas-extra",
   "banos",

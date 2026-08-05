@@ -15,7 +15,7 @@ Los módulos de producto vigentes son:
 - **Compras:** `/nueva-compra`, `/ordenes`, `/claves-sat`, `/cotizaciones`,
   `/requisiciones`, `/proveedores` y `/reportes`.
 - **Finanzas:** `/finanzas`, `/reportes/contable` y `/caja-chica`.
-- **Operación:** `/almacen`, `/pedidos-almacen`, `/ordenes-servicio`, `/banos`,
+- **Operación:** `/almacen`, `/pedidos-almacen`, `/banos`,
   `/operadores` y `/horas-extra`.
 - **Administración:** `/usuarios`, `/auditoria` y `/login`.
 

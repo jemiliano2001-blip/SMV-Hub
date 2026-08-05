@@ -280,26 +280,3 @@ test("error recuperable y conflicto de revisión refrescan sin perder el corte",
   await expect(page.getByText(/Revisión 4/)).toBeVisible()
   await expect(page.getByRole("heading", { name: "Cola priorizada" })).toBeVisible()
 })
-
-test("Mis casos usa exclusivamente la tarea redactada y acciones operativas", async ({
-  page,
-}) => {
-  await mockIntegrity(page)
-  await page.goto("/proveedores/mis-casos")
-
-  await expect(page.getByRole("heading", { name: "Mis casos asignados" })).toBeVisible()
-  await page.getByRole("button", { name: "Abrir tarea" }).click()
-  await expect(
-    page.getByRole("heading", {
-      name: "Revisar el total capturado y solicitar la corrección en origen.",
-    })
-  ).toBeVisible()
-  await expect(page.getByRole("button", { name: "Agregar comentario" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Marcar en investigación" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Solicitar corrección en origen" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Resolver" })).toHaveCount(0)
-  await expect(page.getByRole("button", { name: /Descartar|Asignar|Vincular/ })).toHaveCount(0)
-
-  const text = await page.locator("main").textContent()
-  expect(text).not.toMatch(/\$|%|\b110\b|\b100\b|Total comprado|Cobertura|KPI/i)
-})

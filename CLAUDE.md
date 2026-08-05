@@ -44,7 +44,6 @@ Módulos actuales:
 - `/requisiciones` — gestión de requisiciones (CRUD vía `lib/requisiciones.ts` + hook `useRequisiciones`).
   Al crear una requisición, `SeccionRecomendacionInteligente.tsx` sugiere proveedor vía
   `lib/motor-recomendador-proveedores.ts`, un motor de scoring local/cliente y transparente.
-- `/ordenes-servicio` — gestión de órdenes de servicio (CRUD vía `lib/ordenes-servicio.ts` + hook `useOrdenesServicio`).
 - `/almacen` — control de entradas y salidas de materiales y herramientas hacia piso. El tab
   Reabastecimiento ROP fue **retirado** el 2026-07-24 (corría sobre datos demo en producción);
   con él se eliminaron `lib/recompra-herramientas.ts` y el módulo `reabastecimiento-rop`. No
@@ -190,7 +189,7 @@ GEMINI_API_KEY=
   - `sugerencias-compra.ts` — sugerencias inteligentes que rellenan campos vacíos desde el historial (la IA siempre tiene prioridad). Integrado en `/nueva-compra`.
   - `scrape.ts` — parseo puro de precios/datos extraídos (`parsePrice`, `priceSchema`)
   - `ordenes.ts` — CRUD sobre la colección `ordenes`; `crearOrdenesLote()` usa `writeBatch` en chunks de 400
-  - `requisiciones.ts`, `ordenes-servicio.ts` — CRUD de requisiciones y órdenes de servicio
+  - `requisiciones.ts` — CRUD de requisiciones
   - `importar.ts` — helpers compartidos de parseo/validación que siguen usando Nueva Compra y Cotizaciones; la ruta legacy `/importar` fue retirada
   - `cotizaciones.ts` — CRUD sobre la colección `cotizaciones`
   - `cotizaciones-importar.ts` — parseo de CSV de cotizaciones; reutiliza helpers de `importar.ts`
