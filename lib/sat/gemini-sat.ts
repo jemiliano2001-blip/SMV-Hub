@@ -1,5 +1,6 @@
 import { ErrorIA } from "@/lib/extraer-ia"
 import type { SatSearchResult } from "@/lib/sat/buscar"
+import { findSatCatalogEntryByKey } from "@/lib/sat/catalogo"
 import { clasificarAreaComprasSmv, contextoSmvParaIa } from "@/lib/sat/perfil-compras-smv"
 
 /** Modelo económico para traducción/clasificación SAT (override con GEMINI_MODEL_SAT). */
@@ -175,7 +176,10 @@ function parsearConfianzaIa(valor: string | undefined): "alta" | "media" | "baja
 function validarClaveEnCandidatos(clave: string | undefined, candidatos: CandidatoSat[]): string | null {
   const claveLimpia = clave?.replace(/\D+/g, "") ?? ""
   if (claveLimpia.length !== 8) return null
-  return candidatos.some((c) => c.clave === claveLimpia) ? claveLimpia : null
+  if (candidatos.some((c) => c.clave === claveLimpia)) return claveLimpia
+  const enCatalogo = findSatCatalogEntryByKey(claveLimpia)
+  if (enCatalogo) return enCatalogo.clave
+  return null
 }
 
 export async function extraerProductoIndustrial(

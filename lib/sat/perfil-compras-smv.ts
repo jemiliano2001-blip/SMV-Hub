@@ -25,6 +25,7 @@ export const AREAS_COMPRAS_SMV: PerfilAreaSmv[] = [
       "gasket", "caliper", "micrometer", "gauge", "deburr", "boring", "mill",
       "rodamiento", "resorte", "arandela", "tuerca", "portaherramienta", "inserto",
       "cutting", "tooling", "flute", "chuck", "countersink", "counterbore",
+      "ejector", "expulsor", "botador", "molde", "mold", "punch", "die", "dowel",
     ],
     proveedores: [
       "mcmaster", "msc", "grainger", "travers", "shars", "ebay", "amazon",
@@ -195,11 +196,11 @@ export function clasificarAreaComprasSmv(
 
 export function contextoSmvParaIa(clasificacion: ClasificacionAreaSmv): string {
   if (clasificacion.area === "general") {
-    return `Comprador SMV: taller de torno/CNC, automatización industrial y oficina administrativa (Monterrey).
-Divisiones SAT habituales: 23 herramientas de corte, 30 metales, 31 ferretería, 26/32 electrónica, 14/55 papelería.`
+    return `Comprador SMV: taller de torno/CNC, maquinado, moldes/herramentales, automatización industrial y oficina administrativa (Monterrey).
+Divisiones SAT habituales: 23 herramental y moldes, 27 herramientas y extractores, 30 metales, 31 herraje/pines/objetos maquinados en molde (pines botadores/expulsores: 31121317, 31163220, 27111712), 26/32 electrónica, 14/55 papelería.`
   }
   const perfiles = AREAS_COMPRAS_SMV.filter((a) => a.id === clasificacion.area)
   const ejemplos = [...new Set(perfiles.flatMap((a) => a.ejemplos))].join("; ")
   const etiqueta = perfiles[0]?.etiqueta ?? clasificacion.area
-  return `Comprador SMV — área: ${etiqueta}. Divisiones SAT prioritarias: ${clasificacion.divisiones.join(", ")}. Productos típicos: ${ejemplos}.`
+  return `Comprador SMV — área: ${etiqueta}. Divisiones SAT prioritarias: ${clasificacion.divisiones.join(", ")}. Incluye herramental de moldes (pines botadores/expulsores 31121317, 31163220, 27111712). Productos típicos: ${ejemplos}.`
 }

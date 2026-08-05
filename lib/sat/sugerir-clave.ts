@@ -350,7 +350,13 @@ function obtenerQueriesCandidatos(descripcion: string, terminosPrevios?: string)
   const terminosClave = tokensEn.join(" ")
   const glosario = traducirConGlosario(descripcion)?.terminosBusqueda
 
+  const extraQueries: string[] = []
+  if (/\b(ejector|expulsor|botador|mold pin|core pin|stripper pin)\b/i.test(descripcion)) {
+    extraQueries.push("objetos maquinados en molde", "extractores", "juego de pines", "moldes inyeccion")
+  }
+
   return [
+    ...extraQueries,
     descripcion,
     terminosPrevios,
     glosario,
@@ -367,24 +373,23 @@ function obtenerCandidatosParaGemini(
   const max = resolverMaxCandidatosGemini()
   const queries = obtenerQueriesCandidatos(descripcion, terminosPrevios)
 
-  const vistos = new Set<string>()
-  const scores: SatSearchResult[] = []
-  const candidatos: Array<{ clave: string; descripcion: string }> = []
+  const mapaCandidates = new Map<string, SatSearchResult>()
 
   for (const query of queries) {
-    const results = buscarClavesSat(query, max, opciones)
+    const results = buscarClavesSat(query, 10, opciones)
     for (const r of results) {
-      if (vistos.has(r.entry.clave)) continue
-      vistos.add(r.entry.clave)
-      scores.push(r)
-      candidatos.push({ clave: r.entry.clave, descripcion: r.entry.descripcion })
-      if (candidatos.length >= max) {
-        return { candidatos, scores }
+      const prev = mapaCandidates.get(r.entry.clave)
+      if (!prev || r.score > prev.score) {
+        mapaCandidates.set(r.entry.clave, r)
       }
     }
   }
 
-  return { candidatos, scores }
+  const sortedScores = Array.from(mapaCandidates.values()).sort((a, b) => b.score - a.score)
+  const topScores = sortedScores.slice(0, Math.max(max, 15))
+  const candidatos = topScores.map((r) => ({ clave: r.entry.clave, descripcion: r.entry.descripcion }))
+
+  return { candidatos, scores: topScores }
 }
 
 function sinSugerencia(
@@ -471,7 +476,7 @@ export async function sugerirClaveSatItem(
     }
   }
 
-  const desdeGlosario = buscarConGlosario(descripcion, opciones)
+  const desdeGlosario = omitirBusquedaLocal ? null : buscarConGlosario(descripcion, opciones)
   if (desdeGlosario) {
     return guardarEnCache(
       descripcion,
@@ -489,7 +494,10 @@ export async function sugerirClaveSatItem(
   try {
     const fusion = await traducirYElegir(descripcion, candidatos, item.proveedor, scores)
 
-    if (fusion.clave && candidatos.some((c) => c.clave === fusion.clave)) {
+    if (
+      fusion.clave &&
+      (candidatos.some((c) => c.clave === fusion.clave) || Boolean(findSatCatalogEntryByKey(fusion.clave)))
+    ) {
       const resultsIa = buscarClavesSat(fusion.terminosBusqueda, 5, opciones)
       const rankingFallback = resultsIa.length > 0 ? resultsIa : scores
       const rankingOriginal = rankingLocalDescripcion(descripcion, opciones)

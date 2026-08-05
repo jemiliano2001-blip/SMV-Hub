@@ -11,6 +11,20 @@ const FRASES_EN_ES: Array<[string, string]> = [
   ["deburring blade", "cuchilla desbarbado"],
   ["boring head", "cabezal barrenado"],
   ["tap wrench", "llave machuelo"],
+  ["ejector pin", "pin expulsor botador molde"],
+  ["ejector sleeve", "camisa expulsora botador molde"],
+  ["ejector rod", "varilla expulsora botador molde"],
+  ["mold pin", "pin botador expulsor molde"],
+  ["core pin", "pin corazon molde"],
+  ["dowel pin", "pasador guia perno rectificado"],
+  ["guide pin", "pasador guia perno rectificado"],
+  ["locating pin", "pasador posicionador guia"],
+  ["pull pin", "pasador de extraccion"],
+  ["stripper pin", "pin expulsor extractor"],
+  ["punch pin", "punzon botador herramental"],
+  ["mold base", "base de molde herramental"],
+  ["wear plate", "placa de desgaste"],
+  ["stripper plate", "placa extractora"],
   ["end mill", "herramienta de corte metal"],
   ["endmill", "herramienta de corte metal"],
   ["solid carbide", "carburo solido"],
@@ -113,6 +127,11 @@ const PALABRAS_EN_ES: Record<string, string> = {
   rubber: "hule",
   nylon: "nylon",
   pin: "pasador",
+  ejector: "expulsor botador extractor",
+  botador: "botador expulsor",
+  expulsor: "expulsor botador",
+  punch: "punzon botador",
+  mold: "molde herramental",
   rivet: "remache",
   clamp: "abrazadera",
   bracket: "soporte",
@@ -172,6 +191,7 @@ const PALABRAS_ES_INDUSTRIAL = new Set([
   // Modificadores de producto: sin ellos "resorte de compresión" → solo "resorte"
   // y el buscador prioriza máquinas/herramientas que mencionan "resorte".
   "compresion", "extension", "traccion", "torsion", "helicoidal",
+  "expulsor", "botador", "molde", "moldes", "punzon", "extractor",
 ])
 
 export type TraduccionGlosario = {
