@@ -115,7 +115,9 @@ describe("reglas de alcance para almacén y solicitudes de venta", () => {
 
     expect(entradas).toMatch(/tieneModulo\('almacen'\)/)
     expect(salidas).toMatch(/tieneModulo\('almacen'\)/)
-    expect(pedidos).toMatch(/allow read: if esUsuarioAutorizado\(\) && tieneModulo\('pedidos-almacen'\);/)
+    expect(pedidos).toMatch(
+      /allow read: if esUsuarioAutorizado\(\) && \(esCorreoBreakGlass\(\) \|\| tieneModulo\('pedidos-almacen'\)\);/
+    )
     const creador = reglas.match(/function esPedidoAlmacenCreador\(\) \{([\s\S]*?)\n    \}/)?.[1]
     const gestor = reglas.match(/function esPedidoAlmacenGestor\(\) \{([\s\S]*?)\n    \}/)?.[1]
     expect(creador).toMatch(/tieneModulo\('pedidos-almacen'\)/)

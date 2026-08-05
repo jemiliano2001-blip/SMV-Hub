@@ -150,14 +150,6 @@ service cloud.firestore {
              d.actualizadoEn is timestamp;
     }
 
-    function ordenServicioValida(d) {
-      return d.estatus in ['pendiente', 'en_proceso', 'detenida', 'entregada', 'recibido', 'cancelado'] &&
-             d.requisitor is string &&
-             d.descripcion is string &&
-             d.creadoEn is timestamp &&
-             d.actualizadoEn is timestamp;
-    }
-
     // ── Órdenes de compra ────────────────────────────────────────────────────
 
     match /ordenes/{ordenId} {
@@ -212,22 +204,6 @@ service cloud.firestore {
       allow delete: if esUsuarioAutorizado();
     }
 
-    // ── Órdenes de servicio (seguimiento de OTs con proveedores externos) ────
-
-    match /ordenes-servicio/{ordenServicioId} {
-      allow read: if esUsuarioAutorizado();
-
-      allow create: if esUsuarioAutorizado()
-                    && ordenServicioValida(request.resource.data);
-
-      allow update: if esUsuarioAutorizado()
-                    && ordenServicioValida(request.resource.data)
-                    && request.resource.data.creadoEn == resource.data.creadoEn
-                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
-
-      allow delete: if esUsuarioAutorizado();
-    }
-
     // ── Catálogo de operadores ────────────────────────────────────────────────
 
     function operadorValido(d) {
@@ -266,17 +242,17 @@ service cloud.firestore {
     }
 
     match /almacen-entradas/{entradaId} {
-      allow read: if esUsuarioAutorizado() && tieneModulo('almacen');
+      allow read: if esUsuarioAutorizado() && (esCorreoBreakGlass() || tieneModulo('almacen'));
 
-      allow create: if esUsuarioAutorizado() && tieneModulo('almacen')
+      allow create: if esUsuarioAutorizado() && (esCorreoBreakGlass() || tieneModulo('almacen'))
                     && entradaAlmacenValida(request.resource.data);
 
-      allow update: if esUsuarioAutorizado() && tieneModulo('almacen')
+      allow update: if esUsuarioAutorizado() && (esCorreoBreakGlass() || tieneModulo('almacen'))
                     && entradaAlmacenValida(request.resource.data)
                     && request.resource.data.creadoEn == resource.data.creadoEn
                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
 
-      allow delete: if esUsuarioAutorizado() && tieneModulo('almacen');
+      allow delete: if esUsuarioAutorizado() && (esCorreoBreakGlass() || tieneModulo('almacen'));
     }
 
     function salidaAlmacenValida(d) {
@@ -289,32 +265,31 @@ service cloud.firestore {
     }
 
     match /almacen-salidas/{salidaId} {
-      allow read: if esUsuarioAutorizado() && tieneModulo('almacen');
+      allow read: if esUsuarioAutorizado() && (esCorreoBreakGlass() || tieneModulo('almacen'));
 
-      allow create: if esUsuarioAutorizado() && tieneModulo('almacen')
+      allow create: if esUsuarioAutorizado() && (esCorreoBreakGlass() || tieneModulo('almacen'))
                     && salidaAlmacenValida(request.resource.data);
 
-      allow update: if esUsuarioAutorizado() && tieneModulo('almacen')
+      allow update: if esUsuarioAutorizado() && (esCorreoBreakGlass() || tieneModulo('almacen'))
                     && salidaAlmacenValida(request.resource.data)
                     && request.resource.data.creadoEn == resource.data.creadoEn
                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
 
-      allow delete: if esUsuarioAutorizado() && tieneModulo('almacen');
+      allow delete: if esUsuarioAutorizado() && (esCorreoBreakGlass() || tieneModulo('almacen'));
     }
 
     // ── Pedidos de almacén (captura móvil: "necesito que compres X") ────────
 
     function esPedidoAlmacenCreador() {
       return esUsuarioAutorizado() &&
-        tieneModulo('pedidos-almacen');
+        (esCorreoBreakGlass() || tieneModulo('pedidos-almacen'));
     }
 
     // Solo quien compra puede cambiar el estado del pedido o vincularlo a una
     // orden — el encargado de almacén únicamente crea, no gestiona el estado.
     function esPedidoAlmacenGestor() {
       return esUsuarioAutorizado() &&
-        tieneModulo('pedidos-almacen') &&
-        tieneModulo('nueva-compra');
+        (esCorreoBreakGlass() || (tieneModulo('pedidos-almacen') && tieneModulo('nueva-compra')));
     }
 
     function pedidoAlmacenValido(d) {
@@ -328,7 +303,7 @@ service cloud.firestore {
     }
 
     match /pedidos-almacen/{pedidoId} {
-      allow read: if esUsuarioAutorizado() && tieneModulo('pedidos-almacen');
+      allow read: if esUsuarioAutorizado() && (esCorreoBreakGlass() || tieneModulo('pedidos-almacen'));
 
       allow create: if esPedidoAlmacenCreador()
                     && pedidoAlmacenValido(request.resource.data)
