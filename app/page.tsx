@@ -4,7 +4,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import LogoSMV from '@/app/LogoSMV'
 import PedidoAlmacenBadge from '@/app/pedidos-almacen/PedidoAlmacenBadge'
-import RadarOperativoWidget from '@/components/radar/RadarOperativoWidget'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
 import { tienePermiso } from '@/lib/roles'
@@ -20,10 +19,13 @@ import {
   Clock,
   Command,
   DollarSign,
+  ExternalLink,
+  Eye,
   FileSearch,
   FileSpreadsheet,
   FileText,
   Bell,
+  LayoutDashboard,
   Package,
   Receipt,
   Search,
@@ -80,20 +82,20 @@ const NAV_CARDS: readonly TarjetaNavegacion[] = [
     tags: ['ordenes', 'historial', 'compras', 'proveedores'],
   },
   {
+    href: '/requisiciones',
+    icon: ClipboardList,
+    label: 'Requisiciones',
+    desc: 'Solicitudes de material y automatización de ingenieros.',
+    grupo: 'compras',
+    tags: ['requisicion', 'solicitud', 'ingenieria', 'automatizacion'],
+  },
+  {
     href: '/cotizaciones',
     icon: FileSearch,
     label: 'Cotizaciones',
     desc: 'Base de datos histórica de cotizaciones (MX y USA).',
     grupo: 'compras',
     tags: ['cotizacion', 'precios', 'historico', 'proveedores'],
-  },
-  {
-    href: '/claves-sat',
-    icon: Search,
-    label: 'Claves SAT',
-    desc: 'Catálogo y buscador de claves de productos del SAT.',
-    grupo: 'compras',
-    tags: ['sat', 'cfdi', 'claves', 'impuestos'],
   },
   {
     href: '/proveedores',
@@ -112,42 +114,16 @@ const NAV_CARDS: readonly TarjetaNavegacion[] = [
     tags: ['reportes', 'kpi', 'excel', 'graficas'],
   },
 
-  // ── Finanzas y Cobranza ──────────────────────────────
-  {
-    href: '/finanzas',
-    icon: TrendingUp,
-    label: 'Resumen financiero',
-    desc: 'Indicadores generales de facturación y cobranza.',
-    grupo: 'finanzas',
-    principal: true,
-    tags: ['finanzas', 'odoo', 'ingresos', 'resumen'],
-  },
-  {
-    href: '/finanzas/facturacion',
-    icon: Receipt,
-    label: 'Facturación por cliente',
-    desc: 'Espejo de facturas de clientes vinculadas con Odoo.',
-    grupo: 'finanzas',
-    tags: ['odoo', 'facturas', 'clientes', 'ventas'],
-  },
-  {
-    href: '/finanzas/cobranza',
-    icon: DollarSign,
-    label: 'Control de cobranza',
-    desc: 'Promesas de pago, cuentas por cobrar y estatus.',
-    grupo: 'finanzas',
-    tags: ['cobranza', 'pagos', 'vencido', 'cartera'],
-  },
-  {
-    href: '/finanzas/reportes',
-    icon: FileSpreadsheet,
-    label: 'Reportes financieros',
-    desc: 'Reportes ejecutivos de ingresos y saldos pendientes.',
-    grupo: 'finanzas',
-    tags: ['reportes', 'finanzas', 'cobros'],
-  },
-
   // ── Operación del Taller ─────────────────────────────
+  {
+    href: 'https://smv-vision.web.app/',
+    icon: Eye,
+    label: 'SMV Vision',
+    desc: 'Monitoreo de producción en tiempo real, taller y sincronización Odoo.',
+    grupo: 'operacion',
+    principal: true,
+    tags: ['vision', 'monitoreo', 'taller', 'odoo', 'produccion', 'external'],
+  },
   {
     href: '/notificaciones',
     icon: Bell,
@@ -184,22 +160,83 @@ const NAV_CARDS: readonly TarjetaNavegacion[] = [
     tags: ['almacen', 'inventario', 'materiales', 'herramienta'],
   },
   {
-    href: '/requisiciones',
-    icon: ClipboardList,
-    label: 'Requisiciones',
-    desc: 'Solicitudes de material y automatización de ingenieros.',
+    href: '/endmills',
+    icon: Package,
+    label: 'Endmills China',
+    desc: 'Inventario, sugerencia de compra y recepción de cortadores en USD.',
     grupo: 'operacion',
-    tags: ['requisicion', 'solicitud', 'ingenieria', 'automatizacion'],
+    tags: ['endmills', 'cortadores', 'china', 'inventario', 'pedido', 'herramientas'],
   },
-  // ── Personal ──────────────────────────────────────────
   {
     href: '/operadores',
     icon: Users,
     label: 'Catálogo de operadores',
     desc: 'Directorio de personal del taller por departamento.',
-    grupo: 'personal',
+    grupo: 'operacion',
     tags: ['operadores', 'empleados', 'taller', 'personal'],
   },
+
+  // ── Finanzas y Cobranza ──────────────────────────────
+  {
+    href: 'https://dashboardsmv.web.app/',
+    icon: LayoutDashboard,
+    label: 'Dashboard SMV',
+    desc: 'Panel ejecutivo de indicadores generales, métricas y KPIs corporativos.',
+    grupo: 'finanzas',
+    principal: true,
+    tags: ['dashboard', 'kpi', 'metricas', 'ejecutivo', 'reportes', 'external'],
+  },
+  {
+    href: '/finanzas',
+    icon: TrendingUp,
+    label: 'Resumen financiero',
+    desc: 'Indicadores generales de facturación y cobranza.',
+    grupo: 'finanzas',
+    principal: true,
+    tags: ['finanzas', 'odoo', 'ingresos', 'resumen'],
+  },
+  {
+    href: '/finanzas/facturacion',
+    icon: Receipt,
+    label: 'Facturación por cliente',
+    desc: 'Espejo de facturas de clientes vinculadas con Odoo.',
+    grupo: 'finanzas',
+    tags: ['odoo', 'facturas', 'clientes', 'ventas'],
+  },
+  {
+    href: '/finanzas/cobranza',
+    icon: DollarSign,
+    label: 'Control de cobranza',
+    desc: 'Promesas de pago, cuentas por cobrar y estatus.',
+    grupo: 'finanzas',
+    tags: ['cobranza', 'pagos', 'vencido', 'cartera'],
+  },
+  {
+    href: '/reportes/contable',
+    icon: FileSpreadsheet,
+    label: 'Reportes Contables SAT',
+    desc: 'Resumen fiscal y contable de facturación, compras y SAT.',
+    grupo: 'finanzas',
+    tags: ['reportes', 'contable', 'sat', 'impuestos', 'fiscal', 'cfdi'],
+  },
+  {
+    href: '/claves-sat',
+    icon: Search,
+    label: 'Claves SAT',
+    desc: 'Catálogo y buscador de claves de productos del SAT.',
+    grupo: 'finanzas',
+    tags: ['sat', 'cfdi', 'claves', 'impuestos'],
+  },
+  {
+    href: '/finanzas/reportes',
+    icon: FileSpreadsheet,
+    label: 'Reportes financieros',
+    desc: 'Reportes ejecutivos de ingresos y saldos pendientes.',
+    grupo: 'finanzas',
+    tags: ['reportes', 'finanzas', 'cobros'],
+  },
+
+  // ── Personal y Control ──────────────────────────────
   {
     href: '/horas-extra',
     icon: Clock,
@@ -217,7 +254,7 @@ const NAV_CARDS: readonly TarjetaNavegacion[] = [
     tags: ['banos', 'registro', 'tiempos'],
   },
 
-  // ── Administración ────────────────────────────────────
+  // ── Administración del Sistema ───────────────────────
   {
     href: '/usuarios',
     icon: UserCog,
@@ -244,16 +281,16 @@ const SECCIONES = [
     badgeStyle: 'bg-sky-50 text-sky-700 border-sky-200',
   },
   {
-    id: 'finanzas',
-    titulo: 'Finanzas y Cobranza',
-    badgeText: 'Módulo Financiero',
-    badgeStyle: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  },
-  {
     id: 'operacion',
     titulo: 'Operación del Taller',
     badgeText: 'Módulo de Producción',
     badgeStyle: 'bg-amber-50 text-amber-700 border-amber-200',
+  },
+  {
+    id: 'finanzas',
+    titulo: 'Finanzas y Cobranza',
+    badgeText: 'Módulo Financiero',
+    badgeStyle: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   },
   {
     id: 'personal',
@@ -276,16 +313,10 @@ function TarjetaAcceso({
   desc,
   principal = false,
 }: TarjetaNavegacion) {
-  return (
-    <Link
-      href={href}
-      className={[
-        'group relative flex items-start gap-3.5 rounded-lg border p-3.5 transition-all duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0369A1]',
-        principal
-          ? 'border-slate-800 bg-slate-900 text-white shadow-sm hover:bg-slate-800 hover:border-slate-700'
-          : 'border-slate-200 bg-white hover:border-[#0369A1]/50 hover:bg-sky-50/20 hover:shadow-sm',
-      ].join(' ')}
-    >
+  const esExterna = href.startsWith('http://') || href.startsWith('https://')
+
+  const contenidoInner = (
+    <>
       <div
         className={[
           'shrink-0 rounded-md p-2 transition-colors',
@@ -301,18 +332,53 @@ function TarjetaAcceso({
             {label}
           </span>
           {href === '/pedidos-almacen' && <PedidoAlmacenBadge />}
+          {esExterna && (
+            <span className="text-[10px] font-mono font-medium bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded border border-sky-400/30">
+              Web App ↗
+            </span>
+          )}
         </div>
         <p className={['mt-0.5 text-xs leading-normal line-clamp-2', principal ? 'text-slate-300' : 'text-slate-500'].join(' ')}>
           {desc}
         </p>
       </div>
 
-      <ArrowRight
-        className={[
-          'mt-0.5 h-4 w-4 shrink-0 transition-transform duration-150 group-hover:translate-x-0.5',
-          principal ? 'text-slate-400 group-hover:text-white' : 'text-slate-300 group-hover:text-[#0369A1]',
-        ].join(' ')}
-      />
+      {esExterna ? (
+        <ExternalLink
+          className={[
+            'mt-0.5 h-4 w-4 shrink-0 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5',
+            principal ? 'text-slate-400 group-hover:text-white' : 'text-slate-300 group-hover:text-[#0369A1]',
+          ].join(' ')}
+        />
+      ) : (
+        <ArrowRight
+          className={[
+            'mt-0.5 h-4 w-4 shrink-0 transition-transform duration-150 group-hover:translate-x-0.5',
+            principal ? 'text-slate-400 group-hover:text-white' : 'text-slate-300 group-hover:text-[#0369A1]',
+          ].join(' ')}
+        />
+      )}
+    </>
+  )
+
+  const claseTarjeta = [
+    'group relative flex items-start gap-3.5 rounded-lg border p-3.5 transition-all duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0369A1]',
+    principal
+      ? 'border-slate-800 bg-slate-900 text-white shadow-sm hover:bg-slate-800 hover:border-slate-700'
+      : 'border-slate-200 bg-white hover:border-[#0369A1]/50 hover:bg-sky-50/20 hover:shadow-sm',
+  ].join(' ')
+
+  if (esExterna) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={claseTarjeta}>
+        {contenidoInner}
+      </a>
+    )
+  }
+
+  return (
+    <Link href={href} className={claseTarjeta}>
+      {contenidoInner}
     </Link>
   )
 }
@@ -408,9 +474,6 @@ export default function Home() {
             </div>
           )}
         </div>
-
-        {/* Radar de Salud Operativa (Orquestador + Sub-detectores) */}
-        <RadarOperativoWidget />
 
         {/* Buscador Rápido Utilitario (Búsqueda en Vivo) */}
         <div className="relative">

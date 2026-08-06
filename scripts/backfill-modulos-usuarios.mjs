@@ -19,6 +19,7 @@ const MODULOS_POR_PLANTILLA = {
     "ordenes",
     "claves-sat",
     "cotizaciones",
+    "endmills",
     "requisiciones",
     "proveedores",
     "reportes",
@@ -37,6 +38,7 @@ const MODULOS_POR_PLANTILLA = {
   compras: [
     "nueva-compra",
     "cotizaciones",
+    "endmills",
     "requisiciones",
     "proveedores",
     "caja-chica",
@@ -51,6 +53,20 @@ const MODULOS_POR_PLANTILLA = {
   diseno: ["cotizaciones", "requisiciones", "horas-extra"],
   automatizacion: ["cotizaciones", "requisiciones", "horas-extra", "notificaciones"],
   almacen: ["almacen", "pedidos-almacen", "banos", "notificaciones", "documentos-venta"],
+}
+
+// Matrices predeterminadas inmediatamente anteriores a Endmills. Solo estas se
+// pueden ampliar con seguridad: cualquier otra combinación se considera una
+// matriz personalizada y se deja intacta para revisión humana.
+const MODULOS_PREVIOS_ENDMILLS = {
+  admin: MODULOS_POR_PLANTILLA.admin.filter((modulo) => modulo !== "endmills"),
+  compras: MODULOS_POR_PLANTILLA.compras.filter((modulo) => modulo !== "endmills"),
+}
+
+function mismosModulos(actuales, esperados) {
+  return Array.isArray(actuales) &&
+    actuales.length === esperados.length &&
+    esperados.every((modulo) => actuales.includes(modulo))
 }
 
 if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
@@ -106,6 +122,24 @@ for (const doc of snap.docs) {
     typeof data.esSuperAdmin === "boolean"
 
   if (modulosYaOk) {
+    const plantillaEndmills = plantilla === "admin" || plantilla === "compras"
+    if (
+      plantillaEndmills &&
+      mismosModulos(data.modulos, MODULOS_PREVIOS_ENDMILLS[plantilla])
+    ) {
+      await doc.ref.update({
+        modulos: MODULOS_POR_PLANTILLA[plantilla],
+        actualizadoEn: new Date(),
+      })
+      console.log(`✓ ${data.email}: matriz predeterminada ampliada con endmills`)
+      actualizados++
+      continue
+    }
+    if (plantillaEndmills && !data.modulos.includes("endmills")) {
+      console.log(`! ${data.email}: matriz personalizada sin endmills — revisar manualmente`)
+      omitidos++
+      continue
+    }
     console.log(`· ${data.email}: ya migrado (${data.modulos.length} módulos)`)
     omitidos++
     continue

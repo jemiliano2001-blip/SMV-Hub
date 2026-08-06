@@ -30,30 +30,34 @@ const GRUPOS: GrupoNav[] = [
       { href: '/nueva-compra', label: 'Nueva compra (IA)' },
       { href: '/caja-chica', label: 'Caja chica' },
       { href: '/ordenes', label: 'Ver órdenes' },
-      { href: '/claves-sat', label: 'Claves SAT' },
-      { href: '/cotizaciones', label: 'Cotizaciones' },
       { href: '/requisiciones', label: 'Requisiciones' },
+      { href: '/cotizaciones', label: 'Cotizaciones' },
       { href: '/proveedores', label: 'Catálogo de proveedores' },
       { href: '/reportes', label: 'Reportes de compras' },
     ],
   },
   {
-    nombre: 'Finanzas',
+    nombre: 'Operación',
     links: [
-      { href: '/finanzas', label: 'Resumen financiero' },
-      { href: '/finanzas/facturacion', label: 'Facturación clientes (Odoo)' },
-      { href: '/finanzas/cobranza', label: 'Control de cobranza' },
-      { href: '/finanzas/reportes', label: 'Reportes financieros' },
+      { href: 'https://smv-vision.web.app/', label: 'SMV Vision ↗' },
+      { href: '/notificaciones', label: 'Notificaciones' },
+      { href: '/documentos-venta', label: 'Documentos de venta' },
+      { href: '/pedidos-almacen', label: 'Pedidos de almacén' },
+      { href: '/almacen', label: 'Almacén de materiales' },
+      { href: '/endmills', label: 'Endmills China' },
+      { href: '/operadores', label: 'Catálogo de operadores' },
     ],
   },
   {
-    nombre: 'Operación',
+    nombre: 'Finanzas',
     links: [
-      { href: '/notificaciones', label: 'Notificaciones' },
-      { href: '/documentos-venta', label: 'Documentos de venta' },
-      { href: '/almacen', label: 'Almacén de materiales' },
-      { href: '/pedidos-almacen', label: 'Pedidos de almacén' },
-      { href: '/operadores', label: 'Catálogo de operadores' },
+      { href: 'https://dashboardsmv.web.app/', label: 'Dashboard SMV ↗' },
+      { href: '/finanzas', label: 'Resumen financiero' },
+      { href: '/finanzas/facturacion', label: 'Facturación clientes (Odoo)' },
+      { href: '/finanzas/cobranza', label: 'Control de cobranza' },
+      { href: '/reportes/contable', label: 'Reportes Contables SAT' },
+      { href: '/claves-sat', label: 'Claves SAT' },
+      { href: '/finanzas/reportes', label: 'Reportes financieros' },
     ],
   },
   {
@@ -159,20 +163,36 @@ export default function NavBar() {
                       <div className="px-3 py-1 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
                         {g.nombre}
                       </div>
-                      {g.links.map((l) => (
-                        <Link
-                          key={l.href}
-                          href={l.href}
-                          className={`flex items-center justify-between px-3 py-2 text-xs transition-colors ${
-                            esActiva(l.href)
-                              ? 'bg-sky-50 text-[#0369A1] font-bold border-l-2 border-[#0369A1]'
-                              : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                          }`}
-                        >
-                          <span>{l.label}</span>
-                          {l.href === '/pedidos-almacen' && <PedidoAlmacenBadge />}
-                        </Link>
-                      ))}
+                      {g.links.map((l) => {
+                        const esExt = l.href.startsWith('http')
+                        if (esExt) {
+                          return (
+                            <a
+                              key={l.href}
+                              href={l.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-between px-3 py-2 text-xs transition-colors text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-medium"
+                            >
+                              <span>{l.label}</span>
+                            </a>
+                          )
+                        }
+                        return (
+                          <Link
+                            key={l.href}
+                            href={l.href}
+                            className={`flex items-center justify-between px-3 py-2 text-xs transition-colors ${
+                              esActiva(l.href)
+                                ? 'bg-sky-50 text-[#0369A1] font-bold border-l-2 border-[#0369A1]'
+                                : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                            }`}
+                          >
+                            <span>{l.label}</span>
+                            {l.href === '/pedidos-almacen' && <PedidoAlmacenBadge />}
+                          </Link>
+                        )
+                      })}
                     </div>
                   )}
                 </div>
@@ -215,20 +235,36 @@ export default function NavBar() {
                       {g.nombre}
                     </p>
                     <div className="flex flex-col">
-                      {g.links.map((l) => (
-                        <Link
-                          key={l.href}
-                          href={l.href}
-                          className={`flex items-center justify-between rounded-md px-2.5 py-2 text-xs font-medium transition-colors ${
-                            esActiva(l.href)
-                              ? 'bg-sky-50 text-[#0369A1] font-bold'
-                              : 'text-slate-700 active:bg-slate-100'
-                          }`}
-                        >
-                          <span>{l.label}</span>
-                          {l.href === '/pedidos-almacen' && <PedidoAlmacenBadge />}
-                        </Link>
-                      ))}
+                      {g.links.map((l) => {
+                        const esExt = l.href.startsWith('http')
+                        if (esExt) {
+                          return (
+                            <a
+                              key={l.href}
+                              href={l.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-between rounded-md px-2.5 py-2 text-xs font-medium text-slate-700 active:bg-slate-100"
+                            >
+                              <span>{l.label}</span>
+                            </a>
+                          )
+                        }
+                        return (
+                          <Link
+                            key={l.href}
+                            href={l.href}
+                            className={`flex items-center justify-between rounded-md px-2.5 py-2 text-xs font-medium transition-colors ${
+                              esActiva(l.href)
+                                ? 'bg-sky-50 text-[#0369A1] font-bold'
+                                : 'text-slate-700 active:bg-slate-100'
+                            }`}
+                          >
+                            <span>{l.label}</span>
+                            {l.href === '/pedidos-almacen' && <PedidoAlmacenBadge />}
+                          </Link>
+                        )
+                      })}
                     </div>
                   </div>
                 ))}

@@ -16,6 +16,9 @@
     "test:e2e:headed": "playwright test --headed",
     "sat:import": "node scripts/importar-catalogo-sat.mjs",
     "sat:import:phpcfdi": "node scripts/importar-catalogo-sat-phpcfdi.mjs",
+    "endmills:import": "node scripts/importar-endmills.mjs",
+    "endmills:verify:dev": "node scripts/verificar-endmills-dev.mjs",
+    "endmills:assign-module": "node scripts/asignar-endmills-modulo.mjs",
     "verify:firebase-ssr": "node scripts/verificar-bundle-firebase.mjs",
     "deploy:hosting": "node scripts/firebase-deploy.mjs deploy --project smv-brain --only hosting:smv-hub",
     "firebase:deploy": "node scripts/firebase-deploy.mjs"

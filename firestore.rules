@@ -59,7 +59,9 @@ service cloud.firestore {
               (modulo == 'nueva-compra' && docUsuario().rol in ['admin', 'compras']) ||
               (modulo == 'nueva-compra' && docUsuario().plantilla in ['admin', 'compras']) ||
               (modulo == 'pedidos-almacen' && docUsuario().rol in ['admin', 'compras', 'almacen']) ||
-              (modulo == 'pedidos-almacen' && docUsuario().plantilla in ['admin', 'compras', 'almacen'])
+              (modulo == 'pedidos-almacen' && docUsuario().plantilla in ['admin', 'compras', 'almacen']) ||
+              (modulo == 'endmills' && docUsuario().rol in ['admin', 'compras']) ||
+              (modulo == 'endmills' && docUsuario().plantilla in ['admin', 'compras'])
             )
           )
         );
@@ -316,6 +318,167 @@ service cloud.firestore {
                     && request.resource.data.creadoEn == resource.data.creadoEn
                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
 
+      allow delete: if false;
+    }
+
+    // Endmills China: catálogo real y ciclos de compra revisados.
+    function esUsuarioEndmills() {
+      return esUsuarioAutorizado() &&
+        (esCorreoBreakGlass() || tieneModulo('endmills'));
+    }
+
+    function categoriaEndmillValida(categoria) {
+      return categoria in [
+        'FLAT', 'BALL', 'LARGO_FLAT', 'LARGO_BOLA',
+        'EXTRA_LARGO_FLAT', 'EXTRA_LARGO_BOLA', 'RUPA_CARBURO'
+      ];
+    }
+
+    function medidaEndmillValida(d) {
+      return d.keys().hasOnly([
+               'orden', 'categoria', 'medidaPulgadas', 'descripcion',
+               'stockActual', 'stockActualizadoEn', 'precioActualUSD',
+               'cotizacionFecha', 'specPropuesta', 'requiereConfirmacion',
+               'notas', 'objetivoPar', 'ultimoPedidoId', 'creadoEn',
+               'actualizadoEn'
+             ]) &&
+             d.orden is int && d.orden > 0 &&
+             categoriaEndmillValida(d.categoria) &&
+             d.medidaPulgadas is string && d.descripcion is string &&
+             d.stockActual is int && d.stockActual >= 0 &&
+             d.stockActualizadoEn is timestamp &&
+             d.precioActualUSD is number && d.precioActualUSD >= 0 &&
+             d.cotizacionFecha is string && d.specPropuesta is string &&
+             d.requiereConfirmacion is bool &&
+             (d.notas == null || d.notas is string) &&
+             (d.objetivoPar == null || (d.objetivoPar is int && d.objetivoPar >= 0)) &&
+             (d.ultimoPedidoId == null || d.ultimoPedidoId is string) &&
+             d.creadoEn is timestamp && d.actualizadoEn is timestamp;
+    }
+
+    function baseEndmillRespaldada(medidaId, d) {
+      return (d.objetivoPar == null && d.ultimoPedidoId == null) ||
+        (
+          d.objetivoPar is int && d.ultimoPedidoId is string &&
+          existsAfter(/databases/$(database)/documents/endmills-pedidos/$(d.ultimoPedidoId)) &&
+          existsAfter(/databases/$(database)/documents/endmills-pedido-partidas/$(d.ultimoPedidoId + '_' + medidaId)) &&
+          getAfter(/databases/$(database)/documents/endmills-pedido-partidas/$(d.ultimoPedidoId + '_' + medidaId)).data.objetivoPar == d.objetivoPar
+        );
+    }
+
+    match /endmills-medidas/{medidaId} {
+      allow read: if esUsuarioEndmills();
+      // El catálogo se importa con Admin SDK; el cliente solo actualiza stock
+      // o una base respaldada por la partida de un pedido real.
+      allow create, delete: if false;
+      allow update: if esUsuarioEndmills() &&
+        medidaEndmillValida(request.resource.data) &&
+        request.resource.data.creadoEn == resource.data.creadoEn &&
+        request.resource.data.actualizadoEn >= resource.data.actualizadoEn &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'stockActual', 'stockActualizadoEn', 'objetivoPar',
+          'ultimoPedidoId', 'actualizadoEn'
+        ]) &&
+        baseEndmillRespaldada(medidaId, request.resource.data);
+    }
+
+    function proveedorEndmillsValido(p) {
+      return p.keys().hasOnly(['nombre', 'contacto', 'email', 'origen']) &&
+             p.nombre is string && p.contacto is string &&
+             p.email is string && p.origen is string;
+    }
+
+    function pedidoEndmillsValido(d) {
+      return d.keys().hasOnly([
+               'fecha', 'numeroProveedor', 'estado', 'proveedor', 'moneda',
+               'costoItemsUSD', 'aliCostUSD', 'shippingUSD', 'totalUSD',
+               'costosAdicionalesConfirmados', 'numeroPartidas',
+               'numeroPiezas', 'origen', 'motivoCancelacion',
+               'creadoPorUid', 'creadoPorNombre', 'creadoEn', 'actualizadoEn'
+             ]) &&
+             d.fecha is string &&
+             (d.numeroProveedor == null || d.numeroProveedor is string) &&
+             d.estado in ['confirmado', 'recibido', 'cancelado'] &&
+             proveedorEndmillsValido(d.proveedor) && d.moneda == 'USD' &&
+             d.costoItemsUSD is number && d.costoItemsUSD >= 0 &&
+             d.aliCostUSD is number && d.aliCostUSD >= 0 &&
+             d.shippingUSD is number && d.shippingUSD >= 0 &&
+             d.totalUSD is number && d.totalUSD >= 0 &&
+             d.costosAdicionalesConfirmados is bool &&
+             d.numeroPartidas is int && d.numeroPartidas > 0 &&
+             d.numeroPiezas is int && d.numeroPiezas > 0 &&
+             d.origen in ['semilla', 'manual'] &&
+             (d.motivoCancelacion == null || d.motivoCancelacion is string) &&
+             d.creadoPorUid is string && d.creadoPorNombre is string &&
+             d.creadoEn is timestamp && d.actualizadoEn is timestamp;
+    }
+
+    match /endmills-pedidos/{pedidoId} {
+      allow read: if esUsuarioEndmills();
+      allow create: if esUsuarioEndmills() &&
+        pedidoEndmillsValido(request.resource.data) &&
+        request.resource.data.estado == 'confirmado' &&
+        request.resource.data.origen == 'manual' &&
+        request.resource.data.creadoPorUid == request.auth.uid;
+      allow update: if esUsuarioEndmills() &&
+        pedidoEndmillsValido(request.resource.data) &&
+        request.resource.data.creadoEn == resource.data.creadoEn &&
+        request.resource.data.actualizadoEn >= resource.data.actualizadoEn &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'estado', 'motivoCancelacion', 'actualizadoEn'
+        ]) &&
+        (
+          (resource.data.estado == 'confirmado' && request.resource.data.estado in ['confirmado', 'recibido', 'cancelado']) ||
+          (resource.data.estado == 'recibido' && request.resource.data.estado == 'recibido') ||
+          (resource.data.estado == 'cancelado' && request.resource.data.estado == 'cancelado')
+        );
+      allow delete: if false;
+    }
+
+    function partidaEndmillsValida(d) {
+      return d.keys().hasOnly([
+               'pedidoId', 'fechaPedido', 'tipo', 'medidaId', 'categoria',
+               'medidaPulgadas', 'descripcion', 'spec', 'stockAntesPedido',
+               'cantidadPedida', 'cantidadRecibida', 'precioUnitarioUSD',
+               'subtotalUSD', 'objetivoPar', 'requiereConfirmacionAlCrear',
+               'confirmacionResuelta', 'creadoEn', 'actualizadoEn'
+             ]) &&
+             d.pedidoId is string && d.fechaPedido is string &&
+             d.tipo in ['catalogada', 'fuera_catalogo'] &&
+             (
+               (d.tipo == 'catalogada' && d.medidaId is string && categoriaEndmillValida(d.categoria)) ||
+               (d.tipo == 'fuera_catalogo' && d.medidaId == null && d.categoria == null)
+             ) &&
+             d.medidaPulgadas is string && d.descripcion is string && d.spec is string &&
+             (d.stockAntesPedido == null || (d.stockAntesPedido is int && d.stockAntesPedido >= 0)) &&
+             d.cantidadPedida is int && d.cantidadPedida > 0 &&
+             d.cantidadRecibida is int && d.cantidadRecibida >= 0 &&
+             d.cantidadRecibida <= d.cantidadPedida &&
+             d.precioUnitarioUSD is number && d.precioUnitarioUSD >= 0 &&
+             d.subtotalUSD is number && d.subtotalUSD >= 0 &&
+             (d.objetivoPar == null || (d.objetivoPar is int && d.objetivoPar >= 0)) &&
+             d.requiereConfirmacionAlCrear is bool && d.confirmacionResuelta is bool &&
+             (!d.requiereConfirmacionAlCrear || d.confirmacionResuelta) &&
+             d.creadoEn is timestamp && d.actualizadoEn is timestamp;
+    }
+
+    match /endmills-pedido-partidas/{partidaId} {
+      allow read: if esUsuarioEndmills();
+      allow create: if esUsuarioEndmills() &&
+        partidaEndmillsValida(request.resource.data) &&
+        request.resource.data.tipo == 'catalogada' &&
+        partidaId == request.resource.data.pedidoId + '_' + request.resource.data.medidaId &&
+        existsAfter(/databases/$(database)/documents/endmills-medidas/$(request.resource.data.medidaId)) &&
+        existsAfter(/databases/$(database)/documents/endmills-pedidos/$(request.resource.data.pedidoId)) &&
+        getAfter(/databases/$(database)/documents/endmills-pedidos/$(request.resource.data.pedidoId)).data.estado == 'confirmado';
+      allow update: if esUsuarioEndmills() &&
+        partidaEndmillsValida(request.resource.data) &&
+        request.resource.data.creadoEn == resource.data.creadoEn &&
+        request.resource.data.actualizadoEn >= resource.data.actualizadoEn &&
+        request.resource.data.cantidadRecibida >= resource.data.cantidadRecibida &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'cantidadRecibida', 'actualizadoEn'
+        ]);
       allow delete: if false;
     }
 

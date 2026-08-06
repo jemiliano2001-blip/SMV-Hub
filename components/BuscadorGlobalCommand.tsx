@@ -78,8 +78,13 @@ export default function BuscadorGlobalCommand() {
             </CommandItem>
             <CommandItem onSelect={() => runCommand(() => router.push('/almacen'))}>
               <Package className="mr-2 h-4 w-4 text-amber-500" />
-              <span>Reabastecimiento ROP de Tooling e Inventarios</span>
+              <span>Almacén de materiales: entradas y salidas</span>
               <CommandShortcut>ALM</CommandShortcut>
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => router.push('/endmills'))}>
+              <Sparkles className="mr-2 h-4 w-4 text-violet-600" />
+              <span>Endmills China: inventario y pedido sugerido</span>
+              <CommandShortcut>END</CommandShortcut>
             </CommandItem>
             <CommandItem onSelect={() => runCommand(() => router.push('/ordenes'))}>
               <FileText className="mr-2 h-4 w-4 text-sky-600" />

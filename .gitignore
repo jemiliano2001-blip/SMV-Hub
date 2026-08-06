@@ -65,6 +65,7 @@ scratch/
 # datos reales de negocio — nunca comitear
 *.xlsx
 Estilo Reporte de Compras (standalone).html
+endmills-seed.json
 
 # build de Cloud Functions
 functions/lib/

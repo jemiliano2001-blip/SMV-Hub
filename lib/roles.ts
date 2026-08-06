@@ -9,6 +9,7 @@ export const RUTA_POR_MODULO: Record<ModuloId, string> = {
   ordenes: "/ordenes",
   "claves-sat": "/claves-sat",
   cotizaciones: "/cotizaciones",
+  endmills: "/endmills",
   requisiciones: "/requisiciones",
   proveedores: "/proveedores",
   reportes: "/reportes",
@@ -34,6 +35,7 @@ export const GRUPOS_MODULOS: { nombre: string; modulos: { id: ModuloId; label: s
       { id: "ordenes", label: "Órdenes" },
       { id: "claves-sat", label: "Claves SAT" },
       { id: "cotizaciones", label: "Cotizaciones" },
+      { id: "endmills", label: "Endmills China" },
       { id: "requisiciones", label: "Requisiciones" },
       { id: "proveedores", label: "Proveedores" },
       { id: "reportes", label: "Reportes" },
@@ -80,6 +82,7 @@ const PLANTILLA_ADMIN: ModuloId[] = [
   "ordenes",
   "claves-sat",
   "cotizaciones",
+  "endmills",
   "requisiciones",
   "proveedores",
   "reportes",
@@ -99,6 +102,7 @@ const PLANTILLA_ADMIN: ModuloId[] = [
 const PLANTILLA_COMPRAS: ModuloId[] = [
   "nueva-compra",
   "cotizaciones",
+  "endmills",
   "requisiciones",
   "proveedores",
   "caja-chica",
@@ -148,6 +152,7 @@ export const PERMISOS_POR_ROL: Record<Rol, string[]> = {
     "/ordenes",
     "/claves-sat",
     "/cotizaciones",
+    "/endmills",
     "/requisiciones",
     "/proveedores",
     "/reportes",
@@ -166,6 +171,7 @@ export const PERMISOS_POR_ROL: Record<Rol, string[]> = {
     "/",
     "/nueva-compra",
     "/cotizaciones",
+    "/endmills",
     "/requisiciones",
     "/proveedores",
     "/caja-chica",
@@ -235,6 +241,7 @@ export function puedeVerNotificaciones(
  * Autorización de ruta por módulos.
  * - null/undefined modulos → sin acceso
  * - `/` siempre permitido si hay lista (usuario activo con permisos cargados)
+ * - URLs externas (http/https) siempre permitidas
  * - `/usuarios` exige el módulo `usuarios` (la API además exige esSuperAdmin)
  * - `/notificaciones` usa `puedeVerNotificaciones` (módulos de audiencia)
  */
@@ -244,6 +251,7 @@ export function tienePermiso(
 ): boolean {
   if (!modulos) return false
   if (pathname === "/") return true
+  if (pathname.startsWith("http://") || pathname.startsWith("https://")) return true
 
   const modulo = rutaAModulo(pathname)
   if (!modulo) return false

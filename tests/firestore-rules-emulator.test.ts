@@ -49,6 +49,28 @@ async function seed(): Promise<void> {
         email: "other-notifications-user@example.com",
         modulos: ["notificaciones"],
       }),
+      db.doc("usuarios/endmills-user").set({
+        activo: true,
+        email: "endmills-user@example.com",
+        modulos: ["endmills"],
+      }),
+      db.doc("endmills-medidas/endmill-001").set({
+        orden: 1,
+        categoria: "FLAT",
+        medidaPulgadas: "1/8",
+        descripcion: "FLAT 4 FILOS 1/8",
+        stockActual: 9,
+        stockActualizadoEn: new Date(),
+        precioActualUSD: 3.82,
+        cotizacionFecha: "2026-08-06",
+        specPropuesta: "D1/8*FL1/2",
+        requiereConfirmacion: false,
+        notas: null,
+        objetivoPar: null,
+        ultimoPedidoId: null,
+        creadoEn: new Date(),
+        actualizadoEn: new Date(),
+      }),
       db.doc("compras_odoo_po/po-1").set({ name: "PO-1" }),
       db.doc("compras_odoo_facturas/bill-1").set({ name: "BILL-1" }),
       db.doc("compras_odoo_items/item-1").set({
@@ -150,6 +172,118 @@ describeWithEmulator("reglas Firestore de Integridad", () => {
     await assertSucceeds(marcador.get())
     await assertFails(userDb("other-notifications-user").doc(ruta).get())
     await assertFails(marcador.set({ leidoEn: new Date(), campoNoPermitido: true }))
+  })
+
+  it("protege el catálogo endmills con el módulo explícito", async () => {
+    const permitido = userDb("endmills-user").doc("endmills-medidas/endmill-001")
+    await assertSucceeds(permitido.get())
+    await assertFails(userDb("report-user").doc("endmills-medidas/endmill-001").get())
+    await assertSucceeds(permitido.update({
+      stockActual: 8,
+      stockActualizadoEn: new Date(),
+      actualizadoEn: new Date(),
+    }))
+    await assertFails(permitido.update({ precioActualUSD: 0.01 }))
+    await assertFails(permitido.delete())
+  })
+
+  it("acepta pedidos Endmills USD revisados y rechaza moneda o acceso inválidos", async () => {
+    const pedido = {
+      fecha: "2026-08-06",
+      numeroProveedor: null,
+      estado: "confirmado",
+      proveedor: {
+        nombre: "ChangZhou North Alloy Tool Co.,Ltd",
+        contacto: "Rita",
+        email: "bfl9@bfltool.com",
+        origen: "China",
+      },
+      moneda: "USD",
+      costoItemsUSD: 38.2,
+      aliCostUSD: 0,
+      shippingUSD: 0,
+      totalUSD: 38.2,
+      costosAdicionalesConfirmados: false,
+      numeroPartidas: 1,
+      numeroPiezas: 10,
+      origen: "manual",
+      motivoCancelacion: null,
+      creadoPorUid: "endmills-user",
+      creadoPorNombre: "Compras",
+      creadoEn: new Date(),
+      actualizadoEn: new Date(),
+    }
+    const permitido = userDb("endmills-user").doc("endmills-pedidos/pedido-reglas-1")
+    await assertSucceeds(permitido.set(pedido))
+    await assertFails(
+      userDb("endmills-user").doc("endmills-pedidos/pedido-reglas-mxn").set({
+        ...pedido,
+        moneda: "MXN",
+      })
+    )
+    await assertFails(
+      userDb("report-user").doc("endmills-pedidos/pedido-reglas-2").set({
+        ...pedido,
+        creadoPorUid: "report-user",
+      })
+    )
+  })
+
+  it("valida partidas Endmills y no permite borrarlas", async () => {
+    const db = userDb("endmills-user")
+    const pedidoId = "pedido-partida-1"
+    await assertSucceeds(db.doc(`endmills-pedidos/${pedidoId}`).set({
+      fecha: "2026-08-06",
+      numeroProveedor: null,
+      estado: "confirmado",
+      proveedor: {
+        nombre: "ChangZhou North Alloy Tool Co.,Ltd",
+        contacto: "Rita",
+        email: "bfl9@bfltool.com",
+        origen: "China",
+      },
+      moneda: "USD",
+      costoItemsUSD: 38.2,
+      aliCostUSD: 0,
+      shippingUSD: 0,
+      totalUSD: 38.2,
+      costosAdicionalesConfirmados: false,
+      numeroPartidas: 1,
+      numeroPiezas: 10,
+      origen: "manual",
+      motivoCancelacion: null,
+      creadoPorUid: "endmills-user",
+      creadoPorNombre: "Compras",
+      creadoEn: new Date(),
+      actualizadoEn: new Date(),
+    }))
+    const partida = db.doc(`endmills-pedido-partidas/${pedidoId}_endmill-001`)
+    const payload = {
+      pedidoId,
+      fechaPedido: "2026-08-06",
+      tipo: "catalogada",
+      medidaId: "endmill-001",
+      categoria: "FLAT",
+      medidaPulgadas: "1/8",
+      descripcion: "FLAT 4 FILOS 1/8",
+      spec: "D1/8*FL1/2",
+      stockAntesPedido: 9,
+      cantidadPedida: 10,
+      cantidadRecibida: 0,
+      precioUnitarioUSD: 3.82,
+      subtotalUSD: 38.2,
+      objetivoPar: 19,
+      requiereConfirmacionAlCrear: false,
+      confirmacionResuelta: true,
+      creadoEn: new Date(),
+      actualizadoEn: new Date(),
+    }
+    await assertSucceeds(partida.set(payload))
+    await assertFails(
+      db.doc(`endmills-pedido-partidas/${pedidoId}_otra-medida`).set(payload)
+    )
+    await assertFails(partida.set({ ...payload, cantidadPedida: -1 }))
+    await assertFails(partida.delete())
   })
 
   it("el harness realmente ejecutó contra el emulador", () => {

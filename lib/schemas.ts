@@ -331,6 +331,7 @@ export const ModuloIdSchema = z.enum([
   "ordenes",
   "claves-sat",
   "cotizaciones",
+  "endmills",
   "requisiciones",
   "proveedores",
   "reportes",
@@ -432,6 +433,196 @@ export const NuevoPedidoAlmacenSchema = PedidoAlmacenSchema.pick({
   solicitadoPorNombre: true,
 })
 export type NuevoPedidoAlmacen = z.infer<typeof NuevoPedidoAlmacenSchema>
+
+// Endmills China: inventario y ciclos de compra.
+export const CategoriaEndmillSchema = z.enum([
+  "FLAT",
+  "BALL",
+  "LARGO_FLAT",
+  "LARGO_BOLA",
+  "EXTRA_LARGO_FLAT",
+  "EXTRA_LARGO_BOLA",
+  "RUPA_CARBURO",
+])
+export type CategoriaEndmill = z.infer<typeof CategoriaEndmillSchema>
+
+export const EstadoStockEndmillSchema = z.enum(["sin_base", "critico", "bajo", "ok"])
+export type EstadoStockEndmill = z.infer<typeof EstadoStockEndmillSchema>
+
+export const ProveedorEndmillsSnapshotSchema = z.object({
+  nombre: z.string().min(1),
+  contacto: z.string().min(1),
+  email: z.string().email(),
+  origen: z.string().min(1),
+})
+export type ProveedorEndmillsSnapshot = z.infer<typeof ProveedorEndmillsSnapshotSchema>
+
+export const EndmillMedidaSchema = z.object({
+  id: z.string().min(1),
+  orden: z.number().int().positive(),
+  categoria: CategoriaEndmillSchema,
+  medidaPulgadas: z.string().min(1),
+  descripcion: z.string().min(1),
+  stockActual: z.number().int().min(0),
+  stockActualizadoEn: z.date(),
+  precioActualUSD: z.number().min(0),
+  cotizacionFecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  specPropuesta: z.string().min(1),
+  requiereConfirmacion: z.boolean(),
+  notas: z.string().nullable(),
+  objetivoPar: z.number().int().min(0).nullable(),
+  ultimoPedidoId: z.string().nullable(),
+  creadoEn: z.date(),
+  actualizadoEn: z.date(),
+})
+export type EndmillMedida = z.infer<typeof EndmillMedidaSchema>
+
+export const EstadoPedidoEndmillsSchema = z.enum(["confirmado", "recibido", "cancelado"])
+export type EstadoPedidoEndmills = z.infer<typeof EstadoPedidoEndmillsSchema>
+
+export const PedidoEndmillsSchema = z.object({
+  id: z.string().min(1),
+  fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  numeroProveedor: z.string().nullable(),
+  estado: EstadoPedidoEndmillsSchema,
+  proveedor: ProveedorEndmillsSnapshotSchema,
+  moneda: z.literal("USD"),
+  costoItemsUSD: z.number().min(0),
+  aliCostUSD: z.number().min(0),
+  shippingUSD: z.number().min(0),
+  totalUSD: z.number().min(0),
+  costosAdicionalesConfirmados: z.boolean(),
+  numeroPartidas: z.number().int().min(0),
+  numeroPiezas: z.number().int().min(0),
+  origen: z.enum(["semilla", "manual"]),
+  motivoCancelacion: z.string().nullable(),
+  creadoPorUid: z.string(),
+  creadoPorNombre: z.string().min(1),
+  creadoEn: z.date(),
+  actualizadoEn: z.date(),
+})
+export type PedidoEndmills = z.infer<typeof PedidoEndmillsSchema>
+
+export const TipoPartidaPedidoEndmillsSchema = z.enum(["catalogada", "fuera_catalogo"])
+
+export const PartidaPedidoEndmillsSchema = z.object({
+  id: z.string().min(1),
+  pedidoId: z.string().min(1),
+  fechaPedido: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  tipo: TipoPartidaPedidoEndmillsSchema,
+  medidaId: z.string().nullable(),
+  categoria: CategoriaEndmillSchema.nullable(),
+  medidaPulgadas: z.string(),
+  descripcion: z.string().min(1),
+  spec: z.string(),
+  stockAntesPedido: z.number().int().min(0).nullable(),
+  cantidadPedida: z.number().int().positive(),
+  cantidadRecibida: z.number().int().min(0),
+  precioUnitarioUSD: z.number().min(0),
+  subtotalUSD: z.number().min(0),
+  objetivoPar: z.number().int().min(0).nullable(),
+  requiereConfirmacionAlCrear: z.boolean(),
+  confirmacionResuelta: z.boolean(),
+  creadoEn: z.date(),
+  actualizadoEn: z.date(),
+}).superRefine((partida, ctx) => {
+  if (partida.cantidadRecibida > partida.cantidadPedida) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["cantidadRecibida"],
+      message: "La cantidad recibida no puede superar la pedida",
+    })
+  }
+  if (partida.tipo === "catalogada" && (!partida.medidaId || !partida.categoria)) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["medidaId"],
+      message: "Una partida catalogada requiere medida y categoría",
+    })
+  }
+  if (partida.tipo === "fuera_catalogo" && partida.medidaId !== null) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["medidaId"],
+      message: "Una partida fuera de catálogo no puede apuntar a una medida",
+    })
+  }
+})
+export type PartidaPedidoEndmills = z.infer<typeof PartidaPedidoEndmillsSchema>
+
+export const BorradorPartidaEndmillsSchema = z.object({
+  medidaId: z.string().min(1),
+  stockRevisado: z.number().int().min(0),
+  cantidadPedida: z.number().int().min(0),
+  precioUnitarioUSD: z.number().min(0),
+  confirmacionResuelta: z.boolean(),
+})
+export type BorradorPartidaEndmills = z.infer<typeof BorradorPartidaEndmillsSchema>
+
+export const RegistrarPedidoEndmillsInputSchema = z.object({
+  fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  numeroProveedor: z.string().trim().min(1).nullable(),
+  proveedor: ProveedorEndmillsSnapshotSchema,
+  aliCostUSD: z.number().min(0),
+  shippingUSD: z.number().min(0),
+  costosAdicionalesConfirmados: z.boolean(),
+  partidas: z.array(BorradorPartidaEndmillsSchema).min(1),
+})
+export type RegistrarPedidoEndmillsInput = z.infer<typeof RegistrarPedidoEndmillsInputSchema>
+
+export const RecibirPedidoEndmillsInputSchema = z.object({
+  partidas: z.array(z.object({
+    partidaId: z.string().min(1),
+    cantidadRecibida: z.number().int().min(0),
+  })).min(1),
+})
+export type RecibirPedidoEndmillsInput = z.infer<typeof RecibirPedidoEndmillsInputSchema>
+
+// Estructura del archivo privado de importación.
+export const CategoriaEndmillSeedSchema = z.enum([
+  "FLAT",
+  "BALL",
+  "LARGO FLAT",
+  "LARGO BOLA",
+  "EXTRA LARGO FLAT",
+  "EXTRA LARGO BOLA",
+  "RUPA CARBURO",
+])
+
+export const EndmillsSeedSchema = z.object({
+  _fuente: z.string().min(1),
+  _advertencia: z.string().min(1),
+  proveedor: ProveedorEndmillsSnapshotSchema,
+  ordenMarzoTotales: z.object({
+    piezasTotales: z.number().int().positive(),
+    costoItemsUSD: z.number().min(0),
+    aliCostUSD: z.number().min(0),
+    shippingUSD: z.number().min(0),
+    totalUSD: z.number().min(0),
+    notaItemFueraDeLista: z.string().min(1),
+  }),
+  medidas: z.array(z.object({
+    id: z.number().int().positive(),
+    categoria: CategoriaEndmillSeedSchema,
+    medidaPulgadas: z.string().min(1),
+    descripcion: z.string().min(1),
+    stockActual: z.number().int().min(0),
+    precioActualUSD: z.number().min(0),
+    ordenMarzo2026: z.object({
+      piezasPedidas: z.number().int().positive().nullable(),
+      precioUnitarioUSD: z.number().min(0).nullable(),
+      subtotalUSD: z.number().min(0).nullable(),
+      seHabiaPedidoAntes: z.boolean(),
+    }),
+    cotizacionChinaAgo2026: z.object({
+      specPropuesta: z.string().min(1),
+      precioUnitarioUSD: z.number().min(0),
+      requiereConfirmacion: z.boolean(),
+    }),
+    notas: z.string().nullable(),
+  })).length(47),
+})
+export type EndmillsSeed = z.infer<typeof EndmillsSeedSchema>
 
 // ── Notificaciones in-app (Operación del Taller) ─────────────────────────────
 // Feed broadcast de eventos de pedidos-almacén y requisiciones; leído por usuario
