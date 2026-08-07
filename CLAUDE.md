@@ -28,6 +28,10 @@ Módulos actuales:
 - `/finanzas` — facturación y cobranza de clientes sincronizada con Odoo; requiere el módulo
   `finanzas` (ver `lib/roles.ts` y `firestore.rules`). Lógica en `lib/finanzas.ts` / `lib/finanzas-facturas.ts`;
   sync en `functions/src/odooSync.ts` + `odoo-mapeo.ts`.
+- `/documentos-venta` — solicitudes de documento (factura o remisión) sobre una orden de venta (SO)
+  de Odoo, con flujo `pendiente → en_proceso → completada/rechazada` (`lib/schemas.ts`:
+  `SolicitudDocumento`). Lógica en `lib/documentos-venta.ts`; sync de órdenes de venta en
+  `lib/services/ventas-odoo-sync.ts`; API en `app/api/documentos-venta/`.
 - `/caja-chica` — movimientos y arqueo de caja chica (`lib/caja-chica.ts`).
 - `/claves-sat` — buscador de claves SAT (`BuscadorClavesSat.tsx`), complementa la sugerencia
   automática de `/nueva-compra`.
@@ -48,11 +52,18 @@ Módulos actuales:
   Reabastecimiento ROP fue **retirado** el 2026-07-24 (corría sobre datos demo en producción);
   con él se eliminaron `lib/recompra-herramientas.ts` y el módulo `reabastecimiento-rop`. No
   recrearlo sin datos reales de inventario.
+- `/endmills` — inventario y pedidos de fresas (endmills) importadas de China: stock, objetivo
+  par, cantidad sugerida y recepción de pedidos (`lib/endmills.ts`, `lib/endmills-calculos.ts`,
+  hook `useEndmills`). Módulo `endmills` (label "Endmills China" en `lib/roles.ts`). Scripts
+  dedicados: `npm run endmills:import`, `endmills:verify:dev`, `endmills:assign-module`.
 - `/banos` — registros de tiempos de baño, conteos diarios y agregación de resumen mensual.
 - `/horas-extra` — tabla editable para seguimiento de horas extras semanales por departamento.
 - `/operadores` — catálogo de personal para auto-completar en módulos operativos.
 - `/usuarios` — administración de accesos y roles (solo super-admin); lógica en `lib/usuarios.ts` /
   `lib/usuarios-admin.ts`.
+- `/notificaciones` — notificaciones in-app por módulo/audiencia con estado leído/no-leído
+  (`lib/notificaciones.ts`). El acceso no requiere un módulo propio: se concede a quien tenga
+  cualquier módulo listado como audiencia (`puedeVerNotificaciones` en `lib/roles.ts`).
 - `/pedidos-almacen` — captura rápida de pedidos desde piso (encargado de almacén); CRUD en
   `lib/pedidos-almacen.ts`, colección Firestore propia `pedidos-almacen`; gated por módulo
   `pedidos-almacen` (`admin`/`compras`/`almacen`), no requiere el módulo base `almacen`.
@@ -87,6 +98,11 @@ npx vitest run tests/reportes.test.ts
 # Catálogo SAT (poblar/actualizar data/sat/catalogo.json)
 npm run sat:import          # importación estándar
 npm run sat:import:phpcfdi  # importación desde el catálogo phpcfdi
+
+# Endmills (China) — inventario y pedidos
+npm run endmills:import          # importa catálogo de medidas/fresas
+npm run endmills:verify:dev      # verifica datos contra el emulator/dev
+npm run endmills:assign-module   # asigna el módulo endmills a usuarios existentes
 ```
 
 Los tests `test:rules`/`test:emulator` usan `@firebase/rules-unit-testing` y se saltan
@@ -202,8 +218,9 @@ GEMINI_API_KEY=
     (colección `reportes_contables`) y clasificación IA en batch (traducción + clave SAT)
     para `/reportes/contable`
   - `firebase.ts`, `auth.ts`, `storage.ts` — inicialización de Firebase y utilidades
-  - `hooks/` — hooks de datos por módulo (`useOrdenes`, `useCotizaciones`, `useRequisiciones`, `useOrdenesServicio`)
-  - `services/compras-odoo-sync.ts` / `services/finanzas-sync.ts` — clientes autenticados para ejecutar sincronizaciones manuales con Odoo
+  - `hooks/` — hooks de datos por módulo (`useOrdenes`, `useCotizaciones`, `useRequisiciones`, `useEndmills`)
+  - `services/` — clientes autenticados para ejecutar sincronizaciones manuales con Odoo y reportes:
+    `compras-odoo-sync.ts`, `finanzas-sync.ts`, `ventas-odoo-sync.ts`, `reportes-integridad.ts`
 - `functions/` — Cloud Functions de Firebase (TypeScript en `functions/src/`): sincronización de
   facturas y compras con Odoo (`odooSync.ts`, `odoo-compras-sync.ts` y sus mapeos), base Firestore
   nombrada y middleware de autenticación compartido. Las Functions genéricas antiguas de compra,
@@ -211,8 +228,9 @@ GEMINI_API_KEY=
 - `tests/` — pruebas de Vitest; la mayoría prueban lógica pura de `lib/` sin Firebase real, pero
   `extraer-route.test.ts` y `extraer-lote.test.ts` testean los Route Handlers mockeando fetch/Gemini,
   y `lib-ordenes.test.ts` / `ordenes.test.ts` cubren la capa CRUD de Firestore
-- `e2e/` — Playwright/axe para login y proveedores, más el camino real del dinero contra
-  `smv-brain-dev`; nunca debe escribir en producción
+- `e2e/` — Playwright/axe para login y proveedores, el camino real del dinero, integridad de
+  reportes (`reportes-integridad.spec.ts`) y accesibilidad de endmills (`endmills-accessibility.spec.ts`),
+  todo contra `smv-brain-dev`; nunca debe escribir en producción
 - `docs/superpowers/specs/` — diseños (qué se va a construir y por qué)
 - `docs/superpowers/plans/` — planes task-by-task ejecutables
 - `.agents/` — artefactos del flujo de agentes (no es código de producción)
@@ -265,9 +283,9 @@ Otros schemas clave en `lib/schemas.ts`:
 - **`RequisicionSchema`** — `tipo: "general"|"automatizacion"` controla qué campos son visibles
   en la UI. `estado: "no_comprado"|"en_proceso"|"comprado"|"parcial"|"recibido"`. Los campos
   `parteNumero` y `fechaEntregaEst` aplican solo cuando `tipo === "automatizacion"`.
-- **`OrdenServicioSchema`** — seguimiento de OTs con proveedores externos (hoja Fisher).
-  `estatus: "pendiente"|"en_proceso"|"detenida"|"entregada"|"cancelado"` (legacy `"recibido"` →
-  `"entregada"`). Campos clave: `numOC`, `ingAcargo`, `ordenTrabajo`, `tiempoEntrega`.
+- **`SolicitudDocumentoSchema`** — solicitud de documento (factura/remisión) sobre una orden de
+  venta de Odoo para `/documentos-venta`. `tipo: "factura"|"remision"`,
+  `estado: "pendiente"|"en_proceso"|"completada"|"rechazada"`.
 
 ## Next.js 16 — leer esto antes de escribir código de Next.js
 
