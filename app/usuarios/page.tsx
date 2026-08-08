@@ -251,7 +251,12 @@ function FormNuevoUsuario({
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // TODO(usuarios): esto sincroniza el formulario desde un prop; lo correcto es
+  // estado derivado o remontar el form con `key={operadorPreseleccionado?.id}`.
+  // Se suprime en vez de refactorizar porque toca el alta con permisos de
+  // super-admin y no hay tests que cubran ese flujo; va en su propio cambio.
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (operadorPreseleccionado) {
       setOperadorId(operadorPreseleccionado.id)
       setOperadorNombre(operadorPreseleccionado.nombre)
@@ -260,6 +265,7 @@ function FormNuevoUsuario({
       setModulos(modulosDePlantilla(rec))
       if (rec === 'admin') setEsSuperAdmin(true)
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [operadorPreseleccionado])
 
   function handlePlantilla(p: Rol) {
