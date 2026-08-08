@@ -71,6 +71,52 @@ async function seed(): Promise<void> {
         creadoEn: new Date(),
         actualizadoEn: new Date(),
       }),
+      // Medida con la spec/precio de China aún por confirmar (caso de las
+      // medidas 2 y 38 del catálogo real).
+      db.doc("endmills-medidas/endmill-002").set({
+        orden: 2,
+        categoria: "FLAT",
+        medidaPulgadas: "3/16",
+        descripcion: "FLAT 4 FILOS 3/16",
+        stockActual: 5,
+        stockActualizadoEn: new Date(),
+        precioActualUSD: 4.1,
+        cotizacionFecha: "2026-08-06",
+        specPropuesta: "D3/16*FL5/8",
+        requiereConfirmacion: true,
+        notas: null,
+        objetivoPar: null,
+        ultimoPedidoId: null,
+        creadoEn: new Date(),
+        actualizadoEn: new Date(),
+      }),
+      // Pedido creado antes de agregar tipoCambioUSD / fechaRecepcionCompleta /
+      // diasLeadTime: no trae esas llaves a propósito.
+      db.doc("endmills-pedidos/pedido-legacy").set({
+        fecha: "2026-08-06",
+        numeroProveedor: null,
+        estado: "confirmado",
+        proveedor: {
+          nombre: "ChangZhou North Alloy Tool Co.,Ltd",
+          contacto: "Rita",
+          email: "bfl9@bfltool.com",
+          origen: "China",
+        },
+        moneda: "USD",
+        costoItemsUSD: 38.2,
+        aliCostUSD: 0,
+        shippingUSD: 0,
+        totalUSD: 38.2,
+        costosAdicionalesConfirmados: false,
+        numeroPartidas: 1,
+        numeroPiezas: 10,
+        origen: "manual",
+        motivoCancelacion: null,
+        creadoPorUid: "endmills-user",
+        creadoPorNombre: "Compras",
+        creadoEn: new Date(),
+        actualizadoEn: new Date(),
+      }),
       db.doc("compras_odoo_po/po-1").set({ name: "PO-1" }),
       db.doc("compras_odoo_facturas/bill-1").set({ name: "BILL-1" }),
       db.doc("compras_odoo_items/item-1").set({
@@ -284,6 +330,80 @@ describeWithEmulator("reglas Firestore de Integridad", () => {
     )
     await assertFails(partida.set({ ...payload, cantidadPedida: -1 }))
     await assertFails(partida.delete())
+  })
+
+  it("permite resolver requiereConfirmacion pero no volver a marcarla", async () => {
+    const porConfirmar = userDb("endmills-user").doc("endmills-medidas/endmill-002")
+    await assertSucceeds(porConfirmar.update({
+      requiereConfirmacion: false,
+      actualizadoEn: new Date(),
+    }))
+    // Una vez resuelta, el cliente no puede volver a marcarla como pendiente.
+    await assertFails(porConfirmar.update({
+      requiereConfirmacion: true,
+      actualizadoEn: new Date(),
+    }))
+    await assertFails(userDb("report-user").doc("endmills-medidas/endmill-002").update({
+      requiereConfirmacion: false,
+      actualizadoEn: new Date(),
+    }))
+  })
+
+  it("permite recibir un pedido anterior a los campos de lead time", async () => {
+    const legacy = userDb("endmills-user").doc("endmills-pedidos/pedido-legacy")
+    await assertSucceeds(legacy.update({
+      estado: "recibido",
+      fechaRecepcionCompleta: "2026-08-20",
+      diasLeadTime: 14,
+      actualizadoEn: new Date(),
+    }))
+  })
+
+  it("valida las notificaciones de endmills por módulo y forma", async () => {
+    const base = {
+      tipo: "endmills_stock_critico",
+      titulo: "Stock crítico: FLAT 4 FILOS 1/8",
+      cuerpo: "Quedan 1 pzas.",
+      origenModulo: "endmills",
+      origenId: "endmill-001",
+      audiencia: "endmills",
+      destinatarioUid: null,
+      href: "/endmills",
+      creadoPorUid: "endmills-user",
+      creadoPorNombre: "Compras",
+      creadoEn: new Date(),
+      actualizadoEn: new Date(),
+    }
+    const permitida = userDb("endmills-user").doc("notificaciones/endmills-notif-1")
+    await assertSucceeds(permitida.set(base))
+    await assertSucceeds(permitida.get())
+
+    // Sin el módulo endmills no se puede crear ni leer.
+    await assertFails(
+      userDb("report-user").doc("notificaciones/endmills-notif-2").set({
+        ...base,
+        creadoPorUid: "report-user",
+      })
+    )
+    await assertFails(userDb("report-user").doc("notificaciones/endmills-notif-1").get())
+
+    // El origen debe apuntar a una medida real del catálogo.
+    await assertFails(
+      userDb("endmills-user").doc("notificaciones/endmills-notif-3").set({
+        ...base,
+        origenId: "medida-inexistente",
+      })
+    )
+    // Combinación tipo/origen/audiencia incoherente.
+    await assertFails(
+      userDb("endmills-user").doc("notificaciones/endmills-notif-4").set({
+        ...base,
+        audiencia: "requisiciones",
+      })
+    )
+    // Sin el bloque duplicado permisivo, las notificaciones son inmutables.
+    await assertFails(permitida.update({ titulo: "editado" }))
+    await assertFails(permitida.delete())
   })
 
   it("el harness realmente ejecutó contra el emulador", () => {

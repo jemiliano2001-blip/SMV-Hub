@@ -21,6 +21,7 @@ const FILTROS_ORIGEN: readonly (readonly [FiltroOrigen, string])[] = [
   ['requisiciones', 'Requisiciones'],
   ['documentos-venta', 'Documentos'],
   ['banos', 'Baños'],
+  ['endmills', 'Endmills'],
 ]
 
 const ETIQUETAS_ORIGEN: Record<OrigenModuloNotificacion, string> = {
@@ -28,6 +29,7 @@ const ETIQUETAS_ORIGEN: Record<OrigenModuloNotificacion, string> = {
   requisiciones: 'requisición',
   'documentos-venta': 'documento',
   banos: 'baño',
+  endmills: 'endmills',
 }
 
 function formatearFecha(fecha: Date): string {

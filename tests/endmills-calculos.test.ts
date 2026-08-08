@@ -1,12 +1,36 @@
 import { describe, expect, it } from "vitest"
 import {
   calcularCantidadSugerida,
+  calcularLeadTimePromedio,
   calcularObjetivoPar,
   calcularTotalesPedidoEndmills,
   clasificarStockEndmill,
+  diferenciaEnDias,
+  generarTextoWeChat,
   redondearUSD,
 } from "@/lib/endmills-calculos"
-import { PartidaPedidoEndmillsSchema, PedidoEndmillsSchema } from "@/lib/schemas"
+import { EndmillMedidaSchema, PartidaPedidoEndmillsSchema, PedidoEndmillsSchema } from "@/lib/schemas"
+
+function medidaDePrueba(id: string, medidaPulgadas: string, descripcion: string) {
+  return EndmillMedidaSchema.parse({
+    id,
+    orden: 1,
+    categoria: "FLAT",
+    medidaPulgadas,
+    descripcion,
+    stockActual: 2,
+    stockActualizadoEn: new Date(),
+    precioActualUSD: 5.5,
+    cotizacionFecha: "2026-08-01",
+    specPropuesta: `D${medidaPulgadas}*FL3/4`,
+    requiereConfirmacion: false,
+    notas: null,
+    objetivoPar: 10,
+    ultimoPedidoId: null,
+    creadoEn: new Date(),
+    actualizadoEn: new Date(),
+  })
+}
 
 describe("cálculos de Endmills China", () => {
   it("calcula PAR y sugerido con la fórmula aprobada", () => {
@@ -45,6 +69,54 @@ describe("cálculos de Endmills China", () => {
       numeroPartidas: 2,
       numeroPiezas: 25,
     })
+  })
+
+  it("calcula diferencia en días y lead time promedio correctamente", () => {
+    expect(diferenciaEnDias("2026-08-01", "2026-08-25")).toBe(24)
+    expect(diferenciaEnDias("2026-08-10", "2026-08-10")).toBe(0)
+    // Un rango invertido o una fecha inválida es error de captura, no cero.
+    expect(diferenciaEnDias("2026-08-25", "2026-08-01")).toBeNull()
+    expect(diferenciaEnDias("no-es-fecha", "2026-08-01")).toBeNull()
+    expect(diferenciaEnDias("2026-08-01", "")).toBeNull()
+
+    const pedidos = [
+      { estado: "recibido", diasLeadTime: 20 },
+      { estado: "recibido", diasLeadTime: 30 },
+      { estado: "confirmado", diasLeadTime: null },
+    ]
+    expect(calcularLeadTimePromedio(pedidos)).toBe(25)
+  })
+
+  it("generación de texto para WeChat / WhatsApp contiene cantidades y montos", () => {
+    const medida = medidaDePrueba("m-1", "1/4", "FLAT 4 FILOS 1/4")
+    const texto = generarTextoWeChat([medida], { "m-1": { cantidad: 8, precio: 5.5 } })
+    expect(texto).toContain("1/4")
+    expect(texto).toContain("Qty: 8 pcs")
+    expect(texto).toContain("$44.00 USD")
+  })
+
+  it("el texto para WeChat numera y cuenta solo las partidas con cantidad", () => {
+    const texto = generarTextoWeChat(
+      [
+        medidaDePrueba("m-1", "1/4", "FLAT 1/4"),
+        medidaDePrueba("m-2", "3/8", "FLAT 3/8"), // sin cantidad: no se pide
+        medidaDePrueba("m-3", "1/2", "FLAT 1/2"),
+      ],
+      {
+        "m-1": { cantidad: 8, precio: 5.5 },
+        "m-2": { cantidad: 0, precio: 6.25 },
+        "m-3": { cantidad: 2, precio: 10 },
+      }
+    )
+
+    // La numeración va corrida (1, 2), sin saltarse por la partida excluida.
+    expect(texto).toContain("1. 1/4\" FLAT 1/4")
+    expect(texto).toContain("2. 1/2\" FLAT 1/2")
+    expect(texto).not.toContain("FLAT 3/8")
+    expect(texto).not.toContain("3. ")
+    // Y los totales cuentan lo que realmente se pide, no la selección completa.
+    expect(texto).toContain("Total Items: 2 | Total Pieces: 10")
+    expect(texto).toContain("Estimated Total: $64.00 USD")
   })
 
   it("rechaza moneda distinta de USD", () => {

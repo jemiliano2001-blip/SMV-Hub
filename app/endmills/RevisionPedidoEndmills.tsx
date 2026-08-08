@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { ClipboardCopy, Download, Mail, ShieldCheck } from "lucide-react"
+import { ClipboardCopy, Download, Mail, MessageSquare, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -25,6 +25,7 @@ import {
 import {
   calcularCantidadSugerida,
   calcularTotalesPedidoEndmills,
+  generarTextoWeChat,
 } from "@/lib/endmills-calculos"
 import { fechaHoyLocal, formatPrecio } from "@/lib/format"
 import type { ActorEndmills } from "@/lib/endmills"
@@ -74,6 +75,7 @@ export default function RevisionPedidoEndmills({
   const [numeroProveedor, setNumeroProveedor] = useState("")
   const [aliCost, setAliCost] = useState("0")
   const [shipping, setShipping] = useState("0")
+  const [tipoCambio, setTipoCambio] = useState("")
   const [adicionalesConfirmados, setAdicionalesConfirmados] = useState(false)
   const [revisionHumana, setRevisionHumana] = useState(false)
   const [guardando, setGuardando] = useState(false)
@@ -89,6 +91,12 @@ export default function RevisionPedidoEndmills({
     Number(aliCost) || 0,
     Number(shipping) || 0
   ), [seleccionadas, filas, aliCost, shipping])
+
+  const totalMXNEstimado = useMemo(() => {
+    const tc = Number(tipoCambio)
+    if (!tc || tc <= 0 || !adicionalesConfirmados) return null
+    return totales.totalUSD * tc
+  }, [tipoCambio, adicionalesConfirmados, totales.totalUSD])
 
   function actualizarFila(id: string, cambios: Partial<FilaBorrador>) {
     setFilas((actuales) => ({
@@ -116,7 +124,13 @@ export default function RevisionPedidoEndmills({
 
   async function copiarTabla() {
     await navigator.clipboard.writeText(tablaTexto("\t"))
-    setMensaje("Tabla copiada.")
+    setMensaje("Tabla copiada al portapapeles.")
+  }
+
+  async function copiarWeChat() {
+    const texto = generarTextoWeChat(seleccionadas, filas)
+    await navigator.clipboard.writeText(texto)
+    setMensaje("Texto para WeChat / WhatsApp copiado.")
   }
 
   function descargarCsv() {
@@ -163,6 +177,7 @@ export default function RevisionPedidoEndmills({
         proveedor: PROVEEDOR,
         aliCostUSD: Number(aliCost) || 0,
         shippingUSD: Number(shipping) || 0,
+        tipoCambioUSD: Number(tipoCambio) > 0 ? Number(tipoCambio) : null,
         costosAdicionalesConfirmados: adicionalesConfirmados,
         partidas: seleccionadas.map((medida) => ({
           medidaId: medida.id,
@@ -248,26 +263,35 @@ export default function RevisionPedidoEndmills({
             <div className="space-y-2 rounded-xl border p-3">
               <div><Label htmlFor="ali-cost">Ali Cost USD</Label><Input id="ali-cost" type="number" min={0} step="0.01" value={aliCost} onChange={(e) => setAliCost(e.target.value)} /></div>
               <div><Label htmlFor="shipping">Shipping USD</Label><Input id="shipping" type="number" min={0} step="0.01" value={shipping} onChange={(e) => setShipping(e.target.value)} /></div>
+              <div><Label htmlFor="tipo-cambio">Tipo de cambio USD/MXN</Label><Input id="tipo-cambio" type="number" min={0} step="0.01" value={tipoCambio} onChange={(e) => setTipoCambio(e.target.value)} placeholder="Opcional (ej. 18.50)" /></div>
               <label className="flex items-start gap-2 text-xs"><Checkbox checked={adicionalesConfirmados} onCheckedChange={(checked) => setAdicionalesConfirmados(checked === true)} /> Costos adicionales confirmados</label>
               <div className="border-t pt-2">
                 <div className="text-xs text-slate-500">Total landed</div>
                 {adicionalesConfirmados ? (
-                  <div className="text-xl font-black text-emerald-700">{formatPrecio(totales.totalUSD, "USD")}</div>
+                  <div>
+                    <div className="text-xl font-black text-emerald-700">{formatPrecio(totales.totalUSD, "USD")}</div>
+                    {totalMXNEstimado !== null && (
+                      <div className="text-xs font-semibold text-slate-600">
+                        (~{formatPrecio(totalMXNEstimado, "MXN")})
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="mt-1 text-xs font-semibold text-slate-600">Confirma Ali Cost y shipping para mostrarlo.</div>
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-1">
-              <Button variant="outline" size="sm" onClick={() => void copiarTabla()} aria-label="Copiar tabla"><ClipboardCopy /></Button>
-              <Button variant="outline" size="sm" onClick={descargarCsv} aria-label="Descargar CSV"><Download /></Button>
-              <Button variant="outline" size="sm" onClick={abrirCorreo} aria-label="Preparar correo"><Mail /></Button>
+            <div className="grid grid-cols-4 gap-1">
+              <Button variant="outline" size="sm" onClick={() => void copiarTabla()} title="Copiar tabla"><ClipboardCopy className="h-4 w-4" /></Button>
+              <Button variant="outline" size="sm" onClick={() => void copiarWeChat()} title="Copiar para WeChat / WhatsApp"><MessageSquare className="h-4 w-4 text-emerald-700" /></Button>
+              <Button variant="outline" size="sm" onClick={descargarCsv} title="Descargar CSV"><Download className="h-4 w-4" /></Button>
+              <Button variant="outline" size="sm" onClick={abrirCorreo} title="Preparar correo"><Mail className="h-4 w-4" /></Button>
             </div>
             <label className="flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-950">
               <Checkbox checked={revisionHumana} onCheckedChange={(checked) => setRevisionHumana(checked === true)} />
               <span><strong>Revisión humana:</strong> confirmé cantidades, precios y specs.</span>
             </label>
-            {mensaje && <p className="text-xs text-emerald-700">{mensaje}</p>}
+            {mensaje && <p className="text-xs text-emerald-700 font-medium">{mensaje}</p>}
             {error && <p className="rounded-lg bg-rose-50 p-2 text-xs text-rose-700">{error}</p>}
           </aside>
         </div>

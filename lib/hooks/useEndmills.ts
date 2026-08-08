@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react"
 import {
+  actualizarStockBatchEndmills,
   actualizarStockEndmill,
   cancelarPedidoEndmills,
+  confirmarMedidaEndmill,
   listarMedidasEndmills,
   listarPedidosEndmills,
   registrarPedidoEndmills,
@@ -92,6 +94,8 @@ export function useEndmills() {
     fetchMedidas,
     fetchPedidos,
     actualizarStock: actualizarStockEndmill,
+    actualizarStockBatch: actualizarStockBatchEndmills,
+    confirmarMedida: confirmarMedidaEndmill,
     registrarPedido: (input: RegistrarPedidoEndmillsInput, actor: ActorEndmills) =>
       registrarPedidoEndmills(input, actor),
     registrarRecepcion: (pedidoId: string, input: RecibirPedidoEndmillsInput) =>
