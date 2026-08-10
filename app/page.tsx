@@ -423,7 +423,7 @@ export default function Home() {
     return NAV_CARDS.filter((tarjeta) => {
       if (bypassActivo) return true
       if (tarjeta.href === '/usuarios') return esSuperAdmin
-      return tienePermiso(modulos, tarjeta.href)
+      return tienePermiso(modulos, tarjeta.href, esSuperAdmin)
     })
   }, [modulos, esSuperAdmin, bypassActivo])
 

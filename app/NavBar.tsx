@@ -90,7 +90,7 @@ export default function NavBar() {
     const bypass = authBypassActivo()
     const grupos = GRUPOS.map((g) => ({
       ...g,
-      links: g.links.filter((l) => bypass || tienePermiso(modulos, l.href)),
+      links: g.links.filter((l) => bypass || tienePermiso(modulos, l.href, esSuperAdmin)),
     })).filter((g) => g.links.length > 0)
 
     const linksAdmin = [

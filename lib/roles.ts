@@ -240,6 +240,7 @@ export function puedeVerNotificaciones(
 
 /**
  * Autorización de ruta por módulos.
+ * - esSuperAdmin → acceso a todas las rutas (AuthGuard ya especializa /usuarios)
  * - null/undefined modulos → sin acceso
  * - `/` siempre permitido si hay lista (usuario activo con permisos cargados)
  * - URLs externas (http/https) siempre permitidas
@@ -248,8 +249,10 @@ export function puedeVerNotificaciones(
  */
 export function tienePermiso(
   modulos: readonly ModuloId[] | null | undefined,
-  pathname: string
+  pathname: string,
+  esSuperAdmin?: boolean
 ): boolean {
+  if (esSuperAdmin) return true
   if (!modulos) return false
   if (pathname === "/") return true
   if (pathname.startsWith("http://") || pathname.startsWith("https://")) return true
