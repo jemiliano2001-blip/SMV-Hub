@@ -368,16 +368,19 @@ service cloud.firestore {
 
     match /endmills-medidas/{medidaId} {
       allow read: if esUsuarioEndmills();
-      // El catálogo se importa con Admin SDK; el cliente solo actualiza stock
-      // o una base respaldada por la partida de un pedido real.
-      allow create, delete: if false;
+      allow create: if esUsuarioEndmills() &&
+        medidaEndmillValida(request.resource.data) &&
+        request.resource.data.id == medidaId;
+      allow delete: if false;
       allow update: if esUsuarioEndmills() &&
         medidaEndmillValida(request.resource.data) &&
         request.resource.data.creadoEn == resource.data.creadoEn &&
         request.resource.data.actualizadoEn >= resource.data.actualizadoEn &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'stockActual', 'stockActualizadoEn', 'objetivoPar',
-          'ultimoPedidoId', 'requiereConfirmacion', 'actualizadoEn'
+          'orden', 'categoria', 'medidaPulgadas', 'descripcion',
+          'stockActual', 'stockActualizadoEn', 'precioActualUSD', 'cotizacionFecha',
+          'specPropuesta', 'requiereConfirmacion', 'notas', 'objetivoPar',
+          'ultimoPedidoId', 'actualizadoEn'
         ]) &&
         // La confirmación de spec/precio solo se resuelve (true → false); nunca
         // se puede volver a marcar una medida como "por confirmar" desde el cliente.

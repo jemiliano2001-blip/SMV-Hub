@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => {
     listar: vi.fn(),
     actualizar: vi.fn(),
     obtener: vi.fn(),
+    crear: vi.fn(),
   }
   const pedidos = {
     ref: vi.fn(() => ({ coleccion: "endmills-pedidos" })),
@@ -86,8 +87,10 @@ import { emitirNotificacion } from "@/lib/notificaciones"
 import {
   actualizarStockBatchEndmills,
   actualizarStockEndmill,
+  crearEndmillMedida,
   registrarPedidoEndmills,
   registrarRecepcionPedidoEndmills,
+  reordenarMedidasEndmills,
 } from "@/lib/endmills"
 import type {
   EndmillMedida,
@@ -556,6 +559,64 @@ describe("lib/endmills", () => {
       expect(vi.mocked(emitirNotificacion)).toHaveBeenCalledTimes(1)
       expect(vi.mocked(emitirNotificacion)).toHaveBeenCalledWith(
         expect.objectContaining({ origenId: "endmill-004" })
+      )
+    })
+  })
+
+  describe("crearEndmillMedida y reordenarMedidasEndmills", () => {
+    it("crea una nueva medida al final asignando orden max + 1", async () => {
+      mocks.medidas.listar.mockResolvedValue([
+        { id: "m-1", orden: 1 },
+        { id: "m-2", orden: 5 },
+      ])
+      mocks.medidas.crear.mockResolvedValue("m-nueva")
+
+      const id = await crearEndmillMedida({
+        categoria: "BALL",
+        medidaPulgadas: "1/4",
+        descripcion: "BALL 2 FILOS 1/4",
+        specPropuesta: "D1/4*FL1/2*L50",
+        stockInicial: 5,
+        precioActualUSD: 6.5,
+        requiereConfirmacion: false,
+        objetivoPar: null,
+        notas: null,
+      })
+
+      expect(id).toBe("m-nueva")
+      expect(mocks.medidas.crear).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orden: 6,
+          categoria: "BALL",
+          medidaPulgadas: "1/4",
+          descripcion: "BALL 2 FILOS 1/4",
+          stockActual: 5,
+          precioActualUSD: 6.5,
+        }),
+        expect.stringContaining("Creó nueva medida de endmill")
+      )
+    })
+
+    it("reordena la lista actualizando el campo orden en transacción", async () => {
+      const update = vi.fn()
+      const transaction = { update }
+      vi.mocked(runTransaction).mockImplementation(async (_db, callback) =>
+        callback(transaction as never)
+      )
+
+      await reordenarMedidasEndmills([
+        { id: "m-2", orden: 1 },
+        { id: "m-1", orden: 2 },
+      ])
+
+      expect(update).toHaveBeenCalledTimes(2)
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "m-2" }),
+        expect.objectContaining({ orden: 1 })
+      )
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "m-1" }),
+        expect.objectContaining({ orden: 2 })
       )
     })
   })

@@ -150,6 +150,8 @@ export default function EndmillsView() {
               onActualizarStock={endmills.actualizarStock}
               onActualizarStockBatch={endmills.actualizarStockBatch}
               onConfirmarMedida={endmills.confirmarMedida}
+              onCrearMedida={endmills.crearMedida}
+              onReordenarMedidas={endmills.reordenarMedidas}
             />
           </TabsContent>
           <TabsContent value="pedidos">

@@ -15,16 +15,19 @@ import { registrarAuditoria } from "@/lib/auditoria"
 import { makeDateConverter } from "@/lib/firestore-helpers"
 import { crearRepositorio } from "@/lib/repositorio"
 import {
+  CrearEndmillMedidaInputSchema,
   EndmillMedidaSchema,
   PartidaPedidoEndmillsSchema,
   PedidoEndmillsSchema,
   RecibirPedidoEndmillsInputSchema,
   RegistrarPedidoEndmillsInputSchema,
+  type CrearEndmillMedidaInput,
   type EndmillMedida,
   type PartidaPedidoEndmills,
   type PedidoEndmills,
   type RecepcionParcialEndmill,
   type RecibirPedidoEndmillsInput,
+  type ReordenarMedidaItem,
   type RegistrarPedidoEndmillsInput,
 } from "@/lib/schemas"
 import {
@@ -306,6 +309,56 @@ export async function confirmarMedidaEndmill(id: string): Promise<void> {
     id,
     { requiereConfirmacion: false, actualizadoEn: new Date() },
     `Confirmó especificación/precio de endmill`
+  )
+}
+
+export async function crearEndmillMedida(input: CrearEndmillMedidaInput): Promise<string> {
+  const parsed = CrearEndmillMedidaInputSchema.parse(input)
+  const medidas = await repoMedidas.listar()
+  const maxOrden = medidas.reduce((max, item) => Math.max(max, item.orden), 0)
+  const nuevoOrden = maxOrden + 1
+
+  const hoy = fechaHoyLocal()
+  const fechaCotizacion = parsed.cotizacionFecha || hoy
+
+  const payload: Omit<EndmillMedida, "id" | "creadoEn" | "actualizadoEn"> = {
+    orden: nuevoOrden,
+    categoria: parsed.categoria,
+    medidaPulgadas: parsed.medidaPulgadas,
+    descripcion: parsed.descripcion,
+    stockActual: parsed.stockInicial,
+    stockActualizadoEn: new Date(),
+    precioActualUSD: parsed.precioActualUSD,
+    cotizacionFecha: fechaCotizacion,
+    specPropuesta: parsed.specPropuesta,
+    requiereConfirmacion: parsed.requiereConfirmacion,
+    notas: parsed.notas ?? null,
+    objetivoPar: parsed.objetivoPar ?? null,
+    ultimoPedidoId: null,
+  }
+
+  return repoMedidas.crear(payload, `Creó nueva medida de endmill: ${parsed.descripcion}`)
+}
+
+export async function reordenarMedidasEndmills(
+  items: readonly ReordenarMedidaItem[]
+): Promise<void> {
+  if (items.length === 0) return
+  await runTransaction(db, async (tx) => {
+    const ahora = new Date()
+    for (const item of items) {
+      const ref = doc(repoMedidas.ref(), item.id)
+      tx.update(ref, {
+        orden: item.orden,
+        actualizadoEn: ahora,
+      })
+    }
+  })
+  void auditarEndmillsBestEffort(
+    "EDITAR",
+    COLECCION_MEDIDAS,
+    "reordenar-medidas",
+    `Reordenó ${items.length} medidas de endmills en inventario`
   )
 }
 

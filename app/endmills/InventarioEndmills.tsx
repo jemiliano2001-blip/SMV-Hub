@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { AlertTriangle, CheckCircle2, Edit3, History, Pencil, RefreshCw, Save, Search, X } from "lucide-react"
+import { AlertTriangle, ArrowDown, ArrowUp, CheckCircle2, Edit3, GripVertical, History, Pencil, Plus, RefreshCw, Save, Search, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -31,9 +31,11 @@ import { formatPrecio } from "@/lib/format"
 import { listarHistorialMedidaEndmills, type ConteoEndmillInput } from "@/lib/endmills"
 import type {
   CategoriaEndmill,
+  CrearEndmillMedidaInput,
   EndmillMedida,
   EstadoStockEndmill,
   PartidaPedidoEndmills,
+  ReordenarMedidaItem,
 } from "@/lib/schemas"
 
 /** Etiquetas legibles de los estados; el slug crudo nunca se muestra en pantalla. */
@@ -63,6 +65,8 @@ export default function InventarioEndmills({
   onActualizarStock,
   onActualizarStockBatch,
   onConfirmarMedida,
+  onCrearMedida,
+  onReordenarMedidas,
 }: {
   medidas: EndmillMedida[]
   loading: boolean
@@ -70,6 +74,8 @@ export default function InventarioEndmills({
   onActualizarStock: (id: string, stock: number) => Promise<void>
   onActualizarStockBatch?: (items: readonly ConteoEndmillInput[]) => Promise<void>
   onConfirmarMedida?: (id: string) => Promise<void>
+  onCrearMedida?: (input: CrearEndmillMedidaInput) => Promise<string>
+  onReordenarMedidas?: (items: readonly ReordenarMedidaItem[]) => Promise<void>
 }) {
   const [busqueda, setBusqueda] = useState("")
   const [categoria, setCategoria] = useState<CategoriaEndmill | "todas">("todas")
@@ -91,6 +97,34 @@ export default function InventarioEndmills({
   const [basesConteo, setBasesConteo] = useState<Record<string, number>>({})
   const [tocados, setTocados] = useState<string[]>([])
 
+  // Estado para crear nuevo endmill
+  const [modalCrearAbierto, setModalCrearAbierto] = useState(false)
+  const [creandoMedida, setCreandoMedida] = useState(false)
+  const [nuevoCategoria, setNuevoCategoria] = useState<CategoriaEndmill>("FLAT")
+  const [nuevoMedidaPulgadas, setNuevoMedidaPulgadas] = useState("")
+  const [nuevoDescripcion, setNuevoDescripcion] = useState("")
+  const [nuevoSpecPropuesta, setNuevoSpecPropuesta] = useState("")
+  const [nuevoStockInicial, setNuevoStockInicial] = useState("0")
+  const [nuevoPrecioUSD, setNuevoPrecioUSD] = useState("0")
+  const [nuevoObjetivoPar, setNuevoObjetivoPar] = useState("")
+  const [nuevoRequiereConfirmacion, setNuevoRequiereConfirmacion] = useState(false)
+  const [nuevoNotas, setNuevoNotas] = useState("")
+
+  // Estado para reordenamiento (Grab and Place / Drag and Drop)
+  const [ordenLocal, setOrdenLocal] = useState<EndmillMedida[]>([])
+  const [reordenModificado, setReordenModificado] = useState(false)
+  const [guardandoOrden, setGuardandoOrden] = useState(false)
+  const [arrastrandoIndex, setArrastrandoIndex] = useState<number | null>(null)
+
+  // Sincronizar orden local cuando cambia la lista base de Firestore y no hay cambios sin
+  // guardar. Se ajusta durante el render (no en un efecto) para evitar un ciclo extra de
+  // render en cascada; ver https://react.dev/learn/you-might-not-need-an-effect
+  const [medidasPrevias, setMedidasPrevias] = useState(medidas)
+  if (medidas !== medidasPrevias && !reordenModificado) {
+    setMedidasPrevias(medidas)
+    setOrdenLocal(medidas)
+  }
+
   useEffect(() => {
     if (!seleccionada) return
     let cancelado = false
@@ -108,7 +142,12 @@ export default function InventarioEndmills({
     }
   }, [seleccionada])
 
-  const filtradas = useMemo(() => {
+  const reordenHabilitado = busqueda.trim() === "" && categoria === "todas" && filtroEstadoExterno === "todas" && !modoConteo
+
+  const listaAMostrar = useMemo(() => {
+    if (reordenHabilitado && ordenLocal.length > 0) {
+      return ordenLocal
+    }
     const q = busqueda.trim().toLowerCase()
     return medidas.filter((medida) => {
       if (categoria !== "todas" && medida.categoria !== categoria) return false
@@ -126,7 +165,71 @@ export default function InventarioEndmills({
         .toLowerCase()
         .includes(q)
     })
-  }, [medidas, busqueda, categoria, filtroEstadoExterno])
+  }, [medidas, ordenLocal, reordenHabilitado, busqueda, categoria, filtroEstadoExterno])
+
+  function moverPosicion(fromIndex: number, toIndex: number) {
+    if (toIndex < 0 || toIndex >= ordenLocal.length) return
+    const copia = [...ordenLocal]
+    const [movido] = copia.splice(fromIndex, 1)
+    copia.splice(toIndex, 0, movido)
+    setOrdenLocal(copia)
+    setReordenModificado(true)
+  }
+
+  async function guardarNuevoOrden() {
+    if (!onReordenarMedidas || !reordenModificado) return
+    setGuardandoOrden(true)
+    setError(null)
+    try {
+      const items: ReordenarMedidaItem[] = ordenLocal.map((item, idx) => ({
+        id: item.id,
+        orden: idx + 1,
+      }))
+      await onReordenarMedidas(items)
+      setReordenModificado(false)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Error al guardar el nuevo orden.")
+    } finally {
+      setGuardandoOrden(false)
+    }
+  }
+
+  async function guardarCrearMedida() {
+    if (!onCrearMedida) return
+    if (!nuevoMedidaPulgadas.trim() || !nuevoDescripcion.trim() || !nuevoSpecPropuesta.trim()) {
+      setError("Medida en pulgadas, descripción y spec son requeridos.")
+      return
+    }
+    setCreandoMedida(true)
+    setError(null)
+    try {
+      await onCrearMedida({
+        categoria: nuevoCategoria,
+        medidaPulgadas: nuevoMedidaPulgadas.trim(),
+        descripcion: nuevoDescripcion.trim(),
+        specPropuesta: nuevoSpecPropuesta.trim(),
+        stockInicial: Math.max(0, Math.trunc(Number(nuevoStockInicial) || 0)),
+        precioActualUSD: Math.max(0, Number(nuevoPrecioUSD) || 0),
+        objetivoPar: nuevoObjetivoPar.trim() ? Math.max(0, Math.trunc(Number(nuevoObjetivoPar))) : null,
+        requiereConfirmacion: nuevoRequiereConfirmacion,
+        notas: nuevoNotas.trim() || null,
+      })
+      setModalCrearAbierto(false)
+      // Reset form
+      setNuevoMedidaPulgadas("")
+      setNuevoDescripcion("")
+      setNuevoSpecPropuesta("")
+      setNuevoStockInicial("0")
+      setNuevoPrecioUSD("0")
+      setNuevoObjetivoPar("")
+      setNuevoRequiereConfirmacion(false)
+      setNuevoNotas("")
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Error al crear la nueva medida de endmill.")
+    } finally {
+      setCreandoMedida(false)
+    }
+  }
 
   function iniciarModoConteo() {
     const inicial = Object.fromEntries(medidas.map((m) => [m.id, m.stockActual]))
@@ -244,27 +347,41 @@ export default function InventarioEndmills({
               className="pl-9"
             />
           </div>
-          {onActualizarStockBatch && (
-            <div>
-              {modoConteo ? (
-                <div className="flex items-center gap-1.5">
-                  <Button size="sm" onClick={() => void guardarConteoMasivo()} disabled={guardando} className="bg-emerald-700 hover:bg-emerald-800">
-                    <Save className="h-4 w-4" />{" "}
-                    {guardando
-                      ? "Guardando..."
-                      : `Guardar conteo${tocados.length > 0 ? ` (${tocados.length})` : ""}`}
+          <div className="flex items-center gap-2">
+            {onCrearMedida && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  setError(null)
+                  setModalCrearAbierto(true)
+                }}
+                className="bg-sky-700 hover:bg-sky-800 text-white font-semibold shrink-0"
+              >
+                <Plus className="h-4 w-4" /> Agregar Endmill
+              </Button>
+            )}
+            {onActualizarStockBatch && (
+              <div>
+                {modoConteo ? (
+                  <div className="flex items-center gap-1.5">
+                    <Button size="sm" onClick={() => void guardarConteoMasivo()} disabled={guardando} className="bg-emerald-700 hover:bg-emerald-800">
+                      <Save className="h-4 w-4" />{" "}
+                      {guardando
+                        ? "Guardando..."
+                        : `Guardar conteo${tocados.length > 0 ? ` (${tocados.length})` : ""}`}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setModoConteo(false)} disabled={guardando}>
+                      <X className="h-4 w-4" /> Cancelar
+                    </Button>
+                  </div>
+                ) : (
+                  <Button size="sm" variant="outline" onClick={iniciarModoConteo} className="text-slate-700">
+                    <Edit3 className="h-4 w-4" /> Conteo rápido inline
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => setModoConteo(false)} disabled={guardando}>
-                    <X className="h-4 w-4" /> Cancelar
-                  </Button>
-                </div>
-              ) : (
-                <Button size="sm" variant="outline" onClick={iniciarModoConteo} className="text-slate-700">
-                  <Edit3 className="h-4 w-4" /> Conteo rápido inline
-                </Button>
-              )}
-            </div>
-          )}
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-1.5">
@@ -289,6 +406,34 @@ export default function InventarioEndmills({
         </div>
       </div>
 
+      {reordenModificado && (
+        <div className="flex items-center justify-between rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+          <span className="font-semibold">Has modificado el orden de los endmills. Haz clic en guardar para conservar la posición.</span>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => void guardarNuevoOrden()}
+              disabled={guardandoOrden}
+              className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold"
+            >
+              <Save className="h-4 w-4" /> {guardandoOrden ? "Guardando..." : "Guardar nuevo orden"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setOrdenLocal(medidas)
+                setReordenModificado(false)
+              }}
+              disabled={guardandoOrden}
+              className="border-emerald-300 bg-white text-emerald-900 hover:bg-emerald-100"
+            >
+              Restablecer
+            </Button>
+          </div>
+        </div>
+      )}
+
       {modoConteo && error && (
         <div
           role="alert"
@@ -311,19 +456,20 @@ export default function InventarioEndmills({
         <div className="flex items-center justify-between rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs text-sky-900">
           <span>Filtrando por estado: <strong>{ETIQUETA_ESTADO[filtroEstadoExterno]}</strong></span>
           <span className="font-semibold text-sky-700">
-            {filtradas.length === 1 ? "1 medida encontrada" : `${filtradas.length} medidas encontradas`}
+            {listaAMostrar.length === 1 ? "1 medida encontrada" : `${listaAMostrar.length} medidas encontradas`}
           </span>
         </div>
       )}
 
       {medidas.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
-          El catálogo aún no está importado. Ejecuta primero el importador validado en el ambiente autorizado.
+          No hay endmills registrados en el catálogo. Usa el botón &quot;Agregar Endmill&quot; para registrar la primera medida.
         </div>
       ) : (
         <Table>
           <TableHeader>
             <TableRow>
+              {reordenHabilitado && <TableHead className="w-16 text-center">Posición</TableHead>}
               <TableHead>Medida</TableHead>
               <TableHead>Descripción / spec</TableHead>
               <TableHead className="text-right">Stock</TableHead>
@@ -334,12 +480,56 @@ export default function InventarioEndmills({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtradas.map((medida) => {
+            {listaAMostrar.map((medida, index) => {
               const stockMostrar = modoConteo ? (stocksInline[medida.id] ?? medida.stockActual) : medida.stockActual
               const estado = clasificarStockEndmill(stockMostrar, medida.objetivoPar)
               const sugerido = calcularCantidadSugerida(medida.objetivoPar, stockMostrar)
+              const esArrastrado = arrastrandoIndex === index
               return (
-                <TableRow key={medida.id} className={medida.requiereConfirmacion ? "bg-amber-50/70" : ""}>
+                <TableRow
+                  key={medida.id}
+                  draggable={reordenHabilitado}
+                  onDragStart={() => setArrastrandoIndex(index)}
+                  onDragOver={(e) => {
+                    if (!reordenHabilitado) return
+                    e.preventDefault()
+                  }}
+                  onDrop={() => {
+                    if (!reordenHabilitado || arrastrandoIndex === null || arrastrandoIndex === index) return
+                    moverPosicion(arrastrandoIndex, index)
+                    setArrastrandoIndex(null)
+                  }}
+                  className={`${medida.requiereConfirmacion ? "bg-amber-50/70" : ""} ${
+                    esArrastrado ? "opacity-40 bg-sky-100" : ""
+                  }`}
+                >
+                  {reordenHabilitado && (
+                    <TableCell className="w-16 py-1 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <GripVertical className="h-4 w-4 cursor-grab text-slate-400 hover:text-slate-700 active:cursor-grabbing" aria-label="Arrastra para mover de posición (Grab & Place)" />
+                        <div className="flex flex-col">
+                          <button
+                            type="button"
+                            disabled={index === 0}
+                            onClick={() => moverPosicion(index, index - 1)}
+                            className="text-slate-400 hover:text-slate-800 disabled:opacity-20"
+                            title="Mover arriba"
+                          >
+                            <ArrowUp className="h-3 w-3" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={index === listaAMostrar.length - 1}
+                            onClick={() => moverPosicion(index, index + 1)}
+                            className="text-slate-400 hover:text-slate-800 disabled:opacity-20"
+                            title="Mover abajo"
+                          >
+                            <ArrowDown className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    </TableCell>
+                  )}
                   <TableCell className="font-mono font-bold text-slate-900">{medida.medidaPulgadas}&quot;</TableCell>
                   <TableCell className="max-w-md whitespace-normal">
                     <div className="flex items-center gap-1.5 font-semibold text-slate-800">
@@ -457,6 +647,145 @@ export default function InventarioEndmills({
             <DialogFooter>
               <Button variant="outline" onClick={() => setSeleccionada(null)}>Cerrar</Button>
               <Button onClick={() => void guardarStock()} disabled={guardando}>{guardando ? "Guardando..." : "Guardar stock"}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {modalCrearAbierto && (
+        <Dialog open onOpenChange={(open) => !open && setModalCrearAbierto(false)}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Plus className="h-5 w-5 text-sky-700" /> Agregar Nuevo Endmill al Catálogo
+              </DialogTitle>
+              <DialogDescription>
+                La nueva medida se agregará automáticamente al final de la lista de inventario.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-2 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="nuevo-categoria">Categoría</Label>
+                <select
+                  id="nuevo-categoria"
+                  value={nuevoCategoria}
+                  onChange={(e) => setNuevoCategoria(e.target.value as CategoriaEndmill)}
+                  className="w-full rounded-md border border-slate-300 bg-white p-2 text-sm font-medium focus:border-sky-500 focus:outline-hidden"
+                >
+                  {CATEGORIAS.filter((c) => c.id !== "todas").map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="nuevo-medida">Medida (Pulgadas) *</Label>
+                <Input
+                  id="nuevo-medida"
+                  placeholder='e.g. 1/4", 3/8"'
+                  value={nuevoMedidaPulgadas}
+                  onChange={(e) => setNuevoMedidaPulgadas(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="nuevo-precio">Precio Unitario (USD) *</Label>
+                <Input
+                  id="nuevo-precio"
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  placeholder="0.00"
+                  value={nuevoPrecioUSD}
+                  onChange={(e) => setNuevoPrecioUSD(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="nuevo-descripcion">Descripción Comercial *</Label>
+                <Input
+                  id="nuevo-descripcion"
+                  placeholder="e.g. FLAT 4 FILOS 1/4"
+                  value={nuevoDescripcion}
+                  onChange={(e) => setNuevoDescripcion(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="nuevo-spec">Especificación Técnica (Spec) *</Label>
+                <Input
+                  id="nuevo-spec"
+                  placeholder="e.g. D1/4*FL3/4*L50*4F"
+                  value={nuevoSpecPropuesta}
+                  onChange={(e) => setNuevoSpecPropuesta(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="nuevo-stock">Stock Inicial (pzas)</Label>
+                <Input
+                  id="nuevo-stock"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={nuevoStockInicial}
+                  onChange={(e) => setNuevoStockInicial(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="nuevo-par">Objetivo PAR (Opcional)</Label>
+                <Input
+                  id="nuevo-par"
+                  type="number"
+                  min={0}
+                  step={1}
+                  placeholder="Dejar vacío si sin base"
+                  value={nuevoObjetivoPar}
+                  onChange={(e) => setNuevoObjetivoPar(e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-center gap-2 sm:col-span-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="nuevo-confirmacion"
+                  checked={nuevoRequiereConfirmacion}
+                  onChange={(e) => setNuevoRequiereConfirmacion(e.target.checked)}
+                  className="h-4 w-4 rounded-xs border-slate-300 text-sky-600 focus:ring-sky-500"
+                />
+                <Label htmlFor="nuevo-confirmacion" className="cursor-pointer text-xs font-semibold text-slate-700">
+                  Marcar como pendiente de confirmación (precio/spec con China)
+                </Label>
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="nuevo-notas">Notas Adicionales (Opcional)</Label>
+                <Input
+                  id="nuevo-notas"
+                  placeholder="e.g. Proveedor especial, recubrimiento TiAlN..."
+                  value={nuevoNotas}
+                  onChange={(e) => setNuevoNotas(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {error && <p className="text-xs text-rose-700">{error}</p>}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setModalCrearAbierto(false)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => void guardarCrearMedida()}
+                disabled={creandoMedida}
+                className="bg-sky-700 hover:bg-sky-800 text-white font-semibold"
+              >
+                {creandoMedida ? "Guardando..." : "Agregar Endmill"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

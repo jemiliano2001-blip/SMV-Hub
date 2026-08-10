@@ -477,6 +477,26 @@ export const EndmillMedidaSchema = z.object({
 })
 export type EndmillMedida = z.infer<typeof EndmillMedidaSchema>
 
+export const CrearEndmillMedidaInputSchema = z.object({
+  categoria: CategoriaEndmillSchema,
+  medidaPulgadas: z.string().trim().min(1),
+  descripcion: z.string().trim().min(1),
+  specPropuesta: z.string().trim().min(1),
+  stockInicial: z.number().int().min(0).default(0),
+  precioActualUSD: z.number().min(0).default(0),
+  cotizacionFecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  requiereConfirmacion: z.boolean().default(false),
+  objetivoPar: z.number().int().min(0).nullable().optional().default(null),
+  notas: z.string().trim().nullable().optional().default(null),
+})
+export type CrearEndmillMedidaInput = z.infer<typeof CrearEndmillMedidaInputSchema>
+
+export const ReordenarMedidaItemSchema = z.object({
+  id: z.string().min(1),
+  orden: z.number().int().positive(),
+})
+export type ReordenarMedidaItem = z.infer<typeof ReordenarMedidaItemSchema>
+
 export const EstadoPedidoEndmillsSchema = z.enum(["confirmado", "recibido", "cancelado"])
 export type EstadoPedidoEndmills = z.infer<typeof EstadoPedidoEndmillsSchema>
 
