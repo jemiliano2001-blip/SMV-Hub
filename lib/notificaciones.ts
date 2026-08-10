@@ -74,6 +74,7 @@ const TITULOS: Record<TipoNotificacion, string> = {
   solicitud_documento_creada: "Nueva solicitud de documento",
   solicitud_documento_estado: "Solicitud de documento actualizada",
   solicitud_documento_mensaje: "Nuevo mensaje en solicitud",
+  endmills_stock_critico: "Stock crítico de Endmill",
 }
 
 export function tituloParaTipo(tipo: TipoNotificacion): string {
@@ -147,6 +148,7 @@ export function audienciasNotificacionParaUsuario(args: {
   const audiencias: AudienciaNotificacion[] = []
   if (args.modulos?.includes("pedidos-almacen")) audiencias.push("pedidos-almacen")
   if (args.modulos?.includes("requisiciones")) audiencias.push("requisiciones")
+  if (args.modulos?.includes("endmills")) audiencias.push("endmills")
   if (args.esSuperAdmin) audiencias.push("banos")
   if (args.esSuperAdmin || args.atiendeDocumentosVenta) audiencias.push("documentos-venta")
   return audiencias

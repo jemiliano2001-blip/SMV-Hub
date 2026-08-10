@@ -38,7 +38,7 @@ jobs:
           fetch-depth: 2
 
       - name: Setup Node.js
-        uses: actions/setup-node@39370e3970a6d050c08001ac08d3ed746816a73c # v4.1.0
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: '22'
           cache: 'npm'
@@ -129,7 +129,7 @@ jobs:
       # runner ubuntu-latest trae uno más viejo por defecto y el paso truena
       # con "firebase-tools no longer supports Java version before 21".
       - name: Setup Java 21 (Firestore emulator)
-        uses: actions/setup-java@8df1039502a15fce96e64176cbd2dbe348d5d437 # v4.6.1
+        uses: actions/setup-java@7a6d8a8234af8eb26422e24e3006232cccaa061b # v4.6.0
         with:
           distribution: temurin
           java-version: '21'

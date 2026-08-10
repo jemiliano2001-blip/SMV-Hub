@@ -1,12 +1,13 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { AlertTriangle, Boxes, ClipboardList, PackageCheck, RefreshCw } from "lucide-react"
+import { AlertTriangle, Boxes, ClipboardList, Clock, PackageCheck, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useEndmills } from "@/lib/hooks/useEndmills"
 import { useUsuario } from "@/lib/auth"
-import { clasificarStockEndmill } from "@/lib/endmills-calculos"
+import { calcularLeadTimePromedio, clasificarStockEndmill } from "@/lib/endmills-calculos"
+import type { EstadoStockEndmill } from "@/lib/schemas"
 import InventarioEndmills from "@/app/endmills/InventarioEndmills"
 import RevisionPedidoEndmills from "@/app/endmills/RevisionPedidoEndmills"
 import HistorialPedidosEndmills from "@/app/endmills/HistorialPedidosEndmills"
@@ -15,6 +16,7 @@ export default function EndmillsView() {
   const { usuario } = useUsuario()
   const endmills = useEndmills()
   const [revisionAbierta, setRevisionAbierta] = useState(false)
+  const [filtroEstado, setFiltroEstado] = useState<EstadoStockEndmill | "todas" | "confirmar">("todas")
 
   const resumen = useMemo(() => {
     const estados = endmills.medidas.map((medida) =>
@@ -28,9 +30,18 @@ export default function EndmillsView() {
     }
   }, [endmills.medidas])
 
+  const leadTimePromedio = useMemo(
+    () => calcularLeadTimePromedio(endmills.pedidos),
+    [endmills.pedidos]
+  )
+
   const actor = {
     uid: usuario?.uid ?? "",
     nombre: usuario?.displayName || usuario?.email || "Usuario SMV",
+  }
+
+  function toggleFiltro(nuevo: EstadoStockEndmill | "todas" | "confirmar") {
+    setFiltroEstado((actual) => (actual === nuevo ? "todas" : nuevo))
   }
 
   return (
@@ -45,6 +56,12 @@ export default function EndmillsView() {
                 <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-700">
                   USD
                 </span>
+                {leadTimePromedio !== null && (
+                  <span className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                    <Clock className="h-3 w-3 text-emerald-600" />
+                    Lead time promedio: {leadTimePromedio} días
+                  </span>
+                )}
               </div>
               <p className="mt-1 text-xs text-slate-500">
                 Inventario, precios y ciclos con ChangZhou North Alloy Tool Co. · Rita
@@ -61,11 +78,41 @@ export default function EndmillsView() {
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
-            <Kpi label="Medidas" valor={endmills.medidas.length} tono="slate" />
-            <Kpi label="Críticas" valor={resumen.criticas} tono="rose" />
-            <Kpi label="Bajas" valor={resumen.bajas} tono="amber" />
-            <Kpi label="Sin base" valor={resumen.sinBase} tono="slate" />
-            <Kpi label="Por confirmar" valor={resumen.confirmar} tono="sky" />
+            <Kpi
+              label="Medidas"
+              valor={endmills.medidas.length}
+              tono="slate"
+              activo={filtroEstado === "todas"}
+              onClick={() => toggleFiltro("todas")}
+            />
+            <Kpi
+              label="Críticas"
+              valor={resumen.criticas}
+              tono="rose"
+              activo={filtroEstado === "critico"}
+              onClick={() => toggleFiltro("critico")}
+            />
+            <Kpi
+              label="Bajas"
+              valor={resumen.bajas}
+              tono="amber"
+              activo={filtroEstado === "bajo"}
+              onClick={() => toggleFiltro("bajo")}
+            />
+            <Kpi
+              label="Sin base"
+              valor={resumen.sinBase}
+              tono="slate"
+              activo={filtroEstado === "sin_base"}
+              onClick={() => toggleFiltro("sin_base")}
+            />
+            <Kpi
+              label="Por confirmar"
+              valor={resumen.confirmar}
+              tono="sky"
+              activo={filtroEstado === "confirmar"}
+              onClick={() => toggleFiltro("confirmar")}
+            />
           </div>
         </section>
 
@@ -99,7 +146,12 @@ export default function EndmillsView() {
             <InventarioEndmills
               medidas={endmills.medidas}
               loading={endmills.loadingMedidas}
+              filtroEstadoExterno={filtroEstado}
               onActualizarStock={endmills.actualizarStock}
+              onActualizarStockBatch={endmills.actualizarStockBatch}
+              onConfirmarMedida={endmills.confirmarMedida}
+              onCrearMedida={endmills.crearMedida}
+              onReordenarMedidas={endmills.reordenarMedidas}
             />
           </TabsContent>
           <TabsContent value="pedidos">
@@ -130,21 +182,32 @@ function Kpi({
   label,
   valor,
   tono,
+  activo,
+  onClick,
 }: {
   label: string
   valor: number
   tono: "slate" | "rose" | "amber" | "sky"
+  activo?: boolean
+  onClick?: () => void
 }) {
   const tonos = {
-    slate: "border-slate-200 bg-slate-50 text-slate-800",
-    rose: "border-rose-200 bg-rose-50 text-rose-800",
-    amber: "border-amber-200 bg-amber-50 text-amber-800",
-    sky: "border-sky-200 bg-sky-50 text-sky-800",
+    slate: "border-slate-200 bg-slate-50 text-slate-800 hover:border-slate-400",
+    rose: "border-rose-200 bg-rose-50 text-rose-800 hover:border-rose-400",
+    amber: "border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-400",
+    sky: "border-sky-200 bg-sky-50 text-sky-800 hover:border-sky-400",
   }
   return (
-    <div className={`rounded-lg border px-3 py-2 ${tonos[tono]}`}>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={onClick ? Boolean(activo) : undefined}
+      className={`rounded-lg border px-3 py-2 text-left transition-all ${tonos[tono]} ${
+        activo ? "ring-2 ring-sky-600 ring-offset-1 font-bold" : ""
+      }`}
+    >
       <div className="text-[10px] font-bold uppercase tracking-wide">{label}</div>
       <div className="text-xl font-black tabular-nums">{valor}</div>
-    </div>
+    </button>
   )
 }

@@ -477,6 +477,26 @@ export const EndmillMedidaSchema = z.object({
 })
 export type EndmillMedida = z.infer<typeof EndmillMedidaSchema>
 
+export const CrearEndmillMedidaInputSchema = z.object({
+  categoria: CategoriaEndmillSchema,
+  medidaPulgadas: z.string().trim().min(1),
+  descripcion: z.string().trim().min(1),
+  specPropuesta: z.string().trim().min(1),
+  stockInicial: z.number().int().min(0).default(0),
+  precioActualUSD: z.number().min(0).default(0),
+  cotizacionFecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  requiereConfirmacion: z.boolean().default(false),
+  objetivoPar: z.number().int().min(0).nullable().optional().default(null),
+  notas: z.string().trim().nullable().optional().default(null),
+})
+export type CrearEndmillMedidaInput = z.infer<typeof CrearEndmillMedidaInputSchema>
+
+export const ReordenarMedidaItemSchema = z.object({
+  id: z.string().min(1),
+  orden: z.number().int().positive(),
+})
+export type ReordenarMedidaItem = z.infer<typeof ReordenarMedidaItemSchema>
+
 export const EstadoPedidoEndmillsSchema = z.enum(["confirmado", "recibido", "cancelado"])
 export type EstadoPedidoEndmills = z.infer<typeof EstadoPedidoEndmillsSchema>
 
@@ -496,6 +516,9 @@ export const PedidoEndmillsSchema = z.object({
   numeroPiezas: z.number().int().min(0),
   origen: z.enum(["semilla", "manual"]),
   motivoCancelacion: z.string().nullable(),
+  fechaRecepcionCompleta: z.string().nullable().optional().default(null),
+  diasLeadTime: z.number().int().min(0).nullable().optional().default(null),
+  tipoCambioUSD: z.number().positive().nullable().optional().default(null),
   creadoPorUid: z.string(),
   creadoPorNombre: z.string().min(1),
   creadoEn: z.date(),
@@ -504,6 +527,13 @@ export const PedidoEndmillsSchema = z.object({
 export type PedidoEndmills = z.infer<typeof PedidoEndmillsSchema>
 
 export const TipoPartidaPedidoEndmillsSchema = z.enum(["catalogada", "fuera_catalogo"])
+
+export const RecepcionParcialEndmillSchema = z.object({
+  cantidad: z.number().int().positive(),
+  fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  notas: z.string().optional(),
+})
+export type RecepcionParcialEndmill = z.infer<typeof RecepcionParcialEndmillSchema>
 
 export const PartidaPedidoEndmillsSchema = z.object({
   id: z.string().min(1),
@@ -518,6 +548,7 @@ export const PartidaPedidoEndmillsSchema = z.object({
   stockAntesPedido: z.number().int().min(0).nullable(),
   cantidadPedida: z.number().int().positive(),
   cantidadRecibida: z.number().int().min(0),
+  recepciones: z.array(RecepcionParcialEndmillSchema).optional().default([]),
   precioUnitarioUSD: z.number().min(0),
   subtotalUSD: z.number().min(0),
   objetivoPar: z.number().int().min(0).nullable(),
@@ -565,15 +596,18 @@ export const RegistrarPedidoEndmillsInputSchema = z.object({
   proveedor: ProveedorEndmillsSnapshotSchema,
   aliCostUSD: z.number().min(0),
   shippingUSD: z.number().min(0),
+  tipoCambioUSD: z.number().positive().nullable().optional().default(null),
   costosAdicionalesConfirmados: z.boolean(),
   partidas: z.array(BorradorPartidaEndmillsSchema).min(1),
 })
 export type RegistrarPedidoEndmillsInput = z.infer<typeof RegistrarPedidoEndmillsInputSchema>
 
 export const RecibirPedidoEndmillsInputSchema = z.object({
+  fechaRecepcion: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   partidas: z.array(z.object({
     partidaId: z.string().min(1),
     cantidadRecibida: z.number().int().min(0),
+    notas: z.string().optional(),
   })).min(1),
 })
 export type RecibirPedidoEndmillsInput = z.infer<typeof RecibirPedidoEndmillsInputSchema>
@@ -638,6 +672,7 @@ export const TipoNotificacionSchema = z.enum([
   "solicitud_documento_creada",
   "solicitud_documento_estado",
   "solicitud_documento_mensaje",
+  "endmills_stock_critico",
 ])
 export type TipoNotificacion = z.infer<typeof TipoNotificacionSchema>
 
@@ -646,6 +681,7 @@ export const OrigenModuloNotificacionSchema = z.enum([
   "requisiciones",
   "banos",
   "documentos-venta",
+  "endmills",
 ])
 export type OrigenModuloNotificacion = z.infer<typeof OrigenModuloNotificacionSchema>
 
@@ -655,6 +691,7 @@ export const AudienciaNotificacionSchema = z.enum([
   "requisiciones",
   "banos",
   "documentos-venta",
+  "endmills",
 ])
 export type AudienciaNotificacion = z.infer<typeof AudienciaNotificacionSchema>
 

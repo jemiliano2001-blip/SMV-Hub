@@ -233,6 +233,7 @@ export function puedeVerNotificaciones(
     tieneModulo(modulos, "pedidos-almacen") ||
     tieneModulo(modulos, "requisiciones") ||
     tieneModulo(modulos, "documentos-venta") ||
+    tieneModulo(modulos, "endmills") ||
     tieneModulo(modulos, "banos")
   )
 }

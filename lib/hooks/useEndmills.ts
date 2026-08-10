@@ -1,20 +1,26 @@
 import { useCallback, useEffect, useState } from "react"
 import {
+  actualizarStockBatchEndmills,
   actualizarStockEndmill,
   cancelarPedidoEndmills,
+  confirmarMedidaEndmill,
+  crearEndmillMedida,
   listarMedidasEndmills,
   listarPedidosEndmills,
   registrarPedidoEndmills,
   registrarRecepcionPedidoEndmills,
+  reordenarMedidasEndmills,
   suscribirMedidasEndmills,
   suscribirPedidosEndmills,
   type ActorEndmills,
 } from "@/lib/endmills"
 import type {
+  CrearEndmillMedidaInput,
   EndmillMedida,
   PedidoEndmills,
   RecibirPedidoEndmillsInput,
   RegistrarPedidoEndmillsInput,
+  ReordenarMedidaItem,
 } from "@/lib/schemas"
 
 export function useEndmills() {
@@ -91,7 +97,11 @@ export function useEndmills() {
     errorPedidos,
     fetchMedidas,
     fetchPedidos,
+    crearMedida: (input: CrearEndmillMedidaInput) => crearEndmillMedida(input),
+    reordenarMedidas: (items: readonly ReordenarMedidaItem[]) => reordenarMedidasEndmills(items),
     actualizarStock: actualizarStockEndmill,
+    actualizarStockBatch: actualizarStockBatchEndmills,
+    confirmarMedida: confirmarMedidaEndmill,
     registrarPedido: (input: RegistrarPedidoEndmillsInput, actor: ActorEndmills) =>
       registrarPedidoEndmills(input, actor),
     registrarRecepcion: (pedidoId: string, input: RecibirPedidoEndmillsInput) =>

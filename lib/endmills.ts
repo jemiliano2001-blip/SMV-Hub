@@ -15,22 +15,30 @@ import { registrarAuditoria } from "@/lib/auditoria"
 import { makeDateConverter } from "@/lib/firestore-helpers"
 import { crearRepositorio } from "@/lib/repositorio"
 import {
+  CrearEndmillMedidaInputSchema,
   EndmillMedidaSchema,
   PartidaPedidoEndmillsSchema,
   PedidoEndmillsSchema,
   RecibirPedidoEndmillsInputSchema,
   RegistrarPedidoEndmillsInputSchema,
+  type CrearEndmillMedidaInput,
   type EndmillMedida,
   type PartidaPedidoEndmills,
   type PedidoEndmills,
+  type RecepcionParcialEndmill,
   type RecibirPedidoEndmillsInput,
+  type ReordenarMedidaItem,
   type RegistrarPedidoEndmillsInput,
 } from "@/lib/schemas"
 import {
   calcularObjetivoPar,
   calcularTotalesPedidoEndmills,
+  clasificarStockEndmill,
+  diferenciaEnDias,
   redondearUSD,
 } from "@/lib/endmills-calculos"
+import { fechaHoyLocal } from "@/lib/format"
+import { emitirNotificacion } from "@/lib/notificaciones"
 
 const COLECCION_MEDIDAS = "endmills-medidas"
 const COLECCION_PEDIDOS = "endmills-pedidos"
@@ -129,15 +137,228 @@ export async function listarHistorialMedidaEndmills(
   return partidas.sort((a, b) => b.fechaPedido.localeCompare(a.fechaPedido))
 }
 
+interface AlertaStockCriticoEndmill {
+  medidaId: string
+  descripcion: string
+  stockActual: number
+  objetivoPar: number | null
+}
+
+/**
+ * Solo alerta cuando la medida **entra** a crítico. Sin comparar contra el
+ * estado anterior, cada reguardado de una medida que ya estaba crítica volvería
+ * a notificar lo mismo.
+ */
+function alertaSiEntraEnCritico(
+  medidaId: string,
+  medida: Pick<EndmillMedida, "descripcion" | "objetivoPar">,
+  stockAntes: number,
+  stockDespues: number
+): AlertaStockCriticoEndmill | null {
+  const antes = clasificarStockEndmill(stockAntes, medida.objetivoPar)
+  const despues = clasificarStockEndmill(stockDespues, medida.objetivoPar)
+  if (antes === "critico" || despues !== "critico") return null
+  return {
+    medidaId,
+    descripcion: medida.descripcion,
+    stockActual: stockDespues,
+    objetivoPar: medida.objetivoPar,
+  }
+}
+
+async function emitirAlertasStockCritico(
+  alertas: readonly AlertaStockCriticoEndmill[]
+): Promise<void> {
+  if (alertas.length === 0) return
+  const usuario = getClienteAuth().currentUser
+  await Promise.all(
+    alertas.map((alerta) =>
+      emitirNotificacion({
+        tipo: "endmills_stock_critico",
+        titulo: `Stock crítico: ${alerta.descripcion}`,
+        cuerpo: `Quedan ${alerta.stockActual} pzas de ${alerta.descripcion} (Objetivo PAR: ${alerta.objetivoPar ?? "N/A"}).`,
+        origenModulo: "endmills",
+        origenId: alerta.medidaId,
+        audiencia: "endmills",
+        destinatarioUid: null,
+        href: "/endmills",
+        creadoPorUid: usuario?.uid ?? "",
+        creadoPorNombre: usuario?.email ?? "Sistema",
+      })
+    )
+  )
+}
+
 export async function actualizarStockEndmill(id: string, stockActual: number): Promise<void> {
   const stock = Math.trunc(stockActual)
   if (!Number.isFinite(stock) || stock < 0) {
     throw new Error("El stock debe ser un entero no negativo")
   }
+  const medida = await repoMedidas.obtener(id)
   await repoMedidas.actualizar(
     id,
     { stockActual: stock, stockActualizadoEn: new Date() },
     `Actualizó stock de endmill a ${stock} pzas`
+  )
+  const alerta = medida
+    ? alertaSiEntraEnCritico(id, medida, medida.stockActual, stock)
+    : null
+  if (alerta) await emitirAlertasStockCritico([alerta])
+}
+
+const MAX_CAMBIOS_EN_AUDITORIA = 20
+
+/** Deja el detalle antes→después en la bitácora sin generar un resumen kilométrico. */
+function resumirCambios(cambios: readonly string[]): string {
+  if (cambios.length <= MAX_CAMBIOS_EN_AUDITORIA) return cambios.join(", ")
+  const visibles = cambios.slice(0, MAX_CAMBIOS_EN_AUDITORIA).join(", ")
+  return `${visibles} y ${cambios.length - MAX_CAMBIOS_EN_AUDITORIA} más`
+}
+
+export interface ConteoEndmillInput {
+  id: string
+  stockActual: number
+  /** Stock que el usuario tenía a la vista cuando empezó a contar. */
+  stockEsperado: number
+}
+
+/**
+ * Guarda un conteo físico de varias medidas en una sola transacción.
+ *
+ * Solo debe recibir las filas que el usuario capturó de verdad. Cada una viaja
+ * con el stock que tenía a la vista (`stockEsperado`): si alguien más lo movió
+ * mientras contaba, la transacción aborta completa en vez de revertir el cambio
+ * ajeno en silencio — el mismo criterio que usa `registrarPedidoEndmills`.
+ */
+export async function actualizarStockBatchEndmills(
+  items: readonly ConteoEndmillInput[]
+): Promise<void> {
+  const limpios = items.map((item) => ({
+    id: item.id,
+    stockActual: Math.trunc(item.stockActual),
+    stockEsperado: Math.trunc(item.stockEsperado),
+  }))
+  if (limpios.some((item) => !Number.isFinite(item.stockActual) || item.stockActual < 0)) {
+    throw new Error("Todos los stocks deben ser enteros no negativos")
+  }
+  if (limpios.length === 0) return
+
+  const ahora = new Date()
+  let alertas: AlertaStockCriticoEndmill[] = []
+  let cambios: string[] = []
+  await runTransaction(db, async (transaction) => {
+    // La transacción se puede reintentar, así que alertas y bitácora se
+    // recalculan desde cero en cada intento y solo se usan tras el commit.
+    const pendientes: AlertaStockCriticoEndmill[] = []
+    const deltas: string[] = []
+    const refs = limpios.map((item) => doc(repoMedidas.ref(), item.id))
+    const snaps = await Promise.all(refs.map((ref) => transaction.get(ref)))
+    const actuales = snaps.map((snap, idx) => {
+      if (!snap.exists()) throw new Error(`La medida ${limpios[idx].id} no existe`)
+      return EndmillMedidaSchema.parse(snap.data())
+    })
+
+    const conflictos = actuales
+      .map((actual, idx) => ({ actual, esperado: limpios[idx].stockEsperado }))
+      .filter(({ actual, esperado }) => actual.stockActual !== esperado)
+      .map(
+        ({ actual, esperado }) =>
+          `${actual.descripcion} (viste ${esperado}, ahora hay ${actual.stockActual})`
+      )
+    if (conflictos.length > 0) {
+      throw new Error(
+        `Alguien más movió el stock mientras contabas, no se guardó nada. ` +
+          `Actualiza la lista y vuelve a capturar: ${conflictos.join(" · ")}`
+      )
+    }
+
+    actuales.forEach((actual, idx) => {
+      const nuevoStock = limpios[idx].stockActual
+      if (actual.stockActual === nuevoStock) return
+      transaction.update(refs[idx], {
+        stockActual: nuevoStock,
+        stockActualizadoEn: ahora,
+        actualizadoEn: ahora,
+      })
+      deltas.push(`${limpios[idx].id} ${actual.stockActual}→${nuevoStock}`)
+      const alerta = alertaSiEntraEnCritico(
+        limpios[idx].id,
+        actual,
+        actual.stockActual,
+        nuevoStock
+      )
+      if (alerta) pendientes.push(alerta)
+    })
+    alertas = pendientes
+    cambios = deltas
+  })
+
+  if (cambios.length > 0) {
+    await auditarEndmillsBestEffort(
+      "EDITAR",
+      COLECCION_MEDIDAS,
+      "conteo-masivo",
+      `Conteo masivo de ${cambios.length} endmills: ${resumirCambios(cambios)}`
+    )
+  }
+  await emitirAlertasStockCritico(alertas)
+}
+
+export async function confirmarMedidaEndmill(id: string): Promise<void> {
+  await repoMedidas.actualizar(
+    id,
+    { requiereConfirmacion: false, actualizadoEn: new Date() },
+    `Confirmó especificación/precio de endmill`
+  )
+}
+
+export async function crearEndmillMedida(input: CrearEndmillMedidaInput): Promise<string> {
+  const parsed = CrearEndmillMedidaInputSchema.parse(input)
+  const medidas = await repoMedidas.listar()
+  const maxOrden = medidas.reduce((max, item) => Math.max(max, item.orden), 0)
+  const nuevoOrden = maxOrden + 1
+
+  const hoy = fechaHoyLocal()
+  const fechaCotizacion = parsed.cotizacionFecha || hoy
+
+  const payload: Omit<EndmillMedida, "id" | "creadoEn" | "actualizadoEn"> = {
+    orden: nuevoOrden,
+    categoria: parsed.categoria,
+    medidaPulgadas: parsed.medidaPulgadas,
+    descripcion: parsed.descripcion,
+    stockActual: parsed.stockInicial,
+    stockActualizadoEn: new Date(),
+    precioActualUSD: parsed.precioActualUSD,
+    cotizacionFecha: fechaCotizacion,
+    specPropuesta: parsed.specPropuesta,
+    requiereConfirmacion: parsed.requiereConfirmacion,
+    notas: parsed.notas ?? null,
+    objetivoPar: parsed.objetivoPar ?? null,
+    ultimoPedidoId: null,
+  }
+
+  return repoMedidas.crear(payload, `Creó nueva medida de endmill: ${parsed.descripcion}`)
+}
+
+export async function reordenarMedidasEndmills(
+  items: readonly ReordenarMedidaItem[]
+): Promise<void> {
+  if (items.length === 0) return
+  await runTransaction(db, async (tx) => {
+    const ahora = new Date()
+    for (const item of items) {
+      const ref = doc(repoMedidas.ref(), item.id)
+      tx.update(ref, {
+        orden: item.orden,
+        actualizadoEn: ahora,
+      })
+    }
+  })
+  void auditarEndmillsBestEffort(
+    "EDITAR",
+    COLECCION_MEDIDAS,
+    "reordenar-medidas",
+    `Reordenó ${items.length} medidas de endmills en inventario`
   )
 }
 
@@ -192,8 +413,11 @@ export async function registrarPedidoEndmills(
       moneda: "USD",
       ...totales,
       costosAdicionalesConfirmados: parsed.costosAdicionalesConfirmados,
+      tipoCambioUSD: parsed.tipoCambioUSD ?? null,
       origen: "manual",
       motivoCancelacion: null,
+      fechaRecepcionCompleta: null,
+      diasLeadTime: null,
       creadoPorUid: actor.uid,
       creadoPorNombre: actor.nombre,
       creadoEn: ahora,
@@ -218,6 +442,7 @@ export async function registrarPedidoEndmills(
         stockAntesPedido: medida.stockActual,
         cantidadPedida: borrador.cantidadPedida,
         cantidadRecibida: 0,
+        recepciones: [],
         precioUnitarioUSD: borrador.precioUnitarioUSD,
         subtotalUSD: redondearUSD(borrador.cantidadPedida * borrador.precioUnitarioUSD),
         objetivoPar,
@@ -249,9 +474,10 @@ export async function registrarRecepcionPedidoEndmills(
   input: RecibirPedidoEndmillsInput
 ): Promise<void> {
   const parsed = RecibirPedidoEndmillsInputSchema.parse(input)
+  const fechaRecepcion = parsed.fechaRecepcion || fechaHoyLocal()
   const todasLasPartidas = await listarPartidasPedidoEndmills(pedidoId)
   const recibidasPorId = new Map(
-    parsed.partidas.map((partida) => [partida.partidaId, partida.cantidadRecibida])
+    parsed.partidas.map((partida) => [partida.partidaId, partida])
   )
   const partidaRefs = todasLasPartidas.map((partida) => doc(repoPartidas.ref(), partida.id))
   const catalogadas = todasLasPartidas.filter(
@@ -281,7 +507,8 @@ export async function registrarRecepcionPedidoEndmills(
       const snapshot = partidaSnaps[index]
       if (!snapshot.exists()) throw new Error("Una partida del pedido ya no existe")
       const actual = PartidaPedidoEndmillsSchema.parse(snapshot.data())
-      const nuevaCantidad = recibidasPorId.get(actual.id) ?? actual.cantidadRecibida
+      const borrador = recibidasPorId.get(actual.id)
+      const nuevaCantidad = borrador?.cantidadRecibida ?? actual.cantidadRecibida
       if (nuevaCantidad < actual.cantidadRecibida || nuevaCantidad > actual.cantidadPedida) {
         throw new Error(`Cantidad recibida inválida para ${actual.descripcion}`)
       }
@@ -297,15 +524,33 @@ export async function registrarRecepcionPedidoEndmills(
         })
       }
       if (nuevaCantidad !== actual.cantidadRecibida) {
+        const nuevasRecepciones = [...(actual.recepciones || [])]
+        if (delta > 0) {
+          // Firestore rechaza `undefined` (no usamos `ignoreUndefinedProperties`),
+          // así que la llave `notas` solo se escribe cuando trae contenido real.
+          const recepcion: RecepcionParcialEndmill = { cantidad: delta, fecha: fechaRecepcion }
+          const notas = borrador?.notas?.trim()
+          if (notas) recepcion.notas = notas
+          nuevasRecepciones.push(recepcion)
+        }
         transaction.update(partidaRefs[index], {
           cantidadRecibida: nuevaCantidad,
+          recepciones: nuevasRecepciones,
           actualizadoEn: ahora,
         })
       }
     }
 
+    const leadTime = completo ? diferenciaEnDias(pedido.fecha, fechaRecepcion) : null
+    if (completo && leadTime === null) {
+      throw new Error(
+        `La fecha de recepción (${fechaRecepcion}) no puede ser anterior a la del pedido (${pedido.fecha}).`
+      )
+    }
     transaction.update(pedidoRef, {
       estado: completo ? "recibido" : "confirmado",
+      fechaRecepcionCompleta: completo ? fechaRecepcion : null,
+      diasLeadTime: completo ? leadTime : null,
       actualizadoEn: ahora,
     })
   })

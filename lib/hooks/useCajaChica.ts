@@ -33,7 +33,12 @@ export function useCajaChica(filtro?: string | OpcionesFiltroCaja) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtroKey])
 
+  // TODO(caja-chica): la carga inicial y el refetch por filtro deberían vivir en
+  // una suscripción (como useEndmills/usePedidosAlmacen) en vez de un efecto que
+  // llama setState. Se suprime para no meter un cambio de comportamiento de
+  // /caja-chica dentro de un PR de endmills; el refactor va aparte.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     cargarMovimientos()
   }, [cargarMovimientos])
 

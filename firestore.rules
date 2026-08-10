@@ -368,17 +368,26 @@ service cloud.firestore {
 
     match /endmills-medidas/{medidaId} {
       allow read: if esUsuarioEndmills();
-      // El catálogo se importa con Admin SDK; el cliente solo actualiza stock
-      // o una base respaldada por la partida de un pedido real.
-      allow create, delete: if false;
+      allow create: if esUsuarioEndmills() &&
+        medidaEndmillValida(request.resource.data) &&
+        request.resource.data.id == medidaId;
+      allow delete: if false;
       allow update: if esUsuarioEndmills() &&
         medidaEndmillValida(request.resource.data) &&
         request.resource.data.creadoEn == resource.data.creadoEn &&
         request.resource.data.actualizadoEn >= resource.data.actualizadoEn &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'stockActual', 'stockActualizadoEn', 'objetivoPar',
+          'orden', 'categoria', 'medidaPulgadas', 'descripcion',
+          'stockActual', 'stockActualizadoEn', 'precioActualUSD', 'cotizacionFecha',
+          'specPropuesta', 'requiereConfirmacion', 'notas', 'objetivoPar',
           'ultimoPedidoId', 'actualizadoEn'
         ]) &&
+        // La confirmación de spec/precio solo se resuelve (true → false); nunca
+        // se puede volver a marcar una medida como "por confirmar" desde el cliente.
+        (
+          request.resource.data.requiereConfirmacion == resource.data.requiereConfirmacion ||
+          request.resource.data.requiereConfirmacion == false
+        ) &&
         baseEndmillRespaldada(medidaId, request.resource.data);
     }
 
@@ -394,6 +403,7 @@ service cloud.firestore {
                'costoItemsUSD', 'aliCostUSD', 'shippingUSD', 'totalUSD',
                'costosAdicionalesConfirmados', 'numeroPartidas',
                'numeroPiezas', 'origen', 'motivoCancelacion',
+               'fechaRecepcionCompleta', 'diasLeadTime', 'tipoCambioUSD',
                'creadoPorUid', 'creadoPorNombre', 'creadoEn', 'actualizadoEn'
              ]) &&
              d.fecha is string &&
@@ -409,6 +419,16 @@ service cloud.firestore {
              d.numeroPiezas is int && d.numeroPiezas > 0 &&
              d.origen in ['semilla', 'manual'] &&
              (d.motivoCancelacion == null || d.motivoCancelacion is string) &&
+             // Campos agregados después del lanzamiento: los pedidos creados
+             // antes no traen la llave, y leer una llave ausente en Rules es un
+             // error de evaluación que denegaría recibir/cancelar esos pedidos.
+             // `get(campo, null)` los trata como null sin aflojar el tipo.
+             (d.get('fechaRecepcionCompleta', null) == null ||
+              d.get('fechaRecepcionCompleta', null) is string) &&
+             (d.get('diasLeadTime', null) == null ||
+              (d.get('diasLeadTime', null) is int && d.get('diasLeadTime', null) >= 0)) &&
+             (d.get('tipoCambioUSD', null) == null ||
+              (d.get('tipoCambioUSD', null) is number && d.get('tipoCambioUSD', null) > 0)) &&
              d.creadoPorUid is string && d.creadoPorNombre is string &&
              d.creadoEn is timestamp && d.actualizadoEn is timestamp;
     }
@@ -425,7 +445,7 @@ service cloud.firestore {
         request.resource.data.creadoEn == resource.data.creadoEn &&
         request.resource.data.actualizadoEn >= resource.data.actualizadoEn &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'estado', 'motivoCancelacion', 'actualizadoEn'
+          'estado', 'motivoCancelacion', 'fechaRecepcionCompleta', 'diasLeadTime', 'actualizadoEn'
         ]) &&
         (
           (resource.data.estado == 'confirmado' && request.resource.data.estado in ['confirmado', 'recibido', 'cancelado']) ||
@@ -439,7 +459,7 @@ service cloud.firestore {
       return d.keys().hasOnly([
                'pedidoId', 'fechaPedido', 'tipo', 'medidaId', 'categoria',
                'medidaPulgadas', 'descripcion', 'spec', 'stockAntesPedido',
-               'cantidadPedida', 'cantidadRecibida', 'precioUnitarioUSD',
+               'cantidadPedida', 'cantidadRecibida', 'recepciones', 'precioUnitarioUSD',
                'subtotalUSD', 'objetivoPar', 'requiereConfirmacionAlCrear',
                'confirmacionResuelta', 'creadoEn', 'actualizadoEn'
              ]) &&
@@ -454,6 +474,9 @@ service cloud.firestore {
              d.cantidadPedida is int && d.cantidadPedida > 0 &&
              d.cantidadRecibida is int && d.cantidadRecibida >= 0 &&
              d.cantidadRecibida <= d.cantidadPedida &&
+             // Mismo caso que en el pedido: las partidas anteriores al cambio
+             // no traen `recepciones`.
+             (d.get('recepciones', null) == null || d.get('recepciones', null) is list) &&
              d.precioUnitarioUSD is number && d.precioUnitarioUSD >= 0 &&
              d.subtotalUSD is number && d.subtotalUSD >= 0 &&
              (d.objetivoPar == null || (d.objetivoPar is int && d.objetivoPar >= 0)) &&
@@ -477,7 +500,7 @@ service cloud.firestore {
         request.resource.data.actualizadoEn >= resource.data.actualizadoEn &&
         request.resource.data.cantidadRecibida >= resource.data.cantidadRecibida &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'cantidadRecibida', 'actualizadoEn'
+          'cantidadRecibida', 'recepciones', 'actualizadoEn'
         ]);
       allow delete: if false;
     }
@@ -494,6 +517,7 @@ service cloud.firestore {
           (d.audiencia == 'pedidos-almacen' && tieneModulo('pedidos-almacen')) ||
           (d.audiencia == 'requisiciones' && tieneModulo('requisiciones')) ||
           (d.audiencia == 'documentos-venta' && atiendeDocumentosVenta()) ||
+          (d.audiencia == 'endmills' && tieneModulo('endmills')) ||
           (d.audiencia == 'banos' && esSuperAdminDoc())
         );
     }
@@ -513,13 +537,14 @@ service cloud.firestore {
                'banos_solicitud_resuelta',
                'solicitud_documento_creada',
                'solicitud_documento_estado',
-               'solicitud_documento_mensaje'
+               'solicitud_documento_mensaje',
+               'endmills_stock_critico'
              ] &&
              d.titulo is string &&
              d.cuerpo is string &&
-             d.origenModulo in ['pedidos-almacen', 'requisiciones', 'documentos-venta', 'banos'] &&
+             d.origenModulo in ['pedidos-almacen', 'requisiciones', 'documentos-venta', 'banos', 'endmills'] &&
              d.origenId is string &&
-             d.audiencia in ['pedidos-almacen', 'requisiciones', 'documentos-venta', 'banos'] &&
+             d.audiencia in ['pedidos-almacen', 'requisiciones', 'documentos-venta', 'banos', 'endmills'] &&
              (d.destinatarioUid == null || d.destinatarioUid is string) &&
              d.href is string &&
              d.creadoPorUid is string &&
@@ -538,7 +563,10 @@ service cloud.firestore {
                 d.destinatarioUid is string) ||
                (d.tipo in ['banos_solicitud_creada', 'banos_solicitud_resuelta'] &&
                 d.origenModulo == 'banos' && d.audiencia == 'banos' &&
-                d.destinatarioUid is string)
+                d.destinatarioUid is string) ||
+               (d.tipo == 'endmills_stock_critico' &&
+                d.origenModulo == 'endmills' && d.audiencia == 'endmills' &&
+                d.destinatarioUid == null)
              );
     }
 
@@ -557,7 +585,12 @@ service cloud.firestore {
              tieneModulo('documentos-venta') &&
              exists(/databases/$(database)/documents/solicitudes_documento/$(request.resource.data.origenId)) &&
              get(/databases/$(database)/documents/solicitudes_documento/$(request.resource.data.origenId)).data.solicitadoPorUid ==
-               request.resource.data.destinatarioUid)
+               request.resource.data.destinatarioUid) ||
+            // La alerta de stock crítico la emite el propio cliente al guardar
+            // stock, así que el origen debe ser una medida real del catálogo.
+            (request.resource.data.audiencia == 'endmills' &&
+             tieneModulo('endmills') &&
+             exists(/databases/$(database)/documents/endmills-medidas/$(request.resource.data.origenId)))
           )
         );
     }
@@ -740,11 +773,12 @@ service cloud.firestore {
       allow update, delete: if esUsuarioAutorizado() && (esCorreoBreakGlass() || tieneModulo('caja-chica'));
     }
 
-    // Notificaciones in-app
-    match /notificaciones/{notificacionId} {
-      allow read: if esUsuarioAutorizado();
-      allow create, update, delete: if esUsuarioAutorizado();
-    }
+    // Notificaciones in-app: la única definición vive en la sección
+    // "Notificaciones in-app (Operación del Taller)" más arriba. Aquí existía un
+    // segundo `match /notificaciones` que concedía read/create/update/delete a
+    // cualquier usuario autorizado; como Firestore hace OR entre bloques que
+    // coinciden, ese duplicado anulaba por completo `notificacionValida()`,
+    // `puedeCrearNotificacion()` y `puedeVerNotificacion()`. No volver a agregarlo.
 
     // ── Reportes Contables ───────────────────────────────────────────────────
 
