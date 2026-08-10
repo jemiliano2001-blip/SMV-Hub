@@ -36,7 +36,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         }
       }
 
-      if (!tienePermiso(modulos, pathname)) {
+      if (!tienePermiso(modulos, pathname, esSuperAdmin)) {
         router.replace("/")
       }
     }

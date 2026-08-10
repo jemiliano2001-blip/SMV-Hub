@@ -123,6 +123,16 @@ describe("tienePermiso (por módulos)", () => {
     expect(tienePermisoPorRol("compras", "/ordenes")).toBe(false)
     expect(tienePermisoPorRol(null, "/")).toBe(false)
   })
+
+  it("esSuperAdmin salta la matriz de módulos aunque falten en modulos[]", () => {
+    expect(tienePermiso(["almacen"], "/finanzas", true)).toBe(true)
+    expect(tienePermiso(null, "/finanzas", true)).toBe(true)
+  })
+
+  it("sin esSuperAdmin sigue respetando la matriz de módulos", () => {
+    expect(tienePermiso(["almacen"], "/finanzas", false)).toBe(false)
+    expect(tienePermiso(["almacen"], "/finanzas")).toBe(false)
+  })
 })
 
 describe("legacy helpers", () => {
