@@ -368,19 +368,22 @@ service cloud.firestore {
 
     match /endmills-medidas/{medidaId} {
       allow read: if esUsuarioEndmills();
+      // `toFirestore()` (lib/firestore-helpers.ts) descarta `id` antes de escribir,
+      // así que el documento nunca trae ese campo: no comparar contra medidaId aquí.
       allow create: if esUsuarioEndmills() &&
-        medidaEndmillValida(request.resource.data) &&
-        request.resource.data.id == medidaId;
+        medidaEndmillValida(request.resource.data);
       allow delete: if false;
+      // El cliente solo actualiza stock, orden (reordenar), la confirmación de
+      // spec/precio, o una base respaldada por la partida de un pedido real.
+      // categoria/medidaPulgadas/descripcion/precioActualUSD/cotizacionFecha/
+      // specPropuesta/notas solo se fijan al crear la medida (lib/endmills.ts).
       allow update: if esUsuarioEndmills() &&
         medidaEndmillValida(request.resource.data) &&
         request.resource.data.creadoEn == resource.data.creadoEn &&
         request.resource.data.actualizadoEn >= resource.data.actualizadoEn &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'orden', 'categoria', 'medidaPulgadas', 'descripcion',
-          'stockActual', 'stockActualizadoEn', 'precioActualUSD', 'cotizacionFecha',
-          'specPropuesta', 'requiereConfirmacion', 'notas', 'objetivoPar',
-          'ultimoPedidoId', 'actualizadoEn'
+          'orden', 'stockActual', 'stockActualizadoEn', 'objetivoPar',
+          'ultimoPedidoId', 'requiereConfirmacion', 'actualizadoEn'
         ]) &&
         // La confirmación de spec/precio solo se resuelve (true → false); nunca
         // se puede volver a marcar una medida como "por confirmar" desde el cliente.

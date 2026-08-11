@@ -233,6 +233,32 @@ describeWithEmulator("reglas Firestore de Integridad", () => {
     await assertFails(permitido.delete())
   })
 
+  it("crea medidas nuevas de endmills con el módulo, sin campo id en el payload", async () => {
+    const nueva = {
+      orden: 3,
+      categoria: "BALL",
+      medidaPulgadas: "1/4",
+      descripcion: "BALL 2 FILOS 1/4",
+      stockActual: 0,
+      stockActualizadoEn: new Date(),
+      precioActualUSD: 5.5,
+      cotizacionFecha: "2026-08-06",
+      specPropuesta: "D1/4*FL3/4",
+      requiereConfirmacion: false,
+      notas: null,
+      objetivoPar: null,
+      ultimoPedidoId: null,
+      creadoEn: new Date(),
+      actualizadoEn: new Date(),
+    }
+    await assertSucceeds(
+      userDb("endmills-user").doc("endmills-medidas/endmill-nueva").set(nueva)
+    )
+    await assertFails(
+      userDb("report-user").doc("endmills-medidas/endmill-otra").set(nueva)
+    )
+  })
+
   it("acepta pedidos Endmills USD revisados y rechaza moneda o acceso inválidos", async () => {
     const pedido = {
       fecha: "2026-08-06",
