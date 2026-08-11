@@ -246,10 +246,10 @@ test.describe("camino del dinero", () => {
         ).toBeVisible()
         // No usar getByText(proveedor): "E2E Test Proveedor" también matchea un
         // <option> oculto del autocompletado y la <td title=...> de la fila en
-        // /ordenes que sigue en el DOM debajo del modal. El único <div
+        // /ordenes que sigue en el DOM debajo del modal. El único <h3
         // title=...> es el resumen del modal (ver OrdenDetallesModal.tsx,
-        // tarjeta "Proveedor y Estado").
-        await expect(page.locator(`div[title="${proveedor}"]`)).toBeVisible()
+        // tarjeta "Proveedor y Estado"; era <div> hasta 0cfe80c, 2026-08-05).
+        await expect(page.locator(`h3[title="${proveedor}"]`)).toBeVisible()
 
         const totalEnModal = await page.getByText("Total:").last()
           .locator("xpath=following-sibling::span")
