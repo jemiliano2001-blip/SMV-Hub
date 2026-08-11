@@ -8,7 +8,6 @@ import {
   Tag,
   Sparkles,
   Truck,
-  Award,
   ThumbsUp,
   FileCheck,
   Scale,
@@ -31,10 +30,10 @@ import type {
   TiempoRespuesta,
   FrecuenciaCompra,
   Prioridad,
-  EvaluacionProveedor,
   CompraOdooItem,
 } from '@/lib/schemas'
-import type { NuevoProveedorPayload } from '@/lib/proveedores'
+import type { NuevoProveedorPayload, MatrizBackupProveedores } from '@/lib/proveedores'
+import { obtenerMatrizBackupProveedores, guardarMatrizBackupProveedores } from '@/lib/proveedores'
 import type { NuevaCompraPayload } from '@/lib/proveedores-inteligencia'
 import SeccionRecomendacionInteligente from '@/app/requisiciones/SeccionRecomendacionInteligente'
 import PanelComprasOdoo from '@/app/proveedores/PanelComprasOdoo'
@@ -43,6 +42,7 @@ import HeaderCentroMando from './components/HeaderCentroMando'
 import DirectorioProveedores from './components/DirectorioProveedores'
 import DrawerDetalleProveedor from './components/DrawerDetalleProveedor'
 import PanelInteligencia360 from './components/PanelInteligencia360'
+import PanelVinculacionProveedores from './components/PanelVinculacionProveedores'
 import { listarItemsComprasOdoo } from '@/lib/compras-odoo-store'
 import { listarCotizaciones } from '@/lib/cotizaciones'
 import { listarOrdenesEnRango } from '@/lib/ordenes'
@@ -618,14 +618,14 @@ function GenerarPOModal({
 }) {
   const [proveedorId, setProveedorId] = useState(proveedores[0]?.id ?? '')
   const [numeroOrden, setNumeroOrden] = useState('')
-  const [producto, setProducto] = useState('Endmill Carburo Sólido 1/2" 4 Gavilanes AlTiN')
+  const [producto, setProducto] = useState('')
   const [categoria, setCategoria] = useState<CategoriaProveedor>('endmills')
-  const [marca, setMarca] = useState('Shars')
-  const [cantidad, setCantidad] = useState(5)
-  const [precioUnitario, setPrecioUnitario] = useState(24.5)
-  const [fleteUSD, setFleteUSD] = useState(15.0)
-  const [leadTimeRealDias, setLeadTimeRealDias] = useState(4)
-  const notas = 'Envío urgente a bodega de Laredo, Texas para despacho aduanal.'
+  const [marca, setMarca] = useState('')
+  const [cantidad, setCantidad] = useState(1)
+  const [precioUnitario, setPrecioUnitario] = useState(0)
+  const [fleteUSD, setFleteUSD] = useState(0)
+  const [leadTimeRealDias, setLeadTimeRealDias] = useState(0)
+  const notas = ''
 
   const prov = proveedores.find((p) => p.id === proveedorId) || proveedores[0]
   const subtotal = cantidad * precioUnitario
@@ -860,221 +860,6 @@ function GenerarPOModal({
   )
 }
 
-// ── MODAL SCORECARD EVALUACIÓN PROVEEDOR ─────────────────────────────────────
-
-function ScorecardModal({
-  abierto,
-  onClose,
-  proveedor,
-  evaluacionExistente,
-  onGuardarEvaluacion,
-}: {
-  abierto: boolean
-  onClose: () => void
-  proveedor: Proveedor
-  evaluacionExistente?: EvaluacionProveedor
-  onGuardarEvaluacion: (payload: Omit<EvaluacionProveedor, 'id' | 'creadoEn'>) => Promise<unknown>
-}) {
-  const [precio, setPrecio] = useState(evaluacionExistente?.precio ?? 4)
-  const [tiempoEntrega, setTiempoEntrega] = useState(evaluacionExistente?.tiempoEntrega ?? 4)
-  const [calidad, setCalidad] = useState(evaluacionExistente?.calidad ?? 5)
-  const [respuestaComunicacion, setRespuestaComunicacion] = useState(evaluacionExistente?.respuestaComunicacion ?? 4)
-  const [cumplimiento, setCumplimiento] = useState(evaluacionExistente?.cumplimiento ?? 5)
-  const [facilidadCompra, setFacilidadCompra] = useState(evaluacionExistente?.facilidadCompra ?? 4)
-  const [fortalezasText, setFortalezasText] = useState(evaluacionExistente?.fortalezas.join(', ') ?? '')
-  const [debilidadesText, setDebilidadesText] = useState(evaluacionExistente?.debilidades.join(', ') ?? '')
-  const [guardando, setGuardando] = useState(false)
-
-  const promedio = Number(
-    ((precio + tiempoEntrega + calidad + respuestaComunicacion + cumplimiento + facilidadCompra) / 6).toFixed(1)
-  )
-
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault()
-    setGuardando(true)
-    try {
-      const fortalezas = fortalezasText.split(',').map((s) => s.trim()).filter(Boolean)
-      const debilidades = debilidadesText.split(',').map((s) => s.trim()).filter(Boolean)
-
-      await onGuardarEvaluacion({
-        proveedorId: proveedor.id,
-        precio,
-        tiempoEntrega,
-        calidad,
-        respuestaComunicacion,
-        cumplimiento,
-        facilidadCompra,
-        promedioGeneral: promedio,
-        fortalezas,
-        debilidades,
-        fechaEvaluacion: fechaHoyLocal(),
-        evaluadoPor: 'Equipo de Compras SMV',
-      })
-      onClose()
-    } finally {
-      setGuardando(false)
-    }
-  }
-
-  return (
-    <Dialog open={abierto} onOpenChange={(val) => !val && onClose()}>
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
-            <Award className="h-5 w-5 text-purple-600" /> Scorecard Interno: {proveedor.nombre}
-          </DialogTitle>
-          <DialogDescription className="text-xs text-slate-500">
-            Evaluación operativa del proveedor en 6 métricas clave de compras.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSave} className="space-y-4 text-xs font-sans">
-          <div className="p-3 bg-purple-50 rounded-xl border border-purple-200 flex items-center justify-between">
-            <div>
-              <span className="text-xs font-bold text-purple-900 uppercase">Promedio General Ponderado</span>
-              <p className="text-xs text-purple-700">Calculado a partir de las 6 dimensiones</p>
-            </div>
-            <span className="text-2xl font-black font-mono text-purple-900 bg-white px-3 py-1 rounded-lg border border-purple-300">
-              {promedio} / 5.0 ⭐
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="font-bold text-slate-700">1. Competitividad de Precio (1-5)</label>
-              <select
-                value={precio}
-                onChange={(e) => setPrecio(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-              >
-                <option value={5}>5 - Precios muy económicos / directo fábrica</option>
-                <option value={4}>4 - Precio competitivo estándar</option>
-                <option value={3}>3 - Promedio de mercado</option>
-                <option value={2}>2 - Costo elevado</option>
-                <option value={1}>1 - Muy caro</option>
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="font-bold text-slate-700">2. Tiempo de Entrega / Lead Time (1-5)</label>
-              <select
-                value={tiempoEntrega}
-                onChange={(e) => setTiempoEntrega(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-              >
-                <option value={5}>5 - Entrega ultra rápida (&lt; 3 días)</option>
-                <option value={4}>4 - Cumple tiempo estándar (3-5 días)</option>
-                <option value={3}>3 - Aceptable (5-7 días)</option>
-                <option value={2}>2 - Frecuentes demoras</option>
-                <option value={1}>1 - Demasiado lento</option>
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="font-bold text-slate-700">3. Calidad del Herramental (1-5)</label>
-              <select
-                value={calidad}
-                onChange={(e) => setCalidad(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-              >
-                <option value={5}>5 - Excelente durabilidad y acabado</option>
-                <option value={4}>4 - Buena calidad comprobada</option>
-                <option value={3}>3 - Calidad aceptable</option>
-                <option value={2}>2 - Desgaste prematuro</option>
-                <option value={1}>1 - Mala calidad / Rompe fácil</option>
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="font-bold text-slate-700">4. Respuesta &amp; Comunicación (1-5)</label>
-              <select
-                value={respuestaComunicacion}
-                onChange={(e) => setRespuestaComunicacion(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-              >
-                <option value={5}>5 - Respuesta inmediata por correo/web</option>
-                <option value={4}>4 - Responde en el mismo día</option>
-                <option value={3}>3 - Responde en 24h</option>
-                <option value={2}>2 - Difícil de contactar</option>
-                <option value={1}>1 - Sin atención a clientes</option>
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="font-bold text-slate-700">5. Cumplimiento de Orden (1-5)</label>
-              <select
-                value={cumplimiento}
-                onChange={(e) => setCumplimiento(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-              >
-                <option value={5}>5 - Cero errores en envíos</option>
-                <option value={4}>4 - Muy pocos detalles de empaque</option>
-                <option value={3}>3 - Ocasionales piezas faltantes</option>
-                <option value={2}>2 - Errores constantes de ítem</option>
-                <option value={1}>1 - Incierto</option>
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="font-bold text-slate-700">6. Facilidad de Compra &amp; Pago (1-5)</label>
-              <select
-                value={facilidadCompra}
-                onChange={(e) => setFacilidadCompra(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-              >
-                <option value={5}>5 - Invoice USD, tarjeta, crédito y portal</option>
-                <option value={4}>4 - Buen flujo de pago</option>
-                <option value={3}>3 - Proceso regular</option>
-                <option value={2}>2 - Restricciones de tarjeta</option>
-                <option value={1}>1 - Proceso muy complejo</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="font-bold text-slate-700">Fortalezas Destacadas (separadas por coma)</label>
-            <input
-              type="text"
-              value={fortalezasText}
-              onChange={(e) => setFortalezasText(e.target.value)}
-              placeholder="Ej. Envío directo a Laredo, Excelente recubrimiento ZrN, Soporte técnico en minutos"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="font-bold text-slate-700">Debilidades o Áreas de Mejora (separadas por coma)</label>
-            <input
-              type="text"
-              value={debilidadesText}
-              onChange={(e) => setDebilidadesText(e.target.value)}
-              placeholder="Ej. Pedido mínimo de $100 USD, Pocos insertos de cerámica"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={guardando}
-              className="px-4 py-2 font-bold text-white bg-purple-700 hover:bg-purple-800 rounded-lg shadow-xs disabled:opacity-50"
-            >
-              {guardando ? 'Guardando...' : 'Guardar Scorecard'}
-            </button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 // ── VISTA PRINCIPAL CON PESTAÑAS INTELIGENTES ─────────────────────────────────
 
 function ProveedoresContent() {
@@ -1112,7 +897,6 @@ function ProveedoresContent() {
     cotizaciones,
     cargando: cargandoIntel,
     crearCompra,
-    guardarEvaluacion,
     crearCotizacion,
     sincronizarOrdenes,
   } = useProveedoresInteligencia()
@@ -1251,22 +1035,40 @@ function ProveedoresContent() {
     }
   }
 
-  // Scorecard modal y drawer lateral
-  const [proveedorScorecard, setProveedorScorecard] = useState<Proveedor | null>(null)
+  // Drawer lateral de detalle
   const [proveedorDetalle, setProveedorDetalle] = useState<Proveedor | null>(null)
   const [guardandoScorecards, setGuardandoScorecards] = useState(false)
+
+  // Matriz de proveedor primario/backup por categoría — compartida entre el panel
+  // de edición (Inteligencia 360°) y los badges del directorio.
+  const [mapeoBackup, setMapeoBackup] = useState<MatrizBackupProveedores>({})
+
+  useEffect(() => {
+    obtenerMatrizBackupProveedores()
+      .then(setMapeoBackup)
+      .catch((err) => console.error('Error cargando matriz de backup de proveedores:', err))
+  }, [])
+
+  function actualizarYGuardarMapeoBackup(nuevo: MatrizBackupProveedores) {
+    setMapeoBackup(nuevo)
+    guardarMatrizBackupProveedores(nuevo).catch((err) => {
+      console.error('Error guardando matriz de backup de proveedores:', err)
+      toast.error('No se pudo guardar la matriz de proveedor primario/backup.')
+    })
+  }
+
+  const proveedoresPrimarios = useMemo(
+    () => new Set(Object.values(mapeoBackup).map((m) => m.primarioId).filter(Boolean)),
+    [mapeoBackup]
+  )
+  const proveedoresBackup = useMemo(
+    () => new Set(Object.values(mapeoBackup).map((m) => m.backupId).filter(Boolean)),
+    [mapeoBackup]
+  )
 
   const scorecardsAuto = useMemo(() => {
     return generarScorecardsDesdeOrdenes(ordenesScorecard, todasCompras, todosProveedores)
   }, [ordenesScorecard, todasCompras, todosProveedores])
-
-  const leadTimePromedio = useMemo(() => {
-    const tiempos = todasCompras
-      .map((compra) => compra.leadTimeRealDias)
-      .filter((tiempo): tiempo is number => typeof tiempo === 'number' && tiempo >= 0)
-    if (tiempos.length === 0) return undefined
-    return tiempos.reduce((suma, tiempo) => suma + tiempo, 0) / tiempos.length
-  }, [todasCompras])
 
   async function handleGenerarScorecards() {
     if (scorecardsAuto.length === 0) {
@@ -1338,7 +1140,6 @@ function ProveedoresContent() {
           onMercadoChange={(r) => setRegion(r)}
           onNuevoProveedor={abrirNuevo}
           onGenerarPDF={() => void abrirReportePO()}
-          leadTimePromedio={leadTimePromedio}
         />
 
         {/* Navegación por Pestañas Principales */}
@@ -1399,6 +1200,8 @@ function ProveedoresContent() {
             onOrdenamientoChange={setOrden}
             onSelectProveedor={(prov) => setProveedorDetalle(prov)}
             onEditProveedor={abrirEditar}
+            proveedoresPrimarios={proveedoresPrimarios}
+            proveedoresBackup={proveedoresBackup}
           />
         )}
         {/* PESTAÑA 2: COMPARADOR INTELIGENTE DE COTIZACIONES */}
@@ -1645,14 +1448,19 @@ function ProveedoresContent() {
           </div>
         )}
         {seccion === 'inteligencia' && !cargandoCatalogo && catalogoCompleto && (
-          <PanelInteligencia360
-            proveedores={catalogoRegion}
-            scorecards={scorecardsAuto}
-            onGenerarScorecards={handleGenerarScorecards}
-            guardandoScorecards={guardandoScorecards}
-            onActualizarVentanaScorecards={() => void cargarScorecardsVentana()}
-            cargandoVentanaScorecards={cargandoScorecards}
-          />
+          <div className="space-y-6">
+            <PanelVinculacionProveedores proveedores={todosProveedores} />
+            <PanelInteligencia360
+              proveedores={catalogoRegion}
+              scorecards={scorecardsAuto}
+              onGenerarScorecards={handleGenerarScorecards}
+              guardandoScorecards={guardandoScorecards}
+              onActualizarVentanaScorecards={() => void cargarScorecardsVentana()}
+              cargandoVentanaScorecards={cargandoScorecards}
+              mapeoBackup={mapeoBackup}
+              onActualizarMapeoBackup={actualizarYGuardarMapeoBackup}
+            />
+          </div>
         )}
 
         {/* MÉXICO — comparar precios (rangos Odoo) */}
@@ -1695,17 +1503,6 @@ function ProveedoresContent() {
             onClose={() => setModalPOAbierto(false)}
             proveedores={catalogoCompleto}
             onCrearCompra={crearCompra}
-          />
-        )}
-
-        {/* Modal Scorecard Evaluacion */}
-        {proveedorScorecard && (
-          <ScorecardModal
-            abierto={!!proveedorScorecard}
-            onClose={() => setProveedorScorecard(null)}
-            proveedor={proveedorScorecard}
-            evaluacionExistente={evaluaciones.find((e) => e.proveedorId === proveedorScorecard.id)}
-            onGuardarEvaluacion={guardarEvaluacion}
           />
         )}
 

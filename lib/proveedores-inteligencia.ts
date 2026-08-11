@@ -31,114 +31,6 @@ export type NuevaCotizacionComparacionPayload = Omit<CotizacionComparacion, "id"
 
 // ── 1. HISTORIAL DE COMPRAS ───────────────────────────────────────────────────
 
-export const COMPRAS_SEMILLA: NuevaCompraPayload[] = [
-  {
-    proveedorId: "shars-tool",
-    proveedorNombre: "Shars Tool Company",
-    numeroOrden: "PO-2026-089",
-    fecha: "2026-06-15",
-    producto: 'Endmill Carburo Sólido 1/2" 4 Gavilanes AlTiN',
-    categoria: "endmills",
-    marca: "Shars",
-    cantidad: 10,
-    precioUnitario: 24.5,
-    moneda: "USD",
-    costoTotal: 245.0,
-    leadTimeRealDias: 4,
-    notas: "Llegó a bodega de Laredo en 4 días sin ningún faltante.",
-  },
-  {
-    proveedorId: "shars-tool",
-    proveedorNombre: "Shars Tool Company",
-    numeroOrden: "PO-2026-112",
-    fecha: "2026-07-02",
-    producto: "Portaherramientas BT40 ER32 + Llave de ajuste",
-    categoria: "tooling",
-    marca: "Shars",
-    cantidad: 4,
-    precioUnitario: 58.0,
-    moneda: "USD",
-    costoTotal: 232.0,
-    leadTimeRealDias: 5,
-    notas: "Excelente concentricidad y acabado en mandriles.",
-  },
-  {
-    proveedorId: "onlinecarbide",
-    proveedorNombre: "OnlineCarbide",
-    numeroOrden: "PO-2026-077",
-    fecha: "2026-05-20",
-    producto: 'Endmill 3/8" 3 Gavilanes ZrN para Aluminio 6061',
-    categoria: "endmills",
-    marca: "OnlineCarbide Made in USA",
-    cantidad: 15,
-    precioUnitario: 18.9,
-    moneda: "USD",
-    costoTotal: 283.5,
-    leadTimeRealDias: 3,
-    notas: "Envío inmediato desde Michigan. Duración óptima en aluminio.",
-  },
-  {
-    proveedorId: "yg1-usa",
-    proveedorNombre: "YG-1 USA Industrial Tooling",
-    numeroOrden: "PO-2026-104",
-    fecha: "2026-06-28",
-    producto: "Endmill V7 Plus 1/2\" Desbaste Pesado Acero Inoxidable",
-    categoria: "endmills",
-    marca: "YG-1",
-    cantidad: 6,
-    precioUnitario: 48.0,
-    moneda: "USD",
-    costoTotal: 288.0,
-    leadTimeRealDias: 4,
-    notas: "Alto rendimiento en inoxidable 316. Cero vibraciones.",
-  },
-  {
-    proveedorId: "kennametal-us",
-    proveedorNombre: "Kennametal US Direct",
-    numeroOrden: "PO-2026-095",
-    fecha: "2026-06-18",
-    producto: "Insertos de Torneado WNMG 432-RP KCP25B (Caja 10 pzs)",
-    categoria: "insertos",
-    marca: "Kennametal",
-    cantidad: 3,
-    precioUnitario: 89.0,
-    moneda: "USD",
-    costoTotal: 267.0,
-    leadTimeRealDias: 6,
-    notas: "Excelente tenacidad en corte interrumpido de acero 4140.",
-  },
-  {
-    proveedorId: "iscar-metals",
-    proveedorNombre: "Iscar Metals USA",
-    numeroOrden: "PO-2026-120",
-    fecha: "2026-07-10",
-    producto: "Insertos High Feed Logiq4Feed FF CX 0904 (Caja 10 pzs)",
-    categoria: "insertos",
-    marca: "Iscar",
-    cantidad: 2,
-    precioUnitario: 135.0,
-    moneda: "USD",
-    costoTotal: 270.0,
-    leadTimeRealDias: 4,
-    notas: "Incrementó avance a 120 in/min en cavidades profundas.",
-  },
-  {
-    proveedorId: "msc-direct",
-    proveedorNombre: "MSC Industrial Direct",
-    numeroOrden: "PO-2026-131",
-    fecha: "2026-07-18",
-    producto: "Refrigerante Soluble Blaser Swisslube B-Cool 755 (Cubeta 5 Gal)",
-    categoria: "consumibles",
-    marca: "Blaser",
-    cantidad: 2,
-    precioUnitario: 165.0,
-    moneda: "USD",
-    costoTotal: 330.0,
-    leadTimeRealDias: 2,
-    notas: "Llegó al día siguiente por envío de emergencia.",
-  },
-]
-
 export async function obtenerComprasProveedor(proveedorId?: string): Promise<CompraProveedor[]> {
   try {
     const ref = collection(db, COLECCION_COMPRAS)
@@ -147,9 +39,6 @@ export async function obtenerComprasProveedor(proveedorId?: string): Promise<Com
       : query(ref, orderBy("fecha", "desc"))
 
     const snap = await getDocs(q)
-    if (snap.empty) {
-      return await inicializarComprasSemilla()
-    }
 
     const items: CompraProveedor[] = snap.docs.map((d) => {
       const data = d.data()
@@ -176,7 +65,7 @@ export async function obtenerComprasProveedor(proveedorId?: string): Promise<Com
     return items.filter((c) => c.precioUnitario > 0 || c.costoTotal > 0)
   } catch (err) {
     console.error("Error al obtener compras de proveedor:", err)
-    return COMPRAS_SEMILLA.filter((c) => c.precioUnitario > 0 || c.costoTotal > 0).map((c, i) => ({ id: `semilla-c-${i}`, ...c }))
+    return []
   }
 }
 
@@ -192,24 +81,6 @@ export async function crearCompraProveedor(payload: NuevaCompraPayload): Promise
     ...payload,
     creadoEn: new Date().toISOString(),
   }
-}
-
-export async function inicializarComprasSemilla(): Promise<CompraProveedor[]> {
-  const creados: CompraProveedor[] = []
-  for (const c of COMPRAS_SEMILLA) {
-    const docRef = doc(collection(db, COLECCION_COMPRAS))
-    const data = {
-      ...c,
-      creadoEn: serverTimestamp(),
-    }
-    await setDoc(docRef, data)
-    creados.push({
-      id: docRef.id,
-      ...c,
-      creadoEn: new Date().toISOString(),
-    })
-  }
-  return creados
 }
 
 export function calcularMetricasProveedor(compras: CompraProveedor[]) {
@@ -250,43 +121,9 @@ export function calcularMetricasProveedor(compras: CompraProveedor[]) {
 
 // ── 2. SCORECARD Y EVALUACIONES ─────────────────────────────────────────────
 
-export const EVALUACIONES_SEMILLA: Omit<EvaluacionProveedor, "id" | "creadoEn">[] = [
-  {
-    proveedorId: "shars-tool",
-    precio: 5,
-    tiempoEntrega: 4,
-    calidad: 4,
-    respuestaComunicacion: 5,
-    cumplimiento: 5,
-    facilidadCompra: 5,
-    promedioGeneral: 4.7,
-    fortalezas: ["Precios muy económicos en carburo", "Envío rápido a Laredo TX", "Excelente soporte por correo"],
-    debilidades: ["Catálogo limitado en insertos cerámicos especiales"],
-    fechaEvaluacion: "2026-07-01",
-    evaluadoPor: "J. Emiliano (Compras)",
-  },
-  {
-    proveedorId: "yg1-usa",
-    precio: 4,
-    tiempoEntrega: 5,
-    calidad: 5,
-    respuestaComunicacion: 5,
-    cumplimiento: 5,
-    facilidadCompra: 5,
-    promedioGeneral: 4.8,
-    fortalezas: ["Rendimiento de corte superior en acero inox", "Crédito a 30 días", "Soporte técnico directo"],
-    debilidades: ["Precios más elevados que competidores genéricos"],
-    fechaEvaluacion: "2026-07-10",
-    evaluadoPor: "J. Emiliano (Compras)",
-  },
-]
-
 export async function obtenerEvaluacionesProveedor(): Promise<EvaluacionProveedor[]> {
   try {
     const snap = await getDocs(collection(db, COLECCION_EVALUACIONES))
-    if (snap.empty) {
-      return await inicializarEvaluacionesSemilla()
-    }
 
     return snap.docs.map((d) => {
       const data = d.data()
@@ -309,7 +146,7 @@ export async function obtenerEvaluacionesProveedor(): Promise<EvaluacionProveedo
     })
   } catch (err) {
     console.error("Error al obtener evaluaciones:", err)
-    return EVALUACIONES_SEMILLA.map((e, i) => ({ id: `semilla-e-${i}`, ...e }))
+    return []
   }
 }
 
@@ -329,133 +166,11 @@ export async function guardarEvaluacionProveedor(
   }
 }
 
-export async function inicializarEvaluacionesSemilla(): Promise<EvaluacionProveedor[]> {
-  const creadas: EvaluacionProveedor[] = []
-  for (const ev of EVALUACIONES_SEMILLA) {
-    const docRef = doc(collection(db, COLECCION_EVALUACIONES))
-    const data = {
-      ...ev,
-      creadoEn: serverTimestamp(),
-    }
-    await setDoc(docRef, data)
-    creadas.push({
-      id: docRef.id,
-      ...ev,
-      creadoEn: new Date().toISOString(),
-    })
-  }
-  return creadas
-}
-
 // ── 3. COMPARADOR DE COTIZACIONES & RANKING INTELIGENTE ──────────────────────
-
-export const COTIZACIONES_SEMILLA: NuevaCotizacionComparacionPayload[] = [
-  {
-    concepto: 'Endmill Carburo Sólido 1/2" 4 Gavilanes Recubrimiento AlTiN',
-    categoria: "endmills",
-    fecha: "2026-07-15",
-    ofertas: [
-      {
-        proveedorId: "shars-tool",
-        proveedorNombre: "Shars Tool Company",
-        precioUnitario: 24.5,
-        moneda: "USD",
-        leadTimeDias: 4,
-        MOQ: 1,
-        marca: "Shars Grade A",
-        disponible: true,
-        garantia: "Reemplazo por defecto",
-        enlace: "",
-        notas: "Opción recomendada por costo-beneficio.",
-        scoreCalculado: 0,
-      },
-      {
-        proveedorId: "onlinecarbide",
-        proveedorNombre: "OnlineCarbide",
-        precioUnitario: 21.0,
-        moneda: "USD",
-        leadTimeDias: 3,
-        MOQ: 1,
-        marca: "OnlineCarbide Direct",
-        disponible: true,
-        garantia: "Garantía de fábrica EE.UU.",
-        enlace: "",
-        notas: "Mejor precio absoluto de fábrica.",
-        scoreCalculado: 0,
-      },
-      {
-        proveedorId: "yg1-usa",
-        proveedorNombre: "YG-1 USA Industrial Tooling",
-        precioUnitario: 48.0,
-        moneda: "USD",
-        leadTimeDias: 3,
-        MOQ: 1,
-        marca: "YG-1 V7 Plus",
-        disponible: true,
-        garantia: "Rendimiento industrial garantizado",
-        enlace: "",
-        notas: "Mayor durabilidad en pasadas agresivas.",
-        scoreCalculado: 0,
-      },
-    ],
-  },
-  {
-    concepto: "Insertos para Fresado APMT 1604PDER (Caja 10 pzs)",
-    categoria: "insertos",
-    fecha: "2026-07-18",
-    ofertas: [
-      {
-        proveedorId: "discount-tooling",
-        proveedorNombre: "Discount Tooling & Supply",
-        precioUnitario: 45.0,
-        moneda: "USD",
-        leadTimeDias: 6,
-        MOQ: 1,
-        marca: "Deskar Carbides",
-        disponible: true,
-        garantia: "Inspección previa",
-        enlace: "",
-        notas: "Precio de importación directo.",
-        scoreCalculado: 0,
-      },
-      {
-        proveedorId: "iscar-metals",
-        proveedorNombre: "Iscar Metals USA",
-        precioUnitario: 135.0,
-        moneda: "USD",
-        leadTimeDias: 4,
-        MOQ: 1,
-        marca: "Iscar Helido",
-        disponible: true,
-        garantia: "Garantía Iscar",
-        enlace: "",
-        notas: "Alto rendimiento sin desgaste prematuro.",
-        scoreCalculado: 0,
-      },
-      {
-        proveedorId: "shars-tool",
-        proveedorNombre: "Shars Tool Company",
-        precioUnitario: 52.0,
-        moneda: "USD",
-        leadTimeDias: 5,
-        MOQ: 1,
-        marca: "Shars Indexable",
-        disponible: true,
-        garantia: "Reemplazo de pieza",
-        enlace: "",
-        notas: "Stock disponible para entrega inmediata a Laredo.",
-        scoreCalculado: 0,
-      },
-    ],
-  },
-]
 
 export async function obtenerCotizacionesComparacion(): Promise<CotizacionComparacion[]> {
   try {
     const snap = await getDocs(query(collection(db, COLECCION_COTIZACIONES), orderBy("fecha", "desc")))
-    if (snap.empty) {
-      return await inicializarCotizacionesSemilla()
-    }
 
     return snap.docs.map((d) => {
       const data = d.data()
@@ -471,7 +186,7 @@ export async function obtenerCotizacionesComparacion(): Promise<CotizacionCompar
     })
   } catch (err) {
     console.error("Error al obtener cotizaciones de comparación:", err)
-    return COTIZACIONES_SEMILLA.map((cot, i) => ({ id: `semilla-cot-${i}`, ...cot }))
+    return []
   }
 }
 
@@ -491,26 +206,6 @@ export async function crearCotizacionComparacion(
     creadoEn: new Date().toISOString(),
     actualizadoEn: new Date().toISOString(),
   }
-}
-
-export async function inicializarCotizacionesSemilla(): Promise<CotizacionComparacion[]> {
-  const creadas: CotizacionComparacion[] = []
-  for (const cot of COTIZACIONES_SEMILLA) {
-    const docRef = doc(collection(db, COLECCION_COTIZACIONES))
-    const data = {
-      ...cot,
-      creadoEn: serverTimestamp(),
-      actualizadoEn: serverTimestamp(),
-    }
-    await setDoc(docRef, data)
-    creadas.push({
-      id: docRef.id,
-      ...cot,
-      creadoEn: new Date().toISOString(),
-      actualizadoEn: new Date().toISOString(),
-    })
-  }
-  return creadas
 }
 
 /**

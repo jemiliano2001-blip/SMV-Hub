@@ -1,10 +1,12 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { RefreshCw, Database, TrendingUp, AlertCircle } from 'lucide-react'
 import { useComprasOdoo } from '@/lib/hooks/useComprasOdoo'
 import { Badge } from '@/components/ui/badge'
 import { formatPrecio } from '@/lib/format'
 import { CATEGORIAS_PRODUCTO_REGISTRO, FAMILIAS_CON_RANGO } from '@/lib/compras-odoo'
+import { obtenerTipoCambio, TIPO_CAMBIO_DEFAULT_USD_MXN } from '@/lib/tipo-cambio'
 import PanelClasificacionIA from './PanelClasificacionIA'
 import ComparadorPreciosInsumos from './components/ComparadorPreciosInsumos'
 import DrawerPresupuestoInsumos from './components/DrawerPresupuestoInsumos'
@@ -50,6 +52,13 @@ export default function PanelComprasOdoo({
     rango,
   } = useComprasOdoo()
 
+  const [usdToMxn, setUsdToMxn] = useState(TIPO_CAMBIO_DEFAULT_USD_MXN)
+  useEffect(() => {
+    obtenerTipoCambio()
+      .then((config) => setUsdToMxn(config.usdToMxn))
+      .catch((err) => console.error('Error cargando tipo de cambio:', err))
+  }, [])
+
   const {
     partidas,
     agregarPartida,
@@ -61,7 +70,7 @@ export default function PanelComprasOdoo({
     totalUsd,
     totalPartidas,
     exportarAExcel,
-  } = usePresupuestoInsumos()
+  } = usePresupuestoInsumos(usdToMxn)
 
   const porCategoria = items.reduce<Record<string, number>>((acc, it) => {
     acc[it.categoriaId] = (acc[it.categoriaId] ?? 0) + 1
@@ -147,6 +156,7 @@ export default function PanelComprasOdoo({
       <ComparadorPreciosInsumos
         items={items}
         onAgregarAPresupuesto={agregarPartida}
+        usdToMxn={usdToMxn}
       />
 
       <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-4">
@@ -249,8 +259,13 @@ export default function PanelComprasOdoo({
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-        <div className="px-4 py-2 border-b border-slate-100 text-xs font-bold text-slate-600">
-          Ítems normalizados (capa intermedia)
+        <div className="px-4 py-2 border-b border-slate-100">
+          <p className="text-xs font-bold text-slate-600">Ítems normalizados (espejo de compras Odoo)</p>
+          <p className="text-[10px] text-slate-500 mt-0.5">
+            Cada línea de PO o factura de proveedor MX, ya clasificada por familia. Es la base del
+            comparador de precios de arriba.
+            {items.length > 100 && ` Mostrando 100 de ${items.length}.`}
+          </p>
         </div>
         <div className="overflow-x-auto max-h-96">
           <table className="w-full text-left text-[11px]">
@@ -260,16 +275,13 @@ export default function PanelComprasOdoo({
                 <th className="px-3 py-2">Ref</th>
                 <th className="px-3 py-2">Descripción</th>
                 <th className="px-3 py-2">Familia</th>
-                <th className="px-3 py-2">SAT</th>
-                <th className="px-3 py-2">Tipo</th>
-                <th className="px-3 py-2">Medida</th>
                 <th className="px-3 py-2 text-right">P. unit</th>
               </tr>
             </thead>
             <tbody>
               {cargando && (
                 <tr>
-                  <td colSpan={8} className="px-3 py-6 text-center text-slate-400">
+                  <td colSpan={5} className="px-3 py-6 text-center text-slate-400">
                     Cargando…
                   </td>
                 </tr>
@@ -301,13 +313,6 @@ export default function PanelComprasOdoo({
                         )}
                       </div>
                     </td>
-                    <td className="px-3 py-1.5 font-mono">
-                      {it.claveProdServ ?? (it.satPendiente ? '—' : '')}
-                    </td>
-                    <td className="px-3 py-1.5 font-mono">
-                      {it.tipoInsumo ?? it.tipoMetal ?? '—'}
-                    </td>
-                    <td className="px-3 py-1.5 font-mono">{it.medida ?? '—'}</td>
                     <td className="px-3 py-1.5 text-right font-mono">
                       {formatPrecio(it.precioUnitario, it.moneda === 'USD' ? 'USD' : 'MXN')}
                     </td>

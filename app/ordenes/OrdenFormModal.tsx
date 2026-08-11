@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Loader2, X, Plus, Trash2, Wand2 } from 'lucide-react'
-import type { OrdenCompra, EstadoOrden, ItemFactura } from '@/lib/schemas'
+import type { OrdenCompra, EstadoOrden, ItemFactura, Proveedor } from '@/lib/schemas'
 import { sincronizarCamposLegacyOrden } from '@/lib/schemas'
 import type { NuevaOrdenPayload } from '@/lib/ordenes'
 import { crearOrden, actualizarOrden } from '@/lib/ordenes'
 import { getClienteAuth } from '@/lib/firebase'
+import { obtenerProveedores } from '@/lib/proveedores'
 
 import { validarClaveProdServCatalogo } from '@/lib/sat/validar-clave'
 import { toast } from 'sonner'
@@ -83,6 +84,26 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
   })
 
   const [scrapingIndex, setScrapingIndex] = useState<number | null>(null)
+  const [catalogoProveedores, setCatalogoProveedores] = useState<Proveedor[]>([])
+  const [nombreProveedorInicial] = useState(formData.proveedor)
+
+  useEffect(() => {
+    obtenerProveedores()
+      .then(setCatalogoProveedores)
+      .catch((err) => console.error('Error cargando catálogo de proveedores:', err))
+  }, [])
+
+  // Deriva proveedorId del nombre actual — cubre tecleo manual, datalist y
+  // el auto-llenado por scraping (handleScrape). Si el nombre no ha cambiado
+  // respecto al valor con el que se abrió el modal, conserva el proveedorId ya
+  // persistido en ordenBase aunque el nombre libre no calce exacto con el
+  // catálogo (histórico legado).
+  const proveedorId = useMemo(() => {
+    if (formData.proveedor === nombreProveedorInicial) {
+      return ordenBase?.proveedorId ?? null
+    }
+    return catalogoProveedores.find((p) => p.nombre === formData.proveedor)?.id ?? null
+  }, [formData.proveedor, catalogoProveedores, nombreProveedorInicial, ordenBase])
 
   const handleScrape = async (index: number) => {
     const url = formData.items[index].url
@@ -169,6 +190,7 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
 
       const payload: NuevaOrdenPayload = sincronizarCamposLegacyOrden({
         proveedor: formData.proveedor,
+        proveedorId,
         numeroFactura: formData.numeroFactura || null,
         fechaFactura: formData.fechaFactura || null,
         moneda: formData.moneda,
@@ -226,7 +248,18 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Proveedor *</label>
-                <input required value={formData.proveedor} onChange={e => setFormData({ ...formData, proveedor: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                <input
+                  required
+                  list="catalogo-proveedores-orden"
+                  value={formData.proveedor}
+                  onChange={e => setFormData({ ...formData, proveedor: e.target.value })}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+                />
+                <datalist id="catalogo-proveedores-orden">
+                  {catalogoProveedores.map((p) => (
+                    <option key={p.id} value={p.nombre} />
+                  ))}
+                </datalist>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Estado</label>

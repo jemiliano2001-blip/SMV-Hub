@@ -20,7 +20,7 @@ Módulos actuales:
 - `/nueva-compra` — captura una compra; sube la imagen de la factura y la IA extrae proveedor,
   ítems, montos y moneda.
 - `/ordenes` — lista las órdenes con búsqueda de texto libre + filtros de estado por pill; detalle en modal; edición inline vía `OrdenFormModal`; bulk delete.
-- `/reportes` — reporte con KPIs, tabla agrupada con subtotales y export a PDF (vía `@media print` de Tailwind). Incluye envío de reportes por correo y órdenes recurrentes. Lógica pura en `lib/reportes.ts`; UI en `app/reportes/`. Incluye `DashboardInteligenciaCompras.tsx` — dashboard de gasto/proveedores cruzando `useProveedores`, `useProveedoresInteligencia` y `useRequisicionesFlujo`.
+- `/reportes` — reporte con KPIs, tabla agrupada con subtotales y export a PDF (vía `@media print` de Tailwind). Incluye envío de reportes por correo y órdenes recurrentes. Lógica pura en `lib/reportes.ts`; UI en `app/reportes/`.
 - `/reportes/contable` — cierre contable por lotes: agrupa órdenes pendientes en un
   `ReporteContableLote` (`lib/reportes-contables.ts`), traduce descripciones al español y
   sugiere/reasigna claves SAT en batch vía IA (`lib/reportes-contables-ia.ts` +

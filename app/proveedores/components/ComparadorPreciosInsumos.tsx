@@ -314,6 +314,7 @@ export default function ComparadorPreciosInsumos({
         <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs font-extrabold text-slate-700">
             {itemsFiltrados.length} resultados encontrados {proveedorFiltro !== 'todos' ? `para "${proveedorFiltro}"` : ''}
+            {itemsFiltrados.length > 300 ? ` (mostrando 300)` : ''}
           </span>
           {busqueda && (
             <span className="text-[11px] text-slate-500 font-mono">

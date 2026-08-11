@@ -20,13 +20,19 @@ export default function NuevaCompraFormWrapper({
   const router = useRouter()
   const [errorGuardado, setErrorGuardado] = useState<string | null>(null)
 
-  async function handleSubmit(data: FormData, imagen?: File, notificarWhatsApp?: boolean) {
+  async function handleSubmit(
+    data: FormData,
+    imagen?: File,
+    notificarWhatsApp?: boolean,
+    proveedorId?: string | null
+  ) {
     setErrorGuardado(null)
     try {
       const imagenGuardada = imagen ? await subirImagenOrden(imagen) : null
       const ordenId = await crearOrden(
         sincronizarCamposLegacyOrden({
           ...data,
+          proveedorId: proveedorId ?? null,
           ...(imagenGuardada
             ? { imagenUrl: imagenGuardada.url, imagenPath: imagenGuardada.path }
             : {}),
