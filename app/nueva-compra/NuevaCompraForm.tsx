@@ -20,8 +20,10 @@ import {
   type NuevaCompraForm,
   type ExtraccionInvoice,
   type ItemFactura,
+  type Proveedor,
 } from '@/lib/schemas'
 import { validarClaveProdServCatalogo } from '@/lib/sat/validar-clave'
+import { obtenerProveedores } from '@/lib/proveedores'
 
 type FormInput = z.input<typeof NuevaCompraFormSchema>
 
@@ -65,10 +67,16 @@ export default function NuevaCompraForm({
   onSubmit: onExternalSubmit,
   initialDescripcion,
 }: {
-  onSubmit?: (data: NuevaCompraForm, imagen?: File, notificarWhatsApp?: boolean) => Promise<void>
+  onSubmit?: (
+    data: NuevaCompraForm,
+    imagen?: File,
+    notificarWhatsApp?: boolean,
+    proveedorId?: string | null
+  ) => Promise<void>
   initialDescripcion?: string
 }) {
   const [imagen, setImagen] = useState<File | null>(null)
+  const [catalogoProveedores, setCatalogoProveedores] = useState<Proveedor[]>([])
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [extrayendo, setExtrayendo] = useState(false)
   const [errorExtraccion, setErrorExtraccion] = useState<string | null>(null)
@@ -169,6 +177,21 @@ export default function NuevaCompraForm({
     }, 400)
     return () => window.clearTimeout(timer)
   }, [proveedorWatch, numeroFacturaWatch, verificarDuplicado])
+
+  // Catálogo de proveedores para el datalist — liga la compra al proveedor real
+  // (mismo patrón que app/cotizaciones/CotizacionFormModal.tsx).
+  useEffect(() => {
+    obtenerProveedores()
+      .then(setCatalogoProveedores)
+      .catch((err) => console.error('[nueva-compra] no se pudo cargar el catálogo de proveedores:', err))
+  }, [])
+
+  // Deriva proveedorId del nombre actual — cubre tecleo manual, datalist,
+  // extracción por IA (setValue) y reset(), no solo el onChange del input.
+  const proveedorId = useMemo(() => {
+    const nombre = typeof proveedorWatch === 'string' ? proveedorWatch : ''
+    return catalogoProveedores.find((p) => p.nombre === nombre)?.id ?? null
+  }, [proveedorWatch, catalogoProveedores])
 
   // Historial acotado (últimas 200) a propósito — spec memoria cliente; la IA sigue con prioridad.
   useEffect(() => {
@@ -450,7 +473,8 @@ export default function NuevaCompraForm({
     await onExternalSubmit?.(
       { ...data, linkProveedor, fechaEntrega, items },
       imagen ?? undefined,
-      notificarWhatsApp
+      notificarWhatsApp,
+      proveedorId
     )
   }
 
@@ -589,7 +613,18 @@ export default function NuevaCompraForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">
             <label className={cls.label}>Proveedor *</label>
-            <input {...register('proveedor')} className={cls.input} placeholder="Nombre del proveedor" disabled={extrayendo} />
+            <input
+              {...register('proveedor')}
+              list="catalogo-proveedores-nueva-compra"
+              className={cls.input}
+              placeholder="Nombre del proveedor"
+              disabled={extrayendo}
+            />
+            <datalist id="catalogo-proveedores-nueva-compra">
+              {catalogoProveedores.map((p) => (
+                <option key={p.id} value={p.nombre} />
+              ))}
+            </datalist>
             {errors.proveedor && <p className={cls.error}>{errors.proveedor.message}</p>}
           </div>
 

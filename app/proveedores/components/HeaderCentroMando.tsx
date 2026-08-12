@@ -1,6 +1,8 @@
 'use client'
 
-import { Building2, Plus, Printer, Clock, Globe, Sparkles } from 'lucide-react'
+import { Building2, Plus, Printer, Globe, Sparkles } from 'lucide-react'
+// ponytail: KPI de Lead Time y desglose USA/MX/legado se eliminaron — eran valores
+// hardcodeados o un artefacto de un where() que no matchea documentos sin `mercado`.
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
@@ -13,7 +15,6 @@ interface HeaderCentroMandoProps {
   onMercadoChange: (mercado: 'usa' | 'mexico') => void
   onNuevoProveedor: () => void
   onGenerarPDF: () => void
-  leadTimePromedio?: number
 }
 
 export default function HeaderCentroMando({
@@ -25,7 +26,6 @@ export default function HeaderCentroMando({
   onMercadoChange,
   onNuevoProveedor,
   onGenerarPDF,
-  leadTimePromedio,
 }: HeaderCentroMandoProps) {
   return (
     <div className="space-y-4">
@@ -72,33 +72,14 @@ export default function HeaderCentroMando({
           </div>
         </div>
 
-        {/* Tarjetas KPI Internas */}
-        <div className="mt-4 grid grid-cols-1 gap-2 border-t border-slate-100 pt-3 sm:grid-cols-2">
-          <div className="space-y-1 rounded-lg border border-slate-200/80 bg-slate-50 p-2.5">
+        {/* Tarjeta KPI: Fuentes Activas */}
+        <div className="mt-4 border-t border-slate-100 pt-3">
+          <div className="w-full max-w-xs space-y-1 rounded-lg border border-slate-200/80 bg-slate-50 p-2.5">
             <div className="flex items-center justify-between text-xs text-slate-500 font-bold">
               <span>Fuentes Activas</span>
               <Globe className="w-4 h-4 text-[#0369A1]" />
             </div>
-            <div className="text-lg font-extrabold text-slate-900">
-              {totalProveedores}{' '}
-              <span className="text-xs font-normal text-slate-500">
-                ({totalUSA} USA / {totalMexico} MX{sinMercado > 0 ? ` / ${sinMercado} legado` : ''})
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-1 rounded-lg border border-slate-200/80 bg-slate-50 p-2.5">
-            <div className="flex items-center justify-between text-xs text-slate-500 font-bold">
-              <span>Lead Time Promedio</span>
-              <Clock className="w-4 h-4 text-sky-600" />
-            </div>
-            <div className="text-lg font-extrabold text-slate-900">
-              {leadTimePromedio != null ? (
-                <>{leadTimePromedio.toFixed(1)} <span className="text-xs font-normal text-slate-500">días hábiles</span></>
-              ) : (
-                <span className="text-sm font-semibold text-slate-500">Sin datos</span>
-              )}
-            </div>
+            <div className="text-lg font-extrabold text-slate-900">{totalProveedores}</div>
           </div>
         </div>
       </div>
