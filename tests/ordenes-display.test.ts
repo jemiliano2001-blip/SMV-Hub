@@ -159,7 +159,9 @@ describe("generarMensajeWhatsApp", () => {
     const msg = generarMensajeWhatsApp(
       makeOrden({ proveedor: "McMaster-Carr", items: [], subtotal: 0, impuestos: 0, total: 0 })
     )
-    expect(msg).toBe("*Notificación de Compra (EUA)*\n\nBuen día, se pidió compra en *McMaster-Carr*.")
+    expect(msg).toContain("*Notificación de compra*")
+    expect(msg).toContain("Proveedor: *McMaster-Carr*")
+    expect(msg).not.toContain("Partidas:")
   })
 
   it("con un item cantidad 1", () => {
@@ -174,9 +176,8 @@ describe("generarMensajeWhatsApp", () => {
         ],
       })
     )
-    expect(msg).toBe(
-      "*Notificación de Compra (EUA)*\n\nBuen día, se pidió servo motor para maquina WIRE EDM para *taller* en *McMaster-Carr* por *USD $10*."
-    )
+    expect(msg).toContain("Empresa / destino: *taller*")
+    expect(msg).toContain("Partidas:\n• servo motor para maquina WIRE EDM")
   })
 
   it("con un item cantidad > 1", () => {
@@ -191,9 +192,7 @@ describe("generarMensajeWhatsApp", () => {
         ],
       })
     )
-    expect(msg).toBe(
-      "*Notificación de Compra (EUA)*\n\nBuen día, se pidió 3 insertos de ceramica para *taller* en *Grainger* por *USD $20*."
-    )
+    expect(msg).toContain("• 3 insertos de ceramica")
   })
 
   it("con multiples items y destinos", () => {
@@ -209,9 +208,8 @@ describe("generarMensajeWhatsApp", () => {
         ],
       })
     )
-    expect(msg).toBe(
-      "*Notificación de Compra (EUA)*\n\nBuen día, se pidió servo motor para maquina WIRE EDM y 2 insertos de ceramica para *taller* en *McMaster-Carr* por *USD $120*."
-    )
+    expect(msg).toContain("• servo motor para maquina WIRE EDM")
+    expect(msg).toContain("• 2 insertos de ceramica")
   })
 
   it("con multiples items de mas de 2", () => {
@@ -228,9 +226,7 @@ describe("generarMensajeWhatsApp", () => {
         ],
       })
     )
-    expect(msg).toBe(
-      "*Notificación de Compra (EUA)*\n\nBuen día, se pidió A, B y C para *taller / diseno* en *eBay* por *USD $30*."
-    )
+    expect(msg).toContain("Empresa / destino: *taller / diseno*")
   })
 
   it("mantiene el texto limpio sin URLs aunque la orden tenga comprobante", () => {
@@ -244,9 +240,32 @@ describe("generarMensajeWhatsApp", () => {
       }),
       imagenUrl: "https://storage.example.com/factura.jpg",
     })
-    expect(msg).toBe(
-      "*Notificación de Compra (EUA)*\n\nBuen día, se pidió servo motor para *taller* en *McMaster-Carr* por *USD $10*."
+    expect(msg).not.toContain("storage.example.com")
+  })
+
+  it("incluye los datos operativos únicos disponibles por ítem", () => {
+    const msg = generarMensajeWhatsApp(
+      makeOrden({
+        numeroFactura: "INV-7",
+        fechaFactura: "2026-08-12",
+        fechaEntrega: "2026-08-20",
+        linkProveedor: "https://compras.example.com/orden/7",
+        items: [
+          makeItem({ empresa: "SMV", requisitor: "Ana", cuentaCargo: "SO-100", ordenTrabajo: "OT-1" }),
+          makeItem({ empresa: "APX", requisitor: "Luis", cuentaCargo: "SO-200", ordenTrabajo: "OT-2" }),
+        ],
+      })
     )
+
+    expect(msg).toContain("Factura: *INV-7*")
+    expect(msg).toContain("Lugar / enlace de compra: https://compras.example.com/orden/7")
+    expect(msg).toContain("Fecha de factura: *12/08/2026*")
+    expect(msg).toContain("Empresa / destino: *SMV / APX*")
+    expect(msg).toContain("Requisitor: *Ana / Luis*")
+    expect(msg).toContain("Cuenta cargo / SO: *SO-100 / SO-200*")
+    expect(msg).toContain("Orden de trabajo: *OT-1 / OT-2*")
+    expect(msg).toContain("Entrega estimada: *20/08/2026*")
+    expect(msg).toContain("Total: *")
   })
 })
 

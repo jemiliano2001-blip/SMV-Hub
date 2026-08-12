@@ -8,7 +8,8 @@ import { crearOrden } from '@/lib/ordenes'
 import { marcarPedidoAlmacenComprado } from '@/lib/pedidos-almacen'
 import type { NuevaCompraForm as FormData } from '@/lib/schemas'
 import { sincronizarCamposLegacyOrden } from '@/lib/schemas'
-import { generarMensajeWhatsApp, copiarOrdenAlPortapapeles, LINK_GRUPO_WHATSAPP } from '@/lib/ordenes-display'
+import { generarMensajeWhatsApp, obtenerUrlWhatsApp } from '@/lib/ordenes-display'
+import { copiarCapturaWhatsApp, type ResultadoCopiaImagenWhatsApp } from '@/lib/whatsapp-notificacion'
 
 export default function NuevaCompraFormWrapper({
   pedidoId,
@@ -19,6 +20,11 @@ export default function NuevaCompraFormWrapper({
 } = {}) {
   const router = useRouter()
   const [errorGuardado, setErrorGuardado] = useState<string | null>(null)
+  const [fallbackWhatsApp, setFallbackWhatsApp] = useState<{
+    mensaje: string
+    comprobanteUrl?: string
+    whatsappUrl: string
+  } | null>(null)
 
   async function handleSubmit(
     data: FormData,
@@ -27,6 +33,14 @@ export default function NuevaCompraFormWrapper({
     proveedorId?: string | null
   ) {
     setErrorGuardado(null)
+    setFallbackWhatsApp(null)
+    // Abrimos la pestaña y solicitamos el portapapeles mientras el clic del usuario
+    // sigue activo. Después de subir a Storage/Firestore los navegadores pueden
+    // bloquear ambas acciones aunque la compra se haya guardado correctamente.
+    const ventanaWhatsApp = notificarWhatsApp ? window.open('about:blank', '_blank') : null
+    const resultadoCopia: ResultadoCopiaImagenWhatsApp | null = notificarWhatsApp
+      ? await copiarCapturaWhatsApp(imagen)
+      : null
     try {
       const imagenGuardada = imagen ? await subirImagenOrden(imagen) : null
       const ordenId = await crearOrden(
@@ -57,16 +71,30 @@ export default function NuevaCompraFormWrapper({
           creadoEn: new Date(),
           actualizadoEn: new Date(),
         })
-        try {
-          await copiarOrdenAlPortapapeles(msg)
-        } catch (err) {
-          console.warn('[nueva-compra] no se pudo copiar al portapapeles:', err)
+        const whatsappUrl = obtenerUrlWhatsApp(msg)
+        if (ventanaWhatsApp) {
+          ventanaWhatsApp.location.href = whatsappUrl
         }
-        window.open(LINK_GRUPO_WHATSAPP, '_blank')
+
+        if (!ventanaWhatsApp || resultadoCopia?.estado !== 'copiada') {
+          const mensajeFallback =
+            resultadoCopia?.estado === 'fallback'
+              ? resultadoCopia.mensaje
+              : 'No se pudo copiar el comprobante como imagen.'
+          setFallbackWhatsApp({
+            mensaje: !ventanaWhatsApp
+              ? 'El navegador bloqueó la pestaña de WhatsApp. Ábrela con el enlace de abajo.'
+              : mensajeFallback,
+            comprobanteUrl: imagenGuardada?.url,
+            whatsappUrl,
+          })
+          return
+        }
       }
 
       router.push('/ordenes')
     } catch (err) {
+      ventanaWhatsApp?.close()
       console.error('[nueva-compra] error al guardar:', err)
       setErrorGuardado('No se pudo guardar la compra. Revisa tu conexión e intenta de nuevo.')
     }
@@ -79,7 +107,43 @@ export default function NuevaCompraFormWrapper({
           {errorGuardado}
         </div>
       )}
-      <NuevaCompraForm onSubmit={handleSubmit} initialDescripcion={descripcionInicial} />
+      {fallbackWhatsApp && (
+        <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-semibold">Compra guardada; falta adjuntar el comprobante.</p>
+          <p className="mt-1">{fallbackWhatsApp.mensaje}</p>
+          <p className="mt-1">WhatsApp lleva el texto listo. Adjunta el comprobante manualmente antes de enviar.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <a
+              href={fallbackWhatsApp.whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+            >
+              Abrir WhatsApp con texto
+            </a>
+            {fallbackWhatsApp.comprobanteUrl && (
+              <a
+                href={fallbackWhatsApp.comprobanteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md border border-amber-400 bg-white px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-100"
+              >
+                Abrir comprobante
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={() => router.push('/ordenes')}
+              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Ir a órdenes
+            </button>
+          </div>
+        </div>
+      )}
+      {!fallbackWhatsApp && (
+        <NuevaCompraForm onSubmit={handleSubmit} initialDescripcion={descripcionInicial} />
+      )}
     </>
   )
 }

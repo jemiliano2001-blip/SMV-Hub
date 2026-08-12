@@ -1,4 +1,4 @@
-import { formatFecha } from "@/lib/format"
+import { formatFecha, formatPrecio } from "@/lib/format"
 import { normalizarClaveProdServ } from "@/lib/sat/normalizar"
 import { resolverCampoItem, type OrdenCompra } from "@/lib/schemas"
 
@@ -87,32 +87,36 @@ export function generarMensajeWhatsApp(
     })
     .filter(Boolean)
 
-  let itemsTexto = ""
-  if (itemsListStr.length === 1) {
-    itemsTexto = itemsListStr[0]
-  } else if (itemsListStr.length === 2) {
-    itemsTexto = `${itemsListStr[0]} y ${itemsListStr[1]}`
-  } else if (itemsListStr.length > 2) {
-    const ultimo = itemsListStr[itemsListStr.length - 1]
-    const resto = itemsListStr.slice(0, -1).join(", ")
-    itemsTexto = `${resto} y ${ultimo}`
-  } else {
-    itemsTexto = "compra"
+  const valoresPorCampo = (
+    campo: "empresa" | "cuentaCargo" | "requisitor" | "ordenTrabajo"
+  ) =>
+    Array.from(
+      new Set(items.map((item) => resolverCampoItem(item, orden, campo)).filter(Boolean))
+    )
+
+  const empresas = valoresPorCampo("empresa")
+  const requisitores = valoresPorCampo("requisitor")
+  const cuentasCargo = valoresPorCampo("cuentaCargo")
+  const ordenesTrabajo = valoresPorCampo("ordenTrabajo")
+  const lineas = ["*Notificación de compra*"]
+
+  if (proveedor) lineas.push(`Proveedor: *${proveedor}*`)
+  if (orden.linkProveedor?.trim()) lineas.push(`Lugar / enlace de compra: ${orden.linkProveedor.trim()}`)
+  if (orden.numeroFactura?.trim()) lineas.push(`Factura: *${orden.numeroFactura.trim()}*`)
+  if (orden.fechaFactura?.trim()) lineas.push(`Fecha de factura: *${formatFecha(orden.fechaFactura)}*`)
+  if (empresas.length) lineas.push(`Empresa / destino: *${empresas.join(" / ")}*`)
+  if (requisitores.length) lineas.push(`Requisitor: *${requisitores.join(" / ")}*`)
+  if (cuentasCargo.length) lineas.push(`Cuenta cargo / SO: *${cuentasCargo.join(" / ")}*`)
+  if (ordenesTrabajo.length) lineas.push(`Orden de trabajo: *${ordenesTrabajo.join(" / ")}*`)
+  if (orden.fechaEntrega?.trim()) lineas.push(`Entrega estimada: *${formatFecha(orden.fechaEntrega)}*`)
+  if (orden.total !== null && orden.total !== undefined) {
+    lineas.push(`Total: *${formatPrecio(orden.total, orden.moneda || "USD")}*`)
+  }
+  if (itemsListStr.length) {
+    lineas.push("", "Partidas:", ...itemsListStr.map((item) => `• ${item}`))
   }
 
-  const empresas = Array.from(
-    new Set(
-      items
-        .map((item) => item.empresa?.trim() || orden.empresa?.trim())
-        .filter(Boolean)
-    )
-  )
-
-  const destinoTexto = empresas.length > 0 ? ` para *${empresas.join(" / ")}*` : ""
-  const provTexto = proveedor ? ` en *${proveedor}*` : ""
-  const totalTexto = orden.total ? ` por *${orden.moneda || 'USD'} $${orden.total}*` : ""
-
-  return `*Notificación de Compra (EUA)*\n\nBuen día, se pidió ${itemsTexto}${destinoTexto}${provTexto}${totalTexto}.`
+  return lineas.join("\n")
 }
 
 export function obtenerUrlWhatsApp(mensaje: string): string {
