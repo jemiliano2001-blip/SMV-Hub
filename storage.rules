@@ -37,6 +37,10 @@ service firebase.storage {
               modulo in request.auth.token.smvHubModulos);
     }
 
+    function esSuperAdmin() {
+      return esCorreoBreakGlass() || request.auth.token.smvHubEsSuperAdmin == true;
+    }
+
     // Imágenes de órdenes: solo usuarios autorizados.
     match /ordenes/{imagen=**} {
       allow read: if esUsuarioAutorizado();
@@ -67,6 +71,14 @@ service firebase.storage {
                    && request.resource.size < 10 * 1024 * 1024
                    && (request.resource.contentType.matches('image/.*')
                        || request.resource.contentType == 'application/pdf');
+    }
+
+    // Fotos de gafetes: contienen datos biométricos y son exclusivas de super-admin.
+    match /gafetes/{operadorId}/{archivo} {
+      allow read: if esUsuarioAutorizado() && esSuperAdmin();
+      allow write: if esUsuarioAutorizado() && esSuperAdmin()
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/(jpeg|png|webp)');
     }
 
     // Todo lo demás: denegado por defecto.

@@ -85,11 +85,13 @@ export async function obtenerUsuarioAdmin(
 async function sincronizarClaimsAcceso(
   uid: string,
   activo: boolean,
-  modulos: readonly ModuloId[]
+  modulos: readonly ModuloId[],
+  esSuperAdmin: boolean
 ): Promise<void> {
   await adminAuth.setCustomUserClaims(uid, {
     smvHubActivo: activo,
     smvHubModulos: [...modulos],
+    smvHubEsSuperAdmin: activo && esSuperAdmin,
   })
 }
 
@@ -136,7 +138,7 @@ export async function crearUsuarioAdmin(payload: NuevoUsuarioPayload): Promise<U
     password: passwordFinal,
     emailVerified: true,
   })
-  await sincronizarClaimsAcceso(cuenta.uid, true, modulos)
+  await sincronizarClaimsAcceso(cuenta.uid, true, modulos, payload.esSuperAdmin === true)
 
   const ahora = new Date()
   await adminDb.collection(COLECCION).doc(cuenta.uid).set({
@@ -264,9 +266,10 @@ export async function actualizarUsuarioAdmin(
   if (
     cambios.activo !== undefined ||
     cambios.modulos !== undefined ||
-    plantillaNueva !== undefined
+    plantillaNueva !== undefined ||
+    cambios.esSuperAdmin !== undefined
   ) {
-    await sincronizarClaimsAcceso(uid, seguiraActivo, modulosFinales)
+    await sincronizarClaimsAcceso(uid, seguiraActivo, modulosFinales, seguiraSuper)
   }
 }
 

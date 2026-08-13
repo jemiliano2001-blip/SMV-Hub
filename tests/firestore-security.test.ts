@@ -106,6 +106,29 @@ describe("reglas de firestore para proveedores", () => {
   })
 })
 
+describe("reglas de Firestore y Storage para gafetes", () => {
+  it("limita perfiles sensibles a super-admin y exige forma estricta", () => {
+    const reglas = readFileSync(resolve(raiz, "firestore.rules"), "utf8")
+    const bloque = reglas.match(/match \/gafetes\/\{gafeteId\} \{([\s\S]*?)\n    \}/)?.[1]
+
+    expect(bloque).toBeTruthy()
+    expect(bloque).toMatch(/esSuperAdminDoc\(\)/)
+    expect(bloque).toMatch(/gafeteValido\(request\.resource\.data, gafeteId\)/)
+    expect(bloque).toMatch(/request\.resource\.data\.operadorId == resource\.data\.operadorId/)
+    expect(bloque).toMatch(/request\.resource\.data\.creadoEn == resource\.data\.creadoEn/)
+  })
+
+  it("reserva fotos de gafetes al claim de super-admin", () => {
+    const reglas = readFileSync(resolve(raiz, "storage.rules"), "utf8")
+    const bloque = reglas.match(/match \/gafetes\/\{operadorId\}\/\{archivo\} \{([\s\S]*?)\n    \}/)?.[1]
+
+    expect(reglas).toMatch(/function esSuperAdmin\(\)/)
+    expect(reglas).toMatch(/smvHubEsSuperAdmin == true/)
+    expect(bloque).toMatch(/esSuperAdmin\(\)/)
+    expect(bloque).toMatch(/image\/\(jpeg\|png\|webp\)/)
+  })
+})
+
 describe("reglas de alcance para almacén y solicitudes de venta", () => {
   it("exige el módulo correspondiente para almacén y pedidos de almacén", () => {
     const reglas = readFileSync(resolve(raiz, "firestore.rules"), "utf8")

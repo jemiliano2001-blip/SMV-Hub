@@ -238,6 +238,14 @@ const NAV_CARDS: readonly TarjetaNavegacion[] = [
 
   // ── Personal y Control ──────────────────────────────
   {
+    href: '/gafetes',
+    icon: UserCog,
+    label: 'Gafetes de personal',
+    desc: 'Perfiles privados, fotografías e impresión de gafetes de trabajadores.',
+    grupo: 'personal',
+    tags: ['gafetes', 'credenciales', 'personal', 'foto', 'impresion'],
+  },
+  {
     href: '/horas-extra',
     icon: Clock,
     label: 'Horas extra',
@@ -422,7 +430,7 @@ export default function Home() {
   const tarjetasVisibles = useMemo(() => {
     return NAV_CARDS.filter((tarjeta) => {
       if (bypassActivo) return true
-      if (tarjeta.href === '/usuarios') return esSuperAdmin
+      if (tarjeta.href === '/usuarios' || tarjeta.href === '/gafetes') return esSuperAdmin
       return tienePermiso(modulos, tarjeta.href, esSuperAdmin)
     })
   }, [modulos, esSuperAdmin, bypassActivo])

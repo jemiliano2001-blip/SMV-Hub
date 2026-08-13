@@ -320,6 +320,38 @@ export const OperadorSchema = z.object({
 })
 export type Operador = z.infer<typeof OperadorSchema>
 
+// ── Gafetes de personal (perfil privado ligado a operadores/{id}) ──────────
+
+export const GafeteAjusteFotoSchema = z.object({
+  rotacion: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]).default(0),
+  zoom: z.number().min(0.75).max(2.5).default(1),
+  desplazamientoX: z.number().min(-50).max(50).default(0),
+  desplazamientoY: z.number().min(-50).max(50).default(0),
+})
+export type GafeteAjusteFoto = z.infer<typeof GafeteAjusteFotoSchema>
+
+/**
+ * Datos privados que se imprimen en un gafete. El nombre y el área se leen de
+ * `operadores/{operadorId}` para no duplicar la fuente de verdad del personal.
+ */
+export const GafetePerfilSchema = z.object({
+  id: z.string(),
+  operadorId: z.string(),
+  cargo: z.string(),
+  domicilio: z.string(),
+  responsableNombre: z.string(),
+  responsablePuesto: z.string(),
+  responsableTelefono: z.string(),
+  fechaIngreso: z.string(),
+  nss: z.string(),
+  rfc: z.string(),
+  fotoPath: z.string(),
+  fotoAjuste: GafeteAjusteFotoSchema,
+  creadoEn: z.date(),
+  actualizadoEn: z.date(),
+})
+export type GafetePerfil = z.infer<typeof GafetePerfilSchema>
+
 // ── Usuarios (roles y acceso, administrados desde /usuarios) ──────────────────
 
 export const RolSchema = z.enum(["admin", "compras", "diseno", "almacen", "automatizacion"])

@@ -189,7 +189,23 @@ describe("crearUsuarioAdmin", () => {
     expect(mockSetCustomUserClaims).toHaveBeenCalledWith("uid-nuevo", {
       smvHubActivo: true,
       smvHubModulos: expect.arrayContaining(["caja-chica", "proveedores"]),
+      smvHubEsSuperAdmin: false,
     })
+  })
+
+  it("estampa el claim privado al crear un super-admin", async () => {
+    mockCreateUser.mockResolvedValue({ uid: "uid-super" })
+    await crearUsuarioAdmin({
+      email: "super@ejemplo.com",
+      rol: "admin",
+      esSuperAdmin: true,
+      creadoPor: "jemiliano2001@gmail.com",
+    })
+
+    expect(mockSetCustomUserClaims).toHaveBeenCalledWith("uid-super", expect.objectContaining({
+      smvHubActivo: true,
+      smvHubEsSuperAdmin: true,
+    }))
   })
 })
 
@@ -210,6 +226,7 @@ describe("actualizarUsuarioAdmin", () => {
     expect(mockSetCustomUserClaims).toHaveBeenCalledWith("uid-1", {
       smvHubActivo: true,
       smvHubModulos: expect.arrayContaining(["cotizaciones", "requisiciones"]),
+      smvHubEsSuperAdmin: false,
     })
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -226,6 +243,7 @@ describe("actualizarUsuarioAdmin", () => {
     expect(mockSetCustomUserClaims).toHaveBeenCalledWith("uid-1", {
       smvHubActivo: false,
       smvHubModulos: expect.arrayContaining(["caja-chica"]),
+      smvHubEsSuperAdmin: false,
     })
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ activo: false }))
   })
@@ -236,6 +254,7 @@ describe("actualizarUsuarioAdmin", () => {
     expect(mockSetCustomUserClaims).toHaveBeenCalledWith("uid-1", {
       smvHubActivo: true,
       smvHubModulos: expect.arrayContaining(["caja-chica"]),
+      smvHubEsSuperAdmin: false,
     })
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ activo: true }))
   })
@@ -264,6 +283,7 @@ describe("actualizarUsuarioAdmin", () => {
     expect(mockSetCustomUserClaims).toHaveBeenCalledWith("uid-1", {
       smvHubActivo: true,
       smvHubModulos: ["cotizaciones"],
+      smvHubEsSuperAdmin: false,
     })
   })
 })

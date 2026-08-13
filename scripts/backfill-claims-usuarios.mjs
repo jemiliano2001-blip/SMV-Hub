@@ -7,6 +7,9 @@
 // Uso (desde la raíz del repo, con el Firebase CLI ya autenticado):
 //   node scripts/backfill-claims-usuarios.mjs
 //
+// Este comando también estampa smvHubEsSuperAdmin: ejecútalo coordinado con el
+// despliegue de Storage Rules y pide a los super-admin refrescar su ID token.
+//
 // Credenciales: usa GOOGLE_APPLICATION_CREDENTIALS si está definida; si no,
 // cae a las Application Default Credentials guardadas por `firebase login`.
 import { existsSync } from "node:fs"
@@ -47,6 +50,8 @@ for (const doc of snap.docs) {
   const modulos = Array.isArray(data.modulos)
     ? data.modulos.filter((modulo) => typeof modulo === "string")
     : (["admin", "compras"].includes(plantilla) ? ["caja-chica"] : [])
+  const esSuperAdmin = data.esSuperAdmin === true ||
+    (typeof data.esSuperAdmin !== "boolean" && plantilla === "admin")
 
   let cuenta
   try {
@@ -62,6 +67,7 @@ for (const doc of snap.docs) {
   await auth.setCustomUserClaims(doc.id, {
     smvHubActivo: activo,
     smvHubModulos: modulos,
+    smvHubEsSuperAdmin: activo && esSuperAdmin,
   })
 
   console.log(

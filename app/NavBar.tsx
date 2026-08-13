@@ -63,6 +63,7 @@ const GRUPOS: GrupoNav[] = [
   {
     nombre: 'Personal',
     links: [
+      { href: '/gafetes', label: 'Gafetes de personal' },
       { href: '/horas-extra', label: 'Horas extra' },
       { href: '/banos', label: 'Control de baños' },
     ],

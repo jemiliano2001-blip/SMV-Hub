@@ -54,6 +54,24 @@ async function seed(): Promise<void> {
         email: "endmills-user@example.com",
         modulos: ["endmills"],
       }),
+      db.doc("usuarios/super-gafetes").set({
+        activo: true,
+        email: "super-gafetes@example.com",
+        esSuperAdmin: true,
+        modulos: [],
+      }),
+      db.doc("usuarios/normal-gafetes").set({
+        activo: true,
+        email: "normal-gafetes@example.com",
+        modulos: ["operadores"],
+      }),
+      db.doc("operadores/operador-gafete").set({
+        nombre: "Trabajador Gafete",
+        area: "taller",
+        activo: true,
+        creadoEn: new Date(),
+        actualizadoEn: new Date(),
+      }),
       db.doc("endmills-medidas/endmill-001").set({
         orden: 1,
         categoria: "FLAT",
@@ -181,6 +199,31 @@ describeWithEmulator("reglas Firestore de Integridad", () => {
     await assertFails(
       environment.unauthenticatedContext().firestore().doc("compras_odoo_po/po-1").get()
     )
+  })
+
+  it("solo permite leer y escribir gafetes a super-admin", async () => {
+    const ahora = new Date()
+    const payload = {
+      operadorId: "operador-gafete",
+      cargo: "Asistencia",
+      domicilio: "Domicilio de prueba",
+      responsableNombre: "Responsable",
+      responsablePuesto: "Gerencia",
+      responsableTelefono: "8681001683",
+      fechaIngreso: "2026-02-06",
+      nss: "0905-88-7715-1",
+      rfc: "CACE8809015K6",
+      fotoPath: "gafetes/operador-gafete/foto.jpg",
+      fotoAjuste: { rotacion: 0, zoom: 1, desplazamientoX: 0, desplazamientoY: 0 },
+      creadoEn: ahora,
+      actualizadoEn: ahora,
+    }
+    const superGafete = userDb("super-gafetes").doc("gafetes/operador-gafete")
+    await assertSucceeds(superGafete.set(payload))
+    await assertSucceeds(superGafete.get())
+    await assertFails(userDb("normal-gafetes").doc("gafetes/operador-gafete").get())
+    await assertFails(userDb("normal-gafetes").doc("gafetes/operador-gafete").set(payload))
+    await assertFails(superGafete.update({ operadorId: "otro-operador", actualizadoEn: new Date() }))
   })
 
   it("solo permite clasificar campos aprobados de items Odoo", async () => {
