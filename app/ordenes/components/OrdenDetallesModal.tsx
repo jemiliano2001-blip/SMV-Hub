@@ -3,10 +3,8 @@ import { formatPrecio } from '@/lib/format'
 import {
   ordenTieneSatPendiente,
   itemSatPendiente,
-  generarMensajeWhatsApp,
-  copiarOrdenAlPortapapeles,
-  LINK_GRUPO_WHATSAPP,
 } from '@/lib/ordenes-display'
+import { notificarOrdenPorWhatsApp } from '@/lib/notificar-orden-whatsapp'
 import WhatsAppIcon from '@/components/WhatsAppIcon'
 import { normalizarClaveProdServ } from '@/lib/sat/normalizar'
 import { sanitizarUrl } from '@/lib/importar'
@@ -34,19 +32,35 @@ export default function OrdenDetallesModal({
   onReject,
   onSugerirSat,
 }: OrdenDetallesModalProps) {
-  const [copiado, setCopiado] = useState(false)
+  const [estadoWhatsApp, setEstadoWhatsApp] = useState<{
+    exito: boolean
+    mensaje: string
+    whatsappUrl?: string
+    comprobanteUrl?: string
+  } | null>(null)
   const linkNorm = orden.linkProveedor ? sanitizarUrl(orden.linkProveedor) : null
 
   const handleNotificarWhatsApp = async () => {
-    const msg = generarMensajeWhatsApp(orden)
-    try {
-      await copiarOrdenAlPortapapeles(msg)
-      setCopiado(true)
-      setTimeout(() => setCopiado(false), 3000)
-    } catch {
-      // Ignorar fallo de portapapeles si no hay contexto seguro
+    const resultado = await notificarOrdenPorWhatsApp(orden)
+    if (resultado.ventanaAbierta && resultado.captura.estado === 'copiada') {
+      setEstadoWhatsApp({
+        exito: true,
+        mensaje: 'WhatsApp está abierto con el texto listo. Presiona Ctrl+V para adjuntar la captura.',
+      })
+      return
     }
-    window.open(LINK_GRUPO_WHATSAPP, '_blank')
+    const mensajeCaptura = resultado.captura.estado === 'fallback'
+      ? resultado.captura.mensaje
+      : 'No se pudo copiar el comprobante como imagen.'
+
+    setEstadoWhatsApp({
+      exito: false,
+      mensaje: resultado.ventanaAbierta
+        ? `${mensajeCaptura} WhatsApp ya lleva el texto listo.`
+        : 'El navegador bloqueó la pestaña de WhatsApp. Ábrela con el enlace de abajo.',
+      whatsappUrl: resultado.ventanaAbierta ? undefined : resultado.whatsappUrl,
+      comprobanteUrl: resultado.captura.estado === 'fallback' ? orden.imagenUrl : undefined,
+    })
   }
 
   return (
@@ -222,7 +236,7 @@ export default function OrdenDetallesModal({
               <div className="flex items-center justify-between border-b border-slate-200 pb-1">
                 <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700">Comprobante / Screenshot de Compra</h3>
                 <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  Listo para vista previa en WhatsApp
+                  Se copiará al notificar
                 </span>
               </div>
               <a
@@ -258,10 +272,10 @@ export default function OrdenDetallesModal({
             <button
               onClick={handleNotificarWhatsApp}
               className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-bold shadow-xs transition-colors active:scale-[0.98]"
-              title="Copia el mensaje con link al comprobante y abre el grupo de WhatsApp"
+              title="Abre WhatsApp con el texto listo y deja la captura preparada para pegar"
             >
               <WhatsAppIcon className="h-3.5 w-3.5 text-white shrink-0" />
-              {copiado ? '¡Mensaje Copiado y Abriendo Grupo!' : 'Notificar por WhatsApp'}
+              {estadoWhatsApp?.exito ? 'WhatsApp listo para pegar' : 'Notificar por WhatsApp'}
             </button>
 
             {ordenTieneSatPendiente(orden) && (
@@ -296,6 +310,38 @@ export default function OrdenDetallesModal({
             </button>
           </div>
         </div>
+        {estadoWhatsApp && (
+          <div
+            className={`border-t px-5 py-3 text-xs ${estadoWhatsApp.exito ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : 'border-amber-300 bg-amber-50 text-amber-950'}`}
+            role="status"
+          >
+            <p>{estadoWhatsApp.mensaje}</p>
+            {!estadoWhatsApp.exito && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {estadoWhatsApp.whatsappUrl && (
+                  <a
+                    href={estadoWhatsApp.whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-md bg-emerald-600 px-2.5 py-1 font-semibold text-white hover:bg-emerald-700"
+                  >
+                    Abrir WhatsApp con texto
+                  </a>
+                )}
+                {estadoWhatsApp.comprobanteUrl && (
+                  <a
+                    href={estadoWhatsApp.comprobanteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-md border border-amber-400 bg-white px-2.5 py-1 font-semibold hover:bg-amber-100"
+                  >
+                    Abrir comprobante
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

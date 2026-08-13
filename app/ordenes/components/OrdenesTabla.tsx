@@ -1,5 +1,5 @@
 /* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · tone: utilitario · scope: ordenes-tabla */
-import type { Dispatch, SetStateAction } from 'react'
+import { useState, type Dispatch, type SetStateAction } from 'react'
 import { CheckCircle2, ExternalLink, Eye, Tags, Trash2, XCircle } from 'lucide-react'
 import type { OrdenCompra } from '@/lib/schemas'
 import { formatPrecio } from '@/lib/format'
@@ -9,10 +9,8 @@ import {
   cuentaCargoEfectiva,
   ordenTieneSatPendiente,
   displayOGuion,
-  generarMensajeWhatsApp,
-  copiarOrdenAlPortapapeles,
-  LINK_GRUPO_WHATSAPP,
 } from '@/lib/ordenes-display'
+import { notificarOrdenPorWhatsApp } from '@/lib/notificar-orden-whatsapp'
 import OrdenBadgeEstado from './OrdenBadgeEstado'
 import WhatsAppIcon from '@/components/WhatsAppIcon'
 
@@ -53,8 +51,59 @@ export default function OrdenesTabla({
   onDeleteClick,
   onPrepararFiltros,
 }: OrdenesTablaProps) {
+  const [avisoWhatsApp, setAvisoWhatsApp] = useState<{
+    mensaje: string
+    whatsappUrl: string
+    comprobanteUrl?: string
+    abrirWhatsApp: boolean
+  } | null>(null)
+
+  async function notificar(orden: OrdenCompra) {
+    const resultado = await notificarOrdenPorWhatsApp(orden)
+    if (resultado.ventanaAbierta && resultado.captura.estado === 'copiada') return
+    const mensajeCaptura = resultado.captura.estado === 'fallback'
+      ? resultado.captura.mensaje
+      : 'No se pudo copiar el comprobante como imagen.'
+
+    setAvisoWhatsApp({
+      mensaje: resultado.ventanaAbierta
+        ? `${mensajeCaptura} WhatsApp ya lleva el texto listo.`
+        : 'El navegador bloqueó la pestaña de WhatsApp. Ábrela con el enlace de abajo.',
+      whatsappUrl: resultado.whatsappUrl,
+      comprobanteUrl: resultado.captura.estado === 'fallback' ? orden.imagenUrl : undefined,
+      abrirWhatsApp: !resultado.ventanaAbierta,
+    })
+  }
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden font-sans">
+      {avisoWhatsApp && (
+        <div className="m-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950" role="status">
+          <p>{avisoWhatsApp.mensaje}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {avisoWhatsApp.abrirWhatsApp && (
+              <a
+                href={avisoWhatsApp.whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md bg-emerald-600 px-2.5 py-1 font-semibold text-white hover:bg-emerald-700"
+              >
+                Abrir WhatsApp con texto
+              </a>
+            )}
+            {avisoWhatsApp.comprobanteUrl && (
+              <a
+                href={avisoWhatsApp.comprobanteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md border border-amber-400 bg-white px-2.5 py-1 font-semibold hover:bg-amber-100"
+              >
+                Abrir comprobante
+              </a>
+            )}
+          </div>
+        </div>
+      )}
       <div className="overflow-x-auto">
         <table className="w-full text-xs text-left text-slate-600 whitespace-nowrap">
           <thead className="text-[11px] font-mono text-slate-700 uppercase bg-slate-50 border-b border-slate-200">
@@ -207,18 +256,12 @@ export default function OrdenesTabla({
                       </>
                     )}
                     <button
-                      onClick={async (e) => {
+                      onClick={(e) => {
                         e.stopPropagation()
-                        const msg = generarMensajeWhatsApp(orden)
-                        try {
-                          await copiarOrdenAlPortapapeles(msg)
-                        } catch {
-                          // Ignorar
-                        }
-                        window.open(LINK_GRUPO_WHATSAPP, '_blank')
+                        void notificar(orden)
                       }}
                       className="p-1 text-[#0369A1] hover:text-emerald-600 rounded hover:bg-emerald-50 transition-colors"
-                      title="Notificar por WhatsApp (copia texto al portapapeles y abre el grupo)"
+                      title="Notificar por WhatsApp (abre el mensaje y deja la captura lista para pegar)"
                     >
                       <WhatsAppIcon className="h-4 w-4" />
                     </button>

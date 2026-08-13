@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { copiarCapturaWhatsApp } from '@/lib/whatsapp-notificacion'
+import { copiarCapturaRemotaWhatsApp, copiarCapturaWhatsApp } from '@/lib/whatsapp-notificacion'
 
 const ItemPortapapelesFalso = class {
   constructor(readonly items: Record<string, Blob | Promise<Blob>>) {}
@@ -113,5 +113,90 @@ describe('copiarCapturaWhatsApp', () => {
       estado: 'fallback',
       motivo: 'conversion-fallida',
     })
+  })
+})
+
+describe('copiarCapturaRemotaWhatsApp', () => {
+  it('inicia la escritura al portapapeles antes de terminar la descarga histórica', async () => {
+    let resolverDescarga: ((blob: Blob) => void) | undefined
+    const descarga = new Promise<Blob>((resolve) => {
+      resolverDescarga = resolve
+    })
+    const write = vi.fn(async (items: ClipboardItem[]) => {
+      const item = items[0] as unknown as ItemPortapapelesFalsoInstancia
+      await item.items['image/png']
+    })
+
+    const pendiente = copiarCapturaRemotaWhatsApp('https://storage.example.com/factura.png', {
+      clipboard: { write },
+      ClipboardItem: ItemPortapapelesFalso,
+      descargarCaptura: () => descarga,
+    })
+
+    expect(write).toHaveBeenCalledOnce()
+    resolverDescarga?.(new Blob(['png'], { type: 'image/png' }))
+
+    await expect(pendiente).resolves.toEqual({ estado: 'copiada' })
+  })
+
+  it('indica fallback si una orden histórica no tiene captura', async () => {
+    await expect(copiarCapturaRemotaWhatsApp(undefined)).resolves.toMatchObject({
+      estado: 'fallback',
+      motivo: 'sin-archivo',
+    })
+  })
+
+  it('indica fallback si no se puede descargar el comprobante histórico', async () => {
+    const write = vi.fn(async (items: ClipboardItem[]) => {
+      const item = items[0] as unknown as ItemPortapapelesFalsoInstancia
+      await item.items['image/png']
+    })
+
+    await expect(
+      copiarCapturaRemotaWhatsApp('https://storage.example.com/factura.png', {
+        clipboard: { write },
+        ClipboardItem: ItemPortapapelesFalso,
+        descargarCaptura: async () => {
+          throw new Error('Storage no disponible')
+        },
+      })
+    ).resolves.toMatchObject({
+      estado: 'fallback',
+      motivo: 'descarga-fallida',
+    })
+  })
+
+  it('distingue un bloqueo del portapapeles de un fallo al descargar', async () => {
+    const write = vi.fn<Clipboard['write']>().mockRejectedValue(new Error('NotAllowedError'))
+
+    await expect(
+      copiarCapturaRemotaWhatsApp('https://storage.example.com/factura.png', {
+        clipboard: { write },
+        ClipboardItem: ItemPortapapelesFalso,
+        descargarCaptura: async () => new Blob(['png'], { type: 'image/png' }),
+      })
+    ).resolves.toMatchObject({
+      estado: 'fallback',
+      motivo: 'permiso-denegado',
+    })
+  })
+
+  it('no deja una descarga rechazada sin manejar si el portapapeles falla primero', async () => {
+    let rechazarDescarga: ((error: Error) => void) | undefined
+    const descarga = new Promise<Blob>((_resolve, reject) => {
+      rechazarDescarga = reject
+    })
+    const write = vi.fn<Clipboard['write']>().mockRejectedValue(new Error('NotAllowedError'))
+
+    await expect(
+      copiarCapturaRemotaWhatsApp('https://storage.example.com/factura.png', {
+        clipboard: { write },
+        ClipboardItem: ItemPortapapelesFalso,
+        descargarCaptura: () => descarga,
+      })
+    ).resolves.toMatchObject({ motivo: 'permiso-denegado' })
+
+    rechazarDescarga?.(new Error('Storage no disponible'))
+    await Promise.resolve()
   })
 })
