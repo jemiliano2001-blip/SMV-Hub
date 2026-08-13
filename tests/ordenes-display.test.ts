@@ -155,117 +155,55 @@ function makeItem(overrides: Partial<OrdenCompra["items"][number]> = {}): OrdenC
 }
 
 describe("generarMensajeWhatsApp", () => {
-  it("con cero items", () => {
-    const msg = generarMensajeWhatsApp(
-      makeOrden({ proveedor: "McMaster-Carr", items: [], subtotal: 0, impuestos: 0, total: 0 })
-    )
-    expect(msg).toContain("*Notificación de compra*")
-    expect(msg).toContain("Proveedor: *McMaster-Carr*")
-    expect(msg).not.toContain("Partidas:")
-  })
-
-  it("con un item cantidad 1", () => {
+  it("usa el formato corto operativo del grupo de Compras", () => {
     const msg = generarMensajeWhatsApp(
       makeOrden({
         proveedor: "McMaster-Carr",
-        subtotal: 10,
+        subtotal: 77.67,
         impuestos: 0,
-        total: 10,
+        total: 77.67,
         items: [
-          makeItem({ descripcion: "servo motor para maquina WIRE EDM", cantidad: 1, precioUnitario: 10, total: 10, empresa: "taller" }),
+          makeItem({ descripcion: "Conectores de energía de alta resistencia", cantidad: 2, precioUnitario: 38.835, total: 77.67, empresa: "SUPRAJIT MEXICO" }),
         ],
       })
     )
-    expect(msg).toContain("Empresa / destino: *taller*")
-    expect(msg).toContain("Partidas:\n• servo motor para maquina WIRE EDM")
-  })
-
-  it("con un item cantidad > 1", () => {
-    const msg = generarMensajeWhatsApp(
-      makeOrden({
-        proveedor: "Grainger",
-        subtotal: 20,
-        impuestos: 0,
-        total: 20,
-        items: [
-          makeItem({ descripcion: "insertos de ceramica", cantidad: 3, precioUnitario: 6.66, total: 20, empresa: "taller" }),
-        ],
-      })
+    expect(msg).toBe(
+      "*Notificación de Compra (EUA)*\n\nBuen día, se pidió 2 Conectores de energía de alta resistencia para SUPRAJIT MEXICO en McMaster-Carr por USD $77.67."
     )
-    expect(msg).toContain("• 3 insertos de ceramica")
   })
 
-  it("con multiples items y destinos", () => {
+  it("resume múltiples partidas y destinos sin añadir campos administrativos", () => {
     const msg = generarMensajeWhatsApp(
       makeOrden({
-        proveedor: "McMaster-Carr",
-        subtotal: 120,
-        impuestos: 0,
-        total: 120,
-        items: [
-          makeItem({ descripcion: "servo motor para maquina WIRE EDM", cantidad: 1, precioUnitario: 100, total: 100, empresa: "taller" }),
-          makeItem({ descripcion: "insertos de ceramica", cantidad: 2, precioUnitario: 10, total: 20, empresa: "taller" }),
-        ],
-      })
-    )
-    expect(msg).toContain("• servo motor para maquina WIRE EDM")
-    expect(msg).toContain("• 2 insertos de ceramica")
-  })
-
-  it("con multiples items de mas de 2", () => {
-    const msg = generarMensajeWhatsApp(
-      makeOrden({
-        proveedor: "eBay",
+        proveedor: "DigiKey",
         subtotal: 30,
         impuestos: 0,
         total: 30,
         items: [
-          makeItem({ descripcion: "A", cantidad: 1, precioUnitario: 10, total: 10, empresa: "taller" }),
-          makeItem({ descripcion: "B", cantidad: 1, precioUnitario: 10, total: 10, empresa: "diseno" }),
-          makeItem({ descripcion: "C", cantidad: 1, precioUnitario: 10, total: 10, empresa: "taller" }),
+          makeItem({ descripcion: "Fuente de poder", cantidad: 1, precioUnitario: 10, total: 10, empresa: "SUPRAJIT MEXICO", requisitor: "Francisco", cuentaCargo: "SO1547" }),
+          makeItem({ descripcion: "Conector", cantidad: 2, precioUnitario: 10, total: 20, empresa: "SMV", requisitor: "Ana", ordenTrabajo: "OT-2" }),
         ],
       })
     )
-    expect(msg).toContain("Empresa / destino: *taller / diseno*")
+    expect(msg).toContain("Fuente de poder y 2 Conector para SUPRAJIT MEXICO / SMV en DigiKey por USD $30.00.")
+    expect(msg).not.toMatch(/Factura|Requisitor|Cuenta cargo|Orden de trabajo|Entrega estimada|Partidas:/)
   })
 
-  it("mantiene el texto limpio sin URLs aunque la orden tenga comprobante", () => {
-    const msg = generarMensajeWhatsApp({
-      ...makeOrden({
-        proveedor: "McMaster-Carr",
-        subtotal: 10,
-        impuestos: 0,
-        total: 10,
-        items: [makeItem({ descripcion: "servo motor", cantidad: 1, precioUnitario: 10, total: 10, empresa: "taller" })],
-      }),
-      imagenUrl: "https://storage.example.com/factura.jpg",
-    })
-    expect(msg).not.toContain("storage.example.com")
+  it("usa valores de respaldo breves cuando faltan partidas o total", () => {
+    const msg = generarMensajeWhatsApp(makeOrden({
+      items: [],
+      empresa: "",
+      destino: "",
+      proveedor: "",
+      total: null,
+    }))
+
+    expect(msg).toBe("*Notificación de Compra (EUA)*\n\nBuen día, se pidió material para SMV en el proveedor.")
   })
 
-  it("incluye los datos operativos únicos disponibles por ítem", () => {
-    const msg = generarMensajeWhatsApp(
-      makeOrden({
-        numeroFactura: "INV-7",
-        fechaFactura: "2026-08-12",
-        fechaEntrega: "2026-08-20",
-        linkProveedor: "https://compras.example.com/orden/7",
-        items: [
-          makeItem({ empresa: "SMV", requisitor: "Ana", cuentaCargo: "SO-100", ordenTrabajo: "OT-1" }),
-          makeItem({ empresa: "APX", requisitor: "Luis", cuentaCargo: "SO-200", ordenTrabajo: "OT-2" }),
-        ],
-      })
-    )
-
-    expect(msg).toContain("Factura: *INV-7*")
-    expect(msg).toContain("Lugar / enlace de compra: https://compras.example.com/orden/7")
-    expect(msg).toContain("Fecha de factura: *12/08/2026*")
-    expect(msg).toContain("Empresa / destino: *SMV / APX*")
-    expect(msg).toContain("Requisitor: *Ana / Luis*")
-    expect(msg).toContain("Cuenta cargo / SO: *SO-100 / SO-200*")
-    expect(msg).toContain("Orden de trabajo: *OT-1 / OT-2*")
-    expect(msg).toContain("Entrega estimada: *20/08/2026*")
-    expect(msg).toContain("Total: *")
+  it("etiqueta correctamente montos MXN y otras monedas", () => {
+    expect(generarMensajeWhatsApp(makeOrden({ moneda: "MXN", total: 77.67 }))).toContain("MXN $77.67")
+    expect(generarMensajeWhatsApp(makeOrden({ moneda: "EUR", total: 10 }))).toContain("EUR 10.00")
   })
 })
 

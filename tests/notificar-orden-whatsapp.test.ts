@@ -42,7 +42,9 @@ describe('notificarOrdenPorWhatsApp', () => {
     expect(resultado.ventanaAbierta).toBe(true)
     expect(resultado.captura).toEqual({ estado: 'copiada' })
     expect(ventana.location.href).toContain('https://api.whatsapp.com/send?text=')
-    expect(decodeURIComponent(ventana.location.href)).toContain('Factura: *INV-100*')
+    expect(decodeURIComponent(ventana.location.href)).toContain(
+      'Buen día, se pidió material para SMV en McMaster-Carr por USD $108.00.'
+    )
   })
 
   it('sigue abriendo WhatsApp con texto cuando la orden no tiene comprobante', async () => {

@@ -1,4 +1,4 @@
-import { formatFecha, formatPrecio } from "@/lib/format"
+import { formatFecha } from "@/lib/format"
 import { normalizarClaveProdServ } from "@/lib/sat/normalizar"
 import { resolverCampoItem, type OrdenCompra } from "@/lib/schemas"
 
@@ -76,47 +76,40 @@ export function generarMensajeWhatsApp(
     actualizadoEn?: Date
   }
 ): string {
-  const proveedor = orden.proveedor?.trim() || ""
+  const proveedor = orden.proveedor?.trim() || "el proveedor"
   const items = orden.items || []
 
-  const itemsListStr = items
+  const partidas = items
     .map((item) => {
       const cant = item.cantidad && item.cantidad > 1 ? `${item.cantidad} ` : ""
       const desc = item.descripcionSimplificada?.trim() || item.descripcion?.trim() || ""
       return `${cant}${desc}`
     })
     .filter(Boolean)
+  const descripcionCompra = partidas.join(" y ") || "material"
 
-  const valoresPorCampo = (
-    campo: "empresa" | "cuentaCargo" | "requisitor" | "ordenTrabajo"
-  ) =>
-    Array.from(
-      new Set(items.map((item) => resolverCampoItem(item, orden, campo)).filter(Boolean))
+  const destinos = Array.from(
+    new Set(
+      items.map((item) => resolverCampoItem(item, orden, "empresa")).filter(Boolean)
     )
+  )
+  const destino = destinos.join(" / ") || orden.empresa?.trim() || orden.destino?.trim() || "SMV"
+  const moneda = orden.moneda?.trim() || "USD"
+  const monto = orden.total === null || orden.total === undefined
+    ? ""
+    : ` por ${formatearMontoWhatsApp(orden.total, moneda)}`
 
-  const empresas = valoresPorCampo("empresa")
-  const requisitores = valoresPorCampo("requisitor")
-  const cuentasCargo = valoresPorCampo("cuentaCargo")
-  const ordenesTrabajo = valoresPorCampo("ordenTrabajo")
-  const lineas = ["*Notificación de compra*"]
+  return `*Notificación de Compra (EUA)*\n\nBuen día, se pidió ${descripcionCompra} para ${destino} en ${proveedor}${monto}.`
+}
 
-  if (proveedor) lineas.push(`Proveedor: *${proveedor}*`)
-  if (orden.linkProveedor?.trim()) lineas.push(`Lugar / enlace de compra: ${orden.linkProveedor.trim()}`)
-  if (orden.numeroFactura?.trim()) lineas.push(`Factura: *${orden.numeroFactura.trim()}*`)
-  if (orden.fechaFactura?.trim()) lineas.push(`Fecha de factura: *${formatFecha(orden.fechaFactura)}*`)
-  if (empresas.length) lineas.push(`Empresa / destino: *${empresas.join(" / ")}*`)
-  if (requisitores.length) lineas.push(`Requisitor: *${requisitores.join(" / ")}*`)
-  if (cuentasCargo.length) lineas.push(`Cuenta cargo / SO: *${cuentasCargo.join(" / ")}*`)
-  if (ordenesTrabajo.length) lineas.push(`Orden de trabajo: *${ordenesTrabajo.join(" / ")}*`)
-  if (orden.fechaEntrega?.trim()) lineas.push(`Entrega estimada: *${formatFecha(orden.fechaEntrega)}*`)
-  if (orden.total !== null && orden.total !== undefined) {
-    lineas.push(`Total: *${formatPrecio(orden.total, orden.moneda || "USD")}*`)
-  }
-  if (itemsListStr.length) {
-    lineas.push("", "Partidas:", ...itemsListStr.map((item) => `• ${item}`))
-  }
-
-  return lineas.join("\n")
+function formatearMontoWhatsApp(total: number, moneda: string): string {
+  const cantidad = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(total)
+  const codigo = moneda.toUpperCase()
+  const simbolo = codigo === "USD" || codigo === "MXN" ? "$" : ""
+  return `${codigo} ${simbolo}${cantidad}`
 }
 
 export function obtenerUrlWhatsApp(mensaje: string): string {
