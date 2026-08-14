@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { GafetePerfilSchema } from "@/lib/schemas"
 import {
   agruparGafetesParaImpresion,
+  DATOS_TALLER_GAFETES,
   estaCompletoGafete,
   MEDIDAS_GAFETE_PULGADAS,
   normalizarAjusteFoto,
@@ -11,10 +12,6 @@ const perfilCompleto = {
   id: "operador-1",
   operadorId: "operador-1",
   cargo: "Asistencia en Diseño y Fabricación",
-  domicilio: "Calle 7 de diciembre 128, Matamoros, Tamaulipas",
-  responsableNombre: "Ing. Antonio Vázquez Vicencio",
-  responsablePuesto: "Gerente de Ingeniería / Ventas",
-  responsableTelefono: "8681001683",
   fechaIngreso: "2026-02-06",
   nss: "0905-88-7715-1",
   rfc: "CACE8809015K6",
@@ -32,6 +29,15 @@ describe("gafetes", () => {
 
   it("mantiene borradores fuera de impresión", () => {
     expect(estaCompletoGafete(GafetePerfilSchema.parse({ ...perfilCompleto, fotoPath: "" }))).toBe(false)
+  })
+
+  it("centraliza los datos institucionales del taller", () => {
+    expect(DATOS_TALLER_GAFETES).toMatchObject({
+      responsableNombre: "Ing. Antonio Vázquez Vicencio",
+      responsablePuesto: "Gerente de Ingeniería / Ventas",
+      responsableTelefono: "8681001683",
+    })
+    expect(DATOS_TALLER_GAFETES.domicilio).toContain("Calle: 7 de Diciembre #128")
   })
 
   it("normaliza la rotación y limita el encuadre de fotografía", () => {

@@ -234,14 +234,11 @@ service cloud.firestore {
 
     function gafeteValido(d, gafeteId) {
       return d.keys().hasOnly([
-               'operadorId', 'cargo', 'domicilio', 'responsableNombre',
-               'responsablePuesto', 'responsableTelefono', 'fechaIngreso', 'nss',
+               'operadorId', 'cargo', 'fechaIngreso', 'nss',
                'rfc', 'fotoPath', 'fotoAjuste', 'creadoEn', 'actualizadoEn'
              ]) &&
              d.operadorId == gafeteId &&
-             d.cargo is string && d.domicilio is string &&
-             d.responsableNombre is string && d.responsablePuesto is string &&
-             d.responsableTelefono is string && d.fechaIngreso is string &&
+             d.cargo is string && d.fechaIngreso is string &&
              d.nss is string && d.rfc is string &&
              d.fotoPath is string &&
              d.fotoAjuste is map &&

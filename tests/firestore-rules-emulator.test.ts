@@ -206,10 +206,6 @@ describeWithEmulator("reglas Firestore de Integridad", () => {
     const payload = {
       operadorId: "operador-gafete",
       cargo: "Asistencia",
-      domicilio: "Domicilio de prueba",
-      responsableNombre: "Responsable",
-      responsablePuesto: "Gerencia",
-      responsableTelefono: "8681001683",
       fechaIngreso: "2026-02-06",
       nss: "0905-88-7715-1",
       rfc: "CACE8809015K6",

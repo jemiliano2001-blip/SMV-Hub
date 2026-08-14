@@ -17,6 +17,17 @@ export const AJUSTE_FOTO_INICIAL: GafeteAjusteFoto = {
   desplazamientoY: 0,
 }
 
+/**
+ * Datos institucionales impresos en todos los gafetes. Se mantienen fuera del
+ * perfil individual para que una corrección aplique a todo el personal.
+ */
+export const DATOS_TALLER_GAFETES = {
+  domicilio: "Calle: 7 de Diciembre #128 · Col. México Agrario · H. Matamoros, Tamaulipas, México · C.P. 87440",
+  responsableNombre: "Ing. Antonio Vázquez Vicencio",
+  responsablePuesto: "Gerente de Ingeniería / Ventas",
+  responsableTelefono: "8681001683",
+} as const
+
 export type GafetePerfilPayload = Omit<GafetePerfil, "id" | "creadoEn" | "actualizadoEn">
 
 const gafetesRef = () => collection(db, "gafetes").withConverter(makeDateConverter<GafetePerfil>())
@@ -45,10 +56,6 @@ export function estaCompletoGafete(perfil: GafetePerfil | null | undefined): per
   if (!perfil) return false
   return [
     perfil.cargo,
-    perfil.domicilio,
-    perfil.responsableNombre,
-    perfil.responsablePuesto,
-    perfil.responsableTelefono,
     perfil.fechaIngreso,
     perfil.nss,
     perfil.rfc,

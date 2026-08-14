@@ -20,6 +20,7 @@ import { actualizarOperador } from "@/lib/operadores"
 import {
   AJUSTE_FOTO_INICIAL,
   agruparGafetesParaImpresion,
+  DATOS_TALLER_GAFETES,
   estaCompletoGafete,
   listarGafetes,
   MEDIDAS_GAFETE_PULGADAS,
@@ -66,10 +67,6 @@ function crearFormulario(operador: Operador, perfil?: GafetePerfil | null): Form
     nombre: operador.nombre,
     area: operador.area,
     cargo: perfil?.cargo ?? "",
-    domicilio: perfil?.domicilio ?? "",
-    responsableNombre: perfil?.responsableNombre ?? "",
-    responsablePuesto: perfil?.responsablePuesto ?? "",
-    responsableTelefono: perfil?.responsableTelefono ?? "",
     fechaIngreso: perfil?.fechaIngreso ?? "",
     nss: perfil?.nss ?? "",
     rfc: perfil?.rfc ?? "",
@@ -77,6 +74,14 @@ function crearFormulario(operador: Operador, perfil?: GafetePerfil | null): Form
     fotoPath: perfil?.fotoPath ?? "",
     fotoAjuste: normalizarAjusteFoto(perfil?.fotoAjuste ?? AJUSTE_FOTO_INICIAL),
   }
+}
+
+function LogoGafete() {
+  return (
+    // El archivo institucional ya está optimizado para fondo azul y se imprime como parte del gafete.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src="/smv-logo.png" alt="SMV" className="gafete-logo" />
+  )
 }
 
 function FotoGafete({
@@ -117,32 +122,32 @@ function CaraGafete({ item, reverso = false }: { item: GafeteListo; reverso?: bo
   if (reverso) {
     return (
       <article className="gafete-card gafete-reverso" aria-label={`Reverso de gafete de ${operador.nombre}`}>
-        <div className="gafete-marca">SMV</div>
+        <LogoGafete />
         <p className="gafete-eyebrow">RESPONSABLE</p>
-        <p className="gafete-responsable">{perfil.responsableNombre}</p>
-        <p className="gafete-puesto">{perfil.responsablePuesto}</p>
-        <p className="gafete-telefono">{perfil.responsableTelefono}</p>
+        <p className="gafete-responsable">{DATOS_TALLER_GAFETES.responsableNombre}</p>
+        <p className="gafete-puesto">{DATOS_TALLER_GAFETES.responsablePuesto}</p>
+        <p className="gafete-telefono">{DATOS_TALLER_GAFETES.responsableTelefono}</p>
         <div className="gafete-datos-legales">
           <p><strong>Fecha de ingreso:</strong> {perfil.fechaIngreso}</p>
           <p><strong>NSS:</strong> {perfil.nss}</p>
           <p><strong>RFC:</strong> {perfil.rfc}</p>
         </div>
-        <div className="gafete-pie">SMV · Identificación de personal</div>
+        <div className="gafete-pie">SERVICIOS Y MAQUINADOS VÁZQUEZ</div>
       </article>
     )
   }
 
   return (
     <article className="gafete-card gafete-frente" aria-label={`Frente de gafete de ${operador.nombre}`}>
-      <div className="gafete-marca">SMV</div>
+      <LogoGafete />
       <div className="gafete-foto-marco">
         <FotoGafete url={(perfil as GafetePerfilVista).fotoUrl ?? ""} ajuste={perfil.fotoAjuste} nombre={operador.nombre} className="h-full w-full" />
       </div>
       <h2 className="gafete-nombre">{operador.nombre}</h2>
       <p className="gafete-cargo">{perfil.cargo || areaTexto(operador.area)}</p>
       <div className="gafete-linea" />
-      <p className="gafete-domicilio">{perfil.domicilio}</p>
-      <div className="gafete-pie">PERSONAL SMV</div>
+      <p className="gafete-domicilio">{DATOS_TALLER_GAFETES.domicilio}</p>
+      <div className="gafete-pie">SERVICIOS Y MAQUINADOS VÁZQUEZ</div>
     </article>
   )
 }
@@ -285,10 +290,6 @@ export default function GafetesView() {
       await guardarGafete({
         operadorId: editando.id,
         cargo: formulario.cargo.trim(),
-        domicilio: formulario.domicilio.trim(),
-        responsableNombre: formulario.responsableNombre.trim(),
-        responsablePuesto: formulario.responsablePuesto.trim(),
-        responsableTelefono: formulario.responsableTelefono.trim(),
         fechaIngreso: formulario.fechaIngreso,
         nss: formulario.nss.trim(),
         rfc: formulario.rfc.trim().toUpperCase(),
@@ -323,9 +324,10 @@ export default function GafetesView() {
   return (
     <main className="min-h-screen bg-[#F8FAFC] font-sans gafetes-page">
       <style>{`
-        .gafete-card { width: ${MEDIDAS_GAFETE_PULGADAS.ancho}in; height: ${MEDIDAS_GAFETE_PULGADAS.alto}in; position: relative; overflow: hidden; color: white; background: radial-gradient(circle at 72% 22%, #0b84d7 0, #075697 30%, #082852 76%, #061936 100%); box-shadow: 0 10px 25px rgba(15, 23, 42, .25); font-family: Arial, sans-serif; }
-        .gafete-card::before { content: ''; position: absolute; width: 5in; height: 5in; border: .75pt solid rgba(125, 211, 252, .4); transform: rotate(42deg); top: -2.4in; right: -2.4in; box-shadow: 0 0 0 .13in rgba(14, 165, 233, .06), 0 0 0 .27in rgba(14, 165, 233, .05); }
-        .gafete-marca { position: absolute; top: .18in; left: .18in; z-index: 1; font-size: .23in; font-weight: 900; letter-spacing: .035in; }
+        .gafete-card { width: ${MEDIDAS_GAFETE_PULGADAS.ancho}in; height: ${MEDIDAS_GAFETE_PULGADAS.alto}in; position: relative; overflow: hidden; color: white; background: radial-gradient(circle at 56% 45%, #087bc7 0, #054e93 31%, #082852 74%, #061936 100%); box-shadow: 0 10px 25px rgba(15, 23, 42, .25); font-family: Arial, sans-serif; }
+        .gafete-card::before { content: ''; position: absolute; z-index: 0; width: 4.6in; height: 4.6in; border: .65pt solid rgba(125, 211, 252, .46); transform: rotate(42deg); top: -2.23in; right: -2.1in; box-shadow: 0 0 0 .11in rgba(14, 165, 233, .07), 0 0 0 .22in rgba(14, 165, 233, .05); }
+        .gafete-card::after { content: ''; position: absolute; z-index: 0; width: 3.1in; height: 2.7in; background: repeating-linear-gradient(135deg, transparent 0 .075in, rgba(125, 211, 252, .20) .08in .088in, transparent .093in .15in); transform: rotate(-15deg); bottom: -.92in; left: -.88in; opacity: .7; }
+        .gafete-logo { position: absolute; top: .18in; left: .18in; z-index: 1; width: .93in; height: auto; object-fit: contain; }
         .gafete-frente { display: flex; flex-direction: column; align-items: center; padding: .56in .2in .18in; text-align: center; }
         .gafete-foto-marco { position: relative; z-index: 1; width: 1.26in; height: 1.52in; border: .03in solid white; border-radius: .08in; overflow: hidden; background: #e2e8f0; box-shadow: 0 .04in .13in rgba(0,0,0,.28); }
         .gafete-nombre { position: relative; z-index: 1; width: 100%; margin: .17in 0 .04in; font-size: .20in; line-height: 1.05; font-weight: 800; text-transform: uppercase; }
@@ -333,7 +335,7 @@ export default function GafetesView() {
         .gafete-linea { position: relative; z-index: 1; width: 1.75in; height: .012in; margin: .08in 0 .12in; background: rgba(255,255,255,.9); }
         .gafete-domicilio { position: relative; z-index: 1; margin: 0; width: 2.04in; font-size: .083in; line-height: 1.35; }
         .gafete-pie { position: absolute; z-index: 1; bottom: .13in; left: .18in; right: .18in; font-size: .07in; font-weight: 700; letter-spacing: .025in; text-align: center; opacity: .95; }
-        .gafete-reverso { padding: .78in .25in .18in; }
+        .gafete-reverso { padding: .82in .25in .18in; }
         .gafete-eyebrow { position: relative; z-index: 1; margin: 0 0 .09in; color: #bae6fd; font-size: .08in; font-weight: 800; letter-spacing: .025in; }
         .gafete-responsable { position: relative; z-index: 1; margin: 0; font-size: .19in; line-height: 1.1; font-weight: 800; }
         .gafete-puesto { position: relative; z-index: 1; margin: .07in 0 0; font-size: .10in; font-weight: 600; line-height: 1.25; }
@@ -418,10 +420,11 @@ export default function GafetesView() {
                 <Campo label="Área"><select value={formulario.area} onChange={(e) => setFormulario({ ...formulario, area: e.target.value as Area })} className="campo-gafete">{AREAS.map((area) => <option key={area.value} value={area.value}>{area.label}</option>)}</select></Campo>
                 <Campo label="Cargo / departamento impreso"><input value={formulario.cargo} onChange={(e) => setFormulario({ ...formulario, cargo: e.target.value })} placeholder="Ej. Asistencia en Diseño y Fabricación" className="campo-gafete" /></Campo>
                 <Campo label="Fecha de ingreso"><input type="date" value={formulario.fechaIngreso} onChange={(e) => setFormulario({ ...formulario, fechaIngreso: e.target.value })} className="campo-gafete" /></Campo>
-                <Campo label="Domicilio" wide><textarea value={formulario.domicilio} onChange={(e) => setFormulario({ ...formulario, domicilio: e.target.value })} rows={2} className="campo-gafete resize-none" /></Campo>
-                <Campo label="Responsable"><input value={formulario.responsableNombre} onChange={(e) => setFormulario({ ...formulario, responsableNombre: e.target.value })} className="campo-gafete" /></Campo>
-                <Campo label="Puesto del responsable"><input value={formulario.responsablePuesto} onChange={(e) => setFormulario({ ...formulario, responsablePuesto: e.target.value })} className="campo-gafete" /></Campo>
-                <Campo label="Teléfono del responsable"><input value={formulario.responsableTelefono} onChange={(e) => setFormulario({ ...formulario, responsableTelefono: e.target.value })} className="campo-gafete" /></Campo>
+                <div className="sm:col-span-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-950">
+                  <strong>Datos institucionales del taller</strong><span className="ml-1">se aplican a todos los gafetes.</span>
+                  <p className="mt-1 text-sky-800">{DATOS_TALLER_GAFETES.domicilio}</p>
+                  <p className="text-sky-800">{DATOS_TALLER_GAFETES.responsableNombre} · {DATOS_TALLER_GAFETES.responsablePuesto} · {DATOS_TALLER_GAFETES.responsableTelefono}</p>
+                </div>
                 <Campo label="NSS"><input value={formulario.nss} onChange={(e) => setFormulario({ ...formulario, nss: e.target.value })} className="campo-gafete" /></Campo>
                 <Campo label="RFC"><input value={formulario.rfc} onChange={(e) => setFormulario({ ...formulario, rfc: e.target.value.toUpperCase() })} className="campo-gafete" /></Campo>
                 <Campo label="Foto" wide>
