@@ -55,7 +55,9 @@ export default function DetalleRequisicionModal({
   generarOC,
 }: Props) {
   const { todosProveedores } = useProveedores()
-  const { evaluaciones, todasCompras } = useProveedoresInteligencia()
+  const { evaluaciones, todasCompras } = useProveedoresInteligencia({
+    habilitado: true,
+  })
   const [cotizaciones, setCotizaciones] = useState<CotizacionRequisicion[]>([])
   const [cargandoCot, setCargandoCot] = useState(false)
   const [errorCot, setErrorCot] = useState<string | null>(null)

@@ -165,12 +165,7 @@ service cloud.firestore {
        allow update: if esUsuarioAutorizado()
                      && ordenValida(request.resource.data)
                      && request.resource.data.creadoEn == resource.data.creadoEn
-                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn
-                     // proveedorId se administra mediante la ruta de vinculación
-                     // histórica, exclusiva de super-admin.
-                     && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['proveedorId'])
-                         || esSuperAdminDoc()
-                         || esCorreoBreakGlass());
+                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
 
       allow delete: if esUsuarioAutorizado();
     }
@@ -188,12 +183,7 @@ service cloud.firestore {
        allow update: if esUsuarioAutorizado()
                      && cotizacionValida(request.resource.data)
                      && request.resource.data.creadoEn == resource.data.creadoEn
-                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn
-                     // proveedorId se administra mediante la ruta de vinculación
-                     // histórica, exclusiva de super-admin.
-                     && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['proveedorId'])
-                         || esSuperAdminDoc()
-                         || esCorreoBreakGlass());
+                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
 
       allow delete: if esUsuarioAutorizado();
     }

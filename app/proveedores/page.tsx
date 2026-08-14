@@ -1026,11 +1026,12 @@ function ProveedoresContent() {
   const [mapeoBackup, setMapeoBackup] = useState<MatrizBackupProveedores>({})
 
   useEffect(() => {
-    if (seccion !== 'inteligencia') return
+    // Badges Primario/Backup del directorio; la pestaña Inteligencia ya no existe.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     obtenerMatrizBackupProveedores()
       .then(setMapeoBackup)
       .catch((err) => console.error('Error cargando matriz de backup de proveedores:', err))
-  }, [seccion])
+  }, [])
 
   function actualizarYGuardarMapeoBackup(nuevo: MatrizBackupProveedores) {
     setMapeoBackup(nuevo)

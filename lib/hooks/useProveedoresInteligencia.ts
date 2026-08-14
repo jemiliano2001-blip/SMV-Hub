@@ -15,10 +15,10 @@ import type { CompraProveedor, EvaluacionProveedor, CotizacionComparacion } from
 
 export function useProveedoresInteligencia({
   proveedorSeleccionadoId,
-  habilitado = false,
+  habilitado = true,
 }: {
   proveedorSeleccionadoId?: string
-  /** Evita leer inteligencia hasta que el usuario abre la sección que la usa. */
+  /** `false` evita leer Firestore (p. ej. directorio de proveedores). Default carga. */
   habilitado?: boolean
 } = {}) {
   const [compras, setCompras] = useState<CompraProveedor[]>([])
