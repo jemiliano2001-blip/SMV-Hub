@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Search,
   LayoutGrid,
@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import TarjetaProveedor from './TarjetaProveedor'
 import type { Proveedor, CategoriaProveedor } from '@/lib/schemas'
-import type { OrdenamientoProveedor } from '@/lib/proveedores/directorio'
+import type { MercadoProveedor, OrdenamientoProveedor } from '@/lib/proveedores/directorio'
 
 type CategoriaFiltro = CategoriaProveedor | 'todas'
 
@@ -36,6 +36,7 @@ interface DirectorioProveedoresProps {
   cargandoMas?: boolean
   totalMercado?: number
   onCargarMas?: () => void
+  mercado: MercadoProveedor
 }
 
 export default function DirectorioProveedores({
@@ -57,8 +58,26 @@ export default function DirectorioProveedores({
   cargandoMas = false,
   totalMercado,
   onCargarMas,
+  mercado,
 }: DirectorioProveedoresProps) {
   const [vista, setVista] = useState<'grid' | 'tabla'>('grid')
+  const [verTodos, setVerTodos] = useState(false)
+  const tamanoHabituales = 18
+  const esVistaHabitualDefault =
+    mercado === 'mexico' &&
+    ordenamiento === 'habitual' &&
+    busqueda.trim().length === 0 &&
+    categoriaFiltro === 'todas'
+  const proveedoresVisibles =
+    esVistaHabitualDefault && !verTodos
+      ? proveedores.slice(0, tamanoHabituales)
+      : proveedores
+  const restantesHabituales = Math.max(0, proveedores.length - proveedoresVisibles.length)
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setVerTodos(false)
+  }, [mercado, busqueda, categoriaFiltro, ordenamiento])
 
   const categoriasNav: { id: CategoriaFiltro; label: string }[] = [
     { id: 'todas', label: 'Todas las categorías' },
@@ -95,6 +114,9 @@ export default function DirectorioProveedores({
                 className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#0369A1]"
               >
                 <option value="nombre">Nombre (A → Z)</option>
+                {mercado === 'mexico' && (
+                  <option value="habitual">Habituales (Odoo)</option>
+                )}
                 <option value="calificacion">Calificación (Mayor → Menor)</option>
                 <option value="leadTime">Lead Time (Más rápido)</option>
               </select>
@@ -183,7 +205,7 @@ export default function DirectorioProveedores({
       ) : vista === 'grid' ? (
         /* VISTA REJILLA (GRID) */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {proveedores.map((prov) => (
+          {proveedoresVisibles.map((prov) => (
             <TarjetaProveedor
               key={prov.id}
               proveedor={prov}
@@ -211,7 +233,7 @@ export default function DirectorioProveedores({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-              {proveedores.map((prov) => (
+              {proveedoresVisibles.map((prov) => (
                 <tr
                   key={prov.id}
                   className="hover:bg-slate-50 transition-colors"
@@ -224,6 +246,11 @@ export default function DirectorioProveedores({
                     >
                       {prov.nombre}
                     </button>
+                    {typeof prov.ordenesOdoo === 'number' && prov.ordenesOdoo >= 1 && (
+                      <p className="mt-0.5 text-[10px] font-bold text-sky-800">
+                        {prov.ordenesOdoo} compras Odoo
+                      </p>
+                    )}
                   </td>
 
                   <td className="p-3.5">
@@ -302,12 +329,22 @@ export default function DirectorioProveedores({
       {!error && !cargando && proveedores.length > 0 && (
         <div className="flex flex-col items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 sm:flex-row">
           <p className="text-xs font-medium text-slate-500" aria-live="polite">
-            Mostrando <span className="font-bold text-slate-800">{proveedores.length}</span>
+            Mostrando <span className="font-bold text-slate-800">{proveedoresVisibles.length}</span>
             {typeof totalMercado === 'number' && (
               <> de <span className="font-bold text-slate-800">{totalMercado}</span></>
             )}{' '}
             proveedores
           </p>
+          {esVistaHabitualDefault && restantesHabituales > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setVerTodos(true)}
+              className="min-h-10 min-w-32 border-slate-300 text-xs font-bold text-[#0369A1]"
+            >
+              Ver todos ({restantesHabituales})
+            </Button>
+          )}
           {hayMas && onCargarMas && (
             <Button
               type="button"

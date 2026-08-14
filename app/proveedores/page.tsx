@@ -1157,6 +1157,7 @@ function ProveedoresContent() {
         {seccion === 'proveedores' && (
           <DirectorioProveedores
             proveedores={proveedores}
+            mercado={region}
             cargando={cargandoProv}
             cargandoMas={cargandoMas}
             error={errorProv}

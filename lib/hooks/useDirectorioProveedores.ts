@@ -45,7 +45,9 @@ export function useDirectorioProveedores({
   const [cargandoCatalogo, setCargandoCatalogo] = useState(false)
   const [busqueda, setBusqueda] = useState("")
   const [filtroCategoria, setFiltroCategoria] = useState<CategoriaFiltroProveedor>("todas")
-  const [orden, setOrden] = useState<OrdenamientoProveedor>("nombre")
+  const [orden, setOrden] = useState<OrdenamientoProveedor>(
+    mercado === "mexico" ? "habitual" : "nombre",
+  )
   const solicitudActual = useRef(0)
   const promesaCatalogo = useRef<Promise<Proveedor[]> | null>(null)
 
@@ -63,6 +65,15 @@ export function useDirectorioProveedores({
     setError(null)
     setRegionCompleta(false)
     try {
+      if (mercado === "mexico") {
+        const lista = await obtenerTodosProveedoresMercado(mercado)
+        if (solicitud !== solicitudActual.current) return
+        setProveedoresBase(lista)
+        setCursor(null)
+        setHayMas(false)
+        setRegionCompleta(true)
+        return
+      }
       const pagina = await obtenerPaginaProveedores({ mercado, tamano: tamanoPagina })
       if (solicitud !== solicitudActual.current) return
       setProveedoresBase(pagina.items)
@@ -86,6 +97,12 @@ export function useDirectorioProveedores({
     void cargarPrimeraPagina()
     void refrescarResumen()
   }, [cargarPrimeraPagina, refrescarResumen])
+
+  useEffect(() => {
+    // Al cambiar USA/MX el orden default es distinto; no conservar sort del otro mercado.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOrden(mercado === "mexico" ? "habitual" : "nombre")
+  }, [mercado])
 
   const cargarMas = useCallback(async () => {
     if (!cursor || !hayMas || cargandoMas || cargando) return

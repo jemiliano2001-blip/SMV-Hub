@@ -56,6 +56,14 @@ export default function TarjetaProveedor({
 
           <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
             <span>{proveedor.pais === 'Estados Unidos' ? '🇺🇸 USA' : '🇲🇽 MX'}</span>
+            {typeof proveedor.ordenesOdoo === 'number' && proveedor.ordenesOdoo >= 1 && (
+              <Badge
+                variant="outline"
+                className="border-sky-200 bg-sky-50 text-sky-800 text-[9px] font-extrabold px-2 py-0"
+              >
+                {proveedor.ordenesOdoo} compras Odoo
+              </Badge>
+            )}
             {esPrimario && (
               <Badge className="bg-emerald-600 text-white text-[9px] uppercase font-extrabold px-2 py-0">
                 Primario

@@ -44,4 +44,19 @@ export {
   type RangoPreciosMetal,
 } from "./rangos"
 
+export {
+  claveHibridaItem,
+  comprasHistoricasDelGrupo,
+  grupoConMasCompras,
+  indiceRangosHistoricos,
+  llaveRangoHistorico,
+  monedaItem,
+  posicionPrecioEnRango,
+  rangoHistoricoPorClave,
+  TOLERANCIA_PRECIO_BARATO,
+  type ItemParaClaveHibrida,
+  type PosicionPrecioRango,
+  type RangoHistoricoClave,
+} from "./clave-hibrida"
+
 export { idsHuerfanosCompras } from "./huerfanos"

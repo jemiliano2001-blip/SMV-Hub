@@ -91,5 +91,30 @@ describe("directorio de proveedores", () => {
     expect(
       requiereCatalogoCompleto({ busqueda: "", categoria: "todas", orden: "calificacion" })
     ).toBe(true)
+    expect(
+      requiereCatalogoCompleto({ busqueda: "", categoria: "todas", orden: "habitual" })
+    ).toBe(true)
+  })
+
+  it("ordena habituales por compras Odoo y deja sin métrica o en 0 al final", () => {
+    const mixto = [
+      proveedor({ id: "manual", nombre: "Zeta Manual" }),
+      proveedor({ id: "cero", nombre: "Acme Cero", ordenesOdoo: 0 }),
+      proveedor({ id: "poco", nombre: "Beta Poco", ordenesOdoo: 2 }),
+      proveedor({ id: "mucho", nombre: "Alfa Mucho", ordenesOdoo: 15 }),
+      proveedor({ id: "mucho-b", nombre: "Gamma Mucho", ordenesOdoo: 15 }),
+    ]
+    const resultado = filtrarOrdenarDirectorio(mixto, {
+      busqueda: "",
+      categoria: "todas",
+      orden: "habitual",
+    })
+    expect(resultado.map((item) => item.id)).toEqual([
+      "mucho",
+      "mucho-b",
+      "poco",
+      "cero",
+      "manual",
+    ])
   })
 })

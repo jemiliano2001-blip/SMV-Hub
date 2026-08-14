@@ -11,16 +11,28 @@ import {
   Info,
   X,
   FileText,
-  Tag,
   Package,
   Calendar,
-  Layers,
+  TrendingUp,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { formatPrecio } from '@/lib/format'
 import { aMXN, aUSD, TIPO_CAMBIO_DEFAULT_USD_MXN } from '@/lib/tipo-cambio'
 import type { CompraOdooItem } from '@/lib/schemas'
-import { CATEGORIAS_PRODUCTO_REGISTRO, obtenerCategoriaDef, esItemComprable } from '@/lib/compras-odoo'
+import {
+  CATEGORIAS_PRODUCTO_REGISTRO,
+  obtenerCategoriaDef,
+  esItemComprable,
+  claveHibridaItem,
+  indiceRangosHistoricos,
+  posicionPrecioEnRango,
+  grupoConMasCompras,
+  llaveRangoHistorico,
+  monedaItem,
+  comprasHistoricasDelGrupo,
+  type RangoHistoricoClave,
+  type PosicionPrecioRango,
+} from '@/lib/compras-odoo'
 
 type Props = {
   items: CompraOdooItem[]
@@ -36,14 +48,34 @@ function normalizarTexto(txt: string): string {
     .trim()
 }
 
-function claveComparacion(item: CompraOdooItem): string {
-  const sku = normalizarTexto(item.odooRefInterna ?? '')
-  if (sku) return `sku:${sku}`
+function etiquetaPosicion(posicion: PosicionPrecioRango): string {
+  if (posicion === 'barato') return 'Barato'
+  if (posicion === 'en_medio') return 'En medio'
+  return 'Caro'
+}
 
-  const descripcion = normalizarTexto(item.descripcion)
-  const medida = normalizarTexto(item.medida ?? '')
-  const unidad = normalizarTexto(item.unidad ?? item.odooUom ?? '')
-  return `material:${descripcion}|medida:${medida}|unidad:${unidad}`
+function clasePosicion(posicion: PosicionPrecioRango): string {
+  if (posicion === 'barato') return 'text-emerald-700 bg-emerald-50 border-emerald-200'
+  if (posicion === 'en_medio') return 'text-sky-700 bg-sky-50 border-sky-200'
+  return 'text-amber-800 bg-amber-50 border-amber-200'
+}
+
+function BandaRangoHistorico({ rango }: { rango: RangoHistoricoClave }) {
+  const moneda = rango.moneda === 'USD' ? 'USD' : 'MXN'
+  return (
+    <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+      <span className="inline-flex items-center gap-1 font-bold text-emerald-800">
+        <TrendingUp className="h-3.5 w-3.5" />
+        Rango Odoo histórico
+      </span>
+      <span className="font-mono text-emerald-900">min {formatPrecio(rango.min, moneda)}</span>
+      <span className="font-mono text-sky-900">avg {formatPrecio(rango.promedio, moneda)}</span>
+      <span className="font-mono text-amber-900">máx {formatPrecio(rango.max, moneda)}</span>
+      <span className="text-slate-500 font-mono">
+        n={rango.n} · {rango.proveedores} proveedor{rango.proveedores === 1 ? '' : 'es'}
+      </span>
+    </div>
+  )
 }
 
 export default function ComparadorPreciosInsumos({
@@ -126,7 +158,7 @@ export default function ComparadorPreciosInsumos({
     const comparaciones = new Map<string, { min: number; max: number; proveedores: Set<number> }>()
     for (const it of itemsCoincidentes) {
       const pxMxn = aMXN(it.precioUnitario, (it.moneda ?? 'MXN') as 'USD' | 'MXN', usdToMxn)
-      const key = claveComparacion(it)
+      const key = claveHibridaItem(it)
       const grupo = comparaciones.get(key)
       if (!grupo) {
         comparaciones.set(key, { min: pxMxn, max: pxMxn, proveedores: new Set([it.odooPartnerId]) })
@@ -139,10 +171,12 @@ export default function ComparadorPreciosInsumos({
     return comparaciones
   }, [itemsCoincidentes, usdToMxn])
 
+  const rangosHistoricos = useMemo(() => indiceRangosHistoricos(items), [items])
+
   const itemsFiltrados = useMemo(
     () =>
       soloComparables
-        ? itemsCoincidentes.filter((item) => (comparacionesPorItem.get(claveComparacion(item))?.proveedores.size ?? 0) >= 2)
+        ? itemsCoincidentes.filter((item) => (comparacionesPorItem.get(claveHibridaItem(item))?.proveedores.size ?? 0) >= 2)
         : itemsCoincidentes,
     [comparacionesPorItem, itemsCoincidentes, soloComparables]
   )
@@ -153,6 +187,17 @@ export default function ComparadorPreciosInsumos({
   )
 
   const hayCriterio = busqueda.trim().length > 0 || categoriaFiltro !== 'todas' || proveedorFiltro !== 'todos'
+
+  const bandaRango = useMemo(() => {
+    if (!hayCriterio) return null
+    const vistos = new Map<string, RangoHistoricoClave>()
+    for (const it of itemsCoincidentes) {
+      const llave = llaveRangoHistorico(claveHibridaItem(it), monedaItem(it))
+      const rango = rangosHistoricos.get(llave)
+      if (rango) vistos.set(llave, rango)
+    }
+    return grupoConMasCompras(vistos.values())
+  }, [hayCriterio, itemsCoincidentes, rangosHistoricos])
 
   function handleAgregar(item: CompraOdooItem) {
     onAgregarAPresupuesto(item, item.cantidad > 0 ? item.cantidad : 1)
@@ -165,6 +210,18 @@ export default function ComparadorPreciosInsumos({
       })
     }, 1500)
   }
+
+  const rangoDetalle = itemDetalle
+    ? rangosHistoricos.get(llaveRangoHistorico(claveHibridaItem(itemDetalle), monedaItem(itemDetalle))) ?? null
+    : null
+  const historicoDetalle = itemDetalle
+    ? comprasHistoricasDelGrupo(
+        items,
+        claveHibridaItem(itemDetalle),
+        monedaItem(itemDetalle),
+        8,
+      )
+    : []
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-4">
@@ -355,6 +412,8 @@ export default function ComparadorPreciosInsumos({
         </button>
       </div>
 
+      {hayCriterio && bandaRango && <BandaRangoHistorico rango={bandaRango} />}
+
       {/* Resultados de Búsqueda */}
       <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
         <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
@@ -402,7 +461,13 @@ export default function ComparadorPreciosInsumos({
               )}
 
               {hayCriterio && itemsFiltrados.slice(0, 300).map((it) => {
-                const grupo = comparacionesPorItem.get(claveComparacion(it))
+                const grupo = comparacionesPorItem.get(claveHibridaItem(it))
+                const rangoFila = rangosHistoricos.get(
+                  llaveRangoHistorico(claveHibridaItem(it), monedaItem(it)),
+                )
+                const posicion = rangoFila
+                  ? posicionPrecioEnRango(it.precioUnitario, rangoFila)
+                  : null
                 const precioMxnActual = aMXN(
                   it.precioUnitario,
                   (it.moneda ?? 'MXN') as 'USD' | 'MXN',
@@ -552,6 +617,13 @@ export default function ComparadorPreciosInsumos({
                             +{formatPrecio(precioMxnActual - grupo.min, 'MXN')} vs. mejor
                           </span>
                         )}
+                        {posicion && (
+                          <span
+                            className={`text-[9px] font-extrabold px-1.5 py-0 rounded border ${clasePosicion(posicion)}`}
+                          >
+                            {etiquetaPosicion(posicion)}
+                          </span>
+                        )}
                       </div>
                     </td>
 
@@ -598,7 +670,7 @@ export default function ComparadorPreciosInsumos({
       {/* Modal / Drawer Ficha de Detalle de Compra Odoo */}
       {itemDetalle && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full p-6 space-y-4 animate-in fade-in zoom-in duration-150">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full p-6 space-y-4 animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between border-b border-slate-200 pb-3">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 font-mono">
@@ -616,6 +688,8 @@ export default function ComparadorPreciosInsumos({
                 <X className="h-5 w-5" />
               </button>
             </div>
+
+            {rangoDetalle && <BandaRangoHistorico rango={rangoDetalle} />}
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
@@ -666,6 +740,33 @@ export default function ComparadorPreciosInsumos({
                 </p>
               </div>
             </div>
+
+            {historicoDetalle.length > 0 && (
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <p className="px-3 py-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-50 border-b border-slate-200">
+                  Otras compras del mismo ítem
+                </p>
+                <ul className="divide-y divide-slate-100 max-h-40 overflow-y-auto">
+                  {historicoDetalle.map((compra) => (
+                    <li key={compra.id} className="px-3 py-2 flex items-start justify-between gap-3 text-[11px]">
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-800 truncate">{compra.proveedorNombre}</p>
+                        <p className="font-mono text-slate-500">
+                          {compra.referenciaDoc}
+                          {compra.fecha ? ` · ${compra.fecha}` : ''}
+                        </p>
+                      </div>
+                      <span className="font-mono font-extrabold text-slate-900 shrink-0">
+                        {formatPrecio(
+                          compra.precioUnitario,
+                          compra.moneda === 'USD' ? 'USD' : 'MXN',
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div className="border-t border-slate-200 pt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
               <span className="flex items-center gap-1 font-mono">
