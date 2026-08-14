@@ -76,43 +76,40 @@ export function generarMensajeWhatsApp(
     actualizadoEn?: Date
   }
 ): string {
-  const proveedor = orden.proveedor?.trim() || ""
+  const proveedor = orden.proveedor?.trim() || "el proveedor"
   const items = orden.items || []
 
-  const itemsListStr = items
+  const partidas = items
     .map((item) => {
       const cant = item.cantidad && item.cantidad > 1 ? `${item.cantidad} ` : ""
       const desc = item.descripcionSimplificada?.trim() || item.descripcion?.trim() || ""
       return `${cant}${desc}`
     })
     .filter(Boolean)
+  const descripcionCompra = partidas.join(" y ") || "material"
 
-  let itemsTexto = ""
-  if (itemsListStr.length === 1) {
-    itemsTexto = itemsListStr[0]
-  } else if (itemsListStr.length === 2) {
-    itemsTexto = `${itemsListStr[0]} y ${itemsListStr[1]}`
-  } else if (itemsListStr.length > 2) {
-    const ultimo = itemsListStr[itemsListStr.length - 1]
-    const resto = itemsListStr.slice(0, -1).join(", ")
-    itemsTexto = `${resto} y ${ultimo}`
-  } else {
-    itemsTexto = "compra"
-  }
-
-  const empresas = Array.from(
+  const destinos = Array.from(
     new Set(
-      items
-        .map((item) => item.empresa?.trim() || orden.empresa?.trim())
-        .filter(Boolean)
+      items.map((item) => resolverCampoItem(item, orden, "empresa")).filter(Boolean)
     )
   )
+  const destino = destinos.join(" / ") || orden.empresa?.trim() || orden.destino?.trim() || "SMV"
+  const moneda = orden.moneda?.trim() || "USD"
+  const monto = orden.total === null || orden.total === undefined
+    ? ""
+    : ` por ${formatearMontoWhatsApp(orden.total, moneda)}`
 
-  const destinoTexto = empresas.length > 0 ? ` para *${empresas.join(" / ")}*` : ""
-  const provTexto = proveedor ? ` en *${proveedor}*` : ""
-  const totalTexto = orden.total ? ` por *${orden.moneda || 'USD'} $${orden.total}*` : ""
+  return `*Notificación de Compra (EUA)*\n\nBuen día, se pidió ${descripcionCompra} para ${destino} en ${proveedor}${monto}.`
+}
 
-  return `*Notificación de Compra (EUA)*\n\nBuen día, se pidió ${itemsTexto}${destinoTexto}${provTexto}${totalTexto}.`
+function formatearMontoWhatsApp(total: number, moneda: string): string {
+  const cantidad = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(total)
+  const codigo = moneda.toUpperCase()
+  const simbolo = codigo === "USD" || codigo === "MXN" ? "$" : ""
+  return `${codigo} ${simbolo}${cantidad}`
 }
 
 export function obtenerUrlWhatsApp(mensaje: string): string {

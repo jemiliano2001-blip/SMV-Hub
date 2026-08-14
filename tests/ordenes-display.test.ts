@@ -155,98 +155,55 @@ function makeItem(overrides: Partial<OrdenCompra["items"][number]> = {}): OrdenC
 }
 
 describe("generarMensajeWhatsApp", () => {
-  it("con cero items", () => {
-    const msg = generarMensajeWhatsApp(
-      makeOrden({ proveedor: "McMaster-Carr", items: [], subtotal: 0, impuestos: 0, total: 0 })
-    )
-    expect(msg).toBe("*Notificación de Compra (EUA)*\n\nBuen día, se pidió compra en *McMaster-Carr*.")
-  })
-
-  it("con un item cantidad 1", () => {
+  it("usa el formato corto operativo del grupo de Compras", () => {
     const msg = generarMensajeWhatsApp(
       makeOrden({
         proveedor: "McMaster-Carr",
-        subtotal: 10,
+        subtotal: 77.67,
         impuestos: 0,
-        total: 10,
+        total: 77.67,
         items: [
-          makeItem({ descripcion: "servo motor para maquina WIRE EDM", cantidad: 1, precioUnitario: 10, total: 10, empresa: "taller" }),
+          makeItem({ descripcion: "Conectores de energía de alta resistencia", cantidad: 2, precioUnitario: 38.835, total: 77.67, empresa: "SUPRAJIT MEXICO" }),
         ],
       })
     )
     expect(msg).toBe(
-      "*Notificación de Compra (EUA)*\n\nBuen día, se pidió servo motor para maquina WIRE EDM para *taller* en *McMaster-Carr* por *USD $10*."
+      "*Notificación de Compra (EUA)*\n\nBuen día, se pidió 2 Conectores de energía de alta resistencia para SUPRAJIT MEXICO en McMaster-Carr por USD $77.67."
     )
   })
 
-  it("con un item cantidad > 1", () => {
+  it("resume múltiples partidas y destinos sin añadir campos administrativos", () => {
     const msg = generarMensajeWhatsApp(
       makeOrden({
-        proveedor: "Grainger",
-        subtotal: 20,
-        impuestos: 0,
-        total: 20,
-        items: [
-          makeItem({ descripcion: "insertos de ceramica", cantidad: 3, precioUnitario: 6.66, total: 20, empresa: "taller" }),
-        ],
-      })
-    )
-    expect(msg).toBe(
-      "*Notificación de Compra (EUA)*\n\nBuen día, se pidió 3 insertos de ceramica para *taller* en *Grainger* por *USD $20*."
-    )
-  })
-
-  it("con multiples items y destinos", () => {
-    const msg = generarMensajeWhatsApp(
-      makeOrden({
-        proveedor: "McMaster-Carr",
-        subtotal: 120,
-        impuestos: 0,
-        total: 120,
-        items: [
-          makeItem({ descripcion: "servo motor para maquina WIRE EDM", cantidad: 1, precioUnitario: 100, total: 100, empresa: "taller" }),
-          makeItem({ descripcion: "insertos de ceramica", cantidad: 2, precioUnitario: 10, total: 20, empresa: "taller" }),
-        ],
-      })
-    )
-    expect(msg).toBe(
-      "*Notificación de Compra (EUA)*\n\nBuen día, se pidió servo motor para maquina WIRE EDM y 2 insertos de ceramica para *taller* en *McMaster-Carr* por *USD $120*."
-    )
-  })
-
-  it("con multiples items de mas de 2", () => {
-    const msg = generarMensajeWhatsApp(
-      makeOrden({
-        proveedor: "eBay",
+        proveedor: "DigiKey",
         subtotal: 30,
         impuestos: 0,
         total: 30,
         items: [
-          makeItem({ descripcion: "A", cantidad: 1, precioUnitario: 10, total: 10, empresa: "taller" }),
-          makeItem({ descripcion: "B", cantidad: 1, precioUnitario: 10, total: 10, empresa: "diseno" }),
-          makeItem({ descripcion: "C", cantidad: 1, precioUnitario: 10, total: 10, empresa: "taller" }),
+          makeItem({ descripcion: "Fuente de poder", cantidad: 1, precioUnitario: 10, total: 10, empresa: "SUPRAJIT MEXICO", requisitor: "Francisco", cuentaCargo: "SO1547" }),
+          makeItem({ descripcion: "Conector", cantidad: 2, precioUnitario: 10, total: 20, empresa: "SMV", requisitor: "Ana", ordenTrabajo: "OT-2" }),
         ],
       })
     )
-    expect(msg).toBe(
-      "*Notificación de Compra (EUA)*\n\nBuen día, se pidió A, B y C para *taller / diseno* en *eBay* por *USD $30*."
-    )
+    expect(msg).toContain("Fuente de poder y 2 Conector para SUPRAJIT MEXICO / SMV en DigiKey por USD $30.00.")
+    expect(msg).not.toMatch(/Factura|Requisitor|Cuenta cargo|Orden de trabajo|Entrega estimada|Partidas:/)
   })
 
-  it("mantiene el texto limpio sin URLs aunque la orden tenga comprobante", () => {
-    const msg = generarMensajeWhatsApp({
-      ...makeOrden({
-        proveedor: "McMaster-Carr",
-        subtotal: 10,
-        impuestos: 0,
-        total: 10,
-        items: [makeItem({ descripcion: "servo motor", cantidad: 1, precioUnitario: 10, total: 10, empresa: "taller" })],
-      }),
-      imagenUrl: "https://storage.example.com/factura.jpg",
-    })
-    expect(msg).toBe(
-      "*Notificación de Compra (EUA)*\n\nBuen día, se pidió servo motor para *taller* en *McMaster-Carr* por *USD $10*."
-    )
+  it("usa valores de respaldo breves cuando faltan partidas o total", () => {
+    const msg = generarMensajeWhatsApp(makeOrden({
+      items: [],
+      empresa: "",
+      destino: "",
+      proveedor: "",
+      total: null,
+    }))
+
+    expect(msg).toBe("*Notificación de Compra (EUA)*\n\nBuen día, se pidió material para SMV en el proveedor.")
+  })
+
+  it("etiqueta correctamente montos MXN y otras monedas", () => {
+    expect(generarMensajeWhatsApp(makeOrden({ moneda: "MXN", total: 77.67 }))).toContain("MXN $77.67")
+    expect(generarMensajeWhatsApp(makeOrden({ moneda: "EUR", total: 10 }))).toContain("EUR 10.00")
   })
 })
 
