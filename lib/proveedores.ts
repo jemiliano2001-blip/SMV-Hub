@@ -9,7 +9,6 @@ import {
   query,
   orderBy,
   serverTimestamp,
-  Timestamp,
 } from "firebase/firestore"
 import { db, getClienteAuth } from "@/lib/firebase"
 import { registrarAuditoria } from "@/lib/auditoria"

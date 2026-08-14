@@ -36,6 +36,16 @@ function normalizarTexto(txt: string): string {
     .trim()
 }
 
+function claveComparacion(item: CompraOdooItem): string {
+  const sku = normalizarTexto(item.odooRefInterna ?? '')
+  if (sku) return `sku:${sku}`
+
+  const descripcion = normalizarTexto(item.descripcion)
+  const medida = normalizarTexto(item.medida ?? '')
+  const unidad = normalizarTexto(item.unidad ?? item.odooUom ?? '')
+  return `material:${descripcion}|medida:${medida}|unidad:${unidad}`
+}
+
 export default function ComparadorPreciosInsumos({
   items,
   onAgregarAPresupuesto,
@@ -46,6 +56,7 @@ export default function ComparadorPreciosInsumos({
   const [proveedorFiltro, setProveedorFiltro] = useState<string>('todos')
   const [tipoDocFiltro, setTipoDocFiltro] = useState<'todos' | 'po_confirmada' | 'rfq' | 'factura'>('todos')
   const [modoMoneda, setModoMoneda] = useState<'original' | 'MXN' | 'USD'>('original')
+  const [soloComparables, setSoloComparables] = useState(true)
   const [agregados, setAgregados] = useState<Set<string>>(new Set())
   const [itemDetalle, setItemDetalle] = useState<CompraOdooItem | null>(null)
 
@@ -61,7 +72,7 @@ export default function ComparadorPreciosInsumos({
   }, [items])
 
   // Filtrar ítems por precio comprable, texto, categoría, proveedor y tipo de documento
-  const itemsFiltrados = useMemo(() => {
+  const itemsCoincidentes = useMemo(() => {
     const qNorm = normalizarTexto(busqueda)
     const tokens = qNorm.split(/\s+/).filter(Boolean)
 
@@ -111,22 +122,37 @@ export default function ComparadorPreciosInsumos({
     })
   }, [items, busqueda, categoriaFiltro, proveedorFiltro, tipoDocFiltro, usdToMxn])
 
-  // Calcular el precio mínimo en MXN por grupo
-  const precioMinimoMxnPorItem = useMemo(() => {
-    const mapMin = new Map<string, { min: number; proveedores: Set<number> }>()
-    for (const it of itemsFiltrados) {
+  const comparacionesPorItem = useMemo(() => {
+    const comparaciones = new Map<string, { min: number; max: number; proveedores: Set<number> }>()
+    for (const it of itemsCoincidentes) {
       const pxMxn = aMXN(it.precioUnitario, (it.moneda ?? 'MXN') as 'USD' | 'MXN', usdToMxn)
-      const key = `${normalizarTexto(it.descripcion)}_${normalizarTexto(it.medida ?? '')}`
-      const grupo = mapMin.get(key)
+      const key = claveComparacion(it)
+      const grupo = comparaciones.get(key)
       if (!grupo) {
-        mapMin.set(key, { min: pxMxn, proveedores: new Set([it.odooPartnerId]) })
+        comparaciones.set(key, { min: pxMxn, max: pxMxn, proveedores: new Set([it.odooPartnerId]) })
       } else {
         grupo.proveedores.add(it.odooPartnerId)
         if (pxMxn < grupo.min) grupo.min = pxMxn
+        if (pxMxn > grupo.max) grupo.max = pxMxn
       }
     }
-    return mapMin
-  }, [itemsFiltrados, usdToMxn])
+    return comparaciones
+  }, [itemsCoincidentes, usdToMxn])
+
+  const itemsFiltrados = useMemo(
+    () =>
+      soloComparables
+        ? itemsCoincidentes.filter((item) => (comparacionesPorItem.get(claveComparacion(item))?.proveedores.size ?? 0) >= 2)
+        : itemsCoincidentes,
+    [comparacionesPorItem, itemsCoincidentes, soloComparables]
+  )
+
+  const gruposComparables = useMemo(
+    () => Array.from(comparacionesPorItem.values()).filter((grupo) => grupo.proveedores.size >= 2).length,
+    [comparacionesPorItem]
+  )
+
+  const hayCriterio = busqueda.trim().length > 0 || categoriaFiltro !== 'todas' || proveedorFiltro !== 'todos'
 
   function handleAgregar(item: CompraOdooItem) {
     onAgregarAPresupuesto(item, item.cantidad > 0 ? item.cantidad : 1)
@@ -147,10 +173,10 @@ export default function ComparadorPreciosInsumos({
         <div>
           <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
             <Search className="h-4 w-4 text-sky-600" />
-            Comparador Inteligente de Precios y Catálogos Odoo
+            Comparador inteligente de precios
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Analiza insumos, cotizaciones, órdenes de compra y facturas para obtener el mejor precio por proveedor.
+            Busca un material o SKU y compara únicamente alternativas equivalentes entre proveedores.
           </p>
         </div>
 
@@ -309,11 +335,33 @@ export default function ComparadorPreciosInsumos({
         </button>
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-sky-100 bg-sky-50/60 px-3 py-2">
+        <p className="text-xs text-sky-900">
+          {gruposComparables > 0
+            ? `${gruposComparables} grupos tienen alternativas de dos o más proveedores.`
+            : 'Aún no hay alternativas equivalentes con los filtros actuales.'}
+        </p>
+        <button
+          type="button"
+          aria-pressed={soloComparables}
+          onClick={() => setSoloComparables((actual) => !actual)}
+          className={`rounded-md px-2.5 py-1 text-[11px] font-bold transition-all ${
+            soloComparables
+              ? 'bg-sky-700 text-white shadow-xs'
+              : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+          }`}
+        >
+          {soloComparables ? 'Sólo alternativas comparables' : 'Mostrar todos los resultados'}
+        </button>
+      </div>
+
       {/* Resultados de Búsqueda */}
       <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
         <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs font-extrabold text-slate-700">
-            {itemsFiltrados.length} resultados encontrados {proveedorFiltro !== 'todos' ? `para "${proveedorFiltro}"` : ''}
+            {!hayCriterio
+              ? 'Busca un material, SKU o filtra una familia para empezar a comparar'
+              : `${itemsFiltrados.length} resultados ${soloComparables ? 'comparables' : 'encontrados'}${proveedorFiltro !== 'todos' ? ` para "${proveedorFiltro}"` : ''}`}
             {itemsFiltrados.length > 300 ? ` (mostrando 300)` : ''}
           </span>
           {busqueda && (
@@ -338,7 +386,14 @@ export default function ComparadorPreciosInsumos({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {itemsFiltrados.length === 0 && (
+              {!hayCriterio && (
+                <tr>
+                  <td colSpan={8} className="px-4 py-12 text-center text-slate-500 text-xs">
+                    Escribe el material, SKU, referencia o clave SAT. El comparador evitará mezclar piezas distintas.
+                  </td>
+                </tr>
+              )}
+              {hayCriterio && itemsFiltrados.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-4 py-12 text-center text-slate-400 text-xs">
                     No se encontraron insumos o compras que coincidan con los filtros aplicados.
@@ -346,14 +401,13 @@ export default function ComparadorPreciosInsumos({
                 </tr>
               )}
 
-              {itemsFiltrados.slice(0, 300).map((it) => {
-                const keyGroup = `${normalizarTexto(it.descripcion)}_${normalizarTexto(it.medida ?? '')}`
+              {hayCriterio && itemsFiltrados.slice(0, 300).map((it) => {
+                const grupo = comparacionesPorItem.get(claveComparacion(it))
                 const precioMxnActual = aMXN(
                   it.precioUnitario,
                   (it.moneda ?? 'MXN') as 'USD' | 'MXN',
                   usdToMxn
                 )
-                const grupo = precioMinimoMxnPorItem.get(keyGroup)
                 const esMejorPrecio =
                   grupo !== undefined &&
                   grupo.proveedores.size >= 2 &&
@@ -492,6 +546,11 @@ export default function ComparadorPreciosInsumos({
                             <Trophy className="h-2.5 w-2.5 text-amber-600" />
                             Mejor Precio
                           </Badge>
+                        )}
+                        {grupo && grupo.proveedores.size >= 2 && !esMejorPrecio && (
+                          <span className="text-[9px] font-mono text-amber-700">
+                            +{formatPrecio(precioMxnActual - grupo.min, 'MXN')} vs. mejor
+                          </span>
                         )}
                       </div>
                     </td>

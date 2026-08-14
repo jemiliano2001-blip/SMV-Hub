@@ -6,8 +6,8 @@ import {
   query,
   where,
   orderBy,
+  limit,
   serverTimestamp,
-  Timestamp,
 } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import type {
@@ -31,12 +31,15 @@ export type NuevaCotizacionComparacionPayload = Omit<CotizacionComparacion, "id"
 
 // ── 1. HISTORIAL DE COMPRAS ───────────────────────────────────────────────────
 
-export async function obtenerComprasProveedor(proveedorId?: string): Promise<CompraProveedor[]> {
+export async function obtenerComprasProveedor(
+  proveedorId?: string,
+  maximo = 200
+): Promise<CompraProveedor[]> {
   try {
     const ref = collection(db, COLECCION_COMPRAS)
     const q = proveedorId
-      ? query(ref, where("proveedorId", "==", proveedorId))
-      : query(ref, orderBy("fecha", "desc"))
+      ? query(ref, where("proveedorId", "==", proveedorId), limit(maximo))
+      : query(ref, orderBy("fecha", "desc"), limit(maximo))
 
     const snap = await getDocs(q)
 
@@ -123,7 +126,7 @@ export function calcularMetricasProveedor(compras: CompraProveedor[]) {
 
 export async function obtenerEvaluacionesProveedor(): Promise<EvaluacionProveedor[]> {
   try {
-    const snap = await getDocs(collection(db, COLECCION_EVALUACIONES))
+    const snap = await getDocs(query(collection(db, COLECCION_EVALUACIONES), limit(100)))
 
     return snap.docs.map((d) => {
       const data = d.data()
@@ -168,9 +171,9 @@ export async function guardarEvaluacionProveedor(
 
 // ── 3. COMPARADOR DE COTIZACIONES & RANKING INTELIGENTE ──────────────────────
 
-export async function obtenerCotizacionesComparacion(): Promise<CotizacionComparacion[]> {
+export async function obtenerCotizacionesComparacion(maximo = 100): Promise<CotizacionComparacion[]> {
   try {
-    const snap = await getDocs(query(collection(db, COLECCION_COTIZACIONES), orderBy("fecha", "desc")))
+    const snap = await getDocs(query(collection(db, COLECCION_COTIZACIONES), orderBy("fecha", "desc"), limit(maximo)))
 
     return snap.docs.map((d) => {
       const data = d.data()
@@ -254,119 +257,3 @@ export function calcularRankingCotizacion(
     esMejorBalance: of.scoreCalculado === maxScore,
   }))
 }
-
-// ── 4. SINCRONIZACIÓN DESDE ÓRDENES DE COMPRA HISTÓRICAS ────────────────────
-
-function inferirCategoria(desc: string): CategoriaProveedor {
-  const d = desc.toLowerCase()
-  if (d.includes("endmill") || d.includes("cortador") || d.includes("fresa") || d.includes("gavilanes") || d.includes("carburo")) return "endmills"
-  if (d.includes("inserto") || d.includes("apmt") || d.includes("wnmg") || d.includes("ccmt") || d.includes("carbides")) return "insertos"
-  if (d.includes("cono") || d.includes("bt40") || d.includes("cat40") || d.includes("er32") || d.includes("mandril") || d.includes("tooling")) return "tooling"
-  if (d.includes("refrigerante") || d.includes("aceite") || d.includes("blaser") || d.includes("grasa") || d.includes("taller")) return "consumibles"
-  return "otros"
-}
-
-/**
- * Escanea la colección 'ordenes' (Ver Órdenes) e importa sus compras históricas
- * directamente al módulo de Inteligencia de Proveedores.
- */
-export async function sincronizarComprasDesdeOrdenes(): Promise<{ importadas: number; proveedoresAfectados: number }> {
-  try {
-    const ordenesSnap = await getDocs(collection(db, "ordenes"))
-    if (ordenesSnap.empty) {
-      return { importadas: 0, proveedoresAfectados: 0 }
-    }
-
-    const proveedoresSnap = await getDocs(collection(db, "proveedores"))
-    const proveedoresExistentes = proveedoresSnap.docs.map((d) => ({
-      id: d.id,
-      nombre: (d.data().nombre as string) ?? "",
-    }))
-
-    const comprasExistentesSnap = await getDocs(collection(db, COLECCION_COMPRAS))
-    const ordenesProcesadas = new Set(comprasExistentesSnap.docs.map((d) => d.data().numeroOrden))
-
-    let importadas = 0
-    const proveedoresSet = new Set<string>()
-
-    for (const docSnap of ordenesSnap.docs) {
-      const data = docSnap.data()
-      const ordenId = docSnap.id
-      const numOrden = data.numeroFactura || `ORD-${ordenId.substring(0, 6)}`
-
-      if (ordenesProcesadas.has(numOrden)) continue
-
-      const nombreProvRaw = (data.proveedor as string) ?? "Proveedor Desconocido"
-      // Buscar coincidencia en proveedores existentes
-      const provMatch = proveedoresExistentes.find((p) =>
-        p.nombre.toLowerCase().includes(nombreProvRaw.toLowerCase()) ||
-        nombreProvRaw.toLowerCase().includes(p.nombre.toLowerCase())
-      )
-
-      const provId = provMatch ? provMatch.id : `prov-${nombreProvRaw.toLowerCase().replace(/\s+/g, "-")}`
-      const provNombre = provMatch ? provMatch.nombre : nombreProvRaw
-      proveedoresSet.add(provId)
-
-      const items = Array.isArray(data.items) ? data.items : []
-      const fecha = data.fechaFactura || (data.creadoEn ? formatearFecha(data.creadoEn).substring(0, 10) : fechaHoyLocal())
-      const moneda = data.moneda === "MXN" ? "MXN" : "USD"
-
-      if (items.length > 0) {
-        for (const item of items) {
-          const itemDesc = item.descripcion || "Herramental / Material"
-          const cantidad = item.cantidad || 1
-          const pu = item.precioUnitario || item.subtotal || 0
-          const costoTotal = item.subtotal || pu * cantidad
-
-          // Omitir órdenes / items sin precio (precio = 0)
-          if (pu <= 0 && costoTotal <= 0) continue
-
-          await crearCompraProveedor({
-            proveedorId: provId,
-            proveedorNombre: provNombre,
-            numeroOrden: numOrden,
-            fecha,
-            producto: itemDesc,
-            categoria: inferirCategoria(itemDesc),
-            marca: item.marca || provNombre,
-            cantidad,
-            precioUnitario: pu,
-            moneda,
-            costoTotal,
-            leadTimeRealDias: 4,
-            notas: `Importado automáticamente desde Ver Órdenes (Doc: ${ordenId})`,
-          })
-          importadas++
-        }
-      } else {
-        const total = data.total || 0
-        // Omitir órdenes generales sin precio (precio = 0)
-        if (total <= 0) continue
-
-        // Si no tiene items desglosados, se importa el total de la orden
-        await crearCompraProveedor({
-          proveedorId: provId,
-          proveedorNombre: provNombre,
-          numeroOrden: numOrden,
-          fecha,
-          producto: `Orden de Compra General (${provNombre})`,
-          categoria: "tooling",
-          marca: provNombre,
-          cantidad: 1,
-          precioUnitario: total,
-          moneda,
-          costoTotal: total,
-          leadTimeRealDias: 4,
-          notas: `Importado automáticamente desde Ver Órdenes (Doc: ${ordenId})`,
-        })
-        importadas++
-      }
-    }
-
-    return { importadas, proveedoresAfectados: proveedoresSet.size }
-  } catch (err) {
-    console.error("Error al sincronizar desde ordenes:", err)
-    throw new Error("No se pudieron sincronizar las órdenes de compra.")
-  }
-}
-

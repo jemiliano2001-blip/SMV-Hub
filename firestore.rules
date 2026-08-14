@@ -162,10 +162,15 @@ service cloud.firestore {
 
       // En la actualización, el audit trail es inmutable: la fecha de creación
       // no puede alterarse y la marca de actualización debe avanzar.
-      allow update: if esUsuarioAutorizado()
-                    && ordenValida(request.resource.data)
-                    && request.resource.data.creadoEn == resource.data.creadoEn
-                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+       allow update: if esUsuarioAutorizado()
+                     && ordenValida(request.resource.data)
+                     && request.resource.data.creadoEn == resource.data.creadoEn
+                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn
+                     // proveedorId se administra mediante la ruta de vinculación
+                     // histórica, exclusiva de super-admin.
+                     && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['proveedorId'])
+                         || esSuperAdminDoc()
+                         || esCorreoBreakGlass());
 
       allow delete: if esUsuarioAutorizado();
     }
@@ -180,10 +185,15 @@ service cloud.firestore {
 
       // El audit trail es inmutable: la fecha de creación no cambia y la marca
       // de actualización debe avanzar.
-      allow update: if esUsuarioAutorizado()
-                    && cotizacionValida(request.resource.data)
-                    && request.resource.data.creadoEn == resource.data.creadoEn
-                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+       allow update: if esUsuarioAutorizado()
+                     && cotizacionValida(request.resource.data)
+                     && request.resource.data.creadoEn == resource.data.creadoEn
+                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn
+                     // proveedorId se administra mediante la ruta de vinculación
+                     // histórica, exclusiva de super-admin.
+                     && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['proveedorId'])
+                         || esSuperAdminDoc()
+                         || esCorreoBreakGlass());
 
       allow delete: if esUsuarioAutorizado();
     }

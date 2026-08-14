@@ -898,8 +898,9 @@ function ProveedoresContent() {
     cargando: cargandoIntel,
     crearCompra,
     crearCotizacion,
-    sincronizarOrdenes,
-  } = useProveedoresInteligencia()
+  } = useProveedoresInteligencia({
+    habilitado: false,
+  })
 
   // Filtrar estrictamente compras y cotizaciones con precio > 0 (omitir 0s)
   const comprasConPrecio = useMemo(() => {
@@ -938,9 +939,10 @@ function ProveedoresContent() {
   }
 
   useEffect(() => {
+    if (seccion !== 'inteligencia') return
     const timer = window.setTimeout(() => void cargarScorecardsVentana(), 0)
     return () => window.clearTimeout(timer)
-  }, [])
+  }, [seccion])
 
   const [modalFormAbierto, setModalFormAbierto] = useState(false)
   const [modalPOAbierto, setModalPOAbierto] = useState(false)
@@ -948,15 +950,13 @@ function ProveedoresContent() {
   const [idEliminar, setIdEliminar] = useState<string | null>(null)
 
   // Estado para la sincronización desde 'ordenes'
-  const [sincronizando, setSincronizando] = useState(false)
-  const [mensajeSync, setMensajeSync] = useState<string | null>(null)
   const [conceptoHistorico, setConceptoHistorico] = useState('')
   const [categoriaHistorico, setCategoriaHistorico] = useState<CategoriaProveedor>('endmills')
   const [cargandoHistorico, setCargandoHistorico] = useState(false)
   const [itemsComprasOdoo, setItemsComprasOdoo] = useState<CompraOdooItem[]>([])
 
   useEffect(() => {
-    if (region !== 'mexico' && seccion !== 'comparar') return
+    if (seccion !== 'inteligencia') return
     let cancelado = false
     void listarItemsComprasOdoo()
       .then((lista) => {
@@ -971,7 +971,7 @@ function ProveedoresContent() {
   }, [region, seccion])
 
   useEffect(() => {
-    const requiereCatalogo = seccion !== 'proveedores' || modalPOAbierto
+    const requiereCatalogo = modalPOAbierto
     if (!requiereCatalogo || catalogoCompleto || cargandoCatalogo) return
     void cargarCatalogoCompleto().catch((err) => {
       console.error('No se pudo cargar el catálogo completo de proveedores:', err)
@@ -1017,24 +1017,6 @@ function ProveedoresContent() {
     }
   }
 
-  async function handleSincronizarOrdenes() {
-    setSincronizando(true)
-    setMensajeSync(null)
-    try {
-      const res = await sincronizarOrdenes()
-      if (res.importadas === 0) {
-        setMensajeSync('Las compras de la sección Ver Órdenes ya se encuentran sincronizadas.')
-      } else {
-        setMensajeSync(`¡Éxito! Se importaron ${res.importadas} compras históricas a ${res.proveedoresAfectados} proveedores.`)
-      }
-    } catch (err) {
-      console.error(err)
-      setMensajeSync('Error al sincronizar con la sección de Órdenes.')
-    } finally {
-      setSincronizando(false)
-    }
-  }
-
   // Drawer lateral de detalle
   const [proveedorDetalle, setProveedorDetalle] = useState<Proveedor | null>(null)
   const [guardandoScorecards, setGuardandoScorecards] = useState(false)
@@ -1044,10 +1026,11 @@ function ProveedoresContent() {
   const [mapeoBackup, setMapeoBackup] = useState<MatrizBackupProveedores>({})
 
   useEffect(() => {
+    if (seccion !== 'inteligencia') return
     obtenerMatrizBackupProveedores()
       .then(setMapeoBackup)
       .catch((err) => console.error('Error cargando matriz de backup de proveedores:', err))
-  }, [])
+  }, [seccion])
 
   function actualizarYGuardarMapeoBackup(nuevo: MatrizBackupProveedores) {
     setMapeoBackup(nuevo)
@@ -1168,17 +1151,6 @@ function ProveedoresContent() {
             <Scale className="h-4 w-4 text-emerald-500" /> Comparador de Precios
           </button>
 
-          <button
-            type="button"
-            onClick={() => setSeccion('inteligencia')}
-            className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5 transition-all ${
-              seccion === 'inteligencia'
-                ? 'bg-[#0369A1] text-white shadow-xs font-extrabold'
-                : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            <Brain className="h-4 w-4 text-violet-500" /> Inteligencia 360° &amp; Contingencia
-          </button>
         </div>
 
         {/* PESTAÑA 1: DIRECTORIO DE PROVEEDORES */}
@@ -1204,8 +1176,10 @@ function ProveedoresContent() {
             proveedoresBackup={proveedoresBackup}
           />
         )}
-        {/* PESTAÑA 2: COMPARADOR INTELIGENTE DE COTIZACIONES */}
-        {(seccion === 'comparar' && region === 'usa') && (
+        {seccion === 'comparar' && <PanelComprasOdoo />}
+
+        {/* Comparador histórico anterior, retenido temporalmente mientras se migran los escenarios existentes. */}
+        {false && seccion === 'comparar' && region === 'usa' && (
           <div className="space-y-6">
             <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs space-y-3">
               <div className="flex items-center justify-between">
@@ -1367,7 +1341,7 @@ function ProveedoresContent() {
         )}
 
         {/* PESTAÑA 3: HISTORIAL DE COMPRAS */}
-        {(seccion === 'comparar' && region === 'usa') && (
+        {false && seccion === 'comparar' && region === 'usa' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
               <div>
@@ -1380,24 +1354,7 @@ function ProveedoresContent() {
                 </p>
               </div>
 
-              <button
-                onClick={handleSincronizarOrdenes}
-                disabled={sincronizando}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg shadow-xs transition-colors shrink-0 disabled:opacity-50"
-              >
-                <RefreshCw className={`h-4 w-4 ${sincronizando ? 'animate-spin' : ''}`} />
-                {sincronizando ? 'Sincronizando...' : 'Sincronizar desde Ver Órdenes'}
-              </button>
             </div>
-
-            {mensajeSync && (
-              <div className="p-3 bg-sky-50 border border-sky-200 text-[#0369A1] text-xs font-bold rounded-xl flex items-center justify-between">
-                <span>{mensajeSync}</span>
-                <button onClick={() => setMensajeSync(null)} className="p-1 hover:bg-sky-100 rounded">
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            )}
 
             <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
               <div className="overflow-x-auto">
@@ -1442,12 +1399,12 @@ function ProveedoresContent() {
         )}
 
         {/* PESTAÑA 3: INTELIGENCIA 360° & CONTINGENCIA */}
-        {seccion === 'inteligencia' && cargandoCatalogo && (
+        {false && seccion === 'inteligencia' && cargandoCatalogo && (
           <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-sm font-medium text-slate-500">
             Preparando el catálogo para Inteligencia 360°…
           </div>
         )}
-        {seccion === 'inteligencia' && !cargandoCatalogo && catalogoCompleto && (
+        {false && seccion === 'inteligencia' && !cargandoCatalogo && catalogoCompleto && (
           <div className="space-y-6">
             <PanelVinculacionProveedores proveedores={todosProveedores} />
             <PanelInteligencia360
@@ -1464,8 +1421,8 @@ function ProveedoresContent() {
         )}
 
         {/* MÉXICO — comparar precios (rangos Odoo) */}
-        {seccion === 'comparar' && region === 'mexico' && (
-          <PanelComprasOdoo mostrarSync={false} tituloRangos="Comparar precios MX (Odoo)" />
+        {false && seccion === 'comparar' && region === 'mexico' && (
+          <PanelComprasOdoo />
         )}
 
         {/* Drawer Lateral de Detalle / Master-Detail */}

@@ -72,6 +72,32 @@ async function seed(): Promise<void> {
         creadoEn: new Date(),
         actualizadoEn: new Date(),
       }),
+      db.doc("ordenes/orden-vinculacion").set({
+        proveedor: "Proveedor histórico",
+        proveedorId: "proveedor-anterior",
+        requisitor: "Compras",
+        ordenTrabajo: "",
+        empresa: "SMV",
+        moneda: "USD",
+        estado: "pendiente",
+        subtotal: 10,
+        impuestos: 0,
+        total: 10,
+        creadoEn: new Date(),
+        actualizadoEn: new Date(),
+      }),
+      db.doc("cotizaciones/cotizacion-vinculacion").set({
+        proveedor: "Proveedor histórico",
+        proveedorId: "proveedor-anterior",
+        descripcion: "Herramienta",
+        moneda: "USD",
+        estatus: "cotizado",
+        ubicacion: "USA",
+        precioUnitario: 10,
+        total: 10,
+        creadoEn: new Date(),
+        actualizadoEn: new Date(),
+      }),
       db.doc("endmills-medidas/endmill-001").set({
         orden: 1,
         categoria: "FLAT",
@@ -220,6 +246,28 @@ describeWithEmulator("reglas Firestore de Integridad", () => {
     await assertFails(userDb("normal-gafetes").doc("gafetes/operador-gafete").get())
     await assertFails(userDb("normal-gafetes").doc("gafetes/operador-gafete").set(payload))
     await assertFails(superGafete.update({ operadorId: "otro-operador", actualizadoEn: new Date() }))
+  })
+
+  it("solo permite a super-admin cambiar proveedorId del histórico", async () => {
+    const ahora = new Date()
+    const ordenNormal = userDb("provider-user").doc("ordenes/orden-vinculacion")
+    const cotizacionNormal = userDb("provider-user").doc("cotizaciones/cotizacion-vinculacion")
+
+    await assertFails(ordenNormal.update({ proveedorId: "proveedor-manipulado", actualizadoEn: ahora }))
+    await assertFails(cotizacionNormal.update({ proveedorId: "proveedor-manipulado", actualizadoEn: ahora }))
+
+    await assertSucceeds(
+      userDb("super-gafetes").doc("ordenes/orden-vinculacion").update({
+        proveedorId: "proveedor-catalogo",
+        actualizadoEn: new Date(),
+      })
+    )
+    await assertSucceeds(
+      userDb("super-gafetes").doc("cotizaciones/cotizacion-vinculacion").update({
+        proveedorId: "proveedor-catalogo",
+        actualizadoEn: new Date(),
+      })
+    )
   })
 
   it("solo permite clasificar campos aprobados de items Odoo", async () => {

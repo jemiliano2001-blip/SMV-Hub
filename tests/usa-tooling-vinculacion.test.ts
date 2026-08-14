@@ -7,7 +7,10 @@ import {
   matchProveedorPorNombre,
   simplificarDescripcion,
 } from "../lib/pieza-matching"
-import { detectarFantasmasEnMemoria } from "../lib/proveedores-vinculacion"
+import {
+  analizarVinculacionHistoricaEnMemoria,
+  detectarFantasmasEnMemoria,
+} from "../lib/proveedores-vinculacion"
 import {
   fusionarPuntosPrecio,
   resumirPreciosPorPiezaProveedor,
@@ -173,6 +176,42 @@ describe("Proveedores fantasma", () => {
     )
     expect(fantasmas.some((f) => f.nombreLibre.includes("Inventado"))).toBe(true)
     expect(fantasmas.some((f) => f.nombreLibre.includes("Shars"))).toBe(false)
+  })
+
+  it("sólo propone vínculos automáticos cuando el nombre coincide exactamente normalizado", () => {
+    const analisis = analizarVinculacionHistoricaEnMemoria(
+      [
+        { id: "o-exacto", proveedor: "SHARS TOOL COMPANY", proveedorId: null },
+        { id: "o-parcial", proveedor: "Shars Tool", proveedorId: null },
+        { id: "o-invalido", proveedor: "Shars Tool Company", proveedorId: "prov-ficticio" },
+      ],
+      [],
+      [provShars, provOnline]
+    )
+
+    expect(analisis.ordenes.vinculados).toBe(2)
+    expect(analisis.vinculosOrdenes).toEqual([
+      { id: "o-exacto", proveedorId: "shars-tool" },
+      { id: "o-invalido", proveedorId: "shars-tool" },
+    ])
+    expect(analisis.fantasmas.map((fantasma) => fantasma.nombreLibre)).toEqual(["Shars Tool"])
+  })
+
+  it("envía a revisión manual los nombres normalizados duplicados del catálogo", () => {
+    const analisis = analizarVinculacionHistoricaEnMemoria(
+      [{ id: "orden-duplicada", proveedor: "Shars Tool Company", proveedorId: null }],
+      [],
+      [
+        provShars,
+        { ...provShars, id: "shars-tool-duplicado", nombre: "SHARS TOOL COMPANY" },
+      ]
+    )
+
+    expect(analisis.ordenes.vinculados).toBe(0)
+    expect(analisis.vinculosOrdenes).toEqual([])
+    expect(analisis.fantasmas).toMatchObject([
+      { nombreLibre: "Shars Tool Company", origen: "orden", cantidadDocs: 1 },
+    ])
   })
 })
 

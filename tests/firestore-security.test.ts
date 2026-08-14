@@ -127,6 +127,19 @@ describe("reglas de Firestore y Storage para gafetes", () => {
     expect(bloque).toMatch(/esSuperAdmin\(\)/)
     expect(bloque).toMatch(/image\/\(jpeg\|png\|webp\)/)
   })
+
+  it("reserva los cambios de proveedorId en órdenes y cotizaciones a super-admin", () => {
+    const reglas = readFileSync(resolve(raiz, "firestore.rules"), "utf8")
+    const ordenes = reglas.match(/match \/ordenes\/\{ordenId\} \{([\s\S]*?)\n    \}/)?.[1]
+    const cotizaciones = reglas.match(/match \/cotizaciones\/\{cotizacionId\} \{([\s\S]*?)\n    \}/)?.[1]
+
+    for (const bloque of [ordenes, cotizaciones]) {
+      expect(bloque).toBeTruthy()
+      expect(bloque).toMatch(/affectedKeys\(\)\.hasAny\(\['proveedorId'\]\)/)
+      expect(bloque).toMatch(/esSuperAdminDoc\(\)/)
+      expect(bloque).toMatch(/esCorreoBreakGlass\(\)/)
+    }
+  })
 })
 
 describe("reglas de alcance para almacén y solicitudes de venta", () => {

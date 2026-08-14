@@ -8,13 +8,19 @@ import {
   crearCotizacionComparacion,
   calcularMetricasProveedor,
   calcularRankingCotizacion,
-  sincronizarComprasDesdeOrdenes,
   type NuevaCompraPayload,
   type NuevaCotizacionComparacionPayload,
 } from "@/lib/proveedores-inteligencia"
 import type { CompraProveedor, EvaluacionProveedor, CotizacionComparacion } from "@/lib/schemas"
 
-export function useProveedoresInteligencia(proveedorSeleccionadoId?: string) {
+export function useProveedoresInteligencia({
+  proveedorSeleccionadoId,
+  habilitado = false,
+}: {
+  proveedorSeleccionadoId?: string
+  /** Evita leer inteligencia hasta que el usuario abre la sección que la usa. */
+  habilitado?: boolean
+} = {}) {
   const [compras, setCompras] = useState<CompraProveedor[]>([])
   const [evaluaciones, setEvaluaciones] = useState<EvaluacionProveedor[]>([])
   const [cotizaciones, setCotizaciones] = useState<CotizacionComparacion[]>([])
@@ -42,10 +48,11 @@ export function useProveedoresInteligencia(proveedorSeleccionadoId?: string) {
   }, [])
 
   useEffect(() => {
-    // Carga inicial: falso positivo (en montaje cargando ya es true, sin cascada).
+    if (!habilitado) return
+    // La inteligencia es bajo demanda; no se descarga al entrar al directorio.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void cargarDatos()
-  }, [cargarDatos])
+  }, [cargarDatos, habilitado])
 
   // Filtrar compras para un proveedor específico si aplica
   const comprasFiltradas = useMemo(() => {
@@ -108,17 +115,6 @@ export function useProveedoresInteligencia(proveedorSeleccionadoId?: string) {
     }
   }
 
-  async function handleSincronizarOrdenes() {
-    try {
-      const res = await sincronizarComprasDesdeOrdenes()
-      await cargarDatos()
-      return res
-    } catch (err) {
-      console.error("Error al sincronizar órdenes:", err)
-      throw new Error("No se pudieron sincronizar las órdenes de compra")
-    }
-  }
-
   return {
     compras: comprasFiltradas,
     todasCompras: compras,
@@ -131,7 +127,5 @@ export function useProveedoresInteligencia(proveedorSeleccionadoId?: string) {
     crearCompra: handleCrearCompra,
     guardarEvaluacion: handleGuardarEvaluacion,
     crearCotizacion: handleCrearCotizacion,
-    sincronizarOrdenes: handleSincronizarOrdenes,
   }
 }
-
