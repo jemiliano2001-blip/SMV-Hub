@@ -1,19 +1,10 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import { AlertTriangle, ArrowDown, ArrowUp, CheckCircle2, Edit3, GripVertical, History, Pencil, Plus, RefreshCw, Save, Search, X } from "lucide-react"
+import { useMemo, useState } from "react"
+import { AlertTriangle, ArrowDown, ArrowUp, Edit3, GripVertical, Pencil, Plus, RefreshCw, Save, Search, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -28,15 +19,16 @@ import {
   clasificarStockEndmill,
 } from "@/lib/endmills-calculos"
 import { formatPrecio } from "@/lib/format"
-import { listarHistorialMedidaEndmills, type ConteoEndmillInput } from "@/lib/endmills"
+import type { ConteoEndmillInput } from "@/lib/endmills"
 import type {
   CategoriaEndmill,
   CrearEndmillMedidaInput,
   EndmillMedida,
   EstadoStockEndmill,
-  PartidaPedidoEndmills,
   ReordenarMedidaItem,
 } from "@/lib/schemas"
+import ModalCrearEndmill from "@/app/endmills/components/ModalCrearEndmill"
+import ModalDetalleEndmill from "@/app/endmills/components/ModalDetalleEndmill"
 
 /** Etiquetas legibles de los estados; el slug crudo nunca se muestra en pantalla. */
 const ETIQUETA_ESTADO: Record<EstadoStockEndmill | "confirmar", string> = {
@@ -79,70 +71,36 @@ export default function InventarioEndmills({
 }) {
   const [busqueda, setBusqueda] = useState("")
   const [categoria, setCategoria] = useState<CategoriaEndmill | "todas">("todas")
-  const [seleccionada, setSeleccionada] = useState<EndmillMedida | null>(null)
-  const [stockEditado, setStockEditado] = useState("")
-  const [guardando, setGuardando] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [historial, setHistorial] = useState<{
-    medidaId: string
-    rows: PartidaPedidoEndmills[]
-  } | null>(null)
+  const [medidaSeleccionada, setMedidaSeleccionada] = useState<EndmillMedida | null>(null)
+  const [modalCrearAbierto, setModalCrearAbierto] = useState(false)
 
-  // Modo conteo masivo inline. `basesConteo` es la foto del stock con la que se
-  // abrió el conteo (sirve para detectar si alguien más lo movió mientras tanto)
-  // y `tocados` son las filas que el usuario capturó de verdad: solo esas se
-  // guardan, para no revertir cambios ajenos en las que ni siquiera miró.
+  // Modo conteo masivo inline
   const [modoConteo, setModoConteo] = useState(false)
   const [stocksInline, setStocksInline] = useState<Record<string, number>>({})
   const [basesConteo, setBasesConteo] = useState<Record<string, number>>({})
   const [tocados, setTocados] = useState<string[]>([])
-
-  // Estado para crear nuevo endmill
-  const [modalCrearAbierto, setModalCrearAbierto] = useState(false)
-  const [creandoMedida, setCreandoMedida] = useState(false)
-  const [nuevoCategoria, setNuevoCategoria] = useState<CategoriaEndmill>("FLAT")
-  const [nuevoMedidaPulgadas, setNuevoMedidaPulgadas] = useState("")
-  const [nuevoDescripcion, setNuevoDescripcion] = useState("")
-  const [nuevoSpecPropuesta, setNuevoSpecPropuesta] = useState("")
-  const [nuevoStockInicial, setNuevoStockInicial] = useState("0")
-  const [nuevoPrecioUSD, setNuevoPrecioUSD] = useState("0")
-  const [nuevoObjetivoPar, setNuevoObjetivoPar] = useState("")
-  const [nuevoRequiereConfirmacion, setNuevoRequiereConfirmacion] = useState(false)
-  const [nuevoNotas, setNuevoNotas] = useState("")
+  const [guardandoConteo, setGuardandoConteo] = useState(false)
+  const [errorConteo, setErrorConteo] = useState<string | null>(null)
 
   // Estado para reordenamiento (Grab and Place / Drag and Drop)
   const [ordenLocal, setOrdenLocal] = useState<EndmillMedida[]>([])
   const [reordenModificado, setReordenModificado] = useState(false)
   const [guardandoOrden, setGuardandoOrden] = useState(false)
+  const [errorOrden, setErrorOrden] = useState<string | null>(null)
   const [arrastrandoIndex, setArrastrandoIndex] = useState<number | null>(null)
 
-  // Sincronizar orden local cuando cambia la lista base de Firestore y no hay cambios sin
-  // guardar. Se ajusta durante el render (no en un efecto) para evitar un ciclo extra de
-  // render en cascada; ver https://react.dev/learn/you-might-not-need-an-effect
+  // Sincronizar orden local cuando cambia la lista base de Firestore y no hay cambios sin guardar
   const [medidasPrevias, setMedidasPrevias] = useState(medidas)
   if (medidas !== medidasPrevias && !reordenModificado) {
     setMedidasPrevias(medidas)
     setOrdenLocal(medidas)
   }
 
-  useEffect(() => {
-    if (!seleccionada) return
-    let cancelado = false
-    const medidaId = seleccionada.id
-    void listarHistorialMedidaEndmills(medidaId)
-      .then((rows) => {
-        if (!cancelado) setHistorial({ medidaId, rows })
-      })
-      .catch((err: unknown) => {
-        console.error("No se pudo cargar historial de endmill:", err)
-        if (!cancelado) setHistorial({ medidaId, rows: [] })
-      })
-    return () => {
-      cancelado = true
-    }
-  }, [seleccionada])
-
-  const reordenHabilitado = busqueda.trim() === "" && categoria === "todas" && filtroEstadoExterno === "todas" && !modoConteo
+  const reordenHabilitado =
+    busqueda.trim() === "" &&
+    categoria === "todas" &&
+    filtroEstadoExterno === "todas" &&
+    !modoConteo
 
   const listaAMostrar = useMemo(() => {
     if (reordenHabilitado && ordenLocal.length > 0) {
@@ -179,7 +137,7 @@ export default function InventarioEndmills({
   async function guardarNuevoOrden() {
     if (!onReordenarMedidas || !reordenModificado) return
     setGuardandoOrden(true)
-    setError(null)
+    setErrorOrden(null)
     try {
       const items: ReordenarMedidaItem[] = ordenLocal.map((item, idx) => ({
         id: item.id,
@@ -188,46 +146,9 @@ export default function InventarioEndmills({
       await onReordenarMedidas(items)
       setReordenModificado(false)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error al guardar el nuevo orden.")
+      setErrorOrden(err instanceof Error ? err.message : "Error al guardar el nuevo orden.")
     } finally {
       setGuardandoOrden(false)
-    }
-  }
-
-  async function guardarCrearMedida() {
-    if (!onCrearMedida) return
-    if (!nuevoMedidaPulgadas.trim() || !nuevoDescripcion.trim() || !nuevoSpecPropuesta.trim()) {
-      setError("Medida en pulgadas, descripción y spec son requeridos.")
-      return
-    }
-    setCreandoMedida(true)
-    setError(null)
-    try {
-      await onCrearMedida({
-        categoria: nuevoCategoria,
-        medidaPulgadas: nuevoMedidaPulgadas.trim(),
-        descripcion: nuevoDescripcion.trim(),
-        specPropuesta: nuevoSpecPropuesta.trim(),
-        stockInicial: Math.max(0, Math.trunc(Number(nuevoStockInicial) || 0)),
-        precioActualUSD: Math.max(0, Number(nuevoPrecioUSD) || 0),
-        objetivoPar: nuevoObjetivoPar.trim() ? Math.max(0, Math.trunc(Number(nuevoObjetivoPar))) : null,
-        requiereConfirmacion: nuevoRequiereConfirmacion,
-        notas: nuevoNotas.trim() || null,
-      })
-      setModalCrearAbierto(false)
-      // Reset form
-      setNuevoMedidaPulgadas("")
-      setNuevoDescripcion("")
-      setNuevoSpecPropuesta("")
-      setNuevoStockInicial("0")
-      setNuevoPrecioUSD("0")
-      setNuevoObjetivoPar("")
-      setNuevoRequiereConfirmacion(false)
-      setNuevoNotas("")
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error al crear la nueva medida de endmill.")
-    } finally {
-      setCreandoMedida(false)
     }
   }
 
@@ -237,7 +158,7 @@ export default function InventarioEndmills({
     setBasesConteo(inicial)
     setTocados([])
     setModoConteo(true)
-    setError(null)
+    setErrorConteo(null)
   }
 
   function capturarStockInline(id: string, valor: number) {
@@ -245,11 +166,6 @@ export default function InventarioEndmills({
     setTocados((actual) => (actual.includes(id) ? actual : [...actual, id]))
   }
 
-  /**
-   * Salida del conflicto: vuelve a tomar la foto del stock vivo. Las filas que
-   * el usuario no capturó adoptan el valor nuevo (ya no se pisan), y las que sí
-   * capturó conservan su conteo físico — que ahora sobrescribe a conciencia.
-   */
   function refrescarBaseConteo() {
     const vivo = Object.fromEntries(medidas.map((m) => [m.id, m.stockActual]))
     setBasesConteo(vivo)
@@ -260,18 +176,14 @@ export default function InventarioEndmills({
       }
       return siguiente
     })
-    setError(null)
+    setErrorConteo(null)
   }
 
   async function guardarConteoMasivo() {
     if (!onActualizarStockBatch) return
-    setGuardando(true)
-    setError(null)
+    setGuardandoConteo(true)
+    setErrorConteo(null)
     try {
-      // Solo lo que el usuario capturó. Comparar contra el stock vivo mandaría
-      // también las filas que otra persona movió mientras contaba y las
-      // revertiría; cada fila viaja con el valor que se tenía a la vista para
-      // que la transacción aborte si ya cambió.
       const capturados: ConteoEndmillInput[] = tocados
         .filter((id) => basesConteo[id] !== undefined && stocksInline[id] !== undefined)
         .map((id) => ({
@@ -285,53 +197,19 @@ export default function InventarioEndmills({
       }
       setModoConteo(false)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error guardando conteo masivo.")
+      setErrorConteo(err instanceof Error ? err.message : "Error guardando conteo masivo.")
     } finally {
-      setGuardando(false)
-    }
-  }
-
-  function abrirDetalle(medida: EndmillMedida) {
-    setSeleccionada(medida)
-    setStockEditado(String(medida.stockActual))
-    setError(null)
-  }
-
-  async function guardarStock() {
-    if (!seleccionada) return
-    const stock = Number(stockEditado)
-    if (!Number.isInteger(stock) || stock < 0) {
-      setError("Captura un número entero no negativo.")
-      return
-    }
-    setGuardando(true)
-    setError(null)
-    try {
-      await onActualizarStock(seleccionada.id, stock)
-      setSeleccionada(null)
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "No se pudo guardar el stock.")
-    } finally {
-      setGuardando(false)
-    }
-  }
-
-  async function resolverConfirmacion() {
-    if (!seleccionada || !onConfirmarMedida) return
-    setGuardando(true)
-    setError(null)
-    try {
-      await onConfirmarMedida(seleccionada.id)
-      setSeleccionada(null)
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "No se pudo actualizar.")
-    } finally {
-      setGuardando(false)
+      setGuardandoConteo(false)
     }
   }
 
   if (loading && medidas.length === 0) {
-    return <div className="space-y-2 rounded-xl border bg-white p-4"><Skeleton className="h-10 w-full" /><Skeleton className="h-64 w-full" /></div>
+    return (
+      <div className="space-y-2 rounded-xl border bg-white p-4">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    )
   }
 
   return (
@@ -351,10 +229,7 @@ export default function InventarioEndmills({
             {onCrearMedida && (
               <Button
                 size="sm"
-                onClick={() => {
-                  setError(null)
-                  setModalCrearAbierto(true)
-                }}
+                onClick={() => setModalCrearAbierto(true)}
                 className="bg-sky-700 hover:bg-sky-800 text-white font-semibold shrink-0"
               >
                 <Plus className="h-4 w-4" /> Agregar Endmill
@@ -364,18 +239,33 @@ export default function InventarioEndmills({
               <div>
                 {modoConteo ? (
                   <div className="flex items-center gap-1.5">
-                    <Button size="sm" onClick={() => void guardarConteoMasivo()} disabled={guardando} className="bg-emerald-700 hover:bg-emerald-800">
+                    <Button
+                      size="sm"
+                      onClick={() => void guardarConteoMasivo()}
+                      disabled={guardandoConteo}
+                      className="bg-emerald-700 hover:bg-emerald-800"
+                    >
                       <Save className="h-4 w-4" />{" "}
-                      {guardando
+                      {guardandoConteo
                         ? "Guardando..."
                         : `Guardar conteo${tocados.length > 0 ? ` (${tocados.length})` : ""}`}
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setModoConteo(false)} disabled={guardando}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setModoConteo(false)}
+                      disabled={guardandoConteo}
+                    >
                       <X className="h-4 w-4" /> Cancelar
                     </Button>
                   </div>
                 ) : (
-                  <Button size="sm" variant="outline" onClick={iniciarModoConteo} className="text-slate-700">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={iniciarModoConteo}
+                    className="text-slate-700"
+                  >
                     <Edit3 className="h-4 w-4" /> Conteo rápido inline
                   </Button>
                 )}
@@ -386,9 +276,10 @@ export default function InventarioEndmills({
 
         <div className="flex flex-wrap gap-1.5">
           {CATEGORIAS.map((item) => {
-            const cantidad = item.id === "todas"
-              ? medidas.length
-              : medidas.filter((medida) => medida.categoria === item.id).length
+            const cantidad =
+              item.id === "todas"
+                ? medidas.length
+                : medidas.filter((medida) => medida.categoria === item.id).length
             return (
               <button
                 key={item.id}
@@ -408,7 +299,9 @@ export default function InventarioEndmills({
 
       {reordenModificado && (
         <div className="flex items-center justify-between rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
-          <span className="font-semibold">Has modificado el orden de los endmills. Haz clic en guardar para conservar la posición.</span>
+          <span className="font-semibold">
+            Has modificado el orden de los endmills. Haz clic en guardar para conservar la posición.
+          </span>
           <div className="flex items-center gap-2">
             <Button
               size="sm"
@@ -424,6 +317,7 @@ export default function InventarioEndmills({
               onClick={() => {
                 setOrdenLocal(medidas)
                 setReordenModificado(false)
+                setErrorOrden(null)
               }}
               disabled={guardandoOrden}
               className="border-emerald-300 bg-white text-emerald-900 hover:bg-emerald-100"
@@ -434,17 +328,23 @@ export default function InventarioEndmills({
         </div>
       )}
 
-      {modoConteo && error && (
+      {errorOrden && (
+        <div role="alert" className="rounded-lg border border-rose-300 bg-rose-50 p-2 text-xs text-rose-900">
+          {errorOrden}
+        </div>
+      )}
+
+      {modoConteo && errorConteo && (
         <div
           role="alert"
           className="flex flex-col gap-2 rounded-lg border border-rose-300 bg-rose-50 p-3 text-xs text-rose-900 sm:flex-row sm:items-center sm:justify-between"
         >
-          <span>{error}</span>
+          <span>{errorConteo}</span>
           <Button
             size="sm"
             variant="outline"
             onClick={refrescarBaseConteo}
-            disabled={guardando}
+            disabled={guardandoConteo}
             className="shrink-0 border-rose-300 bg-white text-rose-900 hover:bg-rose-100"
           >
             <RefreshCw className="h-4 w-4" /> Usar mi conteo de todas formas
@@ -454,7 +354,9 @@ export default function InventarioEndmills({
 
       {filtroEstadoExterno !== "todas" && (
         <div className="flex items-center justify-between rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs text-sky-900">
-          <span>Filtrando por estado: <strong>{ETIQUETA_ESTADO[filtroEstadoExterno]}</strong></span>
+          <span>
+            Filtrando por estado: <strong>{ETIQUETA_ESTADO[filtroEstadoExterno]}</strong>
+          </span>
           <span className="font-semibold text-sky-700">
             {listaAMostrar.length === 1 ? "1 medida encontrada" : `${listaAMostrar.length} medidas encontradas`}
           </span>
@@ -476,12 +378,16 @@ export default function InventarioEndmills({
               <TableHead>Estado</TableHead>
               <TableHead className="text-right">Precio</TableHead>
               <TableHead className="text-right">Sugerido</TableHead>
-              <TableHead className="w-12"><span className="sr-only">Acciones</span></TableHead>
+              <TableHead className="w-12">
+                <span className="sr-only">Acciones</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {listaAMostrar.map((medida, index) => {
-              const stockMostrar = modoConteo ? (stocksInline[medida.id] ?? medida.stockActual) : medida.stockActual
+              const stockMostrar = modoConteo
+                ? (stocksInline[medida.id] ?? medida.stockActual)
+                : medida.stockActual
               const estado = clasificarStockEndmill(stockMostrar, medida.objetivoPar)
               const sugerido = calcularCantidadSugerida(medida.objetivoPar, stockMostrar)
               const esArrastrado = arrastrandoIndex === index
@@ -506,7 +412,10 @@ export default function InventarioEndmills({
                   {reordenHabilitado && (
                     <TableCell className="w-16 py-1 text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <GripVertical className="h-4 w-4 cursor-grab text-slate-400 hover:text-slate-700 active:cursor-grabbing" aria-label="Arrastra para mover de posición (Grab & Place)" />
+                        <GripVertical
+                          className="h-4 w-4 cursor-grab text-slate-400 hover:text-slate-700 active:cursor-grabbing"
+                          aria-label="Arrastra para mover de posición (Grab & Place)"
+                        />
                         <div className="flex flex-col">
                           <button
                             type="button"
@@ -530,13 +439,17 @@ export default function InventarioEndmills({
                       </div>
                     </TableCell>
                   )}
-                  <TableCell className="font-mono font-bold text-slate-900">{medida.medidaPulgadas}&quot;</TableCell>
+                  <TableCell className="font-mono font-bold text-slate-900">
+                    {medida.medidaPulgadas}&quot;
+                  </TableCell>
                   <TableCell className="max-w-md whitespace-normal">
                     <div className="flex items-center gap-1.5 font-semibold text-slate-800">
                       {medida.requiereConfirmacion && <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />}
                       {medida.descripcion}
                     </div>
-                    <div className="mt-0.5 truncate font-mono text-[10px] text-slate-500">{medida.specPropuesta}</div>
+                    <div className="mt-0.5 truncate font-mono text-[10px] text-slate-500">
+                      {medida.specPropuesta}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right text-base font-black tabular-nums">
                     {modoConteo ? (
@@ -558,11 +471,22 @@ export default function InventarioEndmills({
                       medida.stockActual
                     )}
                   </TableCell>
-                  <TableCell><EstadoBadge estado={estado} /></TableCell>
-                  <TableCell className="text-right font-semibold text-emerald-700">{formatPrecio(medida.precioActualUSD, "USD")}</TableCell>
-                  <TableCell className="text-right font-bold tabular-nums">{sugerido === null ? "—" : sugerido}</TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => abrirDetalle(medida)} aria-label={`Editar ${medida.descripcion}`}>
+                    <EstadoBadge estado={estado} />
+                  </TableCell>
+                  <TableCell className="text-right font-semibold text-emerald-700">
+                    {formatPrecio(medida.precioActualUSD, "USD")}
+                  </TableCell>
+                  <TableCell className="text-right font-bold tabular-nums">
+                    {sugerido === null ? "—" : sugerido}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setMedidaSeleccionada(medida)}
+                      aria-label={`Editar ${medida.descripcion}`}
+                    >
                       <Pencil className="h-4 w-4" />
                     </Button>
                   </TableCell>
@@ -573,222 +497,24 @@ export default function InventarioEndmills({
         </Table>
       )}
 
-      {seleccionada && (
-        <Dialog open onOpenChange={(open) => !open && setSeleccionada(null)}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center justify-between">
-                <span>{seleccionada.descripcion}</span>
-                {seleccionada.requiereConfirmacion && onConfirmarMedida && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => void resolverConfirmacion()}
-                    disabled={guardando}
-                    className="border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"
-                  >
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Marcar confirmada
-                  </Button>
-                )}
-              </DialogTitle>
-              <DialogDescription>{seleccionada.specPropuesta}</DialogDescription>
-            </DialogHeader>
-            {seleccionada.requiereConfirmacion && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                Precio o especificación pendientes de confirmar con China. Esta partida no entra automáticamente en un pedido.
-              </div>
-            )}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="stock-endmill">Stock actual</Label>
-                <Input id="stock-endmill" type="number" min={0} step={1} value={stockEditado} onChange={(event) => setStockEditado(event.target.value)} />
-              </div>
-              <div className="rounded-lg bg-slate-50 p-3 text-sm">
-                <div className="text-xs text-slate-500">Precio vigente</div>
-                <div className="font-bold text-emerald-700">{formatPrecio(seleccionada.precioActualUSD, "USD")}</div>
-                <div className="mt-2 text-xs text-slate-500">Objetivo base</div>
-                <div className="font-bold">{seleccionada.objetivoPar ?? "Sin base"}</div>
-              </div>
-            </div>
-            {seleccionada.notas && <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">{seleccionada.notas}</p>}
-            <div>
-              <div className="mb-2 flex items-center gap-2 text-sm font-bold"><History className="h-4 w-4" /> Historial de compras y variación de precios</div>
-              {historial?.medidaId !== seleccionada.id ? (
-                <Skeleton className="h-16 w-full" />
-              ) : historial.rows.length === 0 ? (
-                <p className="text-xs text-slate-500">Sin pedidos rastreados para esta medida.</p>
-              ) : (
-                <div className="space-y-1">
-                  {historial.rows.map((linea, index) => {
-                    const anterior = historial.rows[index + 1]
-                    let pctVar: string | null = null
-                    if (anterior && anterior.precioUnitarioUSD > 0) {
-                      const diff = ((linea.precioUnitarioUSD - anterior.precioUnitarioUSD) / anterior.precioUnitarioUSD) * 100
-                      pctVar = `${diff >= 0 ? "+" : ""}${diff.toFixed(1)}%`
-                    }
-                    return (
-                      <div key={linea.id} className="flex items-center justify-between rounded border px-3 py-2 text-xs">
-                        <span>{linea.fechaPedido} · {linea.cantidadPedida} pzas</span>
-                        <div className="flex items-center gap-2 font-semibold">
-                          {pctVar && (
-                            <span className={`text-[10px] font-bold ${pctVar.startsWith("+") ? "text-rose-600" : "text-emerald-600"}`}>
-                              ({pctVar})
-                            </span>
-                          )}
-                          <span>{formatPrecio(linea.precioUnitarioUSD, "USD")} c/u</span>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-            {error && <p className="text-sm text-rose-700">{error}</p>}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setSeleccionada(null)}>Cerrar</Button>
-              <Button onClick={() => void guardarStock()} disabled={guardando}>{guardando ? "Guardando..." : "Guardar stock"}</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+      {/* Modal para ver y editar detalle/stock de una medida */}
+      {medidaSeleccionada && (
+        <ModalDetalleEndmill
+          key={medidaSeleccionada.id}
+          medida={medidaSeleccionada}
+          onClose={() => setMedidaSeleccionada(null)}
+          onActualizarStock={onActualizarStock}
+          onConfirmarMedida={onConfirmarMedida}
+        />
       )}
 
-      {modalCrearAbierto && (
-        <Dialog open onOpenChange={(open) => !open && setModalCrearAbierto(false)}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Plus className="h-5 w-5 text-sky-700" /> Agregar Nuevo Endmill al Catálogo
-              </DialogTitle>
-              <DialogDescription>
-                La nueva medida se agregará automáticamente al final de la lista de inventario.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="grid gap-4 py-2 sm:grid-cols-2">
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="nuevo-categoria">Categoría</Label>
-                <select
-                  id="nuevo-categoria"
-                  value={nuevoCategoria}
-                  onChange={(e) => setNuevoCategoria(e.target.value as CategoriaEndmill)}
-                  className="w-full rounded-md border border-slate-300 bg-white p-2 text-sm font-medium focus:border-sky-500 focus:outline-hidden"
-                >
-                  {CATEGORIAS.filter((c) => c.id !== "todas").map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="nuevo-medida">Medida (Pulgadas) *</Label>
-                <Input
-                  id="nuevo-medida"
-                  placeholder='e.g. 1/4", 3/8"'
-                  value={nuevoMedidaPulgadas}
-                  onChange={(e) => setNuevoMedidaPulgadas(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="nuevo-precio">Precio Unitario (USD) *</Label>
-                <Input
-                  id="nuevo-precio"
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  placeholder="0.00"
-                  value={nuevoPrecioUSD}
-                  onChange={(e) => setNuevoPrecioUSD(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="nuevo-descripcion">Descripción Comercial *</Label>
-                <Input
-                  id="nuevo-descripcion"
-                  placeholder="e.g. FLAT 4 FILOS 1/4"
-                  value={nuevoDescripcion}
-                  onChange={(e) => setNuevoDescripcion(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="nuevo-spec">Especificación Técnica (Spec) *</Label>
-                <Input
-                  id="nuevo-spec"
-                  placeholder="e.g. D1/4*FL3/4*L50*4F"
-                  value={nuevoSpecPropuesta}
-                  onChange={(e) => setNuevoSpecPropuesta(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="nuevo-stock">Stock Inicial (pzas)</Label>
-                <Input
-                  id="nuevo-stock"
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={nuevoStockInicial}
-                  onChange={(e) => setNuevoStockInicial(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="nuevo-par">Objetivo PAR (Opcional)</Label>
-                <Input
-                  id="nuevo-par"
-                  type="number"
-                  min={0}
-                  step={1}
-                  placeholder="Dejar vacío si sin base"
-                  value={nuevoObjetivoPar}
-                  onChange={(e) => setNuevoObjetivoPar(e.target.value)}
-                />
-              </div>
-
-              <div className="flex items-center gap-2 sm:col-span-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="nuevo-confirmacion"
-                  checked={nuevoRequiereConfirmacion}
-                  onChange={(e) => setNuevoRequiereConfirmacion(e.target.checked)}
-                  className="h-4 w-4 rounded-xs border-slate-300 text-sky-600 focus:ring-sky-500"
-                />
-                <Label htmlFor="nuevo-confirmacion" className="cursor-pointer text-xs font-semibold text-slate-700">
-                  Marcar como pendiente de confirmación (precio/spec con China)
-                </Label>
-              </div>
-
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="nuevo-notas">Notas Adicionales (Opcional)</Label>
-                <Input
-                  id="nuevo-notas"
-                  placeholder="e.g. Proveedor especial, recubrimiento TiAlN..."
-                  value={nuevoNotas}
-                  onChange={(e) => setNuevoNotas(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {error && <p className="text-xs text-rose-700">{error}</p>}
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setModalCrearAbierto(false)}>
-                Cancelar
-              </Button>
-              <Button
-                onClick={() => void guardarCrearMedida()}
-                disabled={creandoMedida}
-                className="bg-sky-700 hover:bg-sky-800 text-white font-semibold"
-              >
-                {creandoMedida ? "Guardando..." : "Agregar Endmill"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+      {/* Modal para crear una nueva medida */}
+      {modalCrearAbierto && onCrearMedida && (
+        <ModalCrearEndmill
+          abierto={modalCrearAbierto}
+          onClose={() => setModalCrearAbierto(false)}
+          onCrearMedida={onCrearMedida}
+        />
       )}
     </section>
   )
@@ -803,4 +529,3 @@ function EstadoBadge({ estado }: { estado: EstadoStockEndmill }) {
   }[estado]
   return <Badge variant="outline" className={className}>{ETIQUETA_ESTADO[estado]}</Badge>
 }
-

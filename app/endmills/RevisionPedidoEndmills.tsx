@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { ClipboardCopy, Download, FileSpreadsheet, Mail, MessageSquare, Search, ShieldCheck, Sparkles, Upload, X } from "lucide-react"
+import { ClipboardCopy, Download, MessageSquare, Mail, Search, ShieldCheck, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -28,13 +28,14 @@ import {
   generarTextoWeChat,
 } from "@/lib/endmills-calculos"
 import { fechaHoyLocal, formatPrecio } from "@/lib/format"
-import { parsearTextoExcelEndmills, type ItemExtraidoEndmill } from "@/lib/endmills-extraer-ia"
+import type { ItemExtraidoEndmill } from "@/lib/endmills-extraer-ia"
 import type { ActorEndmills } from "@/lib/endmills"
 import type {
   EndmillMedida,
   PedidoEndmills,
   RegistrarPedidoEndmillsInput,
 } from "@/lib/schemas"
+import ModalImportadorIA from "@/app/endmills/components/ModalImportadorIA"
 
 interface FilaBorrador {
   cantidad: number
@@ -63,14 +64,16 @@ export default function RevisionPedidoEndmills({
   onClose: () => void
 }) {
   const [filas, setFilas] = useState<Record<string, FilaBorrador>>(() =>
-    Object.fromEntries(medidas.map((medida) => [
-      medida.id,
-      {
-        cantidad: calcularCantidadSugerida(medida.objetivoPar, medida.stockActual) ?? 0,
-        precio: medida.precioActualUSD,
-        confirmada: !medida.requiereConfirmacion,
-      },
-    ]))
+    Object.fromEntries(
+      medidas.map((medida) => [
+        medida.id,
+        {
+          cantidad: calcularCantidadSugerida(medida.objetivoPar, medida.stockActual) ?? 0,
+          precio: medida.precioActualUSD,
+          confirmada: !medida.requiereConfirmacion,
+        },
+      ])
+    )
   )
   const [fecha, setFecha] = useState(fechaHoyLocal())
   const [numeroProveedor, setNumeroProveedor] = useState("")
@@ -89,19 +92,24 @@ export default function RevisionPedidoEndmills({
 
   // Estado para el modal de Importador Inteligente IA / Excel
   const [modalImportarAbierto, setModalImportarAbierto] = useState(false)
-  const [textoImportar, setTextoImportar] = useState("")
-  const [procesandoImportacion, setProcesandoImportacion] = useState(false)
-  const [itemsImportadosPreview, setItemsImportadosPreview] = useState<ItemExtraidoEndmill[] | null>(null)
 
-  const seleccionadas = useMemo(() => medidas.filter((medida) => filas[medida.id]?.cantidad > 0), [medidas, filas])
-  const totales = useMemo(() => calcularTotalesPedidoEndmills(
-    seleccionadas.map((medida) => ({
-      cantidadPedida: filas[medida.id].cantidad,
-      precioUnitarioUSD: filas[medida.id].precio,
-    })),
-    Number(aliCost) || 0,
-    Number(shipping) || 0
-  ), [seleccionadas, filas, aliCost, shipping])
+  const seleccionadas = useMemo(
+    () => medidas.filter((medida) => filas[medida.id]?.cantidad > 0),
+    [medidas, filas]
+  )
+
+  const totales = useMemo(
+    () =>
+      calcularTotalesPedidoEndmills(
+        seleccionadas.map((medida) => ({
+          cantidadPedida: filas[medida.id].cantidad,
+          precioUnitarioUSD: filas[medida.id].precio,
+        })),
+        Number(aliCost) || 0,
+        Number(shipping) || 0
+      ),
+    [seleccionadas, filas, aliCost, shipping]
+  )
 
   const totalMXNEstimado = useMemo(() => {
     const tc = Number(tipoCambio)
@@ -122,48 +130,19 @@ export default function RevisionPedidoEndmills({
     })
   }, [medidas, filas, vistaItems, busquedaInterna])
 
-  async function procesarAnalisisIA() {
-    if (!textoImportar.trim()) {
-      setError("Ingresa texto o celdas de Excel para analizar.")
-      return
-    }
-    setProcesandoImportacion(true)
-    setError(null)
-    try {
-      // 1. Probar parser nativo si viene de celdas copiadas de Excel
-      const nativo = parsearTextoExcelEndmills(textoImportar, medidas)
-      if (nativo.length > 0 && nativo.some((i) => i.medidaIdCoincidencia !== null)) {
-        setItemsImportadosPreview(nativo)
-        return
-      }
-
-      // 2. Si no es formato nativo estricto, llamar a la API de Gemini
-      const res = await fetch("/api/endmills/extraer-pedido", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ texto: textoImportar }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Error analizando con IA")
-      setItemsImportadosPreview(data.items || [])
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error procesando extracción.")
-    } finally {
-      setProcesandoImportacion(false)
-    }
-  }
-
-  function aplicarImportadosAlPedido() {
-    if (!itemsImportadosPreview || itemsImportadosPreview.length === 0) return
+  function aplicarImportadosAlPedido(items: ItemExtraidoEndmill[]) {
     const nuevasFilas = { ...filas }
     let aplicados = 0
 
-    for (const item of itemsImportadosPreview) {
+    for (const item of items) {
       if (item.medidaIdCoincidencia && nuevasFilas[item.medidaIdCoincidencia]) {
         nuevasFilas[item.medidaIdCoincidencia] = {
           ...nuevasFilas[item.medidaIdCoincidencia],
           cantidad: item.cantidadPedida,
-          precio: item.precioUnitarioUSD > 0 ? item.precioUnitarioUSD : nuevasFilas[item.medidaIdCoincidencia].precio,
+          precio:
+            item.precioUnitarioUSD > 0
+              ? item.precioUnitarioUSD
+              : nuevasFilas[item.medidaIdCoincidencia].precio,
         }
         aplicados++
       }
@@ -171,9 +150,6 @@ export default function RevisionPedidoEndmills({
 
     setFilas(nuevasFilas)
     setVistaItems("solicitados")
-    setModalImportarAbierto(false)
-    setTextoImportar("")
-    setItemsImportadosPreview(null)
     setMensaje(`Se importaron y aplicaron ${aplicados} partidas al pedido.`)
   }
 
@@ -196,7 +172,9 @@ export default function RevisionPedidoEndmills({
           fila.cantidad,
           fila.precio.toFixed(2),
           (fila.cantidad * fila.precio).toFixed(2),
-        ].map((valor) => `"${String(valor).replaceAll('"', '""')}"`).join(separador)
+        ]
+          .map((valor) => `"${String(valor).replaceAll('"', '""')}"`)
+          .join(separador)
       }),
     ].join("\n")
   }
@@ -225,7 +203,9 @@ export default function RevisionPedidoEndmills({
   function abrirCorreo() {
     const asunto = encodeURIComponent(`SMV Maquinados · Endmills ${fecha}`)
     const cuerpo = encodeURIComponent(
-      `Hello Rita,\n\nPlease quote the following end mills:\n\n${tablaTexto("\t")}\n\nItems total reference: ${formatPrecio(totales.costoItemsUSD, "USD")}`
+      `Hello Rita,\n\nPlease quote the following end mills:\n\n${tablaTexto(
+        "\t"
+      )}\n\nItems total reference: ${formatPrecio(totales.costoItemsUSD, "USD")}`
     )
     window.location.href = `mailto:${PROVEEDOR.email}?subject=${asunto}&body=${cuerpo}`
   }
@@ -250,22 +230,25 @@ export default function RevisionPedidoEndmills({
     }
     setGuardando(true)
     try {
-      await onRegistrar({
-        fecha,
-        numeroProveedor: numeroProveedor.trim() || null,
-        proveedor: PROVEEDOR,
-        aliCostUSD: Number(aliCost) || 0,
-        shippingUSD: Number(shipping) || 0,
-        tipoCambioUSD: Number(tipoCambio) > 0 ? Number(tipoCambio) : null,
-        costosAdicionalesConfirmados: adicionalesConfirmados,
-        partidas: seleccionadas.map((medida) => ({
-          medidaId: medida.id,
-          stockRevisado: medida.stockActual,
-          cantidadPedida: filas[medida.id].cantidad,
-          precioUnitarioUSD: filas[medida.id].precio,
-          confirmacionResuelta: filas[medida.id].confirmada,
-        })),
-      }, actor)
+      await onRegistrar(
+        {
+          fecha,
+          numeroProveedor: numeroProveedor.trim() || null,
+          proveedor: PROVEEDOR,
+          aliCostUSD: Number(aliCost) || 0,
+          shippingUSD: Number(shipping) || 0,
+          tipoCambioUSD: Number(tipoCambio) > 0 ? Number(tipoCambio) : null,
+          costosAdicionalesConfirmados: adicionalesConfirmados,
+          partidas: seleccionadas.map((medida) => ({
+            medidaId: medida.id,
+            stockRevisado: medida.stockActual,
+            cantidadPedida: filas[medida.id].cantidad,
+            precioUnitarioUSD: filas[medida.id].precio,
+            confirmacionResuelta: filas[medida.id].confirmada,
+          })),
+        },
+        actor
+      )
       onClose()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "No se pudo registrar el pedido.")
@@ -301,9 +284,28 @@ export default function RevisionPedidoEndmills({
           <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto px-5 pb-5 lg:grid-cols-[1fr_260px]">
             <div className="min-w-0 space-y-3">
               <div className="grid gap-3 pt-1 sm:grid-cols-3">
-                <div><Label htmlFor="pedido-fecha">Fecha</Label><Input id="pedido-fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} /></div>
-                <div><Label htmlFor="pedido-numero">Folio proveedor</Label><Input id="pedido-numero" value={numeroProveedor} onChange={(e) => setNumeroProveedor(e.target.value)} placeholder="Opcional" /></div>
-                <div className="rounded-lg border bg-slate-50 px-3 py-2 text-xs"><span className="text-slate-500">Proveedor</span><div className="font-bold">Rita · ChangZhou</div></div>
+                <div>
+                  <Label htmlFor="pedido-fecha">Fecha</Label>
+                  <Input
+                    id="pedido-fecha"
+                    type="date"
+                    value={fecha}
+                    onChange={(e) => setFecha(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="pedido-numero">Folio proveedor</Label>
+                  <Input
+                    id="pedido-numero"
+                    value={numeroProveedor}
+                    onChange={(e) => setNumeroProveedor(e.target.value)}
+                    placeholder="Opcional"
+                  />
+                </div>
+                <div className="rounded-lg border bg-slate-50 px-3 py-2 text-xs">
+                  <span className="text-slate-500">Proveedor</span>
+                  <div className="font-bold">Rita · ChangZhou</div>
+                </div>
               </div>
 
               {/* Barra de herramientas de vista y búsqueda interna del pedido */}
@@ -368,21 +370,70 @@ export default function RevisionPedidoEndmills({
                         const fila = filas[medida.id]
                         const sinBase = medida.objetivoPar === null
                         return (
-                          <TableRow key={medida.id} className={medida.requiereConfirmacion ? "bg-amber-50" : ""}>
+                          <TableRow
+                            key={medida.id}
+                            className={medida.requiereConfirmacion ? "bg-amber-50" : ""}
+                          >
                             <TableCell className="max-w-sm whitespace-normal">
-                              <div className="font-semibold">{medida.medidaPulgadas}&quot; · {medida.descripcion}</div>
-                              <div className="truncate font-mono text-[10px] text-slate-500">{medida.specPropuesta}</div>
-                              {sinBase && <div className="text-[10px] font-bold text-slate-500">Definir manualmente · sin base histórica</div>}
+                              <div className="font-semibold">
+                                {medida.medidaPulgadas}&quot; · {medida.descripcion}
+                              </div>
+                              <div className="truncate font-mono text-[10px] text-slate-500">
+                                {medida.specPropuesta}
+                              </div>
+                              {sinBase && (
+                                <div className="text-[10px] font-bold text-slate-500">
+                                  Definir manualmente · sin base histórica
+                                </div>
+                              )}
                             </TableCell>
-                            <TableCell className="text-right font-bold">{medida.stockActual}</TableCell>
-                            <TableCell><Input aria-label={`Cantidad ${medida.descripcion}`} type="number" min={0} step={1} value={fila.cantidad} onChange={(e) => actualizarFila(medida.id, { cantidad: Math.max(0, Math.trunc(Number(e.target.value) || 0)) })} className="text-right font-bold" /></TableCell>
-                            <TableCell><Input aria-label={`Precio ${medida.descripcion}`} type="number" min={0} step="0.01" value={fila.precio} onChange={(e) => actualizarFila(medida.id, { precio: Math.max(0, Number(e.target.value) || 0) })} className="text-right font-semibold text-emerald-700" /></TableCell>
+                            <TableCell className="text-right font-bold">
+                              {medida.stockActual}
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                aria-label={`Cantidad ${medida.descripcion}`}
+                                type="number"
+                                min={0}
+                                step={1}
+                                value={fila.cantidad}
+                                onChange={(e) =>
+                                  actualizarFila(medida.id, {
+                                    cantidad: Math.max(0, Math.trunc(Number(e.target.value) || 0)),
+                                  })
+                                }
+                                className="text-right font-bold"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                aria-label={`Precio ${medida.descripcion}`}
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                value={fila.precio}
+                                onChange={(e) =>
+                                  actualizarFila(medida.id, {
+                                    precio: Math.max(0, Number(e.target.value) || 0),
+                                  })
+                                }
+                                className="text-right font-semibold text-emerald-700"
+                              />
+                            </TableCell>
                             <TableCell>
                               {medida.requiereConfirmacion ? (
                                 <label className="flex items-center gap-2 text-xs font-semibold text-amber-800">
-                                  <Checkbox checked={fila.confirmada} onCheckedChange={(checked) => actualizarFila(medida.id, { confirmada: checked === true })} /> Confirmado
+                                  <Checkbox
+                                    checked={fila.confirmada}
+                                    onCheckedChange={(checked) =>
+                                      actualizarFila(medida.id, { confirmada: checked === true })
+                                    }
+                                  />{" "}
+                                  Confirmado
                                 </label>
-                              ) : <span className="text-xs text-emerald-700 font-semibold">Lista</span>}
+                              ) : (
+                                <span className="text-xs text-emerald-700 font-semibold">Lista</span>
+                              )}
                             </TableCell>
                           </TableRow>
                         )
@@ -395,21 +446,73 @@ export default function RevisionPedidoEndmills({
 
             <aside className="space-y-3 lg:pt-1">
               <div className="rounded-xl border bg-slate-50 p-3">
-                <div className="text-xs font-bold uppercase tracking-wide text-slate-500">Comparación</div>
-                <div className="mt-2 flex justify-between text-sm"><span>Artículos pedido anterior</span><strong>{ultimoPedido ? formatPrecio(ultimoPedido.costoItemsUSD, "USD") : "—"}</strong></div>
-                <div className="mt-1 flex justify-between text-sm"><span>Artículos actuales</span><strong>{formatPrecio(totales.costoItemsUSD, "USD")}</strong></div>
-                <div className="mt-1 flex justify-between text-sm"><span>Piezas</span><strong>{totales.numeroPiezas}</strong></div>
+                <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Comparación
+                </div>
+                <div className="mt-2 flex justify-between text-sm">
+                  <span>Artículos pedido anterior</span>
+                  <strong>
+                    {ultimoPedido ? formatPrecio(ultimoPedido.costoItemsUSD, "USD") : "—"}
+                  </strong>
+                </div>
+                <div className="mt-1 flex justify-between text-sm">
+                  <span>Artículos actuales</span>
+                  <strong>{formatPrecio(totales.costoItemsUSD, "USD")}</strong>
+                </div>
+                <div className="mt-1 flex justify-between text-sm">
+                  <span>Piezas</span>
+                  <strong>{totales.numeroPiezas}</strong>
+                </div>
               </div>
               <div className="space-y-2 rounded-xl border p-3">
-                <div><Label htmlFor="ali-cost">Ali Cost USD</Label><Input id="ali-cost" type="number" min={0} step="0.01" value={aliCost} onChange={(e) => setAliCost(e.target.value)} /></div>
-                <div><Label htmlFor="shipping">Shipping USD</Label><Input id="shipping" type="number" min={0} step="0.01" value={shipping} onChange={(e) => setShipping(e.target.value)} /></div>
-                <div><Label htmlFor="tipo-cambio">Tipo de cambio USD/MXN</Label><Input id="tipo-cambio" type="number" min={0} step="0.01" value={tipoCambio} onChange={(e) => setTipoCambio(e.target.value)} placeholder="Opcional (ej. 18.50)" /></div>
-                <label className="flex items-start gap-2 text-xs"><Checkbox checked={adicionalesConfirmados} onCheckedChange={(checked) => setAdicionalesConfirmados(checked === true)} /> Costos adicionales confirmados</label>
+                <div>
+                  <Label htmlFor="ali-cost">Ali Cost USD</Label>
+                  <Input
+                    id="ali-cost"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={aliCost}
+                    onChange={(e) => setAliCost(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="shipping">Shipping USD</Label>
+                  <Input
+                    id="shipping"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={shipping}
+                    onChange={(e) => setShipping(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="tipo-cambio">Tipo de cambio USD/MXN</Label>
+                  <Input
+                    id="tipo-cambio"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={tipoCambio}
+                    onChange={(e) => setTipoCambio(e.target.value)}
+                    placeholder="Opcional (ej. 18.50)"
+                  />
+                </div>
+                <label className="flex items-start gap-2 text-xs">
+                  <Checkbox
+                    checked={adicionalesConfirmados}
+                    onCheckedChange={(checked) => setAdicionalesConfirmados(checked === true)}
+                  />{" "}
+                  Costos adicionales confirmados
+                </label>
                 <div className="border-t pt-2">
                   <div className="text-xs text-slate-500">Total landed</div>
                   {adicionalesConfirmados ? (
                     <div>
-                      <div className="text-xl font-black text-emerald-700">{formatPrecio(totales.totalUSD, "USD")}</div>
+                      <div className="text-xl font-black text-emerald-700">
+                        {formatPrecio(totales.totalUSD, "USD")}
+                      </div>
                       {totalMXNEstimado !== null && (
                         <div className="text-xs font-semibold text-slate-600">
                           (~{formatPrecio(totalMXNEstimado, "MXN")})
@@ -417,19 +520,44 @@ export default function RevisionPedidoEndmills({
                       )}
                     </div>
                   ) : (
-                    <div className="mt-1 text-xs font-semibold text-slate-600">Confirma Ali Cost y shipping para mostrarlo.</div>
+                    <div className="mt-1 text-xs font-semibold text-slate-600">
+                      Confirma Ali Cost y shipping para mostrarlo.
+                    </div>
                   )}
                 </div>
               </div>
               <div className="grid grid-cols-4 gap-1">
-                <Button variant="outline" size="sm" onClick={() => void copiarTabla()} title="Copiar tabla"><ClipboardCopy className="h-4 w-4" /></Button>
-                <Button variant="outline" size="sm" onClick={() => void copiarWeChat()} title="Copiar para WeChat / WhatsApp"><MessageSquare className="h-4 w-4 text-emerald-700" /></Button>
-                <Button variant="outline" size="sm" onClick={descargarCsv} title="Descargar CSV"><Download className="h-4 w-4" /></Button>
-                <Button variant="outline" size="sm" onClick={abrirCorreo} title="Preparar correo"><Mail className="h-4 w-4" /></Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void copiarTabla()}
+                  title="Copiar tabla"
+                >
+                  <ClipboardCopy className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void copiarWeChat()}
+                  title="Copiar para WeChat / WhatsApp"
+                >
+                  <MessageSquare className="h-4 w-4 text-emerald-700" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={descargarCsv} title="Descargar CSV">
+                  <Download className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={abrirCorreo} title="Preparar correo">
+                  <Mail className="h-4 w-4" />
+                </Button>
               </div>
               <label className="flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-950">
-                <Checkbox checked={revisionHumana} onCheckedChange={(checked) => setRevisionHumana(checked === true)} />
-                <span><strong>Revisión humana:</strong> confirmé cantidades, precios y specs.</span>
+                <Checkbox
+                  checked={revisionHumana}
+                  onCheckedChange={(checked) => setRevisionHumana(checked === true)}
+                />
+                <span>
+                  <strong>Revisión humana:</strong> confirmé cantidades, precios y specs.
+                </span>
               </label>
               {mensaje && <p className="text-xs text-emerald-700 font-medium">{mensaje}</p>}
               {error && <p className="rounded-lg bg-rose-50 p-2 text-xs text-rose-700">{error}</p>}
@@ -437,8 +565,14 @@ export default function RevisionPedidoEndmills({
           </div>
 
           <DialogFooter className="border-t px-5 py-4">
-            <Button variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button onClick={() => void registrar()} disabled={guardando || !revisionHumana} className="bg-sky-700 hover:bg-sky-800 font-bold">
+            <Button variant="outline" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => void registrar()}
+              disabled={guardando || !revisionHumana}
+              className="bg-sky-700 hover:bg-sky-800 font-bold"
+            >
               <ShieldCheck /> {guardando ? "Registrando..." : "Registrar pedido"}
             </Button>
           </DialogFooter>
@@ -447,113 +581,12 @@ export default function RevisionPedidoEndmills({
 
       {/* Modal de Importación Inteligente IA / Excel */}
       {modalImportarAbierto && (
-        <Dialog open onOpenChange={(open) => !open && setModalImportarAbierto(false)}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-purple-900">
-                <Sparkles className="h-5 w-5 text-purple-600" /> Importar Solicitud con IA / Excel
-              </DialogTitle>
-              <DialogDescription>
-                Pega celdas copiadas directamente de Excel o escribe el texto de tu solicitud. La IA de Gemini realizará el pareo automático con tu catálogo de endmills.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <Label htmlFor="texto-importar" className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
-                  <FileSpreadsheet className="h-4 w-4 text-emerald-600" /> Pegar celdas de Excel o texto de solicitud (Ctrl + V)
-                </Label>
-                <textarea
-                  id="texto-importar"
-                  rows={6}
-                  value={textoImportar}
-                  onChange={(e) => setTextoImportar(e.target.value)}
-                  placeholder={`Ejemplo copiado de Excel:
-1/4 FLAT 4 FILOS\t10\t7.92
-1/8 BALL 2 FILOS\t20\t5.50
-
-O texto libre:
-Necesitamos 10 piezas de fresa flat 1/4 y 20 piezas de ball 1/8.`}
-                  className="w-full rounded-md border border-slate-300 bg-slate-50 p-3 font-mono text-xs focus:border-purple-500 focus:bg-white focus:outline-hidden"
-                />
-              </div>
-
-              {!itemsImportadosPreview ? (
-                <Button
-                  onClick={() => void procesarAnalisisIA()}
-                  disabled={procesandoImportacion || !textoImportar.trim()}
-                  className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-2.5"
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  {procesandoImportacion ? "Analizando coincidencia con Gemini IA..." : "Analizar e Identificar Piezas"}
-                </Button>
-              ) : (
-                <div className="space-y-3 rounded-lg border border-purple-200 bg-purple-50/50 p-3">
-                  <div className="flex items-center justify-between text-xs font-bold text-purple-900">
-                    <span>Piezas Identificadas ({itemsImportadosPreview.length})</span>
-                    <button
-                      type="button"
-                      onClick={() => setItemsImportadosPreview(null)}
-                      className="text-purple-600 hover:underline"
-                    >
-                      Limpiar y volver a intentar
-                    </button>
-                  </div>
-
-                  <div className="max-h-48 overflow-y-auto rounded border bg-white text-xs">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-slate-50">
-                          <TableHead>Texto detectado</TableHead>
-                          <TableHead>Pulgadas</TableHead>
-                          <TableHead className="text-right">Cantidad</TableHead>
-                          <TableHead className="text-right">Precio USD</TableHead>
-                          <TableHead>Estado Match</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {itemsImportadosPreview.map((item, idx) => (
-                          <TableRow key={idx}>
-                            <TableCell className="font-medium">{item.descripcionInput}</TableCell>
-                            <TableCell className="font-mono">{item.medidaPulgadas}</TableCell>
-                            <TableCell className="text-right font-black">{item.cantidadPedida}</TableCell>
-                            <TableCell className="text-right font-bold text-emerald-700">{formatPrecio(item.precioUnitarioUSD, "USD")}</TableCell>
-                            <TableCell>
-                              {item.nivelCoincidencia === "exacto" && (
-                                <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">🟢 Exacto</span>
-                              )}
-                              {item.nivelCoincidencia === "aproximado" && (
-                                <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">🟡 Sugerido</span>
-                              )}
-                              {item.nivelCoincidencia === "nuevo" && (
-                                <span className="rounded bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-800">🔵 Nuevo</span>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  <Button
-                    onClick={aplicarImportadosAlPedido}
-                    className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2"
-                  >
-                    Cargar {itemsImportadosPreview.filter((i) => i.medidaIdCoincidencia !== null).length} partidas al pedido
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {error && <p className="text-xs text-rose-700">{error}</p>}
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setModalImportarAbierto(false)}>
-                Cerrar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <ModalImportadorIA
+          abierto={modalImportarAbierto}
+          onClose={() => setModalImportarAbierto(false)}
+          medidas={medidas}
+          onAplicarImportados={aplicarImportadosAlPedido}
+        />
       )}
     </>
   )

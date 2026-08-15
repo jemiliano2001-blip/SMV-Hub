@@ -12,16 +12,8 @@ import {
   reordenarMedidasEndmills,
   suscribirMedidasEndmills,
   suscribirPedidosEndmills,
-  type ActorEndmills,
 } from "@/lib/endmills"
-import type {
-  CrearEndmillMedidaInput,
-  EndmillMedida,
-  PedidoEndmills,
-  RecibirPedidoEndmillsInput,
-  RegistrarPedidoEndmillsInput,
-  ReordenarMedidaItem,
-} from "@/lib/schemas"
+import type { EndmillMedida, PedidoEndmills } from "@/lib/schemas"
 
 export function useEndmills() {
   const [medidas, setMedidas] = useState<EndmillMedida[]>([])
@@ -84,7 +76,7 @@ export function useEndmills() {
       console.error("Error cargando pedidos endmills:", error)
       setErrorPedidos("No se pudo cargar el historial. Intenta de nuevo.")
     } finally {
-      setLoadingPedidos(false)
+      setLoadingMedidas(false)
     }
   }, [])
 
@@ -97,16 +89,13 @@ export function useEndmills() {
     errorPedidos,
     fetchMedidas,
     fetchPedidos,
-    crearMedida: (input: CrearEndmillMedidaInput) => crearEndmillMedida(input),
-    reordenarMedidas: (items: readonly ReordenarMedidaItem[]) => reordenarMedidasEndmills(items),
+    crearMedida: crearEndmillMedida,
+    reordenarMedidas: reordenarMedidasEndmills,
     actualizarStock: actualizarStockEndmill,
     actualizarStockBatch: actualizarStockBatchEndmills,
     confirmarMedida: confirmarMedidaEndmill,
-    registrarPedido: (input: RegistrarPedidoEndmillsInput, actor: ActorEndmills) =>
-      registrarPedidoEndmills(input, actor),
-    registrarRecepcion: (pedidoId: string, input: RecibirPedidoEndmillsInput) =>
-      registrarRecepcionPedidoEndmills(pedidoId, input),
+    registrarPedido: registrarPedidoEndmills,
+    registrarRecepcion: registrarRecepcionPedidoEndmills,
     cancelarPedido: cancelarPedidoEndmills,
   }
 }
-
