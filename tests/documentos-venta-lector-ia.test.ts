@@ -225,4 +225,78 @@ describe("emparejarConVentasOdoo", () => {
     expect(matches[0].partidasSugeridas[0].odooLineId).toBe(501)
     expect(matches[0].partidasSugeridas[0].qtySolicitada).toBe(50)
   })
+
+  // Regresión: Odoo genera líneas de nota/sección con `productName` vacío. Antes, el
+  // `descCliente.includes(descSo)` era verdadero por vacuidad y emparejaba la SO completa
+  // de un cliente ajeno, con sus partidas precargadas.
+  it("no empareja una SO ajena cuyas líneas no tienen nombre de producto", () => {
+    const soAjena: VentaOdooSo = {
+      id: "so-nota",
+      odooId: 103,
+      name: "SO/2026/0414",
+      partnerId: 77,
+      partnerName: "Cliente Sin Relacion SA de CV",
+      clientOrderRef: "",
+      ordenCompra: "",
+      dateOrder: "2026-08-16",
+      state: "sale",
+      invoiceStatus: "to invoice",
+      remisiones: [],
+      lineas: [
+        {
+          odooLineId: 601,
+          productName: "",
+          productDefaultCode: "",
+          qtyOrdered: 5,
+          qtyDelivered: 0,
+          qtyPending: 5,
+        },
+        {
+          odooLineId: 602,
+          productName: "",
+          productDefaultCode: "",
+          qtyOrdered: 3,
+          qtyDelivered: 0,
+          qtyPending: 3,
+        },
+        {
+          odooLineId: 603,
+          productName: "",
+          productDefaultCode: "",
+          qtyOrdered: 2,
+          qtyDelivered: 0,
+          qtyPending: 2,
+        },
+      ],
+      sincronizadoEn: new Date(),
+    }
+
+    const matches = emparejarConVentasOdoo(ordenCliente, [soAjena])
+    expect(matches).toHaveLength(0)
+  })
+
+  it("ignora las líneas sin nombre pero conserva las que sí coinciden en la misma SO", () => {
+    const soConNota: VentaOdooSo = {
+      ...mockSos[0],
+      id: "so-con-nota",
+      odooId: 104,
+      lineas: [
+        {
+          odooLineId: 700,
+          productName: "",
+          productDefaultCode: "",
+          qtyOrdered: 0,
+          qtyDelivered: 0,
+          qtyPending: 0,
+        },
+        ...mockSos[0].lineas,
+      ],
+    }
+
+    const matches = emparejarConVentasOdoo(ordenCliente, [soConNota])
+
+    expect(matches).toHaveLength(1)
+    expect(matches[0].partidasSugeridas).toHaveLength(1)
+    expect(matches[0].partidasSugeridas[0].odooLineId).toBe(501)
+  })
 })

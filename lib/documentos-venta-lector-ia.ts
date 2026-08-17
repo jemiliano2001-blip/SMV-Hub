@@ -239,17 +239,28 @@ export function emparejarConVentasOdoo(
 
     let lineasCoincidentes = 0
     for (const lineaSo of so.lineas || []) {
-      const descSo = (lineaSo.productName || "").toLowerCase()
-      const codeSo = (lineaSo.productDefaultCode || "").toLowerCase()
+      const descSo = (lineaSo.productName || "").trim().toLowerCase()
+      const codeSo = (lineaSo.productDefaultCode || "").trim().toLowerCase()
+
+      // Odoo genera líneas de nota y de sección sin nombre ni código de producto. Sin este
+      // guard, `descCliente.includes("")` es verdadero por vacuidad y la SO entera se empareja
+      // con cualquier orden de cliente, aunque no coincidan ni la orden de compra ni el nombre.
+      if (!descSo && !codeSo) continue
 
       for (const partCliente of ordenCliente.partidas) {
-        const descCliente = partCliente.descripcion.toLowerCase()
-        const numParte = (partCliente.numeroParteCliente || "").toLowerCase()
+        const descCliente = partCliente.descripcion.trim().toLowerCase()
+        const numParte = (partCliente.numeroParteCliente || "").trim().toLowerCase()
 
-        const match =
-          (numParte && (descSo.includes(numParte) || (codeSo && codeSo.includes(numParte)))) ||
-          descSo.includes(descCliente) ||
-          descCliente.includes(descSo)
+        const coincidePorNumeroParte =
+          numParte !== "" &&
+          (descSo.includes(numParte) || (codeSo !== "" && codeSo.includes(numParte)))
+
+        const coincidePorDescripcion =
+          descSo !== "" &&
+          descCliente !== "" &&
+          (descSo.includes(descCliente) || descCliente.includes(descSo))
+
+        const match = coincidePorNumeroParte || coincidePorDescripcion
 
         if (match) {
           lineasCoincidentes++
