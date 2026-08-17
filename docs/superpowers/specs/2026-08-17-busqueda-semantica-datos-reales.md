@@ -129,14 +129,40 @@ Esto arregla o vuelve relevantes cuatro puntos de la revisión del 2026-08-17:
 
 ## Criterio de éxito
 
-1. Buscar 10 términos reales del taller (los define Emiliano) devuelve el documento correcto en
-   el top 3 en al menos 8 de los 10.
+1. Buscar las 10 búsquedas de prueba (§ abajo) devuelve el documento correcto en el top 3 en al
+   menos 8 de las 10.
 2. Un usuario sin el módulo `ordenes` nunca ve resultados de órdenes — verificado con test.
 3. Si el índice o Gemini fallan, el usuario ve un error claro, no una lista vacía.
 4. El costo mensual estimado de embeddings queda documentado y aprobado antes de desplegar.
+
+## Las 10 búsquedas de prueba (aprobadas por Emiliano, 2026-08-17)
+
+Construidas a partir de una muestra real de producción (60 órdenes recientes + 100 proveedores de
+`smv-brain`, leída en la revisión de esta misma fecha) — no son términos inventados. Cada una ataca
+uno de los cuatro problemas reales que un buscador de texto plano no resuelve: traducción
+factura↔español, sinónimo sin coincidencia de texto, categoría con muchos SKUs distintos, o
+histórico/precio en vez de solo nombre. Esta es la prueba de fuego de T0.3 del plan.
+
+| # | Búsqueda | Debe encontrar | Qué prueba |
+|---|---|---|---|
+| 1 | "fresa de carburo 4 filos para acero inoxidable" | Ítem de Changzhou North Carbide: "4 Flute... Carbide End Mill Fresa for Stainless Steel" | Traducción factura↔español (el título ya viene medio en español) |
+| 2 | "quién me vende rodamientos" | Proveedores RYASA (Rodamientos y Accesorios), BALEROS Y RET | Sinónimo — el nombre del proveedor no contiene "rodamiento" |
+| 3 | "sensor de proximidad inductivo M12" | IFM Efector PN4221, E18027 | Marca + término genérico en español |
+| 4 | "fuente de poder riel din 24V" | DigiKey "AC/DC DIN RAIL SUPPLY 24V" (MDR-20-24, NDR-120-24, etc.) | Traducción directa de la factura |
+| 5 | "quién vende acero inoxidable en Monterrey" | ABINOX MONTERREY, ACEROS FORTUNA, IIRSACERO, SERVIACERO | Sinónimo duro — "Abinox" no contiene "inoxidable" |
+| 6 | "pernos expulsores para moldes" | PCS Company "Ejector Pin, Straight, Hardened..." | Jerga de taller vs. término de factura en inglés |
+| 7 | "resortes de compresión" | McMaster "Compression Spring... 9657K286" | Coincide con el ancla SAT ya documentada en `AGENTS.md` |
+| 8 | "insertos para torno" | ISCAR, CARMEX, CCMT/CNMG de varias facturas | Categoría con muchos SKUs distintos |
+| 9 | "conectores circulares Mouser" | Los "Standard Circular Connector... shell size 17/23" (7 líneas en la muestra) | Categoría con muchos SKUs distintos |
+| 10 | "cuándo fue la última vez que compré un encoder Mitsubishi" | Aparece 2 veces en la muestra (eBay, fechas distintas) | Histórico/precio, no solo nombre |
+
+Advertencia de la propia muestra: es de 60 órdenes recientes y 100 proveedores, no todo el
+histórico — no salió nada de pailería, por ejemplo. Si en Fase 0/T0.3 alguna de las 10 no encuentra
+lo esperado, revisar primero si el ítem realmente está en el rango indexado antes de asumir que el
+modelo falló.
 
 ## Preguntas abiertas para Emiliano
 
 1. **¿Arrancamos con órdenes + proveedores, o prefieres otro orden?**
 2. **¿Los resultados deben respetar permisos por módulo?** (Recomiendo que sí.)
-3. **¿Qué 10 búsquedas reales usamos como prueba de fuego?** Esto define si sirve o no.
+3. ~~¿Qué 10 búsquedas reales usamos como prueba de fuego?~~ **Resuelto** — ver tabla arriba.
