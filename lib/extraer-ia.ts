@@ -8,7 +8,7 @@ import {
  * Verificar IDs vigentes en https://ai.google.dev/gemini-api/docs/models
  */
 /** Default: visión + structured output (override con GEMINI_MODEL). */
-export const MODELO_EXTRACCION = "gemini-3.5-flash"
+export const MODELO_EXTRACCION = "gemini-3.7-flash"
 
 /** Calidad alta para tablas densas en extracción por lote. */
 export const MODELO_EXTRACCION_ALTA = "gemini-3.1-pro-preview"

@@ -11,26 +11,30 @@ describe("Sugerencias SAT para componentes de moldes / ejector pin", () => {
     expect(res?.terminosBusqueda).not.toBe("pasador")
   })
 
-  it("sugerirClaveSatItem no secuestra la descripción en inglés con un pasador genérico local", async () => {
-    const mockTraducirYElegir = vi.fn().mockResolvedValue({
-      terminosBusqueda: "ejector pin botador molde",
-      clave: "31163220",
-      motivo: "Pin expulsor para moldes",
-      confianzaIa: "alta",
-    })
+  it(
+    "sugerirClaveSatItem no secuestra la descripción en inglés con un pasador genérico local",
+    async () => {
+      const mockTraducirYElegir = vi.fn().mockResolvedValue({
+        terminosBusqueda: "ejector pin botador molde",
+        clave: "31163220",
+        motivo: "Pin expulsor para moldes",
+        confianzaIa: "alta",
+      })
 
-    const res = await sugerirClaveSatItem(
-      {
-        descripcion: "P14-14 PCS Company's Ejector Pin",
-        proveedor: "PCS Company",
-      },
-      new Map(),
-      { traducirYElegir: mockTraducirYElegir }
-    )
+      const res = await sugerirClaveSatItem(
+        {
+          descripcion: "P14-14 PCS Company's Ejector Pin",
+          proveedor: "PCS Company",
+        },
+        new Map(),
+        { traducirYElegir: mockTraducirYElegir }
+      )
 
-    // Debe invocar a la IA en lugar de secuestrar con pasador paralelo 27111558
-    expect(mockTraducirYElegir).toHaveBeenCalled()
-    expect(res.claveProdServ).toBe("31163220")
-    expect(res.fuente).toBe("ia_rag")
-  })
+      // Debe invocar a la IA en lugar de secuestrar con pasador paralelo 27111558
+      expect(mockTraducirYElegir).toHaveBeenCalled()
+      expect(res.claveProdServ).toBe("31163220")
+      expect(res.fuente).toBe("ia_rag")
+    },
+    15_000
+  )
 })

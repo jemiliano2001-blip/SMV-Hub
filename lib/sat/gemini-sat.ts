@@ -6,7 +6,7 @@ import { clasificarAreaComprasSmv, contextoSmvParaIa } from "@/lib/sat/perfil-co
 /** Modelo económico para traducción/clasificación SAT (override con GEMINI_MODEL_SAT). */
 export const MODELO_SAT_LITE = "gemini-3.1-flash-lite"
 /** Modelo más capaz para casos ambiguos (override con GEMINI_MODEL_SAT_ESCALADO). */
-export const MODELO_SAT_ESCALADO = "gemini-3.5-flash"
+export const MODELO_SAT_ESCALADO = "gemini-3.7-flash"
 /** @deprecated Usar MODELO_SAT_LITE */
 export const MODELO_SAT = MODELO_SAT_LITE
 const MODELO_SAT_OBSOLETO = "gemini-3.5-flash-lite"

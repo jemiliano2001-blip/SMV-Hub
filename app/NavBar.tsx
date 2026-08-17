@@ -28,6 +28,7 @@ const GRUPOS: GrupoNav[] = [
     nombre: 'Compras',
     links: [
       { href: '/nueva-compra', label: 'Nueva compra (IA)' },
+      { href: '/compras-odoo', label: 'Compras Odoo' },
       { href: '/caja-chica', label: 'Caja chica' },
       { href: '/ordenes', label: 'Ver órdenes' },
       { href: '/requisiciones', label: 'Requisiciones' },

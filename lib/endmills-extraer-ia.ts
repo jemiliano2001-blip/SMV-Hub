@@ -144,7 +144,7 @@ export async function extraerPedidoEndmillsIA(
 
   // 2. Si no es tabla estricta, invocar Gemini AI
   const apiKey = obtenerApiKey()
-  const modelo = process.env.GEMINI_MODEL || "gemini-3.5-flash"
+  const modelo = process.env.GEMINI_MODEL || "gemini-3.7-flash"
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`
 
   const catalogoResumido = catalogo.map((m) => ({

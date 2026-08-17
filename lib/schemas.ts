@@ -359,6 +359,7 @@ export const ModuloIdSchema = z.enum([
   "ordenes",
   "claves-sat",
   "cotizaciones",
+  "compras-odoo",
   "endmills",
   "requisiciones",
   "proveedores",
@@ -1377,3 +1378,59 @@ export const VentaOdooSoSchema = z.object({
   sincronizadoEn: z.date(),
 })
 export type VentaOdooSo = z.infer<typeof VentaOdooSoSchema>
+
+// ── Compras Nacionales Odoo (Cotizaciones rápidas) ───────────────────────────
+
+export const PartidaCotizacionOdooSchema = z.object({
+  id: z.string(),
+  partida: z.union([z.number(), z.string()]).optional().nullable(),
+  clave: z.string().optional().default(""),
+  descripcion: z.string().min(1, "La descripción es requerida"),
+  cantidad: z.number().positive("La cantidad debe ser mayor a 0"),
+  udm: z.string().default("Pieza"),
+  precioUnitario: z.number().nonnegative("El precio unitario no puede ser negativo"),
+  subtotal: z.number().nonnegative(),
+  impuesto: z.string().default("IVA 16%"),
+  tasaIva: z.number().default(0.16),
+  requisitor: z.string().optional().default(""),
+  empresa: z.string().optional().default(""),
+  uso: z.string().optional().default(""),
+})
+export type PartidaCotizacionOdoo = z.infer<typeof PartidaCotizacionOdooSchema>
+
+export const CotizacionOdooPayloadSchema = z.object({
+  proveedor: z.string().min(1, "El proveedor es requerido"),
+  proveedorId: z.union([z.number().int().positive(), z.string()]).optional().nullable(),
+  referenciaProveedor: z.string().optional().default(""),
+  moneda: z.enum(["MXN", "USD"]).default("MXN"),
+  fecha: z.string().optional().default(""),
+  requisitorGeneral: z.string().optional().default(""),
+  empresaGeneral: z.string().optional().default(""),
+  usoGeneral: z.string().optional().default(""),
+  notas: z.string().optional().default(""),
+  partidas: z.array(PartidaCotizacionOdooSchema).min(1, "Debe haber al menos 1 partida"),
+})
+export type CotizacionOdooPayload = z.infer<typeof CotizacionOdooPayloadSchema>
+
+export const RegistroCotizacionOdooSchema = z.object({
+  id: z.string(),
+  odooId: z.number().int().positive(),
+  odooName: z.string(),
+  odooState: z.string().default("draft"),
+  proveedor: z.string(),
+  proveedorId: z.number().int().positive().nullable().optional(),
+  referenciaProveedor: z.string().default(""),
+  moneda: z.enum(["MXN", "USD"]).default("MXN"),
+  totalUntaxed: z.number(),
+  totalTax: z.number(),
+  total: z.number(),
+  itemsCount: z.number(),
+  partidas: z.array(PartidaCotizacionOdooSchema),
+  creadoPorUid: z.string(),
+  creadoPorEmail: z.string(),
+  creadoPorNombre: z.string().optional().default(""),
+  creadoEn: z.date(),
+  actualizadoEn: z.date(),
+})
+export type RegistroCotizacionOdoo = z.infer<typeof RegistroCotizacionOdooSchema>
+

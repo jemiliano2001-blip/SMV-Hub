@@ -15,6 +15,7 @@ interface HeaderCentroMandoProps {
   onMercadoChange: (mercado: 'usa' | 'mexico') => void
   onNuevoProveedor: () => void
   onGenerarPDF: () => void
+  onAbrirInvestigacion?: () => void
 }
 
 export default function HeaderCentroMando({
@@ -26,6 +27,7 @@ export default function HeaderCentroMando({
   onMercadoChange,
   onNuevoProveedor,
   onGenerarPDF,
+  onAbrirInvestigacion,
 }: HeaderCentroMandoProps) {
   return (
     <div className="space-y-4">
@@ -53,6 +55,17 @@ export default function HeaderCentroMando({
 
           {/* Botones de Acción Principal */}
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            {onAbrirInvestigacion && (
+              <Button
+                onClick={onAbrirInvestigacion}
+                variant="outline"
+                className="bg-sky-50 hover:bg-sky-100 text-[#0369A1] border-sky-200 shadow-2xs gap-1.5 text-xs font-extrabold"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#0369A1]" />
+                Investigar Precios IA
+              </Button>
+            )}
+
             <Button
               onClick={onGenerarPDF}
               variant="outline"

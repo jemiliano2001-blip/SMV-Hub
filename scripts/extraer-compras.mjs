@@ -15,7 +15,7 @@
 //
 // Variables de entorno (de .env.local o del shell):
 //   GEMINI_API_KEY   (obligatoria)
-//   GEMINI_MODEL     (opcional, default "gemini-3.5-flash")
+//   GEMINI_MODEL     (opcional, default "gemini-3.7-flash")
 //   CONCURRENCY      (opcional, default 4)
 
 import fs from "node:fs"
@@ -31,7 +31,7 @@ const CSV_PATH = path.join(SALIDA_DIR, "_consolidado.csv")
 // ── Config ────────────────────────────────────────────────────────────────────
 cargarEnvLocal()
 const API_KEY = process.env.GEMINI_API_KEY
-const MODELO = process.env.GEMINI_MODEL || "gemini-3.5-flash"
+const MODELO = process.env.GEMINI_MODEL || "gemini-3.7-flash"
 const CONCURRENCY = Number(process.env.CONCURRENCY || 4)
 
 const args = process.argv.slice(2)

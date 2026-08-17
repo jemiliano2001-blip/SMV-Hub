@@ -142,6 +142,15 @@ service cloud.firestore {
              d.actualizadoEn is timestamp;
     }
 
+    function comprasOdooValida(d) {
+      return d.proveedor is string &&
+             d.odooName is string &&
+             d.moneda in ['MXN', 'USD'] &&
+             montoValido(d.total) &&
+             d.creadoEn is timestamp &&
+             d.actualizadoEn is timestamp;
+    }
+
     function requisicionValida(d) {
       return d.tipo in ['general', 'automatizacion'] &&
              d.solicitante is string &&
@@ -186,6 +195,22 @@ service cloud.firestore {
                      && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
 
       allow delete: if esUsuarioAutorizado();
+    }
+
+    // ── Compras / Cotizaciones Odoo ──────────────────────────────────────────
+
+    match /compras_odoo/{compraOdooId} {
+      allow read: if esUsuarioAutorizado();
+
+      allow create: if esUsuarioAutorizado()
+                    && comprasOdooValida(request.resource.data);
+
+       allow update: if esUsuarioAutorizado()
+                     && comprasOdooValida(request.resource.data)
+                     && request.resource.data.creadoEn == resource.data.creadoEn
+                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+
+      allow delete: if esUsuarioAutorizado() && (esSuperAdminDoc() || esCorreoBreakGlass());
     }
 
     // ── Requisiciones (seguimiento de pedidos por solicitante) ───────────────

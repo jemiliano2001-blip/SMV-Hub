@@ -43,6 +43,7 @@ import DirectorioProveedores from './components/DirectorioProveedores'
 import DrawerDetalleProveedor from './components/DrawerDetalleProveedor'
 import PanelInteligencia360 from './components/PanelInteligencia360'
 import PanelVinculacionProveedores from './components/PanelVinculacionProveedores'
+import ModalInvestigacionPrecios from './components/ModalInvestigacionPrecios'
 import { listarItemsComprasOdoo } from '@/lib/compras-odoo-store'
 import { listarCotizaciones } from '@/lib/cotizaciones'
 import { listarOrdenesEnRango } from '@/lib/ordenes'
@@ -946,6 +947,7 @@ function ProveedoresContent() {
 
   const [modalFormAbierto, setModalFormAbierto] = useState(false)
   const [modalPOAbierto, setModalPOAbierto] = useState(false)
+  const [modalInvestigacionAbierto, setModalInvestigacionAbierto] = useState(false)
   const [proveedorEditar, setProveedorEditar] = useState<Proveedor | null>(null)
   const [idEliminar, setIdEliminar] = useState<string | null>(null)
 
@@ -1124,6 +1126,7 @@ function ProveedoresContent() {
           onMercadoChange={(r) => setRegion(r)}
           onNuevoProveedor={abrirNuevo}
           onGenerarPDF={() => void abrirReportePO()}
+          onAbrirInvestigacion={() => setModalInvestigacionAbierto(true)}
         />
 
         {/* Navegación por Pestañas Principales */}
@@ -1480,6 +1483,14 @@ function ProveedoresContent() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Modal Asistente de Investigación de Precios con Gemini 3.7 */}
+        <ModalInvestigacionPrecios
+          abierto={modalInvestigacionAbierto}
+          onClose={() => setModalInvestigacionAbierto(false)}
+          ordenesHistoricas={ordenesScorecard}
+          itemsOdoo={itemsComprasOdoo}
+        />
       </div>
     </main>
   )

@@ -152,11 +152,11 @@ NEXT_PUBLIC_FIREBASE_APP_ID=
 
 # Gemini (para extracción IA de facturas — crear en Google AI Studio)
 GEMINI_API_KEY=
-# Opcional: override del modelo de extracción (default gemini-3.5-flash)
+# Opcional: override del modelo de extracción (default gemini-3.7-flash)
 # GEMINI_MODEL=
 # Opcional: modelo económico para sugerencia de claves SAT (default gemini-3.1-flash-lite)
 # GEMINI_MODEL_SAT=
-# Opcional: modelo de escalación para casos SAT ambiguos (default gemini-3.5-flash)
+# Opcional: modelo de escalación para casos SAT ambiguos (default gemini-3.7-flash)
 # GEMINI_MODEL_SAT_ESCALADO=
 
 # Opcional: omite el login en desarrollo (ver sección Autenticación)
@@ -196,7 +196,7 @@ GEMINI_API_KEY=
   `/finanzas` (cuentas por pagar, flujo de caja, conciliación Odoo).
 - `app/api/extraer/` — Route Handler POST: recibe una imagen, devuelve `ExtraccionInvoice` (una factura)
 - `app/api/extraer-lote/` — Route Handler POST: recibe hasta 20 imágenes + `calidad=alta` (usa
-  `gemini-3.1-pro-preview`) o sin el param (usa `gemini-3.5-flash`); devuelve `{ extracciones: ExtraccionInvoice[] }`
+  `gemini-3.1-pro-preview`) o sin el param (usa `gemini-3.7-flash`); devuelve `{ extracciones: ExtraccionInvoice[] }`
 - `app/api/scrape/` — Route Handler POST: scrapea precio/datos de una URL de host permitido (cheerio)
 - `lib/` — lógica pura, schemas Zod y acceso a Firestore:
   - `schemas.ts` — fuente de verdad de tipos; ver sección "Schemas Zod"

@@ -65,6 +65,15 @@ const NAV_CARDS: readonly TarjetaNavegacion[] = [
     tags: ['ia', 'factura', 'compra', 'pdf', 'xml', 'ticket'],
   },
   {
+    href: '/compras-odoo',
+    icon: FileSpreadsheet,
+    label: 'Compras Odoo (Cotizaciones)',
+    desc: 'Captura rápida desde Excel y creación de Solicitudes de Cotización en Odoo ERP.',
+    grupo: 'compras',
+    principal: true,
+    tags: ['odoo', 'cotizacion', 'compras', 'excel', 'nacional', 'partidas', 'rfq'],
+  },
+  {
     href: '/caja-chica',
     icon: Wallet,
     label: 'Caja Chica',

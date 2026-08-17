@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Search,
@@ -11,6 +11,9 @@ import {
   Package,
   Sparkles,
   TrendingUp,
+  Loader2,
+  Wrench,
+  Layers,
 } from 'lucide-react'
 import {
   CommandDialog,
@@ -22,10 +25,23 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from '@/components/ui/command'
+import { Badge } from '@/components/ui/badge'
+import { getClienteAuth } from '@/lib/firebase'
+import type { ItemCatalogoSemantico } from '@/lib/busqueda-semantica-catalogo'
+
+interface ResultadoSemanticoUI {
+  item: ItemCatalogoSemantico
+  score: number
+  porcentajeSimilitud: number
+}
 
 export default function BuscadorGlobalCommand() {
   const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [resultadosSemanticos, setResultadosSemanticos] = useState<ResultadoSemanticoUI[]>([])
+  const [buscandoSemantico, setBuscandoSemantico] = useState(false)
   const router = useRouter()
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Listener para Ctrl+K / Cmd+K
   useEffect(() => {
@@ -38,6 +54,53 @@ export default function BuscadorGlobalCommand() {
     document.addEventListener('keydown', down)
     return () => document.removeEventListener('keydown', down)
   }, [])
+
+  // Manejo de búsqueda semántica con debounce al escribir >= 3 caracteres
+  const handleQueryChange = (nuevoTexto: string) => {
+    setQuery(nuevoTexto)
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+    }
+
+    const q = nuevoTexto.trim()
+    if (q.length < 3) {
+      setResultadosSemanticos([])
+      setBuscandoSemantico(false)
+      return
+    }
+
+    setBuscandoSemantico(true)
+    timeoutRef.current = setTimeout(async () => {
+      try {
+        const auth = getClienteAuth()
+        const token = (await auth.currentUser?.getIdToken()) || ''
+        const res = await fetch('/api/busqueda-semantica', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            query: q,
+            topK: 4,
+            minScore: 0.35,
+          }),
+        })
+
+        if (res.ok) {
+          const data = await res.json()
+          setResultadosSemanticos(data?.resultado?.resultados || [])
+        } else {
+          setResultadosSemanticos([])
+        }
+      } catch {
+        setResultadosSemanticos([])
+      } finally {
+        setBuscandoSemantico(false)
+      }
+    }, 350)
+  }
 
   const runCommand = (command: () => void) => {
     setOpen(false)
@@ -60,9 +123,86 @@ export default function BuscadorGlobalCommand() {
 
       {/* Modal Dialog de Búsqueda Global */}
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder="Escribe para buscar proveedores, requisiciones, órdenes o secciones..." />
-        <CommandList className="max-h-[380px] font-sans">
+        <div className="relative">
+          <CommandInput
+            value={query}
+            onValueChange={handleQueryChange}
+            placeholder="Escribe para buscar proveedores, herramientas, refacciones o módulos..."
+          />
+          {buscandoSemantico && (
+            <div className="absolute right-4 top-3.5 flex items-center gap-1 text-[11px] text-sky-600 animate-pulse">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>Búsqueda semántica...</span>
+            </div>
+          )}
+        </div>
+
+        <CommandList className="max-h-[420px] font-sans">
           <CommandEmpty>No se encontraron resultados para tu búsqueda.</CommandEmpty>
+
+          {/* Resultados Semánticos de IA (Gemini Embeddings) */}
+          {resultadosSemanticos.length > 0 && (
+            <>
+              <CommandGroup
+                heading={
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-700">
+                    <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+                    <span>Resultados Inteligentes IA (Catálogo &amp; Refacciones)</span>
+                  </div>
+                }
+              >
+                {resultadosSemanticos.map((res) => (
+                  <CommandItem
+                    key={res.item.id}
+                    onSelect={() =>
+                      runCommand(() => router.push(res.item.urlDestino || '/proveedores'))
+                    }
+                    className="flex flex-col items-start gap-1 py-2"
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2">
+                        {res.item.categoria === 'herramientas_corte' ? (
+                          <Wrench className="h-4 w-4 text-violet-600 shrink-0" />
+                        ) : res.item.categoria === 'metales' || res.item.categoria === 'plasticos' ? (
+                          <Layers className="h-4 w-4 text-amber-600 shrink-0" />
+                        ) : (
+                          <Package className="h-4 w-4 text-sky-600 shrink-0" />
+                        )}
+                        <span className="font-semibold text-slate-900 text-xs sm:text-sm line-clamp-1">
+                          {res.item.tituloES}
+                        </span>
+                      </div>
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] bg-indigo-50 text-indigo-700 border-indigo-200 font-bold shrink-0 ml-2"
+                      >
+                        {res.porcentajeSimilitud}% afinidad
+                      </Badge>
+                    </div>
+
+                    <div className="text-[11px] text-slate-500 pl-6 line-clamp-1">
+                      <span className="font-medium text-slate-600">EN:</span> {res.item.tituloEN}
+                    </div>
+
+                    {res.item.proveedoresHabituales.length > 0 && (
+                      <div className="text-[10px] text-slate-400 pl-6 flex items-center gap-1 flex-wrap">
+                        <span>Proveedores:</span>
+                        {res.item.proveedoresHabituales.map((prov, i) => (
+                          <span
+                            key={i}
+                            className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono"
+                          >
+                            {prov}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+              <CommandSeparator />
+            </>
+          )}
 
           {/* Secciones de Compras */}
           <CommandGroup heading="Módulos de Compras & Tooling">

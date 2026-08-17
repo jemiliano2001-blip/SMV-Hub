@@ -1,7 +1,7 @@
 import { z } from "zod"
 import type { RegistroBano, MotivoSolicitudBorradoBano } from "@/lib/schemas"
 
-export const MODELO_BANOS_DEFAULT = "gemini-3.6-flash"
+export const MODELO_BANOS_DEFAULT = "gemini-3.7-flash"
 const MODELO_BANOS_TIMEOUT_MS = 15_000
 
 const EvaluacionBanoSchema = z.object({
