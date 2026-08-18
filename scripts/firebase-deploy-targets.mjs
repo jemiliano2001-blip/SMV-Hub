@@ -15,6 +15,8 @@ const FUNCTIONS = [
   "functions:smv-hub:syncOdooComprasManual",
   "functions:smv-hub:syncOdooVentasScheduled",
   "functions:smv-hub:syncOdooVentasManual",
+  "functions:smv-hub:syncBusquedaIndiceScheduled",
+  "functions:smv-hub:syncBusquedaIndiceManual",
   "functions:smv-hub:listarCasosIntegridad",
   "functions:smv-hub:obtenerCasoIntegridad",
   "functions:smv-hub:ejecutarComandoCasoIntegridad",

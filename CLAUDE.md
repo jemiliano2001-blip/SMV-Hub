@@ -126,6 +126,18 @@ no uses `firebase deploy` a secas, falla por el mismo motivo que `next build` a 
 ejecutes `firebase deploy --only functions --force`: `smv-brain` comparte Functions con otras
 aplicaciones y un deploy global puede eliminarlas. El codebase de Hub es `smv-hub`.
 
+### Búsqueda semántica
+
+`busqueda_indice` se actualiza cada 24 h mediante `syncBusquedaIndiceScheduled` y sólo un
+super-admin puede usar `syncBusquedaIndiceManual`. Ambas Functions usan el secreto separado
+`HUB_GEMINI_API_KEY`; nunca reutilices ni cambies secretos sin prefijo de los otros productos del
+proyecto compartido. El índice usa embeddings de 768 dimensiones de `gemini-embedding-2-preview`,
+coseno en servidor y acceso Firestore bloqueado al cliente; `/api/busqueda-semantica` aplica los
+permisos de `ordenes` y `proveedores` antes de recuperar una fuente. Conserva batches de escritura
+de **100**: 400 vectores excedieron el límite Firestore de 10 MiB por transacción durante la
+indexación inicial. `scripts/firebase-deploy-targets.mjs` debe conservar ambas Functions
+`syncBusquedaIndice*` dentro de los targets del codebase `smv-hub`.
+
 ### Cloud Functions (`functions/`)
 
 Build y deploy son independientes de la app Next.js — requieren `cd functions` primero:

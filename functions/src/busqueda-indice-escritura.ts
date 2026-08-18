@@ -14,7 +14,10 @@ import {
 
 const db = getDb()
 const COLECCION_INDICE = "busqueda_indice"
-const TAMANO_LOTE = 400 // límite de writeBatch de Firestore
+// Aunque writeBatch admite hasta 500 operaciones, 400 documentos con embeddings
+// de 768 dimensiones exceden el límite de 10 MiB por transacción de Firestore.
+// 100 deja margen para metadata y evita que una indexación inicial falle completa.
+const TAMANO_LOTE = 100
 
 function ordenDesdeDoc(doc: FirebaseFirestore.QueryDocumentSnapshot): OrdenParaIndice | null {
   const d = doc.data()
@@ -104,7 +107,7 @@ export async function sincronizarIndiceBusqueda(apiKey: string): Promise<Resulta
     { apiKey }
   )
 
-  // 4. Escribir en lotes de 400.
+  // 4. Escribir en lotes que respetan el límite de tamaño por transacción.
   const ahora = new Date()
   for (let i = 0; i < necesitanEmbed.length; i += TAMANO_LOTE) {
     const batch = db.batch()

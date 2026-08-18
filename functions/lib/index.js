@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ejecutarComandoCasoIntegridad = exports.obtenerCasoIntegridad = exports.listarCasosIntegridad = exports.syncOdooVentasManual = exports.syncOdooVentasScheduled = exports.syncOdooComprasManual = exports.syncOdooComprasScheduled = exports.syncOdooFacturasManual = exports.syncOdooFacturasScheduled = void 0;
+exports.ejecutarComandoCasoIntegridad = exports.obtenerCasoIntegridad = exports.listarCasosIntegridad = exports.syncBusquedaIndiceManual = exports.syncBusquedaIndiceScheduled = exports.syncOdooVentasManual = exports.syncOdooVentasScheduled = exports.syncOdooComprasManual = exports.syncOdooComprasScheduled = exports.syncOdooFacturasManual = exports.syncOdooFacturasScheduled = void 0;
 const app_1 = require("firebase-admin/app");
 // Debe ejecutarse antes de cualquier import que llame a getFirestore() a
 // nivel de módulo (odooSync.ts y odoo-compras-sync.ts lo hacen para su
@@ -18,6 +18,9 @@ Object.defineProperty(exports, "syncOdooComprasManual", { enumerable: true, get:
 var odoo_ventas_sync_1 = require("./odoo-ventas-sync");
 Object.defineProperty(exports, "syncOdooVentasScheduled", { enumerable: true, get: function () { return odoo_ventas_sync_1.syncOdooVentasScheduled; } });
 Object.defineProperty(exports, "syncOdooVentasManual", { enumerable: true, get: function () { return odoo_ventas_sync_1.syncOdooVentasManual; } });
+var busqueda_indice_sync_1 = require("./busqueda-indice-sync");
+Object.defineProperty(exports, "syncBusquedaIndiceScheduled", { enumerable: true, get: function () { return busqueda_indice_sync_1.syncBusquedaIndiceScheduled; } });
+Object.defineProperty(exports, "syncBusquedaIndiceManual", { enumerable: true, get: function () { return busqueda_indice_sync_1.syncBusquedaIndiceManual; } });
 var api_1 = require("./reportes-integridad/api");
 Object.defineProperty(exports, "listarCasosIntegridad", { enumerable: true, get: function () { return api_1.listarCasosIntegridad; } });
 Object.defineProperty(exports, "obtenerCasoIntegridad", { enumerable: true, get: function () { return api_1.obtenerCasoIntegridad; } });
