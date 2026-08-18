@@ -1,6 +1,8 @@
 import { createRequire } from "node:module"
 import { existsSync } from "node:fs"
 import type { App } from "firebase-admin/app"
+import type { Auth } from "firebase-admin/auth"
+import type { Firestore } from "firebase-admin/firestore"
 
 const require = createRequire(import.meta.url)
 const { getApps, initializeApp } = require(/* turbopackIgnore: true */ "firebase-admin/app") as typeof import("firebase-admin/app")
@@ -59,10 +61,35 @@ function obtenerAdminApp(): App {
   })
 }
 
-const adminApp = obtenerAdminApp()
+let adminAuthInstance: Auth | undefined
+let adminDbInstance: Firestore | undefined
 
-export const adminAuth = getAuth(adminApp)
-export const adminDb = getFirestore(
-  adminApp,
-  process.env.NEXT_PUBLIC_FIRESTORE_DATABASE_ID || "compras-americanas"
-)
+function getAdminAuthInstance(): Auth {
+  if (!adminAuthInstance) {
+    adminAuthInstance = getAuth(obtenerAdminApp())
+  }
+  return adminAuthInstance
+}
+
+function getAdminDbInstance(): Firestore {
+  if (!adminDbInstance) {
+    adminDbInstance = getFirestore(
+      obtenerAdminApp(),
+      process.env.NEXT_PUBLIC_FIRESTORE_DATABASE_ID || "compras-americanas"
+    )
+  }
+  return adminDbInstance
+}
+
+/** Lazy: en Hosting SSR, `firebase-frameworks` puede inicializarse después de importar este módulo. */
+export const adminAuth: Auth = new Proxy({} as Auth, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getAdminAuthInstance() as object, prop, receiver)
+  },
+})
+
+export const adminDb: Firestore = new Proxy({} as Firestore, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getAdminDbInstance() as object, prop, receiver)
+  },
+})

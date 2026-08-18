@@ -41,6 +41,16 @@ export async function POST(req: NextRequest) {
   if (info.esSuperAdmin || info.modulos.includes("ordenes")) fuentesPermitidas.push("orden-item")
   if (info.esSuperAdmin || info.modulos.includes("proveedores")) fuentesPermitidas.push("proveedor")
 
+  if (fuentesPermitidas.length === 0) {
+    return NextResponse.json(
+      {
+        error:
+          "Tu usuario no tiene acceso a órdenes ni proveedores; la búsqueda semántica no aplica. Pide a un admin los módulos correspondientes.",
+      },
+      { status: 403 }
+    )
+  }
+
   let bodyRaw: unknown
   try {
     bodyRaw = await req.json()

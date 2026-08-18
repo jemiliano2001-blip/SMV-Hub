@@ -154,7 +154,7 @@ export default function BuscadorGlobalCommand() {
       </button>
 
       {/* Modal Dialog de Búsqueda Global */}
-      <CommandDialog open={open} onOpenChange={setOpen}>
+      <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
         <div className="relative">
           <CommandInput
             value={query}
@@ -170,7 +170,13 @@ export default function BuscadorGlobalCommand() {
         </div>
 
         <CommandList className="max-h-[420px] font-sans">
-          <CommandEmpty>No se encontraron resultados para tu búsqueda.</CommandEmpty>
+          {query.trim().length >= 3 && !buscandoSemantico && !errorSemantico && resultadosSemanticos.length === 0 && (
+            <div className="mx-2 mt-2 px-3 py-2 text-xs text-slate-500 border border-dashed border-slate-200 rounded-lg">
+              La búsqueda inteligente no encontró coincidencias para &quot;{query.trim()}&quot;.
+            </div>
+          )}
+
+          {query.trim().length < 3 && <CommandEmpty>Escribe al menos 3 caracteres para buscar con IA.</CommandEmpty>}
 
           {errorSemantico && (
             <div className="flex items-center justify-between gap-2 mx-2 mt-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
@@ -204,6 +210,8 @@ export default function BuscadorGlobalCommand() {
                   return (
                     <CommandItem
                       key={res.item.id}
+                      value={res.item.id}
+                      keywords={[res.item.titulo, ...(metadata.categorias ?? [])].filter(Boolean)}
                       onSelect={() => runCommand(() => router.push(res.item.refPath || '/proveedores'))}
                       className="flex flex-col items-start gap-1 py-2"
                     >
