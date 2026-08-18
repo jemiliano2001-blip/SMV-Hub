@@ -4,10 +4,14 @@
  */
 
 import { ErrorIA } from "@/lib/extraer-ia"
+import { configGeneracionJson } from "@/lib/gemini-generation-config"
+import { GEMINI_MODELO_FLASH_ECONOMICO } from "@/lib/gemini-modelos"
 import { CATEGORIAS_PRODUCTO_REGISTRO } from "./categorias-registro"
 
 /** Modelo para clasificación (override con GEMINI_MODEL_CLASIFICACION). */
 export const MODELO_CLASIFICACION_DEFAULT = "gemini-3.5-flash-lite"
+/** Candidato A/B más económico — probar vía `GEMINI_MODEL_CLASIFICACION=gemini-3.6-flash`. */
+export const MODELO_CLASIFICACION_ECONOMICO_AB = GEMINI_MODELO_FLASH_ECONOMICO
 
 export type ClasificacionIA = {
   categoriaId: string
@@ -133,11 +137,7 @@ async function llamarGemini(prompt: string): Promise<string> {
 
   const body = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema: CLASIFICACION_SCHEMA,
-      temperature: 0.1,
-    },
+    generationConfig: configGeneracionJson({ responseSchema: CLASIFICACION_SCHEMA }),
   }
 
   let res: Response

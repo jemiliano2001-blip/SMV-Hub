@@ -2,6 +2,7 @@ import {
   ExtraccionInvoiceSchema,
   type ExtraccionInvoice,
 } from "@/lib/schemas"
+import { configGeneracionJson } from "@/lib/gemini-generation-config"
 
 /**
  * Modelos Gemini para extracción de facturas.
@@ -149,7 +150,7 @@ function obtenerApiKey(): string {
   return key
 }
 
-function resolverModelo(modelo?: string): string {
+export function resolverModeloExtraccion(modelo?: string): string {
   if (modelo?.trim()) return modelo.trim()
   return process.env.GEMINI_MODEL?.trim() || MODELO_EXTRACCION
 }
@@ -178,11 +179,7 @@ async function llamarGemini(
         ],
       },
     ],
-    generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema,
-      temperature: 0.1,
-    },
+    generationConfig: configGeneracionJson({ responseSchema }),
   }
 
   const maxReintentos = 3
@@ -235,7 +232,7 @@ export async function extraerFactura(
     mimeType,
     INSTRUCCIONES,
     EXTRACCION_INVOICE_SCHEMA,
-    resolverModelo(modelo)
+    resolverModeloExtraccion(modelo)
   )
 
   const parsed = JSON.parse(texto) as unknown
@@ -257,7 +254,7 @@ export async function extraerRegistros(
     mimeType,
     INSTRUCCIONES_LOTE,
     LOTE_SCHEMA,
-    resolverModelo(modelo)
+    resolverModeloExtraccion(modelo)
   )
 
   const parsed = JSON.parse(texto) as { registros?: unknown }
