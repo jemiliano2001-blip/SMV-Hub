@@ -73,8 +73,23 @@ export function resolveFirebaseDeployEnv({
     )
   }
 
-  return {
+  return stripGoogleApplicationCredentials({
     ...baseEnv,
     ...productionEnv,
-  }
+  })
+}
+
+/** Rutas locales de service account no deben empaquetarse en SSR de producción. */
+export function stripGoogleApplicationCredentials(env) {
+  const next = { ...env }
+  delete next.GOOGLE_APPLICATION_CREDENTIALS
+  return next
+}
+
+/** Quita GAC de `.env.local` antes de `next build` para deploy a smv-brain. */
+export function filterEnvLocalForProductionBuild(source) {
+  return source
+    .split(/\r?\n/)
+    .filter((line) => !/^\s*GOOGLE_APPLICATION_CREDENTIALS\s*=/.test(line))
+    .join("\n")
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  filterEnvLocalForProductionBuild,
   includesHostingDeploy,
   parseEnvFile,
   projectFromFirebaseArgs,
@@ -46,6 +47,7 @@ describe("entorno del deploy manual de Firebase", () => {
       baseEnv: {
         NEXT_PUBLIC_FIREBASE_PROJECT_ID: "smv-brain-dev",
         NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "smv-brain-dev.firebaseapp.com",
+        GOOGLE_APPLICATION_CREDENTIALS: "C:\\Users\\dev\\adc.json",
       },
       readFile: () => productionEnv,
     })
@@ -56,6 +58,15 @@ describe("entorno del deploy manual de Firebase", () => {
       NEXT_PUBLIC_FIREBASE_API_KEY: "production-key",
       NEXT_PUBLIC_DEV_AUTH_BYPASS: "false",
     })
+    expect(resolved.GOOGLE_APPLICATION_CREDENTIALS).toBeUndefined()
+  })
+
+  it("filtra GOOGLE_APPLICATION_CREDENTIALS de .env.local para build prod", () => {
+    expect(
+      filterEnvLocalForProductionBuild(
+        "GEMINI_API_KEY=abc\nGOOGLE_APPLICATION_CREDENTIALS=C:\\secret.json\nFOO=bar\n"
+      )
+    ).toBe("GEMINI_API_KEY=abc\nFOO=bar\n")
   })
 
   it("aborta Hosting sin proyecto explícito", () => {

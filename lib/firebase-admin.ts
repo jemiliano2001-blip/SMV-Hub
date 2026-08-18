@@ -1,10 +1,33 @@
 import { createRequire } from "node:module"
+import { existsSync } from "node:fs"
 import type { App } from "firebase-admin/app"
 
 const require = createRequire(import.meta.url)
 const { getApps, initializeApp } = require(/* turbopackIgnore: true */ "firebase-admin/app") as typeof import("firebase-admin/app")
 const { getAuth } = require(/* turbopackIgnore: true */ "firebase-admin/auth") as typeof import("firebase-admin/auth")
 const { getFirestore } = require(/* turbopackIgnore: true */ "firebase-admin/firestore") as typeof import("firebase-admin/firestore")
+
+/**
+ * Next.js carga `.env.local` también en `next build`, así que una ruta de
+ * GOOGLE_APPLICATION_CREDENTIALS de la máquina del dev puede quedar embebida
+ * en el SSR de Firebase Hosting. En Cloud Run/Functions hay ADC del service
+ * account — hay que ignorar rutas locales antes de inicializar Admin.
+ */
+function limpiarCredencialesAdminEmbebidas(): void {
+  const ruta = process.env.GOOGLE_APPLICATION_CREDENTIALS
+  if (!ruta) return
+
+  const enRuntimeCloud =
+    typeof process.env.K_SERVICE === "string" ||
+    typeof process.env.FUNCTION_TARGET === "string" ||
+    typeof process.env.FIREBASE_CONFIG === "string"
+
+  if (enRuntimeCloud || !existsSync(ruta)) {
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS
+  }
+}
+
+limpiarCredencialesAdminEmbebidas()
 
 /**
  * En Firebase Hosting (frameworksBackend), `firebase-frameworks` ya inicializa

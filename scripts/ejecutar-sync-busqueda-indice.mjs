@@ -5,7 +5,7 @@
  *   node scripts/ejecutar-sync-busqueda-indice.mjs [projectId]
  */
 import { createRequire } from "node:module"
-import { readFileSync } from "node:fs"
+import { readFileSync, existsSync } from "node:fs"
 import { resolve, dirname } from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -14,24 +14,27 @@ const root = resolve(__dirname, "..")
 const projectId = process.argv[2] || "smv-brain-dev"
 
 function cargarEnvLocal() {
-  const envPath = resolve(root, ".env.local")
-  const raw = readFileSync(envPath, "utf8")
-  for (const line of raw.split(/\r?\n/)) {
-    if (!line || line.startsWith("#")) continue
-    const eq = line.indexOf("=")
-    if (eq <= 0) continue
-    const key = line.slice(0, eq).trim()
-    let value = line.slice(eq + 1).trim()
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1)
+  for (const nombre of [".env.local", ".env.admin.local"]) {
+    const envPath = resolve(root, nombre)
+    if (!existsSync(envPath)) continue
+    const raw = readFileSync(envPath, "utf8")
+    for (const line of raw.split(/\r?\n/)) {
+      if (!line || line.startsWith("#")) continue
+      const eq = line.indexOf("=")
+      if (eq <= 0) continue
+      const key = line.slice(0, eq).trim()
+      let value = line.slice(eq + 1).trim()
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1)
+      }
+      if (key === "GOOGLE_APPLICATION_CREDENTIALS" && !value.startsWith("/") && !/^[A-Za-z]:/.test(value)) {
+        value = resolve(root, value)
+      }
+      if (!process.env[key]) process.env[key] = value
     }
-    if (key === "GOOGLE_APPLICATION_CREDENTIALS" && !value.startsWith("/") && !/^[A-Za-z]:/.test(value)) {
-      value = resolve(root, value)
-    }
-    if (!process.env[key]) process.env[key] = value
   }
 }
 

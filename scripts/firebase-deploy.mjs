@@ -9,11 +9,12 @@
  *   npm run deploy:hosting
  */
 import { spawn, spawnSync } from "node:child_process"
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { delimiter, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
+  filterEnvLocalForProductionBuild,
   projectFromFirebaseArgs,
   resolveFirebaseDeployEnv,
 } from "./firebase-deploy-env.mjs"
@@ -48,6 +49,21 @@ try {
 
 if (projectFromFirebaseArgs(firebaseArgs) === "smv-brain") {
   console.log("→ configuración web Firebase fijada a smv-brain desde .env.production")
+}
+
+const envLocalPath = join(process.cwd(), ".env.local")
+let envLocalBackup = null
+if (
+  projectFromFirebaseArgs(firebaseArgs) === "smv-brain" &&
+  existsSync(envLocalPath)
+) {
+  const original = readFileSync(envLocalPath, "utf8")
+  const filtered = filterEnvLocalForProductionBuild(original)
+  if (filtered !== original) {
+    envLocalBackup = original
+    writeFileSync(envLocalPath, filtered, "utf8")
+    console.log("→ GOOGLE_APPLICATION_CREDENTIALS omitida de .env.local durante el build de producción")
+  }
 }
 
 runPatch("apply")
@@ -101,6 +117,10 @@ function limpiarShim() {
 function restaurarUnaVez() {
   if (restaurado) return
   restaurado = true
+  if (envLocalBackup !== null) {
+    writeFileSync(envLocalPath, envLocalBackup, "utf8")
+    envLocalBackup = null
+  }
   runPatch("restore")
   limpiarShim()
 }
