@@ -83,28 +83,24 @@ export function similitudCoseno(vecA: readonly number[], vecB: readonly number[]
   return Math.max(-1, Math.min(1, similitud))
 }
 
-/**
- * Genera el embedding vectorial de un texto usando la API de Gemini Embeddings.
- */
-export async function generarEmbeddingTexto(
-  texto: string,
-  opciones: OpcionesEmbedding = {}
+/** Error de la API de Gemini que conserva el status HTTP para distinguir causas (404 vs 429 vs 5xx). */
+class ErrorGeminiHttp extends ErrorIA {
+  constructor(
+    public readonly status: number,
+    mensaje: string
+  ) {
+    super(mensaje)
+  }
+}
+
+async function llamarEmbedContent(
+  textoLimpio: string,
+  modelo: string,
+  apiKey: string,
+  fetchFn: typeof fetch,
+  timeoutMs: number,
+  taskType: TaskTypeEmbedding
 ): Promise<number[]> {
-  const textoLimpio = texto?.trim()
-  if (!textoLimpio) {
-    throw new ErrorIA("El texto para generar embedding no puede estar vacío")
-  }
-
-  const apiKey = opciones.apiKey || process.env.GEMINI_API_KEY
-  if (!apiKey) {
-    throw new ErrorIA("No se ha configurado GEMINI_API_KEY en el entorno")
-  }
-
-  const modelo = opciones.modelo || resolverModeloEmbedding()
-  const fetchFn = opciones.fetchFn || fetch
-  const timeoutMs = opciones.timeoutMs || 15_000
-  const taskType = opciones.taskType || "RETRIEVAL_QUERY"
-
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:embedContent?key=${apiKey}`
 
   const controller = new AbortController()
@@ -128,7 +124,8 @@ export async function generarEmbeddingTexto(
 
     if (!response.ok) {
       const errorBody = await response.text().catch(() => "")
-      throw new ErrorIA(
+      throw new ErrorGeminiHttp(
+        response.status,
         `Error de API Gemini Embeddings (${response.status}): ${errorBody || response.statusText}`
       )
     }
@@ -157,7 +154,67 @@ export async function generarEmbeddingTexto(
 }
 
 /**
- * Genera embeddings para una lista de textos mediante llamadas por lotes o paralelas.
+ * Genera el embedding vectorial de un texto usando la API de Gemini Embeddings.
+ */
+export async function generarEmbeddingTexto(
+  texto: string,
+  opciones: OpcionesEmbedding = {}
+): Promise<number[]> {
+  const textoLimpio = texto?.trim()
+  if (!textoLimpio) {
+    throw new ErrorIA("El texto para generar embedding no puede estar vacío")
+  }
+
+  const apiKey = opciones.apiKey || process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    throw new ErrorIA("No se ha configurado GEMINI_API_KEY en el entorno")
+  }
+
+  const modeloSolicitado = opciones.modelo || resolverModeloEmbedding()
+  const fetchFn = opciones.fetchFn || fetch
+  const timeoutMs = opciones.timeoutMs || 15_000
+  const taskType = opciones.taskType || "RETRIEVAL_QUERY"
+
+  try {
+    return await llamarEmbedContent(textoLimpio, modeloSolicitado, apiKey, fetchFn, timeoutMs, taskType)
+  } catch (error) {
+    // El default (sin override explícito) es un modelo *preview* — Google puede retirarlo.
+    // Un 404 en ese caso específico significa "este modelo ya no existe", no un problema
+    // transitorio: un solo reintento contra el modelo estable evita que la búsqueda muera
+    // por completo. No se reintenta si el caller pidió un modelo explícito (respetamos su
+    // elección) ni si el que ya falló era el propio fallback (evita loop).
+    const fueNoEncontrado = error instanceof ErrorGeminiHttp && error.status === 404
+    const puedeCaerAFallback =
+      fueNoEncontrado && !opciones.modelo && modeloSolicitado !== MODELO_EMBEDDING_FALLBACK
+    if (!puedeCaerAFallback) throw error
+
+    console.warn(
+      `[embeddings] ${modeloSolicitado} no disponible (404); se usará ${MODELO_EMBEDDING_FALLBACK}`
+    )
+    return await llamarEmbedContent(
+      textoLimpio,
+      MODELO_EMBEDDING_FALLBACK,
+      apiKey,
+      fetchFn,
+      timeoutMs,
+      taskType
+    )
+  }
+}
+
+// Límite propio y conservador, no documentado por Gemini (no publica un máximo de
+// requests por batchEmbedContents) — evita mandar un solo request gigante al indexar
+// catálogos grandes.
+const TAMANO_CHUNK_LOTE = 100
+// Pausa entre chunks sucesivos como cortesía de rate limit; no es backoff, es fijo.
+const PAUSA_ENTRE_CHUNKS_MS = 200
+
+function esperar(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/**
+ * Genera embeddings para una lista de textos mediante llamadas por lotes.
  */
 export async function generarEmbeddingsLote(
   textos: readonly string[],
@@ -165,6 +222,16 @@ export async function generarEmbeddingsLote(
 ): Promise<number[][]> {
   if (!textos || textos.length === 0) {
     return []
+  }
+
+  if (textos.length > TAMANO_CHUNK_LOTE) {
+    const resultado: number[][] = []
+    for (let i = 0; i < textos.length; i += TAMANO_CHUNK_LOTE) {
+      if (i > 0) await esperar(PAUSA_ENTRE_CHUNKS_MS)
+      const chunk = textos.slice(i, i + TAMANO_CHUNK_LOTE)
+      resultado.push(...(await generarEmbeddingsLote(chunk, opciones)))
+    }
+    return resultado
   }
 
   const apiKey = opciones.apiKey || process.env.GEMINI_API_KEY
@@ -182,6 +249,7 @@ export async function generarEmbeddingsLote(
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), timeoutMs)
 
+  let response: Response
   try {
     const requests = textos.map((t) => ({
       model: `models/${modelo}`,
@@ -191,7 +259,7 @@ export async function generarEmbeddingsLote(
       taskType,
     }))
 
-    const response = await fetchFn(url, {
+    response = await fetchFn(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -199,36 +267,44 @@ export async function generarEmbeddingsLote(
       signal: controller.signal,
       body: JSON.stringify({ requests }),
     })
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new ErrorIA(`Tiempo de espera agotado al generar embeddings en lote (${timeoutMs}ms)`)
+    }
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
 
-    if (!response.ok) {
-      // Fallback a peticiones individuales si batch no es soportado por el modelo
+  if (!response.ok) {
+    // Solo se degrada a N peticiones individuales cuando el lote específicamente no es
+    // soportado (400 — p.ej. el modelo no acepta batchEmbedContents). Un 429 (rate limit)
+    // o un 5xx NO deben disparar N peticiones: eso multiplica el costo y la probabilidad
+    // de fallo en vez de resolverlo, porque cada una tropieza con la misma causa.
+    if (response.status === 400) {
       return await Promise.all(
         textos.map((t) => generarEmbeddingTexto(t, { ...opciones, taskType }))
       )
     }
-
-    const data = await response.json()
-    const embeddings = data?.embeddings
-
-    if (Array.isArray(embeddings) && embeddings.length === textos.length) {
-      return embeddings.map((e: { values: number[] }) => e.values)
+    const errorBody = await response.text().catch(() => "")
+    if (response.status === 429) {
+      throw new ErrorIA(
+        "Límite de tasa de Gemini alcanzado al generar embeddings en lote (429). Intenta de nuevo en unos segundos."
+      )
     }
-
-    // Fallback individual
-    return await Promise.all(
-      textos.map((t) => generarEmbeddingTexto(t, { ...opciones, taskType }))
+    throw new ErrorIA(
+      `Error de API Gemini Embeddings en lote (${response.status}): ${errorBody || response.statusText}`
     )
-  } catch (error) {
-    if (error instanceof ErrorIA) {
-      throw error
-    }
-    // Si falla el batch, intentar peticiones individuales
-    return await Promise.all(
-      textos.map((t) => generarEmbeddingTexto(t, { ...opciones, taskType }))
-    )
-  } finally {
-    clearTimeout(timeout)
   }
+
+  const data = await response.json()
+  const embeddings = data?.embeddings
+
+  if (Array.isArray(embeddings) && embeddings.length === textos.length) {
+    return embeddings.map((e: { values: number[] }) => e.values)
+  }
+
+  throw new ErrorIA("La respuesta de Gemini en lote no coincide con la cantidad de textos enviados")
 }
 
 /**

@@ -104,6 +104,67 @@ describe("generarEmbeddingTexto", () => {
       })
     ).rejects.toThrow(ErrorIA)
   })
+
+  it("cae al modelo estable cuando el preview responde 404, y avisa por consola", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const mockValues = [0.1, 0.2, 0.3]
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 404, text: async () => "model not found" } as unknown as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ embedding: { values: mockValues } }) } as unknown as Response)
+
+    const resultado = await generarEmbeddingTexto("fresa de carburo", {
+      apiKey: "fake-key",
+      fetchFn: mockFetch as unknown as typeof fetch,
+    })
+
+    expect(resultado).toEqual(mockValues)
+    expect(mockFetch).toHaveBeenCalledTimes(2)
+    expect(mockFetch.mock.calls[0][0] as string).toContain("gemini-embedding-2-preview:embedContent")
+    expect(mockFetch.mock.calls[1][0] as string).toContain("gemini-embedding-001:embedContent")
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("gemini-embedding-001"))
+    warnSpy.mockRestore()
+  })
+
+  it("no cae al fallback si el caller pidió un modelo explícito", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 404, text: async () => "model not found" } as unknown as Response)
+
+    await expect(
+      generarEmbeddingTexto("endmill", {
+        apiKey: "fake-key",
+        modelo: "un-modelo-especifico",
+        fetchFn: mockFetch as unknown as typeof fetch,
+      })
+    ).rejects.toThrow(ErrorIA)
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+  })
+
+  it("no cae al fallback en errores que no son 404 (p.ej. 429)", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 429, text: async () => "rate limited" } as unknown as Response)
+
+    await expect(
+      generarEmbeddingTexto("endmill", { apiKey: "fake-key", fetchFn: mockFetch as unknown as typeof fetch })
+    ).rejects.toThrow(ErrorIA)
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+  })
+
+  it("no reintenta de nuevo si el que falló con 404 ya era el modelo fallback (evita loop)", async () => {
+    // Sin opciones.modelo, para que la resolución por default/env sea la que determine
+    // el modelo — así se prueba la condición "ya era el fallback", no la de "caller explícito".
+    const originalEnv = process.env.GEMINI_MODEL_EMBEDDING
+    process.env.GEMINI_MODEL_EMBEDDING = "gemini-embedding-001"
+    const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 404, text: async () => "model not found" } as unknown as Response)
+
+    try {
+      await expect(
+        generarEmbeddingTexto("endmill", { apiKey: "fake-key", fetchFn: mockFetch as unknown as typeof fetch })
+      ).rejects.toThrow(ErrorIA)
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+    } finally {
+      if (originalEnv === undefined) delete process.env.GEMINI_MODEL_EMBEDDING
+      else process.env.GEMINI_MODEL_EMBEDDING = originalEnv
+    }
+  })
 })
 
 describe("generarEmbeddingsLote", () => {
@@ -127,6 +188,88 @@ describe("generarEmbeddingsLote", () => {
     expect(resultado).toHaveLength(2)
     expect(resultado[0]).toEqual([0.1, 0.2])
     expect(resultado[1]).toEqual([0.3, 0.4])
+  })
+
+  it("un 429 NO dispara N peticiones individuales — lanza ErrorIA", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      text: async () => "rate limited",
+    } as unknown as Response)
+
+    await expect(
+      generarEmbeddingsLote(["a", "b", "c"], { apiKey: "fake-key", fetchFn: mockFetch as unknown as typeof fetch })
+    ).rejects.toThrow(ErrorIA)
+    // Solo el intento de batch, nunca N llamadas individuales de más.
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+  })
+
+  it("un timeout NO dispara N peticiones individuales — lanza ErrorIA", async () => {
+    const mockFetch = vi.fn().mockImplementation(() => {
+      const err = new Error("aborted")
+      err.name = "AbortError"
+      return Promise.reject(err)
+    })
+
+    await expect(
+      generarEmbeddingsLote(["a", "b", "c"], {
+        apiKey: "fake-key",
+        fetchFn: mockFetch as unknown as typeof fetch,
+        timeoutMs: 10,
+      })
+    ).rejects.toThrow(/Tiempo de espera agotado/)
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+  })
+
+  it("un 400 (batch no soportado) SÍ degrada a peticiones individuales", async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 400, text: async () => "batch not supported" } as unknown as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ embedding: { values: [0.1] } }) } as unknown as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ embedding: { values: [0.2] } }) } as unknown as Response)
+
+    const resultado = await generarEmbeddingsLote(["a", "b"], {
+      apiKey: "fake-key",
+      fetchFn: mockFetch as unknown as typeof fetch,
+    })
+
+    expect(resultado).toEqual([[0.1], [0.2]])
+    expect(mockFetch).toHaveBeenCalledTimes(3) // 1 intento batch + 2 individuales
+  })
+
+  it("lanza ErrorIA si la respuesta 200 no trae la misma cantidad de embeddings que textos", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ embeddings: [{ values: [0.1] }] }), // solo 1, se pidieron 2
+    } as unknown as Response)
+
+    await expect(
+      generarEmbeddingsLote(["a", "b"], { apiKey: "fake-key", fetchFn: mockFetch as unknown as typeof fetch })
+    ).rejects.toThrow(ErrorIA)
+  })
+
+  it("parte un lote grande en chunks en vez de mandar un solo request gigante", async () => {
+    const textos = Array.from({ length: 250 }, (_, i) => `item-${i}`)
+    const mockFetch = vi.fn().mockImplementation(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(init.body as string) as { requests: unknown[] }
+      return {
+        ok: true,
+        json: async () => ({ embeddings: body.requests.map(() => ({ values: [0.1] })) }),
+      } as unknown as Response
+    })
+
+    const resultado = await generarEmbeddingsLote(textos, {
+      apiKey: "fake-key",
+      fetchFn: mockFetch as unknown as typeof fetch,
+    })
+
+    expect(resultado).toHaveLength(250)
+    // 250 textos / 100 por chunk = 3 llamadas (100 + 100 + 50), ninguna con los 250 juntos.
+    expect(mockFetch).toHaveBeenCalledTimes(3)
+    for (const call of mockFetch.mock.calls) {
+      const body = JSON.parse((call[1] as RequestInit).body as string) as { requests: unknown[] }
+      expect(body.requests.length).toBeLessThanOrEqual(100)
+    }
   })
 })
 

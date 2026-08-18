@@ -1,6 +1,7 @@
 # Spec — Búsqueda semántica sobre datos reales de SMV
 
-Fecha: 2026-08-17 · Estado: **propuesta, pendiente de aprobación** · Autor: Claude Opus 5
+Fecha: 2026-08-17 · Estado: **aprobado** — pendiente el checkpoint de Fase 0 (costo + calidad) del
+plan · Autor: Claude Opus 5
 
 ## Problema
 
@@ -37,9 +38,9 @@ descripciones de factura vienen en inglés abreviado y la búsqueda del usuario 
 | 3. Endmills | `endmills-medidas` | medida + tipo + material | Catálogo técnico real con stock |
 | 4. Cotizaciones | `cotizaciones` | pieza + proveedor | Histórico de precios de piezas |
 
-**Propuesta: arrancar con 1 y 2.** Son los que responden las preguntas que de verdad se hacen en
-el taller, y permiten medir costo y calidad antes de ampliar. 3 y 4 se agregan después con el
-mismo mecanismo, sin rediseño.
+**Decidido (2026-08-17): arrancar con 1 y 2.** Son los que responden las preguntas que de verdad se
+hacen en el taller, y permiten medir costo y calidad antes de ampliar. 3 y 4 se agregan después con
+el mismo mecanismo, sin rediseño.
 
 ### Fuera de alcance
 
@@ -122,8 +123,8 @@ Esto arregla o vuelve relevantes cuatro puntos de la revisión del 2026-08-17:
   único por documento; las consultas son 1 embedding cada una. El buscador vive en el NavBar, o
   sea en todas las páginas, y hoy cualquier usuario activo puede llamarlo sin límite.
 - **Fuga de datos entre módulos.** El índice mezcla fuentes; si alguien sin el módulo `ordenes`
-  busca, no debería ver ítems de órdenes. **El filtrado por permisos del usuario tiene que ocurrir
-  del lado del servidor**, no ocultando resultados en la UI.
+  busca, no debería ver ítems de órdenes. **Decidido: sí se filtra por permisos del usuario, y
+  ocurre del lado del servidor** (no ocultando resultados en la UI). Ver criterio de éxito #2.
 - **Calidad.** Las descripciones de factura vienen abreviadas y en inglés ("CARB EM 1/4 4FL"). Hay
   que validar con búsquedas reales antes de exponerlo, no asumir que el modelo lo resuelve.
 
@@ -161,8 +162,12 @@ histórico — no salió nada de pailería, por ejemplo. Si en Fase 0/T0.3 algun
 lo esperado, revisar primero si el ítem realmente está en el rango indexado antes de asumir que el
 modelo falló.
 
-## Preguntas abiertas para Emiliano
+## Preguntas abiertas para Emiliano — todas resueltas (2026-08-17)
 
-1. **¿Arrancamos con órdenes + proveedores, o prefieres otro orden?**
-2. **¿Los resultados deben respetar permisos por módulo?** (Recomiendo que sí.)
+1. ~~¿Arrancamos con órdenes + proveedores, o prefieres otro orden?~~ **Resuelto:** sí, órdenes +
+   proveedores primero.
+2. ~~¿Los resultados deben respetar permisos por módulo?~~ **Resuelto:** sí, filtrado en servidor.
 3. ~~¿Qué 10 búsquedas reales usamos como prueba de fuego?~~ **Resuelto** — ver tabla arriba.
+
+Spec aprobado. Sigue el checkpoint de Fase 0 del plan (medir universo, costo y calidad) antes de
+tocar código de producción — ver [plan](../plans/2026-08-17-busqueda-semantica-datos-reales.md).

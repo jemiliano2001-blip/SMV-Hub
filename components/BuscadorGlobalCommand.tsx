@@ -42,6 +42,7 @@ export default function BuscadorGlobalCommand() {
   const [buscandoSemantico, setBuscandoSemantico] = useState(false)
   const router = useRouter()
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   // Listener para Ctrl+K / Cmd+K
   useEffect(() => {
@@ -55,6 +56,14 @@ export default function BuscadorGlobalCommand() {
     return () => document.removeEventListener('keydown', down)
   }, [])
 
+  // Limpieza al desmontar: no dejar un timeout pendiente ni un fetch en vuelo.
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      abortControllerRef.current?.abort()
+    }
+  }, [])
+
   // Manejo de búsqueda semántica con debounce al escribir >= 3 caracteres
   const handleQueryChange = (nuevoTexto: string) => {
     setQuery(nuevoTexto)
@@ -65,6 +74,7 @@ export default function BuscadorGlobalCommand() {
 
     const q = nuevoTexto.trim()
     if (q.length < 3) {
+      abortControllerRef.current?.abort()
       setResultadosSemanticos([])
       setBuscandoSemantico(false)
       return
@@ -72,6 +82,13 @@ export default function BuscadorGlobalCommand() {
 
     setBuscandoSemantico(true)
     timeoutRef.current = setTimeout(async () => {
+      // Si aún hay una búsqueda anterior en vuelo, se cancela: su respuesta ya no
+      // corresponde a lo que el usuario está escribiendo ahora y podría llegar después
+      // que la de esta consulta (orden de red no garantizado).
+      abortControllerRef.current?.abort()
+      const controller = new AbortController()
+      abortControllerRef.current = controller
+
       try {
         const auth = getClienteAuth()
         const token = (await auth.currentUser?.getIdToken()) || ''
@@ -86,6 +103,7 @@ export default function BuscadorGlobalCommand() {
             topK: 4,
             minScore: 0.35,
           }),
+          signal: controller.signal,
         })
 
         if (res.ok) {
@@ -94,10 +112,16 @@ export default function BuscadorGlobalCommand() {
         } else {
           setResultadosSemanticos([])
         }
-      } catch {
+      } catch (error) {
+        // AbortError = esta búsqueda fue reemplazada por una más nueva; la más nueva ya
+        // se encarga de su propio estado. No pisar sus resultados limpiando aquí.
+        if (error instanceof DOMException && error.name === 'AbortError') return
         setResultadosSemanticos([])
       } finally {
-        setBuscandoSemantico(false)
+        // Solo tocar buscandoSemantico si esta sigue siendo la búsqueda vigente.
+        if (abortControllerRef.current === controller) {
+          setBuscandoSemantico(false)
+        }
       }
     }, 350)
   }
