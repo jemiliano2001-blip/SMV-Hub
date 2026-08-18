@@ -68,7 +68,7 @@ async function main() {
     const top3 = resultado.resultados.slice(0, 3)
     const textos = top3
       .map(({ item }) =>
-        [item.titulo, item.metadata?.proveedor, item.metadata?.descripcion, item.metadata?.nombre]
+        [item.titulo, item.metadata?.proveedorNombre, item.metadata?.categorias?.join(" ")]
           .filter(Boolean)
           .join(" ")
       )
