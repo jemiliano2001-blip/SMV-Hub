@@ -95,6 +95,11 @@
       "collectionGroup": "reportes_integridad_run_cases",
       "fieldPath": "expireAt",
       "indexes": []
+    },
+    {
+      "collectionGroup": "busqueda_indice",
+      "fieldPath": "embedding",
+      "indexes": []
     }
   ]
 }

@@ -173,6 +173,8 @@ async function seed(): Promise<void> {
         actualizadoEn: null,
       }),
       db.doc("compras_odoo_sync_state/current").set({ status: "ready" }),
+      db.doc("busqueda_indice/entry-1").set({ fuente: "proveedor", texto: "test" }),
+      db.doc("busqueda_indice_sync_state/estado").set({ ultimaCorridaEn: new Date() }),
       db.doc("reportes_integridad_state/config").set({ mode: "shadow" }),
       db.doc("reportes_integridad_runs/run-1").set({ status: "ready" }),
       db.doc("reportes_integridad_run_cases/run-1_case-1").set({ caseId: "case-1" }),
@@ -212,6 +214,8 @@ describeWithEmulator("reglas Firestore de Integridad", () => {
     "reportes_integridad_run_cases/run-1_case-1",
     "reportes_integridad_workflows/case-1",
     "reportes_integridad_workflows/case-1/events/event-1",
+    "busqueda_indice/entry-1",
+    "busqueda_indice_sync_state/estado",
   ])("niega lectura y escritura directa de %s", async (path) => {
     const db = userDb("finance-user")
     await assertFails(db.doc(path).get())

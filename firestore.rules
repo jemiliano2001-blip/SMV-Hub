@@ -1069,6 +1069,23 @@ service cloud.firestore {
       allow delete: if esFinanzasAutorizado();
     }
 
+    // ── Búsqueda semántica (índice) ───────────────────────────────────────────
+    // Solo Admin SDK en ambos extremos: el job de indexación (Functions,
+    // busqueda-indice-sync.ts) escribe, y la ruta /api/busqueda-semantica lee
+    // aplicando el filtro de permisos por módulo del lado del servidor (spec:
+    // "el filtro ... ocurre en el servidor", no vía query directa del
+    // cliente — no hay forma de expresar ese filtro por-fuente en una regla
+    // de `list` sin que Firestore rechace la consulta completa). El Admin SDK
+    // ignora estas reglas en ambos casos, igual que reportes_integridad_state.
+
+    match /busqueda_indice/{docId} {
+      allow read, write: if false;
+    }
+
+    match /busqueda_indice_sync_state/{docId} {
+      allow read, write: if false;
+    }
+
     // ── Configuraciones generales (Sincronización de Cotizaciones, etc.) ──────
 
     match /configuraciones/{configId} {

@@ -1434,3 +1434,43 @@ export const RegistroCotizacionOdooSchema = z.object({
 })
 export type RegistroCotizacionOdoo = z.infer<typeof RegistroCotizacionOdooSchema>
 
+// ── Búsqueda semántica (índice) ───────────────────────────────────────────────
+// Ver docs/superpowers/specs/2026-08-17-busqueda-semantica-datos-reales.md.
+// Solo "orden-item" y "proveedor" tienen productor (functions/src/busqueda-indice-texto.ts);
+// "endmill"/"cotizacion" se agregan a este enum cuando Fase 2 los indexe también.
+
+export const FuenteBusquedaIndiceSchema = z.enum(["orden-item", "proveedor"])
+export type FuenteBusquedaIndice = z.infer<typeof FuenteBusquedaIndiceSchema>
+
+export const BusquedaIndiceSchema = z.object({
+  id: z.string(),
+  fuente: FuenteBusquedaIndiceSchema,
+  refId: z.string(),
+  refPath: z.string(),
+  texto: z.string(),
+  textoHash: z.string(),
+  // Array plano, no FieldValue.vector(): Functions (el único escritor) usa
+  // firebase-admin@12.7.0, que no expone FieldValue.vector (llegó en v13). La
+  // arquitectura decidida en Fase 0 (coseno en servidor, 443 vectores) tampoco
+  // lo necesita — findNearest() sí lo requeriría si algún día se migra a esa opción.
+  embedding: z.array(z.number()),
+  modelo: z.string(),
+  // outputDimensionality pedido a Gemini al generar este vector (default de la
+  // API es 3072; se pide 768 — MTEB casi idéntico, ~4x menos bytes por vector).
+  // Un query-time embedding con otra dimensión no es comparable: mismatch de
+  // longitud revienta similitudCoseno() a propósito.
+  dimensiones: z.number().int().positive(),
+  titulo: z.string(),
+  metadata: z.object({
+    proveedorNombre: z.string().optional(),
+    precio: z.number().optional(),
+    moneda: z.string().optional(),
+    fecha: z.string().optional(),
+    ordenId: z.string().optional(),
+    mercado: z.string().optional(),
+    categorias: z.array(z.string()).optional(),
+  }),
+  actualizadoEn: z.date(),
+})
+export type BusquedaIndice = z.infer<typeof BusquedaIndiceSchema>
+

@@ -178,3 +178,16 @@ describe("reglas de alcance para almacén y solicitudes de venta", () => {
     expect(bloque).toMatch(/tieneModulo\('pedidos-almacen'\)/)
   })
 })
+
+describe("reglas de firestore para el índice de búsqueda semántica", () => {
+  it("busqueda_indice y su estado de sync son solo Admin SDK (ningún cliente lee ni escribe)", () => {
+    const reglas = readFileSync(resolve(raiz, "firestore.rules"), "utf8")
+    const indice = reglas.match(/match \/busqueda_indice\/\{docId\} \{([\s\S]*?)\n    \}/)?.[1]
+    const syncState = reglas.match(/match \/busqueda_indice_sync_state\/\{docId\} \{([\s\S]*?)\n    \}/)?.[1]
+
+    expect(indice).toBeTruthy()
+    expect(indice).toMatch(/allow read, write: if false;/)
+    expect(syncState).toBeTruthy()
+    expect(syncState).toMatch(/allow read, write: if false;/)
+  })
+})

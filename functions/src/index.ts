@@ -11,6 +11,7 @@ initializeApp();
 export { syncOdooFacturasScheduled, syncOdooFacturasManual } from "./odooSync";
 export { syncOdooComprasScheduled, syncOdooComprasManual } from "./odoo-compras-sync";
 export { syncOdooVentasScheduled, syncOdooVentasManual } from "./odoo-ventas-sync";
+export { syncBusquedaIndiceScheduled, syncBusquedaIndiceManual } from "./busqueda-indice-sync";
 export {
   listarCasosIntegridad,
   obtenerCasoIntegridad,

@@ -1,10 +1,11 @@
 # Plan — Búsqueda semántica sobre datos reales de SMV
 
 Spec: [../specs/2026-08-17-busqueda-semantica-datos-reales.md](../specs/2026-08-17-busqueda-semantica-datos-reales.md)
-Estado: **Fase 0 completa (2026-08-17)** — universo medido (443 vectores), costo estimado
-irrelevante (~$0.002 USD indexación inicial), calidad 9/10. Ver checkpoint abajo. Pendiente
-decisión de Emiliano para arrancar Fase 1 (bugs reales, no depende de más aprobación) y Fase 2+
-(código de producción nuevo, si se sigue adelante).
+Estado: **Fase 2 completa (2026-08-18)** — índice implementado (texto+hash, cliente Gemini,
+escritura/poda, job programado + callable manual, reglas). Ver checkpoint abajo. `busqueda_indice`
+sigue vacío en ambos proyectos (nadie ha corrido el job todavía — HUB_GEMINI_API_KEY ni siquiera
+existe en Secret Manager aún). Pendiente decisión de Emiliano para Fase 3 (query real + UI,
+reemplaza `CATALOGO_BASE_SMV`) y Fase 4 (validación + deploy).
 
 Regla para todas las tareas: `npx tsc --noEmit`, `npm run lint` y `npm test` en verde antes de
 cerrar cada una. Nada se despliega hasta la Fase 4.
@@ -132,24 +133,124 @@ flujo E2E.
 
 ## Fase 2 — Indexación (arquitectura según Fase 0)
 
-### T2.1 · Construcción del texto por fuente
-Función pura por fuente (`orden-item`, `proveedor`) que arma el texto a vectorizar y su hash.
-Es lógica pura → tests directos, sin Firebase. Aquí se decide qué tan buena es la búsqueda, así
-que va con casos reales de facturas abreviadas en inglés.
+### T1.4 · Schema del índice — ✅ HECHO (2026-08-18)
+`BusquedaIndiceSchema` en `lib/schemas.ts` (diferido desde Fase 1, ahora sí tiene consumidor).
+Un cambio real sobre el modelo de datos del spec: `embedding` es `z.array(z.number())`, no
+`FieldValue.vector()`. Razón — el único escritor es Functions, que tiene `firebase-admin@12.7.0`
+fijado (`functions/package.json`), y `FieldValue.vector()` llegó hasta v13 (el `13.10.0` que el
+spec verificó es el de la raíz del repo, no el de `functions/`). La arquitectura de Fase 0
+(Opción B, coseno en servidor) tampoco lo necesita — solo `findNearest()` (Opción A) lo exigiría.
+Migrar a Opción A después sigue sin requerir tocar el modelo de datos de negocio: solo el tipo del
+campo `embedding` y cómo se consulta, tal como decía el spec. También se agregó `dimensiones`
+(ver T2.2) al schema, que el spec original no tenía.
 
-### T2.2 · Escritura del índice
-Módulo en `lib/` que escribe `busqueda_indice` respetando `textoHash` (no re-embebe lo que no
-cambió) y registra `modelo`. Escribe con Admin SDK desde Functions.
+### T2.1 · Construcción del texto por fuente — ✅ HECHO (2026-08-18)
+`functions/src/busqueda-indice-texto.ts`: `construirEntradasOrden()` y `construirEntradaProveedor()`,
+lógica pura, con tipos locales (no importa `lib/schemas.ts` — ver nota de imports abajo). Ítems sin
+descripción se omiten (mismo guard que A1 en `documentos-venta-lector-ia.ts`: `"".includes(x)` es
+vacuamente cierto). Texto de proveedor deliberadamente compacto (nombre + categorías + marcas, sin
+relleno): la búsqueda #8 de Fase 0 mostró filas de proveedor ganándole el ranking a compras reales
+del mismo rubro por tener más texto. 11 tests en `tests/busqueda-indice-texto.test.ts`, con casos
+de facturas abreviadas reales ("4FL", "IFM EFECTOR PN4221").
 
-### T2.3 · Job incremental en Functions
-En `functions/src/`, job programado que recorre lo modificado desde la última corrida.
-Guardar el cursor en un doc de estado, igual que hace `odooSync`.
-**Ojo con el caveat del proyecto compartido:** desplegar solo con `codebase: "smv-hub"`, nunca
-`firebase deploy --only functions --force`.
+**Bug real atrapado durante la escritura (no por el usuario):** la primera versión de `metadata`
+usaba `campo: valor || undefined` — deja la clave *presente con valor `undefined`*, no *ausente*.
+El Admin SDK de Firestore truena al escribir un campo `undefined` (`getDb()` no activa
+`ignoreUndefinedProperties`), así que cualquier ítem sin precio o cualquier orden sin proveedor
+habría tronado el batch write completo en producción. Corregido a spread condicional (`...(x ? {
+campo: x } : {})`, clave ausente de verdad) antes de que esto se probara contra Firestore real.
+Los tests originales no lo habrían atrapado (`toEqual` no distingue "ausente" de
+"presente-con-undefined"); se agregaron 2 tests que si revisan `Object.keys`/`Object.values`.
 
-### T2.4 · Reglas de Firestore
-`busqueda_indice`: lectura solo para usuarios autorizados, escritura **solo** desde Admin SDK
-(ningún cliente escribe). Agregar test en `tests/firestore-security.test.ts`.
+**Nota de imports:** el archivo vive en `functions/src/`, no en `lib/` como decía el plan original.
+`functions/` se despliega como paquete aislado (`firebase deploy` empaqueta solo ese directorio) y
+no hay ningún import cruzado a `lib/` en todo el repo — mismo patrón que `odoo-compras-mapeo.ts`,
+que define sus propios tipos en vez de importar `CompraOdooItemSchema`. Pero el *test* sí importa
+`functions/src/` por ruta relativa desde `tests/`, sin problema — ese es un boundary de deploy, no
+de test-time (confirmado: `tests/odoo-ventas-mapeo.test.ts` y `tests/odoo-sync-mapeo.test.ts` ya
+hacían exactamente esto; CLAUDE.md lo documenta para `/finanzas`: "pure mapping logic is
+Vitest-testable from repo root").
+
+### T2.2 · Cliente Gemini + escritura del índice — ✅ HECHO (2026-08-18)
+`functions/src/busqueda-indice-gemini.ts`: cliente HTTP propio y mínimo (no
+`lib/embeddings-ia.ts` — mismo boundary de deploy que arriba, y además tiene una semántica de
+fallas distinta: un job programado puede tronar el run completo y reintentar en la siguiente
+corrida, no necesita degradar con gracia como una búsqueda en vivo). Pide
+`outputDimensionality: 768` en vez del default de la API (3072): el propio benchmark MTEB de
+Gemini muestra calidad casi idéntica (67.99 vs 68.17) y el vector pesa ~4x menos — importa porque
+Opción B lee el índice completo a memoria en cada consulta fría. Usa el shape moderno
+`embedContentConfig` (los campos planos `taskType`/`outputDimensionality` que ya usa
+`lib/embeddings-ia.ts` están marcados *deprecated* en `ai.google.dev/api/embeddings`, aunque
+siguen funcionando — código nuevo usa el shape recomendado).
+
+**Verificación empírica del shape `embedContentConfig`:** antes de confiar en la lectura de docs
+sobre el shape "moderno", se hizo una llamada real a `batchEmbedContents` con
+`embedContentConfig: { outputDimensionality: 768 }` contra `gemini-embedding-2-preview` — devolvió
+un vector de exactamente 768 valores, no 3072. El wrapper sí se respeta, no se ignora en silencio.
+Aun así se agregó un guard permanente en `embedContentsChunk()`: si algún vector devuelto no mide
+`opciones.dimensiones`, truena ahí mismo con un mensaje explícito, en vez de dejar que la
+inconsistencia se descubra hasta que `similitudCoseno()` reviente en Fase 3 contra un índice ya
+escrito con la dimensión equivocada.
+
+`firestore.indexes.json` ganó una entrada en `fieldOverrides` para `busqueda_indice.embedding`
+(`"indexes": []`): sin ella, Firestore indexa cada uno de los 768 elementos del array por
+default — puro desperdicio de storage y latencia de escritura en cada reindexación, sin que
+ninguna query lo use (Opción B no consulta el índice compuesto de Firestore, calcula coseno en
+memoria). Se agregó ahora, con la colección todavía vacía — hacerlo después de que haya datos
+obliga a un rebuild de índice.
+
+`functions/src/busqueda-indice-escritura.ts`: `sincronizarIndiceBusqueda()` — desviación real del
+plan original, que pedía un cursor incremental (T2.3 abajo). En su lugar hace full-scan de
+`ordenes` + `proveedores` en cada corrida y diffea por `textoHash`. Razón: al tamaño medido en
+Fase 0 (123 + 102 documentos), leer todo es más barato que mantener un cursor, y **un cursor por
+`actualizadoEn` no puede detectar borrados** — `/ordenes` tiene bulk delete, así que una orden
+eliminada nunca aparecería en una query "modificado desde X" y su entrada en el índice quedaría
+huérfana para siempre. El full-scan + diff sí lo detecta de forma natural: cualquier entrada
+existente cuyo id ya no está en el set esperado se poda, con el mismo guard que
+`podarHuerfanos()` en `odoo-compras-sync.ts` (nunca podar una fuente cuya lectura vino vacía). Si
+el universo crece a miles de documentos, esto hay que revisarlo.
+
+### T2.3 · Job programado + callable manual — ✅ HECHO (2026-08-18)
+`functions/src/busqueda-indice-sync.ts`: `syncBusquedaIndiceScheduled` (cada 24h — no cada 2h como
+los syncs de Odoo, porque el propio spec dice que esto no necesita frescura de minutos) y
+`syncBusquedaIndiceManual` (callable, gateado a super-admin/break-glass; sin botón en la UI
+todavía — se invoca a mano para validar Fase 4). Secreto **`HUB_GEMINI_API_KEY`**, prefijado a
+propósito (no `GEMINI_API_KEY` a secas): `smv-brain` es compartido con SMV-VISION y Visual
+Factory, mismo riesgo que ya documenta el comentario de `FINANZAS_ODOO_*` en `odooSync.ts`.
+**Aún no se ha creado este secreto en Secret Manager** (ni en `smv-brain-dev` ni en `smv-brain`)
+— hace falta `firebase functions:secrets:set HUB_GEMINI_API_KEY` antes de poder correr el job,
+aunque sea manualmente. Doc de estado en `busqueda_indice_sync_state/estado`. Exportado desde
+`functions/src/index.ts`; cae automáticamente bajo `codebase: "smv-hub"` (no hay un allowlist
+separado que editar — los targets de deploy salen de `scripts/firebase-deploy-targets.mjs` según
+qué archivos cambiaron, confirmado leyendo `.github/workflows/ci.yml`).
+
+### T2.4 · Reglas de Firestore — ✅ HECHO (2026-08-18)
+`busqueda_indice` y `busqueda_indice_sync_state`: **`allow read, write: if false`** — no "lectura
+autorizada" como decía el plan original. Razón: T3.1 (Fase 3) ya decidió que el filtro de permisos
+por módulo ocurre en el servidor, dentro de la ruta `/api/busqueda-semantica` vía Admin SDK, no en
+una query directa del cliente — y no hay forma de expresar ese filtro por-`fuente` en una regla de
+`list` sin que Firestore rechace la consulta completa si no está acotada por `where`. Mismo patrón
+que `reportes_integridad_state`: el Admin SDK (tanto el job de Functions como el Route Handler)
+ignora las reglas en ambos extremos, así que no hay ningún cliente que de verdad necesite leer esta
+colección directo.
+
+Dos tests, no uno:
+- `tests/firestore-security.test.ts` (estático, regex sobre el texto de las reglas) — **corrido y
+  en verde localmente**, no depende del emulator.
+- `tests/firestore-rules-emulator.test.ts` (comportamiento real contra el emulator, extendiendo el
+  `it.each` que ya existía para `reportes_integridad_*`) — escrito, pero **no se pudo correr en
+  este entorno** (no hay Java instalado ni en bash ni en PowerShell locales). Confirmé que el
+  archivo sigue skippeando limpio sin `FIRESTORE_EMULATOR_HOST` (21 tests skipped, antes 19 — los
+  2 nuevos se registraron bien), pero la aserción real de `assertFails` en sí queda pendiente de
+  CI (que sí tiene Java 21 vía `actions/setup-java`) o de correrla a mano con
+  `npx firebase-tools@15.24.0 emulators:exec --only firestore "npm run test:emulator"` en una
+  máquina con Java.
+
+**Gates tras Fase 2:** `tsc` limpio (raíz y `functions/`) · lint 0 errores (17 warnings
+preexistentes, sin cambio) · 935 tests (922 previos + 12 de `busqueda-indice-texto.test.ts` + 1 de
+`firestore-security.test.ts`) + 27 skipped (25 previos + 2 del `it.each` del emulator) ·
+`cd functions && npm run build` limpio. Sin verificación de navegador — Fase 2 no toca UI ni
+Route Handlers (eso es Fase 3).
 
 ---
 
