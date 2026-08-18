@@ -128,14 +128,18 @@ describe("reglas de Firestore y Storage para gafetes", () => {
     expect(bloque).toMatch(/image\/\(jpeg\|png\|webp\)/)
   })
 
-  it("permite a un usuario autorizado actualizar proveedorId en órdenes y cotizaciones", () => {
+  it("reserva proveedorId en órdenes y cotizaciones para super-admin", () => {
     const reglas = readFileSync(resolve(raiz, "firestore.rules"), "utf8")
     const ordenes = reglas.match(/match \/ordenes\/\{ordenId\} \{([\s\S]*?)\n    \}/)?.[1]
     const cotizaciones = reglas.match(/match \/cotizaciones\/\{cotizacionId\} \{([\s\S]*?)\n    \}/)?.[1]
 
     for (const bloque of [ordenes, cotizaciones]) {
       expect(bloque).toBeTruthy()
-      expect(bloque).not.toMatch(/affectedKeys\(\)\.hasAny\(\['proveedorId'\]\)/)
+      expect(bloque).toMatch(/affectedKeys\(\)\.hasAny\(\['proveedorId'\]\)/)
+      expect(bloque).toMatch(/esSuperAdminDoc\(\)/)
+      expect(bloque).toMatch(
+        /allow delete: if esUsuarioAutorizado\(\)[\s\S]*?\(esCorreoBreakGlass\(\) \|\| esSuperAdminDoc\(\)\);/
+      )
     }
   })
 })

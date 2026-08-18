@@ -60,6 +60,12 @@ async function seed(): Promise<void> {
         esSuperAdmin: true,
         modulos: [],
       }),
+      db.doc("usuarios/super-inactivo").set({
+        activo: false,
+        email: "super-inactivo@example.com",
+        esSuperAdmin: true,
+        modulos: [],
+      }),
       db.doc("usuarios/normal-gafetes").set({
         activo: true,
         email: "normal-gafetes@example.com",
@@ -90,6 +96,30 @@ async function seed(): Promise<void> {
         proveedor: "Proveedor histórico",
         proveedorId: "proveedor-anterior",
         descripcion: "Herramienta",
+        moneda: "USD",
+        estatus: "cotizado",
+        ubicacion: "USA",
+        precioUnitario: 10,
+        total: 10,
+        creadoEn: new Date(),
+        actualizadoEn: new Date(),
+      }),
+      db.doc("ordenes/orden-sin-vinculacion").set({
+        proveedor: "Proveedor histórico sin catálogo",
+        requisitor: "Compras",
+        ordenTrabajo: "",
+        empresa: "SMV",
+        moneda: "USD",
+        estado: "pendiente",
+        subtotal: 10,
+        impuestos: 0,
+        total: 10,
+        creadoEn: new Date(),
+        actualizadoEn: new Date(),
+      }),
+      db.doc("cotizaciones/cotizacion-sin-vinculacion").set({
+        proveedor: "Proveedor histórico sin catálogo",
+        descripcion: "Herramienta histórica",
         moneda: "USD",
         estatus: "cotizado",
         ubicacion: "USA",
@@ -259,6 +289,27 @@ describeWithEmulator("reglas Firestore de Integridad", () => {
 
     await assertFails(ordenNormal.update({ proveedorId: "proveedor-manipulado", actualizadoEn: ahora }))
     await assertFails(cotizacionNormal.update({ proveedorId: "proveedor-manipulado", actualizadoEn: ahora }))
+    await assertFails(ordenNormal.delete())
+    await assertFails(cotizacionNormal.delete())
+    await assertFails(userDb("super-inactivo").doc("ordenes/orden-vinculacion").delete())
+    await assertFails(userDb("super-inactivo").doc("cotizaciones/cotizacion-vinculacion").delete())
+
+    // Los modales existentes materializan proveedorId: null al editar
+    // históricos sin el campo. Esto no debe impedir una edición operativa.
+    await assertSucceeds(
+      userDb("provider-user").doc("ordenes/orden-sin-vinculacion").update({
+        estado: "aprobada",
+        proveedorId: null,
+        actualizadoEn: new Date(),
+      })
+    )
+    await assertSucceeds(
+      userDb("provider-user").doc("cotizaciones/cotizacion-sin-vinculacion").update({
+        estatus: "revisar",
+        proveedorId: null,
+        actualizadoEn: new Date(),
+      })
+    )
 
     await assertSucceeds(
       userDb("super-gafetes").doc("ordenes/orden-vinculacion").update({

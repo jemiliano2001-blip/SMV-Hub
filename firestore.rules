@@ -171,12 +171,26 @@ service cloud.firestore {
 
       // En la actualización, el audit trail es inmutable: la fecha de creación
       // no puede alterarse y la marca de actualización debe avanzar.
-       allow update: if esUsuarioAutorizado()
-                     && ordenValida(request.resource.data)
-                     && request.resource.data.creadoEn == resource.data.creadoEn
-                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+      allow update: if esUsuarioAutorizado()
+                    && ordenValida(request.resource.data)
+                    && request.resource.data.creadoEn == resource.data.creadoEn
+                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn
+                    // La vinculación histórica se aplica únicamente por la
+                    // ruta de super-admin; un usuario operativo no puede
+                    // cambiar proveedorId directo desde Firestore.
+                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['proveedorId'])
+                        // Compatibilidad con históricos previos al campo:
+                        // el editor puede materializar solamente null mientras
+                        // actualiza otros datos, nunca asignar un proveedor.
+                        || (!resource.data.keys().hasAny(['proveedorId'])
+                            && request.resource.data.proveedorId == null)
+                        || esCorreoBreakGlass()
+                        || esSuperAdminDoc());
 
-      allow delete: if esUsuarioAutorizado();
+      // Evita borrar y recrear el mismo id para evadir la protección de
+      // proveedorId. Es una acción destructiva reservada a super-admin.
+      allow delete: if esUsuarioAutorizado()
+                    && (esCorreoBreakGlass() || esSuperAdminDoc());
     }
 
     // ── Cotizaciones (base de datos histórica buscable) ──────────────────────
@@ -189,12 +203,18 @@ service cloud.firestore {
 
       // El audit trail es inmutable: la fecha de creación no cambia y la marca
       // de actualización debe avanzar.
-       allow update: if esUsuarioAutorizado()
-                     && cotizacionValida(request.resource.data)
-                     && request.resource.data.creadoEn == resource.data.creadoEn
-                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+      allow update: if esUsuarioAutorizado()
+                    && cotizacionValida(request.resource.data)
+                    && request.resource.data.creadoEn == resource.data.creadoEn
+                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn
+                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['proveedorId'])
+                        || (!resource.data.keys().hasAny(['proveedorId'])
+                            && request.resource.data.proveedorId == null)
+                        || esCorreoBreakGlass()
+                        || esSuperAdminDoc());
 
-      allow delete: if esUsuarioAutorizado();
+      allow delete: if esUsuarioAutorizado()
+                    && (esCorreoBreakGlass() || esSuperAdminDoc());
     }
 
     // ── Compras / Cotizaciones Odoo ──────────────────────────────────────────
