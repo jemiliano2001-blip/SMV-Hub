@@ -4,12 +4,15 @@ import { findSatCatalogEntryByKey } from "@/lib/sat/catalogo"
 import { clasificarAreaComprasSmv, contextoSmvParaIa } from "@/lib/sat/perfil-compras-smv"
 
 /** Modelo económico para traducción/clasificación SAT (override con GEMINI_MODEL_SAT). */
-export const MODELO_SAT_LITE = "gemini-3.1-flash-lite"
+export const MODELO_SAT_LITE = "gemini-3.5-flash-lite"
 /** Modelo más capaz para casos ambiguos (override con GEMINI_MODEL_SAT_ESCALADO). */
 export const MODELO_SAT_ESCALADO = "gemini-3.7-flash"
 /** @deprecated Usar MODELO_SAT_LITE */
 export const MODELO_SAT = MODELO_SAT_LITE
-const MODELO_SAT_OBSOLETO = "gemini-3.5-flash-lite"
+/** IDs retirados por Google — migrar al lite vigente. */
+const MODELOS_SAT_OBSOLETOS: Readonly<Record<string, string>> = {
+  "gemini-3.1-flash-lite-preview": MODELO_SAT_LITE,
+}
 const TIEMPO_MAXIMO_GEMINI_MS = 15_000
 
 type GeminiGenerateResponse = {
@@ -31,9 +34,10 @@ function obtenerApiKey(): string {
 
 export function resolverModeloLite(): string {
   const configurado = process.env.GEMINI_MODEL_SAT?.trim()
-  if (configurado === MODELO_SAT_OBSOLETO) {
-    console.warn(`[sat] ${MODELO_SAT_OBSOLETO} ya no existe; se usará ${MODELO_SAT_LITE}`)
-    return MODELO_SAT_LITE
+  if (configurado && configurado in MODELOS_SAT_OBSOLETOS) {
+    const reemplazo = MODELOS_SAT_OBSOLETOS[configurado]
+    console.warn(`[sat] ${configurado} ya no existe; se usará ${reemplazo}`)
+    return reemplazo
   }
   return configurado || MODELO_SAT_LITE
 }

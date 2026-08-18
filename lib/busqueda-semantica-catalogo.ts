@@ -69,16 +69,32 @@ export async function buscarEnCatalogoSemantico(
     )
   }
 
-  const snap = await adminDb
-    .collection("busqueda_indice")
-    .where("fuente", "in", opciones.fuentesPermitidas)
-    .get()
+  let snap
+  try {
+    snap = await adminDb
+      .collection("busqueda_indice")
+      .where("fuente", "in", opciones.fuentesPermitidas)
+      .get()
+  } catch (error) {
+    throw new ErrorIA(
+      `No se pudo leer el índice de búsqueda semántica: ${error instanceof Error ? error.message : String(error)}`
+    )
+  }
 
-  const itemsVectorizados: ItemVectorizado<ResultadoBusquedaSemantica>[] = snap.docs.map((doc) => {
+  const itemsVectorizados: ItemVectorizado<ResultadoBusquedaSemantica>[] = []
+  let entradasDimensionIncorrecta = 0
+
+  for (const doc of snap.docs) {
     const d = doc.data()
-    return {
+    const embedding = Array.isArray(d.embedding) ? d.embedding : []
+    if (embedding.length > 0 && embedding.length !== DIMENSIONES_INDICE) {
+      entradasDimensionIncorrecta++
+      continue
+    }
+
+    itemsVectorizados.push({
       id: doc.id,
-      embedding: Array.isArray(d.embedding) ? d.embedding : [],
+      embedding,
       data: {
         id: doc.id,
         fuente: d.fuente,
@@ -86,8 +102,14 @@ export async function buscarEnCatalogoSemantico(
         titulo: d.titulo,
         metadata: d.metadata ?? {},
       },
-    }
-  })
+    })
+  }
+
+  if (entradasDimensionIncorrecta > 0) {
+    console.warn(
+      `[busqueda-semantica] ${entradasDimensionIncorrecta} entradas del índice tienen dimensión distinta a ${DIMENSIONES_INDICE} y se omitieron; ejecuta syncBusquedaIndiceManual para reindexar.`
+    )
+  }
 
   const resultadosSimilitud = buscarPorSimilitudSemantica(queryVector, itemsVectorizados, {
     topK: opciones.topK || 6,

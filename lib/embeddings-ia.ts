@@ -1,15 +1,15 @@
 /**
  * Módulo de generación de embeddings vectoriales y búsqueda semántica con Gemini.
  *
- * Utiliza el modelo `gemini-embedding-2-preview` (multimodal y multilingüe)
+ * Utiliza el modelo GA `gemini-embedding-2` (multimodal y multilingüe)
  * para calcular representaciones vectoriales densas y permitir búsqueda semántica
  * bilingüe (Español ⇄ Inglés) en catálogos, refacciones y órdenes.
  */
 
 import { ErrorIA } from "./extraer-ia"
+import { modeloUsaPrefijosEmbedding, prefijarTextoEmbedding } from "./embeddings-prefijos"
 
-export const MODELO_EMBEDDING_DEFAULT = "gemini-embedding-2-preview"
-export const MODELO_EMBEDDING_FALLBACK = "gemini-embedding-001"
+export const MODELO_EMBEDDING_DEFAULT = "gemini-embedding-2"
 
 export type TaskTypeEmbedding =
   | "RETRIEVAL_QUERY"
@@ -24,6 +24,8 @@ export interface OpcionesEmbedding {
   fetchFn?: typeof fetch
   timeoutMs?: number
   taskType?: TaskTypeEmbedding
+  /** Título del documento (Embeddings 2, rol RETRIEVAL_DOCUMENT). */
+  titulo?: string
   /** Debe coincidir con la dimensión de los vectores ya guardados al comparar contra un índice. */
   outputDimensionality?: number
 }
@@ -95,6 +97,32 @@ class ErrorGeminiHttp extends ErrorIA {
   }
 }
 
+function prepararTextoParaEmbedding(
+  texto: string,
+  modelo: string,
+  taskType: TaskTypeEmbedding,
+  titulo?: string
+): string {
+  if (modeloUsaPrefijosEmbedding(modelo)) {
+    return prefijarTextoEmbedding(taskType, texto, titulo)
+  }
+  return texto
+}
+
+function construirEmbedContentConfig(
+  modelo: string,
+  taskType: TaskTypeEmbedding,
+  outputDimensionality?: number
+): Record<string, unknown> {
+  if (modeloUsaPrefijosEmbedding(modelo)) {
+    return outputDimensionality ? { outputDimensionality } : {}
+  }
+  return {
+    taskType,
+    ...(outputDimensionality ? { outputDimensionality } : {}),
+  }
+}
+
 async function llamarEmbedContent(
   textoLimpio: string,
   modelo: string,
@@ -102,9 +130,12 @@ async function llamarEmbedContent(
   fetchFn: typeof fetch,
   timeoutMs: number,
   taskType: TaskTypeEmbedding,
-  outputDimensionality?: number
+  outputDimensionality?: number,
+  titulo?: string
 ): Promise<number[]> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:embedContent?key=${apiKey}`
+  const textoEnviado = prepararTextoParaEmbedding(textoLimpio, modelo, taskType, titulo)
+  const embedContentConfig = construirEmbedContentConfig(modelo, taskType, outputDimensionality)
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), timeoutMs)
@@ -119,10 +150,9 @@ async function llamarEmbedContent(
       body: JSON.stringify({
         model: `models/${modelo}`,
         content: {
-          parts: [{ text: textoLimpio }],
+          parts: [{ text: textoEnviado }],
         },
-        taskType,
-        ...(outputDimensionality ? { outputDimensionality } : {}),
+        ...(Object.keys(embedContentConfig).length > 0 ? { embedContentConfig } : {}),
       }),
     })
 
@@ -174,45 +204,21 @@ export async function generarEmbeddingTexto(
     throw new ErrorIA("No se ha configurado GEMINI_API_KEY en el entorno")
   }
 
-  const modeloSolicitado = opciones.modelo || resolverModeloEmbedding()
+  const modelo = opciones.modelo || resolverModeloEmbedding()
   const fetchFn = opciones.fetchFn || fetch
   const timeoutMs = opciones.timeoutMs || 15_000
   const taskType = opciones.taskType || "RETRIEVAL_QUERY"
 
-  try {
-    return await llamarEmbedContent(
-      textoLimpio,
-      modeloSolicitado,
-      apiKey,
-      fetchFn,
-      timeoutMs,
-      taskType,
-      opciones.outputDimensionality
-    )
-  } catch (error) {
-    // El default (sin override explícito) es un modelo *preview* — Google puede retirarlo.
-    // Un 404 en ese caso específico significa "este modelo ya no existe", no un problema
-    // transitorio: un solo reintento contra el modelo estable evita que la búsqueda muera
-    // por completo. No se reintenta si el caller pidió un modelo explícito (respetamos su
-    // elección) ni si el que ya falló era el propio fallback (evita loop).
-    const fueNoEncontrado = error instanceof ErrorGeminiHttp && error.status === 404
-    const puedeCaerAFallback =
-      fueNoEncontrado && !opciones.modelo && modeloSolicitado !== MODELO_EMBEDDING_FALLBACK
-    if (!puedeCaerAFallback) throw error
-
-    console.warn(
-      `[embeddings] ${modeloSolicitado} no disponible (404); se usará ${MODELO_EMBEDDING_FALLBACK}`
-    )
-    return await llamarEmbedContent(
-      textoLimpio,
-      MODELO_EMBEDDING_FALLBACK,
-      apiKey,
-      fetchFn,
-      timeoutMs,
-      taskType,
-      opciones.outputDimensionality
-    )
-  }
+  return await llamarEmbedContent(
+    textoLimpio,
+    modelo,
+    apiKey,
+    fetchFn,
+    timeoutMs,
+    taskType,
+    opciones.outputDimensionality,
+    opciones.titulo
+  )
 }
 
 // Límite propio y conservador, no documentado por Gemini (no publica un máximo de
@@ -256,6 +262,7 @@ export async function generarEmbeddingsLote(
   const fetchFn = opciones.fetchFn || fetch
   const timeoutMs = opciones.timeoutMs || 25_000
   const taskType = opciones.taskType || "RETRIEVAL_DOCUMENT"
+  const embedContentConfig = construirEmbedContentConfig(modelo, taskType, opciones.outputDimensionality)
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:batchEmbedContents?key=${apiKey}`
 
@@ -264,13 +271,17 @@ export async function generarEmbeddingsLote(
 
   let response: Response
   try {
-    const requests = textos.map((t) => ({
-      model: `models/${modelo}`,
-      content: {
-        parts: [{ text: t.trim() || " " }],
-      },
-      taskType,
-    }))
+    const requests = textos.map((t) => {
+      const textoBase = t.trim() || " "
+      const textoEnviado = prepararTextoParaEmbedding(textoBase, modelo, taskType, opciones.titulo)
+      return {
+        model: `models/${modelo}`,
+        content: {
+          parts: [{ text: textoEnviado }],
+        },
+        ...(Object.keys(embedContentConfig).length > 0 ? { embedContentConfig } : {}),
+      }
+    })
 
     response = await fetchFn(url, {
       method: "POST",
@@ -338,6 +349,7 @@ export function buscarPorSimilitudSemantica<T = unknown>(
 
   for (const item of itemsVectorizados) {
     if (!item.embedding || item.embedding.length === 0) continue
+    if (item.embedding.length !== queryVector.length) continue
     const score = similitudCoseno(queryVector, item.embedding)
 
     if (score >= minScore) {

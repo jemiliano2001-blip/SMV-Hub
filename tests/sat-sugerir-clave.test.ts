@@ -65,10 +65,16 @@ describe("resolverModeloLite", () => {
     else process.env.GEMINI_MODEL_SAT = modeloOriginal
   })
 
-  it("migra el override obsoleto al modelo ligero vigente", () => {
+  it("migra el override obsoleto preview al modelo lite vigente", () => {
+    process.env.GEMINI_MODEL_SAT = "gemini-3.1-flash-lite-preview"
+
+    expect(resolverModeloLite()).toBe("gemini-3.5-flash-lite")
+  })
+
+  it("respeta gemini-3.5-flash-lite como override explícito", () => {
     process.env.GEMINI_MODEL_SAT = "gemini-3.5-flash-lite"
 
-    expect(resolverModeloLite()).toBe("gemini-3.1-flash-lite")
+    expect(resolverModeloLite()).toBe("gemini-3.5-flash-lite")
   })
 })
 
@@ -238,7 +244,7 @@ describe("sugerirClaveSatItem", () => {
 
     expect(traducirYElegir).toHaveBeenCalled()
     expect(result.claveProdServ).toBeNull()
-  })
+  }, 15_000)
 
   it("end mill en inglés usa glosario sin Gemini", async () => {
     const result = await sugerirClaveSatItem(

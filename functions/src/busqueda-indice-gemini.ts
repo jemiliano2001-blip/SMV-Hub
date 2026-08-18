@@ -9,12 +9,12 @@
  * (no se escribe nada a medias) y dejar que la siguiente corrida programada
  * reintente; no hace falta la distinción 400/429/degradación de la ruta viva.
  *
- * Usa el shape moderno `embedContentConfig` (taskType/outputDimensionality
- * planos están deprecados según ai.google.dev/api/embeddings, aunque siguen
- * funcionando — código nuevo usa el shape recomendado).
+ * gemini-embedding-2 no soporta taskType — prefijos en el texto (ver embeddings-prefijos.ts).
  */
 
-export const MODELO_EMBEDDING_INDICE = "gemini-embedding-2-preview"
+import { modeloUsaPrefijosEmbedding, prefijarTextoDocumentoIndice } from "./embeddings-prefijos"
+
+export const MODELO_EMBEDDING_INDICE = "gemini-embedding-2"
 // 768 en vez del default de la API (3072): la calidad medida por Gemini en su
 // propio benchmark MTEB es prácticamente idéntica (67.99 vs 68.17) y el
 // vector pesa ~4x menos — relevante porque Option B (Fase 0) lee el índice
@@ -31,6 +31,7 @@ function esperar(ms: number): Promise<void> {
 export interface SolicitudEmbedding {
   id: string
   texto: string
+  titulo?: string
 }
 
 export interface OpcionesEmbeddingIndice {
@@ -57,14 +58,19 @@ async function embedContentsChunk(
       headers: { "Content-Type": "application/json" },
       signal: controller.signal,
       body: JSON.stringify({
-        requests: solicitudes.map((s) => ({
-          model: `models/${opciones.modelo}`,
-          content: { parts: [{ text: s.texto }] },
-          embedContentConfig: {
-            taskType: "RETRIEVAL_DOCUMENT",
-            outputDimensionality: opciones.dimensiones,
-          },
-        })),
+        requests: solicitudes.map((s) => {
+          const textoBase = s.texto.trim() || " "
+          const textoEnviado = modeloUsaPrefijosEmbedding(opciones.modelo)
+            ? prefijarTextoDocumentoIndice(textoBase, s.titulo)
+            : textoBase
+          return {
+            model: `models/${opciones.modelo}`,
+            content: { parts: [{ text: textoEnviado }] },
+            embedContentConfig: {
+              outputDimensionality: opciones.dimensiones,
+            },
+          }
+        }),
       }),
     })
   } catch (error) {

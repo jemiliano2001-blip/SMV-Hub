@@ -78,6 +78,7 @@ describe("investigarPreciosInsumoIA", () => {
                   mejorOpcionTiempo: "McMaster-Carr",
                   recomendacionesTecnicas: "Usar refrigerante soluble con corte en aceros aleados.",
                   alternativasMaterial: ["HSS con recubrimiento TiN para bajas revoluciones"],
+                  fuentes: ["https://www.shars.com", "https://www.mcmaster.com"],
                 }),
               },
             ],
@@ -114,6 +115,55 @@ describe("investigarPreciosInsumoIA", () => {
     expect(resultado.opciones).toHaveLength(2)
     expect(resultado.opciones[0].precioEstimadoMXN).toBe(490.0)
     expect(resultado.mejorOpcionCosto).toBe("Shars Tool")
+  })
+
+  it("incluye google_search en el body de la petición a Gemini", async () => {
+    const mockGeminiJson = {
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                text: JSON.stringify({
+                  concepto: "Placa 6061",
+                  categoria: "metales",
+                  especificacionesClave: [],
+                  rangoPreciosUSD: { min: 10, promedio: 15, max: 20 },
+                  opciones: [
+                    {
+                      proveedor: "OnlineMetals",
+                      mercado: "USA",
+                      precioEstimadoUSD: 15,
+                      tiempoEntregaDias: 3,
+                    },
+                  ],
+                  mejorOpcionCosto: "OnlineMetals",
+                  mejorOpcionTiempo: "OnlineMetals",
+                  recomendacionesTecnicas: "",
+                  fuentes: ["https://www.onlinemetals.com"],
+                }),
+              },
+            ],
+          },
+        },
+      ],
+    }
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockGeminiJson,
+    } as unknown as Response)
+
+    const resultado = await investigarPreciosInsumoIA(
+      { consulta: "Placa 6061" },
+      { apiKey: "fake-key", fetchFn: mockFetch as unknown as typeof fetch }
+    )
+
+    const body = JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string) as {
+      tools: Array<{ google_search: Record<string, never> }>
+    }
+    expect(body.tools).toEqual([{ google_search: {} }])
+    expect(resultado.fuentes).toEqual(["https://www.onlinemetals.com"])
   })
 
   it("lanza ErrorIA cuando la API de Gemini responde con status de error", async () => {
@@ -156,6 +206,7 @@ describe("cruzarConHistoricoLocal", () => {
     mejorOpcionTiempo: "OnlineMetals",
     recomendacionesTecnicas: "Corte con disco para no templar orillas.",
     alternativasMaterial: ["Aluminio 7075 para mayor resistencia"],
+    fuentes: [],
   }
 
   it("encuentra coincidencia en ítems de Odoo", () => {

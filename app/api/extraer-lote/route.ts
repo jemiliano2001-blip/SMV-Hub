@@ -8,6 +8,10 @@ import {
   ErrorIA,
 } from "@/lib/extraer-ia"
 import type { ExtraccionInvoice } from "@/lib/schemas"
+
+export const runtime = "nodejs"
+export const maxDuration = 120
+
 const MAX_IMAGENES = 20
 const MAX_BYTES_IMAGEN = 10 * 1024 * 1024
 const MAX_BYTES_LOTE = 50 * 1024 * 1024

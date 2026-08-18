@@ -8,6 +8,8 @@ import type { FuenteBusquedaIndice } from "@/lib/schemas"
 import { excedeLimite } from "@/lib/rate-limit-memoria"
 
 export const runtime = "nodejs"
+/** Embedding + lectura del índice completo puede tardar >60s en frío. */
+export const maxDuration = 120
 
 const BusquedaSemanticaBodySchema = z.object({
   query: z.string().min(1, "La consulta de búsqueda no puede estar vacía").max(300),
@@ -67,7 +69,17 @@ export async function POST(req: NextRequest) {
     if (error instanceof ErrorIA) {
       return NextResponse.json({ error: error.message }, { status: 502 })
     }
+    const mensaje = error instanceof Error ? error.message : String(error)
     console.error("[busqueda-semantica] Error interno:", error)
+    if (mensaje.includes("dimensión") || mensaje.includes("dimension")) {
+      return NextResponse.json(
+        {
+          error:
+            "El índice de búsqueda tiene vectores incompatibles. Un super-admin debe ejecutar la reindexación (syncBusquedaIndiceManual).",
+        },
+        { status: 502 }
+      )
+    }
     return NextResponse.json(
       { error: "Ocurrió un error inesperado al procesar la búsqueda semántica" },
       { status: 500 }

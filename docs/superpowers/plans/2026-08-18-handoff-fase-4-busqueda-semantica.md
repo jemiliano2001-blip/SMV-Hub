@@ -4,22 +4,38 @@ Para quien retome esto (ChatGPT u otro agente). Fases 0-3 completas y ya en `mai
 
 - Spec: [../specs/2026-08-17-busqueda-semantica-datos-reales.md](../specs/2026-08-17-busqueda-semantica-datos-reales.md)
 - Plan con checkpoints de cada fase: [2026-08-17-busqueda-semantica-datos-reales.md](2026-08-17-busqueda-semantica-datos-reales.md)
+- Alineación modelos Gemini (2026-08-18): [../specs/2026-08-18-modelos-gemini-alineacion.md](../specs/2026-08-18-modelos-gemini-alineacion.md)
 - Commits: `fca3b1e` (Fase 0+1), `ac46fdc` (Fase 2), `f49e2bf` (Fase 3) — todos en `origin/main`.
+
+## Cambio de modelo (2026-08-18) — reindexar obligatorio
+
+El indexador y la búsqueda en vivo usan **`gemini-embedding-2`** (GA) con prefijos query/documento
+(no `task_type`). Código en `lib/embeddings-ia.ts`, `lib/embeddings-prefijos.ts` y
+`functions/src/busqueda-indice-gemini.ts`. Si `busqueda_indice` se pobló con
+`gemini-embedding-2-preview`, hay que **volver a correr** `syncBusquedaIndiceManual` tras deploy
+de Functions — mezclar vectores preview + GA rompe el ranking.
 
 ## Qué falta: Fase 4 (validación y despliegue)
 
 Ver la sección "Fase 4" del plan de arriba para el detalle de T4.1-T4.4. Resumen:
 
-1. **Crear el secreto `HUB_GEMINI_API_KEY`** en Secret Manager — todavía no existe, ni en
-   `smv-brain-dev` ni en `smv-brain`. Sin esto el job de indexación truena de inmediato.
-   `firebase functions:secrets:set HUB_GEMINI_API_KEY`.
-2. **Correr `syncBusquedaIndiceManual`** (callable, gateado a super-admin) contra `smv-brain-dev`
-   primero. `busqueda_indice` está vacío en ambos proyectos — nadie lo ha corrido nunca.
-3. **Validar las 10 búsquedas de prueba** (tabla en el spec) contra el índice real ya poblado.
-4. **Pase de navegador real** con login (no bypass) haciendo una búsqueda que sí devuelva
-   resultados — no se pudo hacer en esta sesión (ver bloqueo abajo).
-5. Indexación inicial en producción (`smv-brain`) — costo ya aprobado en Fase 0 (~$0.002 USD).
-6. Actualizar `CLAUDE.md`/`AGENTS.md` con el módulo nuevo.
+1. ~~**Crear el secreto `HUB_GEMINI_API_KEY`**~~ Hecho en `smv-brain-dev` y `smv-brain`.
+2. ~~**Correr sync del índice**~~ Hecho 2026-08-18: prod 447 entradas (125 órdenes + 102 proveedores), dev 13 proveedores.
+3. ~~**Validar las 10 búsquedas de prueba**~~ **10/10** en top 3 contra `smv-brain` tras reindex completo con `gemini-embedding-2`.
+4. **Pase de navegador real** con login (Cmd+K) — pendiente manual; la validación CLI ya pasó.
+5. ~~Indexación inicial en producción~~ Hecho.
+6. ~~Actualizar `CLAUDE.md`/`AGENTS.md`~~ Hecho 2026-08-18.
+
+### Scripts operativos (2026-08-18)
+
+```bash
+cd functions && npm run build && cd ..
+node scripts/ejecutar-sync-busqueda-indice.mjs smv-brain      # reindex manual (requiere GOOGLE_APPLICATION_CREDENTIALS en .env.local)
+npx tsx scripts/validar-busquedas-prueba.ts smv-brain         # 10 búsquedas de prueba
+firebase deploy --only "functions:smv-hub:syncBusquedaIndiceScheduled,functions:smv-hub:syncBusquedaIndiceManual" --project smv-brain
+```
+
+**Nota:** el indexador ahora re-embebe también cuando cambia `modelo` o `dimensiones` en el doc del índice (no solo `textoHash`).
 
 ## Bloqueo activo
 

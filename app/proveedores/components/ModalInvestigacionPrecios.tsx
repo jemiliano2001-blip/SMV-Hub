@@ -528,6 +528,28 @@ export default function ModalInvestigacionPrecios({
                   </div>
                 )}
               </div>
+
+              {resultado.fuentes && resultado.fuentes.length > 0 && (
+                <div className="p-3 bg-sky-50/70 rounded-xl border border-sky-200/80 text-sky-950 space-y-1.5">
+                  <span className="font-extrabold text-sky-900 text-xs flex items-center gap-1.5">
+                    <Search className="w-4 h-4 text-sky-700" /> Fuentes web consultadas
+                  </span>
+                  <ul className="text-xs space-y-1">
+                    {resultado.fuentes.slice(0, 3).map((url) => (
+                      <li key={url}>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sky-800 underline underline-offset-2 break-all hover:text-sky-950"
+                        >
+                          {url.replace(/^https?:\/\//, '')}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
         </div>

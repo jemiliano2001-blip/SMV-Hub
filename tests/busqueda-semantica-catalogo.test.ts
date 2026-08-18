@@ -92,4 +92,37 @@ describe("buscarEnCatalogoSemantico", () => {
       buscarEnCatalogoSemantico("resorte", { apiKey: "fake", fetchFn, fuentesPermitidas: ["proveedor"] })
     ).rejects.toThrow()
   })
+
+  it("omite entradas del índice con dimensión distinta sin tronar", async () => {
+    fakeIndiceDocs([
+      {
+        id: "ok",
+        data: {
+          fuente: "proveedor",
+          refPath: "/proveedores?id=ok",
+          titulo: "McMaster",
+          metadata: {},
+          embedding: VECTOR,
+        },
+      },
+      {
+        id: "mal",
+        data: {
+          fuente: "proveedor",
+          refPath: "/proveedores?id=mal",
+          titulo: "Legacy",
+          metadata: {},
+          embedding: new Array(3072).fill(0.1),
+        },
+      },
+    ])
+    const res = await buscarEnCatalogoSemantico("mc master", {
+      apiKey: "fake",
+      fetchFn: mockFetch(VECTOR),
+      fuentesPermitidas: ["proveedor"],
+      minScore: 0.5,
+    })
+    expect(res.resultados).toHaveLength(1)
+    expect(res.resultados[0].item.titulo).toBe("McMaster")
+  })
 })

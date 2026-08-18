@@ -186,11 +186,13 @@ async function llamarGemini(
   }
 
   const maxReintentos = 3
+  const timeoutMs = 60_000
   for (let intento = 1; intento <= maxReintentos; intento++) {
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(timeoutMs),
     })
 
     if (res.status === 429 || res.status >= 500) {

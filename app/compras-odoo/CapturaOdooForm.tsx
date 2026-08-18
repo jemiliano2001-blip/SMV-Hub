@@ -173,7 +173,16 @@ export default function CapturaOdooForm({
           body: fd,
         })
 
-        const data = await res.json()
+        let data: { error?: string }
+        try {
+          data = (await res.json()) as { error?: string }
+        } catch {
+          throw new Error(
+            res.ok
+              ? 'El servidor respondió con un formato inválido. Intenta de nuevo.'
+              : `Error del servidor (${res.status}). Si subiste un PDF grande, prueba con una imagen o pega la tabla desde Excel.`
+          )
+        }
         if (!res.ok) {
           throw new Error(data.error || 'Error al procesar el archivo con IA.')
         }
@@ -236,7 +245,14 @@ export default function CapturaOdooForm({
           )
         }
       } catch (err) {
-        setErrorEnvio(err instanceof Error ? err.message : String(err))
+        const mensaje = err instanceof Error ? err.message : String(err)
+        if (mensaje === 'Failed to fetch') {
+          setErrorEnvio(
+            'La conexión con el servidor se cerró antes de terminar. Suele pasar con PDFs grandes o cuando la IA tarda demasiado. Intenta de nuevo con una imagen más liviana, o pega la tabla desde Excel.'
+          )
+        } else {
+          setErrorEnvio(mensaje)
+        }
       } finally {
         setExtrayendoIa(false)
       }

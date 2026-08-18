@@ -16,7 +16,8 @@
     "source": ".",
     "frameworksBackend": {
       "region": "us-central1",
-      "memory": "512MiB"
+      "memory": "1GiB",
+      "timeoutSeconds": 120
     },
     "ignore": [
       "firebase.json",

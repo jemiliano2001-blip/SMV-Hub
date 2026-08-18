@@ -8,6 +8,7 @@ import {
   MODELO_EMBEDDING_DEFAULT,
   type ItemVectorizado,
 } from "@/lib/embeddings-ia"
+import { prefijarTextoEmbedding } from "@/lib/embeddings-prefijos"
 import { ErrorIA } from "@/lib/extraer-ia"
 
 describe("resolverModeloEmbedding", () => {
@@ -21,15 +22,29 @@ describe("resolverModeloEmbedding", () => {
     }
   })
 
-  it("devuelve gemini-embedding-2-preview por default", () => {
+  it("devuelve gemini-embedding-2 por default", () => {
     delete process.env.GEMINI_MODEL_EMBEDDING
     expect(resolverModeloEmbedding()).toBe(MODELO_EMBEDDING_DEFAULT)
-    expect(resolverModeloEmbedding()).toBe("gemini-embedding-2-preview")
+    expect(resolverModeloEmbedding()).toBe("gemini-embedding-2")
   })
 
   it("respeta override de variable de entorno", () => {
     process.env.GEMINI_MODEL_EMBEDDING = "gemini-embedding-001"
     expect(resolverModeloEmbedding()).toBe("gemini-embedding-001")
+  })
+})
+
+describe("prefijarTextoEmbedding", () => {
+  it("prefija consultas de búsqueda", () => {
+    expect(prefijarTextoEmbedding("RETRIEVAL_QUERY", "fresa carburo")).toBe(
+      "task: search result | query: fresa carburo"
+    )
+  })
+
+  it("prefija documentos con título", () => {
+    expect(prefijarTextoEmbedding("RETRIEVAL_DOCUMENT", "aluminio 6061", "Placa")).toBe(
+      "title: Placa | text: aluminio 6061"
+    )
   })
 })
 
@@ -63,7 +78,7 @@ describe("similitudCoseno", () => {
 })
 
 describe("generarEmbeddingTexto", () => {
-  it("llama a la API de Gemini Embeddings y retorna el vector", async () => {
+  it("llama a la API de Gemini Embeddings con prefijo de consulta y retorna el vector", async () => {
     const mockValues = [0.12, -0.45, 0.78, 0.05]
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -76,14 +91,18 @@ describe("generarEmbeddingTexto", () => {
 
     const resultado = await generarEmbeddingTexto("fresa de carburo 4 filos", {
       apiKey: "fake-key",
-      modelo: "gemini-embedding-2-preview",
+      modelo: "gemini-embedding-2",
       fetchFn: mockFetch as unknown as typeof fetch,
     })
 
     expect(resultado).toEqual(mockValues)
     expect(mockFetch).toHaveBeenCalledTimes(1)
     const callUrl = mockFetch.mock.calls[0][0] as string
-    expect(callUrl).toContain("gemini-embedding-2-preview:embedContent")
+    expect(callUrl).toContain("gemini-embedding-2:embedContent")
+    const body = JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string) as {
+      content: { parts: Array<{ text: string }> }
+    }
+    expect(body.content.parts[0].text).toBe("task: search result | query: fresa de carburo 4 filos")
   })
 
   it("lanza ErrorIA si la consulta está vacía", async () => {
@@ -105,38 +124,42 @@ describe("generarEmbeddingTexto", () => {
     ).rejects.toThrow(ErrorIA)
   })
 
-  it("cae al modelo estable cuando el preview responde 404, y avisa por consola", async () => {
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
-    const mockValues = [0.1, 0.2, 0.3]
-    const mockFetch = vi
-      .fn()
-      .mockResolvedValueOnce({ ok: false, status: 404, text: async () => "model not found" } as unknown as Response)
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ embedding: { values: mockValues } }) } as unknown as Response)
-
-    const resultado = await generarEmbeddingTexto("fresa de carburo", {
-      apiKey: "fake-key",
-      fetchFn: mockFetch as unknown as typeof fetch,
-    })
-
-    expect(resultado).toEqual(mockValues)
-    expect(mockFetch).toHaveBeenCalledTimes(2)
-    expect(mockFetch.mock.calls[0][0] as string).toContain("gemini-embedding-2-preview:embedContent")
-    expect(mockFetch.mock.calls[1][0] as string).toContain("gemini-embedding-001:embedContent")
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("gemini-embedding-001"))
-    warnSpy.mockRestore()
-  })
-
-  it("no cae al fallback si el caller pidió un modelo explícito", async () => {
-    const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 404, text: async () => "model not found" } as unknown as Response)
+  it("no reintenta con otro modelo en 404 — lanza ErrorIA", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: async () => "model not found",
+    } as unknown as Response)
 
     await expect(
-      generarEmbeddingTexto("endmill", {
+      generarEmbeddingTexto("fresa de carburo", {
         apiKey: "fake-key",
-        modelo: "un-modelo-especifico",
         fetchFn: mockFetch as unknown as typeof fetch,
       })
     ).rejects.toThrow(ErrorIA)
     expect(mockFetch).toHaveBeenCalledTimes(1)
+  })
+
+  it("usa taskType en embedContentConfig para gemini-embedding-001", async () => {
+    const mockValues = [0.1, 0.2]
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ embedding: { values: mockValues } }),
+    } as unknown as Response)
+
+    await generarEmbeddingTexto("endmill", {
+      apiKey: "fake-key",
+      modelo: "gemini-embedding-001",
+      fetchFn: mockFetch as unknown as typeof fetch,
+      taskType: "RETRIEVAL_QUERY",
+    })
+
+    const body = JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string) as {
+      content: { parts: Array<{ text: string }> }
+      embedContentConfig: { taskType: string }
+    }
+    expect(body.content.parts[0].text).toBe("endmill")
+    expect(body.embedContentConfig.taskType).toBe("RETRIEVAL_QUERY")
   })
 
   it("no cae al fallback en errores que no son 404 (p.ej. 429)", async () => {
@@ -147,28 +170,10 @@ describe("generarEmbeddingTexto", () => {
     ).rejects.toThrow(ErrorIA)
     expect(mockFetch).toHaveBeenCalledTimes(1)
   })
-
-  it("no reintenta de nuevo si el que falló con 404 ya era el modelo fallback (evita loop)", async () => {
-    // Sin opciones.modelo, para que la resolución por default/env sea la que determine
-    // el modelo — así se prueba la condición "ya era el fallback", no la de "caller explícito".
-    const originalEnv = process.env.GEMINI_MODEL_EMBEDDING
-    process.env.GEMINI_MODEL_EMBEDDING = "gemini-embedding-001"
-    const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 404, text: async () => "model not found" } as unknown as Response)
-
-    try {
-      await expect(
-        generarEmbeddingTexto("endmill", { apiKey: "fake-key", fetchFn: mockFetch as unknown as typeof fetch })
-      ).rejects.toThrow(ErrorIA)
-      expect(mockFetch).toHaveBeenCalledTimes(1)
-    } finally {
-      if (originalEnv === undefined) delete process.env.GEMINI_MODEL_EMBEDDING
-      else process.env.GEMINI_MODEL_EMBEDDING = originalEnv
-    }
-  })
 })
 
 describe("generarEmbeddingsLote", () => {
-  it("procesa múltiples textos en lote", async () => {
+  it("procesa múltiples textos en lote con embedContentConfig", async () => {
     const mockEmbeddings = [
       { values: [0.1, 0.2] },
       { values: [0.3, 0.4] },
@@ -183,11 +188,16 @@ describe("generarEmbeddingsLote", () => {
     const resultado = await generarEmbeddingsLote(["aluminio 6061", "acero 4140"], {
       apiKey: "fake-key",
       fetchFn: mockFetch as unknown as typeof fetch,
+      outputDimensionality: 768,
     })
 
     expect(resultado).toHaveLength(2)
     expect(resultado[0]).toEqual([0.1, 0.2])
     expect(resultado[1]).toEqual([0.3, 0.4])
+    const body = JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string) as {
+      requests: Array<{ embedContentConfig: { outputDimensionality: number } }>
+    }
+    expect(body.requests[0].embedContentConfig.outputDimensionality).toBe(768)
   })
 
   it("un 429 NO dispara N peticiones individuales — lanza ErrorIA", async () => {
@@ -304,5 +314,25 @@ describe("buscarPorSimilitudSemantica", () => {
     expect(resultados[0].porcentajeSimilitud).toBeGreaterThanOrEqual(95)
     expect(resultados[1].id).toBe("2")
     expect(resultados[1].porcentajeSimilitud).toBeGreaterThanOrEqual(70)
+  })
+
+  it("omite ítems cuya dimensión no coincide con la consulta", () => {
+    const query = [1, 0, 0]
+    const items: ItemVectorizado<{ nombre: string }>[] = [
+      {
+        id: "ok",
+        embedding: [1, 0, 0],
+        data: { nombre: "Compatible" },
+      },
+      {
+        id: "mal",
+        embedding: [1, 0, 0, 0],
+        data: { nombre: "Dimensión distinta" },
+      },
+    ]
+
+    const resultados = buscarPorSimilitudSemantica(query, items, { topK: 5, minScore: 0.5 })
+    expect(resultados).toHaveLength(1)
+    expect(resultados[0].id).toBe("ok")
   })
 })

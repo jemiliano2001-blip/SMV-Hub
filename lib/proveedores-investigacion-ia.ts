@@ -70,6 +70,8 @@ export const ResultadoInvestigacionPreciosSchema = z.object({
   mejorOpcionTiempo: z.string().default(""),
   recomendacionesTecnicas: z.string().default(""),
   alternativasMaterial: z.array(z.string()).default([]),
+  /** URLs consultadas vía Google Search grounding (cuando la API las devuelve). */
+  fuentes: z.array(z.string()).default([]),
   coincidenciaHistorica: CoincidenciaHistoricaLocalSchema.optional(),
 })
 export type ResultadoInvestigacionPrecios = z.infer<typeof ResultadoInvestigacionPreciosSchema>
@@ -140,6 +142,11 @@ const RESPONSE_SCHEMA_GEMINI = {
       type: "array",
       items: { type: "string" },
     },
+    fuentes: {
+      type: "array",
+      items: { type: "string" },
+      description: "URLs de fuentes web consultadas para los precios (Google Search)",
+    },
   },
   required: [
     "concepto",
@@ -150,6 +157,7 @@ const RESPONSE_SCHEMA_GEMINI = {
     "mejorOpcionCosto",
     "mejorOpcionTiempo",
     "recomendacionesTecnicas",
+    "fuentes",
   ],
 }
 
@@ -186,9 +194,10 @@ CANTIDAD REQUERIDA: ${cantidad} pieza(s) / unidad(es).
 ALCANCE DE MERCADO: ${mercadoInstruccion}
 
 INSTRUCCIONES CLAVE:
+0. Usa Google Search para buscar precios y disponibilidad actuales en la web. No inventes SKUs ni URLs — si no encuentras un dato, deja el campo vacío y acláralo en notas.
 1. Normaliza el nombre del concepto o material técnico (ej. aleación 6061-T6, Acero 4140 pretratado, Delrin/Acetal, Endmill de carburo AlTiN 4 gavilanes, etc.).
 2. Genera entre 2 y 5 opciones realistas de distribuidores conocidos para este tipo de insumo industrial.
-3. Proporciona precios unitarios estimados en USD realistas para el mercado industrial actual.
+3. Proporciona precios unitarios estimados en USD basados en lo que encuentres en la web; si solo hay estimación sin fuente clara, indícalo en notas.
 4. Para cada proveedor indica:
    - Nombre del proveedor (ej. McMaster-Carr, MSC Industrial Supply, Shars Tool, Grainger, Fastenal, OnlineMetals).
    - Mercado ("USA" o "México").
@@ -199,7 +208,8 @@ INSTRUCCIONES CLAVE:
    - Notas clave (ej. "Venta por tramos de 3 pies", "Mínimo de compra", "Excelente para desbaste").
 5. Calcula los rangos de mercado (min, promedio, max en USD).
 6. Identifica claramente la mejor opción en costo y la mejor en tiempo de entrega.
-7. Brinda recomendaciones técnicas esenciales (ej. tolerancias, lubricación requerida, velocidad de corte recomendada o aleaciones equivalentes sustitutas).`
+7. Brinda recomendaciones técnicas esenciales (ej. tolerancias, lubricación requerida, velocidad de corte recomendada o aleaciones equivalentes sustitutas).
+8. Incluye en "fuentes" las URLs web que consultaste (máximo 5, solo URLs reales encontradas en la búsqueda).`
 }
 
 /**
@@ -219,6 +229,7 @@ export async function investigarPreciosInsumoIA(
 
   const body = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
+    tools: [{ google_search: {} }],
     generationConfig: {
       responseMimeType: "application/json",
       responseSchema: RESPONSE_SCHEMA_GEMINI,
@@ -332,6 +343,9 @@ export async function investigarPreciosInsumoIA(
     recomendacionesTecnicas: String(parsedRaw.recomendacionesTecnicas || ""),
     alternativasMaterial: Array.isArray(parsedRaw.alternativasMaterial)
       ? parsedRaw.alternativasMaterial.map(String)
+      : [],
+    fuentes: Array.isArray(parsedRaw.fuentes)
+      ? parsedRaw.fuentes.map(String).filter((u) => u.startsWith("http"))
       : [],
   }
 

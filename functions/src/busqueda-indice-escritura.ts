@@ -91,19 +91,29 @@ export async function sincronizarIndiceBusqueda(apiKey: string): Promise<Resulta
     if (entrada) entradasEsperadas.push(entrada)
   }
 
-  // 2. Leer qué ya existe en el índice (solo id + textoHash + fuente, no los
-  // vectores — evita traer ~2.7MB de floats solo para decidir qué cambió).
-  const indiceExistenteSnap = await db.collection(COLECCION_INDICE).select("textoHash", "fuente").get()
-  const hashExistente = new Map(
-    indiceExistenteSnap.docs.map((d) => [d.id, d.data().textoHash as string | undefined])
+  // 2. Leer qué ya existe en el índice (id + textoHash + modelo — no los vectores).
+  const indiceExistenteSnap = await db
+    .collection(COLECCION_INDICE)
+    .select("textoHash", "fuente", "modelo", "dimensiones")
+    .get()
+  const existentePorId = new Map(
+    indiceExistenteSnap.docs.map((d) => [d.id, d.data() as { textoHash?: string; modelo?: string; dimensiones?: number }])
   )
 
-  const necesitanEmbed = entradasEsperadas.filter((e) => hashExistente.get(e.id) !== e.textoHash)
+  const necesitanEmbed = entradasEsperadas.filter((e) => {
+    const prev = existentePorId.get(e.id)
+    if (!prev) return true
+    return (
+      prev.textoHash !== e.textoHash ||
+      prev.modelo !== MODELO_EMBEDDING_INDICE ||
+      prev.dimensiones !== DIMENSIONES_EMBEDDING_INDICE
+    )
+  })
   const sinCambios = entradasEsperadas.length - necesitanEmbed.length
 
   // 3. Embeber solo lo que cambió (esto es lo caro; los reads de arriba son gratis en comparación).
   const embeddings = await generarEmbeddingsIndice(
-    necesitanEmbed.map((e) => ({ id: e.id, texto: e.texto })),
+    necesitanEmbed.map((e) => ({ id: e.id, texto: e.texto, titulo: e.titulo })),
     { apiKey }
   )
 

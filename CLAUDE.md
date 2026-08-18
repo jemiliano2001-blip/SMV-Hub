@@ -131,7 +131,7 @@ aplicaciones y un deploy global puede eliminarlas. El codebase de Hub es `smv-hu
 `busqueda_indice` se actualiza cada 24 h mediante `syncBusquedaIndiceScheduled` y sólo un
 super-admin puede usar `syncBusquedaIndiceManual`. Ambas Functions usan el secreto separado
 `HUB_GEMINI_API_KEY`; nunca reutilices ni cambies secretos sin prefijo de los otros productos del
-proyecto compartido. El índice usa embeddings de 768 dimensiones de `gemini-embedding-2-preview`,
+proyecto compartido. El índice usa embeddings de 768 dimensiones de `gemini-embedding-2` (GA),
 coseno en servidor y acceso Firestore bloqueado al cliente; `/api/busqueda-semantica` aplica los
 permisos de `ordenes` y `proveedores` antes de recuperar una fuente. Conserva batches de escritura
 de **100**: 400 vectores excedieron el límite Firestore de 10 MiB por transacción durante la
@@ -166,10 +166,12 @@ NEXT_PUBLIC_FIREBASE_APP_ID=
 GEMINI_API_KEY=
 # Opcional: override del modelo de extracción (default gemini-3.7-flash)
 # GEMINI_MODEL=
-# Opcional: modelo económico para sugerencia de claves SAT (default gemini-3.1-flash-lite)
+# Opcional: modelo económico para sugerencia de claves SAT (default gemini-3.5-flash-lite)
 # GEMINI_MODEL_SAT=
 # Opcional: modelo de escalación para casos SAT ambiguos (default gemini-3.7-flash)
 # GEMINI_MODEL_SAT_ESCALADO=
+# Opcional: modelo de embeddings para búsqueda semántica (default gemini-embedding-2)
+# GEMINI_MODEL_EMBEDDING=
 
 # Opcional: omite el login en desarrollo (ver sección Autenticación)
 # NEXT_PUBLIC_DEV_AUTH_BYPASS=true
