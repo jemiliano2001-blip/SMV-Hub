@@ -24,6 +24,8 @@ export interface OpcionesEmbedding {
   fetchFn?: typeof fetch
   timeoutMs?: number
   taskType?: TaskTypeEmbedding
+  /** Debe coincidir con la dimensión de los vectores ya guardados al comparar contra un índice. */
+  outputDimensionality?: number
 }
 
 export interface ItemVectorizado<T = unknown> {
@@ -99,7 +101,8 @@ async function llamarEmbedContent(
   apiKey: string,
   fetchFn: typeof fetch,
   timeoutMs: number,
-  taskType: TaskTypeEmbedding
+  taskType: TaskTypeEmbedding,
+  outputDimensionality?: number
 ): Promise<number[]> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:embedContent?key=${apiKey}`
 
@@ -119,6 +122,7 @@ async function llamarEmbedContent(
           parts: [{ text: textoLimpio }],
         },
         taskType,
+        ...(outputDimensionality ? { outputDimensionality } : {}),
       }),
     })
 
@@ -176,7 +180,15 @@ export async function generarEmbeddingTexto(
   const taskType = opciones.taskType || "RETRIEVAL_QUERY"
 
   try {
-    return await llamarEmbedContent(textoLimpio, modeloSolicitado, apiKey, fetchFn, timeoutMs, taskType)
+    return await llamarEmbedContent(
+      textoLimpio,
+      modeloSolicitado,
+      apiKey,
+      fetchFn,
+      timeoutMs,
+      taskType,
+      opciones.outputDimensionality
+    )
   } catch (error) {
     // El default (sin override explícito) es un modelo *preview* — Google puede retirarlo.
     // Un 404 en ese caso específico significa "este modelo ya no existe", no un problema
@@ -197,7 +209,8 @@ export async function generarEmbeddingTexto(
       apiKey,
       fetchFn,
       timeoutMs,
-      taskType
+      taskType,
+      opciones.outputDimensionality
     )
   }
 }

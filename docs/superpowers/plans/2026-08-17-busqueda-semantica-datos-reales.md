@@ -1,11 +1,10 @@
 # Plan — Búsqueda semántica sobre datos reales de SMV
 
 Spec: [../specs/2026-08-17-busqueda-semantica-datos-reales.md](../specs/2026-08-17-busqueda-semantica-datos-reales.md)
-Estado: **Fase 2 completa (2026-08-18)** — índice implementado (texto+hash, cliente Gemini,
-escritura/poda, job programado + callable manual, reglas). Ver checkpoint abajo. `busqueda_indice`
-sigue vacío en ambos proyectos (nadie ha corrido el job todavía — HUB_GEMINI_API_KEY ni siquiera
-existe en Secret Manager aún). Pendiente decisión de Emiliano para Fase 3 (query real + UI,
-reemplaza `CATALOGO_BASE_SMV`) y Fase 4 (validación + deploy).
+Estado: **Fase 3 completa (2026-08-18)** — consulta real + UI, `CATALOGO_BASE_SMV` retirado. Ver
+checkpoint abajo. `busqueda_indice` sigue vacío en ambos proyectos (nadie ha corrido el job de
+indexación — HUB_GEMINI_API_KEY ni siquiera existe en Secret Manager). Pendiente Fase 4
+(validación + deploy, incluye crear el secreto y correr la indexación inicial).
 
 Regla para todas las tareas: `npx tsc --noEmit`, `npm run lint` y `npm test` en verde antes de
 cerrar cada una. Nada se despliega hasta la Fase 4.
@@ -256,22 +255,74 @@ Route Handlers (eso es Fase 3).
 
 ## Fase 3 — Consulta y UI
 
-### T3.1 · Búsqueda del lado del servidor con filtro de permisos
-Reescribir `buscarEnCatalogoSemantico` para consultar el índice real. **El filtro por módulos del
-usuario ocurre en el servidor**, antes de devolver nada: quien no tiene `ordenes` no recibe ítems de
-órdenes. Test explícito de esto (criterio de éxito #2 del spec).
+### T3.1 · Búsqueda del lado del servidor con filtro de permisos — ✅ HECHO (2026-08-18)
+`lib/busqueda-semantica-catalogo.ts` reescrito: `buscarEnCatalogoSemantico(query, { fuentesPermitidas,
+... })` consulta `busqueda_indice` vía `adminDb` filtrado con `.where("fuente", "in",
+fuentesPermitidas)` — el filtro ocurre *antes* de traer nada a memoria, no después. La ruta calcula
+`fuentesPermitidas` a partir de `obtenerUsuarioAdmin()` (mismo patrón que
+`documentos-venta/solicitudes/route.ts`): `esSuperAdmin || modulos.includes('ordenes')` →
+`orden-item`; `esSuperAdmin || modulos.includes('proveedores')` → `proveedor`. Si el array queda
+vacío (usuario sin ninguno de los dos módulos), corta antes de llamar a Gemini o a Firestore — ni
+gasta cuota ni intenta un `where(..., "in", [])`, que Firestore rechaza. `lib/embeddings-ia.ts`
+ganó soporte de `outputDimensionality` (campo plano, igual que `taskType` ya existente — no se
+cambió al shape `embedContentConfig` que sí se usa en `functions/`, hubiera sido tocar código ya
+probado en producción sin necesidad) para que la query use la misma dimensión (768) que el índice.
+5 tests en `tests/busqueda-semantica-catalogo.test.ts` (filtro por fuente, corte temprano en query
+vacía y en `fuentesPermitidas` vacío, ranking real por coseno, propagación de errores).
 
-### T3.2 · Cerrar B2: distinguir "sin resultados" de "falló"
-La ruta `/api/busqueda-semantica` debe devolver un error real cuando el índice o Gemini fallen, y la
-UI mostrar un mensaje claro con reintento — no una lista vacía. Test de ambos caminos.
+### T3.2 · Cerrar B2: distinguir "sin resultados" de "falló" — ✅ HECHO (2026-08-18)
+Lado servidor: `buscarEnCatalogoSemantico` ya no atrapa errores de Gemini/Firestore (el código viejo
+del catálogo sí lo hacía, con un `try/catch` + `console.warn` que era la causa raíz de B2) — deja que
+el error suba, y la ruta ya distinguía `ErrorIA` → 502 de lo demás → 500, más 403 (no autorizado) y
+429 (nuevo, T3.4) que ya existían/se agregaron. Lado cliente:
+`components/BuscadorGlobalCommand.tsx` agregó estado `errorSemantico` — en cualquier respuesta no-ok
+se lee `data.error` del backend y se muestra en un banner con botón "Reintentar" (vuelve a llamar
+`handleQueryChange(query)`), en vez de degradar en silencio a lista vacía. **Verificado en vivo**:
+con el usuario E2E local dando 403 (ver nota abajo), el banner mostró textualmente "Tu correo
+(admin@smv-hub-e2e.local) no está autorizado para usar esta función" con el botón de reintentar —
+no una lista vacía.
 
-### T3.3 · Resultados con datos reales en la UI
-El bloque del buscador pasa a mostrar proveedor, precio con `formatPrecio` (respetando moneda: nunca
-mezclar MXN y USD) y fecha, con enlace al documento real. Retirar `CATALOGO_BASE_SMV`.
+### T3.3 · Resultados con datos reales en la UI — ✅ HECHO (2026-08-18)
+`CATALOGO_BASE_SMV`, `ItemCatalogoSemanticoSchema` y `obtenerCatalogoVectorizado` retirados por
+completo de `lib/busqueda-semantica-catalogo.ts` (no se renombró el archivo — el nombre
+"-catalogo" ya no describe bien el contenido, pero renombrar solo mueve texto sin cambiar
+comportamiento; se deja así, se puede renombrar aparte si molesta). La UI ahora muestra `titulo`,
+`metadata.proveedorNombre`, precio vía `formatPrecio(precio, moneda)` (nunca mezcla monedas — cada
+resultado trae su propia `moneda` desde el índice), `fecha` y enlaza a `refPath` real en vez de un
+`urlDestino` fijo a `/proveedores`. Ícono simplificado a 2 casos (`fuente === 'proveedor'` vs
+`orden-item`) en vez de las 3 categorías inventadas del catálogo falso.
 
-### T3.4 · Límite de uso
-Rate limit por usuario en `/api/busqueda-semantica`. El buscador vive en el NavBar de todas las
-páginas y hoy no tiene tope.
+### T3.4 · Límite de uso — ✅ HECHO (2026-08-18)
+`lib/rate-limit-memoria.ts`: ventana deslizante en memoria (`Map<uid, timestamps[]>`), 20
+peticiones/minuto, sin dependencia nueva. Iba inline en `route.ts` primero, pero Next.js valida en
+build (`.next/types/...`) que un Route Handler solo exporte nombres de método HTTP + config
+reconocida — un `export function excedeLimite` ahí revienta `tsc`. Se movió a `lib/` por esa razón
+real, no por gusto de modularidad. 2 tests en `tests/rate-limit-memoria.test.ts`.
+
+**Hallazgo fuera de alcance, no arreglado aquí:** verificando en el navegador con el usuario E2E
+local (`admin@smv-hub-e2e.local` contra `smv-brain-dev`) encontré que su doc `usuarios/{uid}` no
+resuelve vía `obtenerUsuarioAdmin` (retorna `null` pese a que el login y `email_verified` sí
+funcionan) — probablemente el doc no existe o le falta `plantilla`/`rol` reconocible. Esto es
+anterior a este cambio y afecta a *cualquier* ruta API protegida, no solo a esta; de hecho ya se
+veía un síntoma independiente en consola ("Error escuchando pedidos de almacén pendientes:
+permission-denied") con el mismo usuario. Quedó como tarea aparte (`task_58004f6e`) en vez de
+arreglarlo aquí — no es parte de búsqueda semántica.
+
+**Gates tras Fase 3:** `tsc` limpio · lint 0 errores (17 warnings preexistentes) · 940 tests (935
+previos + 6 de `busqueda-semantica-catalogo.test.ts` reescrito, neto +3, más 2 de
+`rate-limit-memoria.test.ts`) · `npm run build` con bundle SSR verificado. Dos llamadas reales a
+Gemini (script desechable, borrado) confirmaron que `outputDimensionality: 768` se respeta tanto en
+el shape plano de `embedContent` (usado en la query, `lib/embeddings-ia.ts`) como en el
+`embedContentConfig` anidado de `batchEmbedContents` (Fase 2, indexador) — con guard permanente
+agregado en ambos lados por si algún día deja de ser cierto.
+
+**Precisión sobre lo que el navegador sí confirmó:** el usuario E2E local recibe 403 en
+`verificarUsuarioAutorizado()`, ANTES de que corra código nuevo de esta fase — ni `fuentesPermitidas`,
+ni la llamada a Gemini, ni la consulta a `busqueda_indice`, ni el renderizado de resultados se
+ejecutaron en esa corrida. Lo que sí se verificó en vivo, real y de punta a punta, fue T3.2: el
+error del backend llega textual a la UI con botón de reintentar, en vez de una lista vacía. Falta
+un pase de navegador que sí ejecute la búsqueda real (T4.2) — bloqueado por el hallazgo de arriba
+(usuario E2E sin doc usable) y por que `busqueda_indice` sigue vacío.
 
 ---
 

@@ -12,8 +12,7 @@ import {
   Sparkles,
   TrendingUp,
   Loader2,
-  Wrench,
-  Layers,
+  AlertCircle,
 } from 'lucide-react'
 import {
   CommandDialog,
@@ -27,10 +26,11 @@ import {
 } from '@/components/ui/command'
 import { Badge } from '@/components/ui/badge'
 import { getClienteAuth } from '@/lib/firebase'
-import type { ItemCatalogoSemantico } from '@/lib/busqueda-semantica-catalogo'
+import { formatPrecio } from '@/lib/format'
+import type { ResultadoBusquedaSemantica } from '@/lib/busqueda-semantica-catalogo'
 
 interface ResultadoSemanticoUI {
-  item: ItemCatalogoSemantico
+  item: ResultadoBusquedaSemantica
   score: number
   porcentajeSimilitud: number
 }
@@ -40,6 +40,7 @@ export default function BuscadorGlobalCommand() {
   const [query, setQuery] = useState('')
   const [resultadosSemanticos, setResultadosSemanticos] = useState<ResultadoSemanticoUI[]>([])
   const [buscandoSemantico, setBuscandoSemantico] = useState(false)
+  const [errorSemantico, setErrorSemantico] = useState<string | null>(null)
   const router = useRouter()
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -76,6 +77,7 @@ export default function BuscadorGlobalCommand() {
     if (q.length < 3) {
       abortControllerRef.current?.abort()
       setResultadosSemanticos([])
+      setErrorSemantico(null)
       setBuscandoSemantico(false)
       return
     }
@@ -109,14 +111,20 @@ export default function BuscadorGlobalCommand() {
         if (res.ok) {
           const data = await res.json()
           setResultadosSemanticos(data?.resultado?.resultados || [])
+          setErrorSemantico(null)
         } else {
+          // Distinguir "no hay resultados" de "la búsqueda falló": una lista vacía
+          // silenciosa aquí es exactamente el bug B2 que esto reemplaza.
+          const data = await res.json().catch(() => null)
           setResultadosSemanticos([])
+          setErrorSemantico(data?.error || 'La búsqueda inteligente falló. Intenta de nuevo.')
         }
       } catch (error) {
         // AbortError = esta búsqueda fue reemplazada por una más nueva; la más nueva ya
         // se encarga de su propio estado. No pisar sus resultados limpiando aquí.
         if (error instanceof DOMException && error.name === 'AbortError') return
         setResultadosSemanticos([])
+        setErrorSemantico('La búsqueda inteligente falló. Intenta de nuevo.')
       } finally {
         // Solo tocar buscandoSemantico si esta sigue siendo la búsqueda vigente.
         if (abortControllerRef.current === controller) {
@@ -164,6 +172,22 @@ export default function BuscadorGlobalCommand() {
         <CommandList className="max-h-[420px] font-sans">
           <CommandEmpty>No se encontraron resultados para tu búsqueda.</CommandEmpty>
 
+          {errorSemantico && (
+            <div className="flex items-center justify-between gap-2 mx-2 mt-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+              <div className="flex items-center gap-1.5">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                <span>{errorSemantico}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleQueryChange(query)}
+                className="font-semibold underline shrink-0 hover:text-red-900"
+              >
+                Reintentar
+              </button>
+            </div>
+          )}
+
           {/* Resultados Semánticos de IA (Gemini Embeddings) */}
           {resultadosSemanticos.length > 0 && (
             <>
@@ -171,58 +195,52 @@ export default function BuscadorGlobalCommand() {
                 heading={
                   <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-700">
                     <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-                    <span>Resultados Inteligentes IA (Catálogo &amp; Refacciones)</span>
+                    <span>Resultados Inteligentes IA (Órdenes &amp; Proveedores)</span>
                   </div>
                 }
               >
-                {resultadosSemanticos.map((res) => (
-                  <CommandItem
-                    key={res.item.id}
-                    onSelect={() =>
-                      runCommand(() => router.push(res.item.urlDestino || '/proveedores'))
-                    }
-                    className="flex flex-col items-start gap-1 py-2"
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-2">
-                        {res.item.categoria === 'herramientas_corte' ? (
-                          <Wrench className="h-4 w-4 text-violet-600 shrink-0" />
-                        ) : res.item.categoria === 'metales' || res.item.categoria === 'plasticos' ? (
-                          <Layers className="h-4 w-4 text-amber-600 shrink-0" />
-                        ) : (
-                          <Package className="h-4 w-4 text-sky-600 shrink-0" />
-                        )}
-                        <span className="font-semibold text-slate-900 text-xs sm:text-sm line-clamp-1">
-                          {res.item.tituloES}
-                        </span>
+                {resultadosSemanticos.map((res) => {
+                  const { metadata } = res.item
+                  return (
+                    <CommandItem
+                      key={res.item.id}
+                      onSelect={() => runCommand(() => router.push(res.item.refPath || '/proveedores'))}
+                      className="flex flex-col items-start gap-1 py-2"
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-2">
+                          {res.item.fuente === 'proveedor' ? (
+                            <Building2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                          ) : (
+                            <Package className="h-4 w-4 text-sky-600 shrink-0" />
+                          )}
+                          <span className="font-semibold text-slate-900 text-xs sm:text-sm line-clamp-1">
+                            {res.item.titulo}
+                          </span>
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] bg-indigo-50 text-indigo-700 border-indigo-200 font-bold shrink-0 ml-2"
+                        >
+                          {res.porcentajeSimilitud}% afinidad
+                        </Badge>
                       </div>
-                      <Badge
-                        variant="secondary"
-                        className="text-[10px] bg-indigo-50 text-indigo-700 border-indigo-200 font-bold shrink-0 ml-2"
-                      >
-                        {res.porcentajeSimilitud}% afinidad
-                      </Badge>
-                    </div>
 
-                    <div className="text-[11px] text-slate-500 pl-6 line-clamp-1">
-                      <span className="font-medium text-slate-600">EN:</span> {res.item.tituloEN}
-                    </div>
-
-                    {res.item.proveedoresHabituales.length > 0 && (
-                      <div className="text-[10px] text-slate-400 pl-6 flex items-center gap-1 flex-wrap">
-                        <span>Proveedores:</span>
-                        {res.item.proveedoresHabituales.map((prov, i) => (
-                          <span
-                            key={i}
-                            className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono"
-                          >
-                            {prov}
+                      <div className="text-[11px] text-slate-500 pl-6 flex items-center gap-1.5 flex-wrap">
+                        {metadata.proveedorNombre && <span>{metadata.proveedorNombre}</span>}
+                        {metadata.precio != null && (
+                          <span className="font-mono">{formatPrecio(metadata.precio, metadata.moneda)}</span>
+                        )}
+                        {metadata.fecha && <span>{metadata.fecha}</span>}
+                        {metadata.categorias?.map((cat) => (
+                          <span key={cat} className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">
+                            {cat}
                           </span>
                         ))}
                       </div>
-                    )}
-                  </CommandItem>
-                ))}
+                    </CommandItem>
+                  )
+                })}
               </CommandGroup>
               <CommandSeparator />
             </>
