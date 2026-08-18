@@ -1,4 +1,5 @@
-import { ErrorIA } from "@/lib/extraer-ia"
+import { configGeneracionJson } from "@/lib/gemini-generation-config"
+import { ErrorIA, resolverModeloExtraccion } from "@/lib/extraer-ia"
 import type { EndmillMedida } from "@/lib/schemas"
 
 export interface ItemExtraidoEndmill {
@@ -144,7 +145,7 @@ export async function extraerPedidoEndmillsIA(
 
   // 2. Si no es tabla estricta, invocar Gemini AI
   const apiKey = obtenerApiKey()
-  const modelo = process.env.GEMINI_MODEL || "gemini-3.7-flash"
+  const modelo = resolverModeloExtraccion()
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`
 
   const catalogoResumido = catalogo.map((m) => ({
@@ -209,11 +210,7 @@ INSTRUCCIONES:
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema,
-        temperature: 0.1,
-      },
+      generationConfig: configGeneracionJson({ responseSchema }),
     }),
   })
 

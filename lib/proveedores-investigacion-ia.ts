@@ -6,6 +6,7 @@
 
 import { z } from "zod"
 import { ErrorIA } from "@/lib/extraer-ia"
+import { configGeneracionJson } from "@/lib/gemini-generation-config"
 import { TIPO_CAMBIO_DEFAULT_USD_MXN } from "@/lib/tipo-cambio"
 import type { CompraOdooItem, OrdenCompra } from "@/lib/schemas"
 
@@ -230,11 +231,10 @@ export async function investigarPreciosInsumoIA(
   const body = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     tools: [{ google_search: {} }],
-    generationConfig: {
-      responseMimeType: "application/json",
+    generationConfig: configGeneracionJson({
       responseSchema: RESPONSE_SCHEMA_GEMINI,
       temperature: 0.2,
-    },
+    }),
   }
 
   const controller = new AbortController()

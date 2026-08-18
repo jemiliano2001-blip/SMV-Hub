@@ -1,7 +1,11 @@
 import { z } from "zod"
+import { configGeneracionJson } from "@/lib/gemini-generation-config"
+import { GEMINI_MODELO_FLASH_ECONOMICO } from "@/lib/gemini-modelos"
 import type { RegistroBano, MotivoSolicitudBorradoBano } from "@/lib/schemas"
 
 export const MODELO_BANOS_DEFAULT = "gemini-3.7-flash"
+/** Candidato A/B más económico — probar vía `GEMINI_MODEL_BANOS=gemini-3.6-flash`. */
+export const MODELO_BANOS_ECONOMICO_AB = GEMINI_MODELO_FLASH_ECONOMICO
 const MODELO_BANOS_TIMEOUT_MS = 15_000
 
 const EvaluacionBanoSchema = z.object({
@@ -109,11 +113,10 @@ export async function evaluarSolicitudBorradoConIa(args: {
       role: "user",
       parts: [{ text: promptParaSolicitud(args.registro, args.motivo, args.nota, args.relacionados) }],
     }],
-    generationConfig: {
-      responseMimeType: "application/json",
+    generationConfig: configGeneracionJson({
       responseSchema: RESPONSE_SCHEMA,
       temperature: 0,
-    },
+    }),
   }
 
   try {

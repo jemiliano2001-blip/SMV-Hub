@@ -32,6 +32,11 @@ describe("resolverModeloEmbedding", () => {
     process.env.GEMINI_MODEL_EMBEDDING = "gemini-embedding-001"
     expect(resolverModeloEmbedding()).toBe("gemini-embedding-001")
   })
+
+  it("migra gemini-embedding-2-preview al GA", () => {
+    process.env.GEMINI_MODEL_EMBEDDING = "gemini-embedding-2-preview"
+    expect(resolverModeloEmbedding()).toBe("gemini-embedding-2")
+  })
 })
 
 describe("prefijarTextoEmbedding", () => {

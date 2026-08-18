@@ -7,6 +7,7 @@
  */
 
 import { ErrorIA } from "./extraer-ia"
+import { resolverModeloGemini } from "./gemini-modelos"
 import { modeloUsaPrefijosEmbedding, prefijarTextoEmbedding } from "./embeddings-prefijos"
 
 export const MODELO_EMBEDDING_DEFAULT = "gemini-embedding-2"
@@ -47,11 +48,7 @@ export interface ResultadoSimilitud<T = unknown> {
  * Resuelve el modelo de embeddings a utilizar, priorizando variables de entorno.
  */
 export function resolverModeloEmbedding(): string {
-  const envModel = process.env.GEMINI_MODEL_EMBEDDING?.trim()
-  if (envModel) {
-    return envModel
-  }
-  return MODELO_EMBEDDING_DEFAULT
+  return resolverModeloGemini(process.env.GEMINI_MODEL_EMBEDDING, MODELO_EMBEDDING_DEFAULT)
 }
 
 /**

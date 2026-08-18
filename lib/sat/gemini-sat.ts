@@ -1,4 +1,6 @@
 import { ErrorIA } from "@/lib/extraer-ia"
+import { configGeneracionJson } from "@/lib/gemini-generation-config"
+import { resolverModeloGemini } from "@/lib/gemini-modelos"
 import type { SatSearchResult } from "@/lib/sat/buscar"
 import { findSatCatalogEntryByKey } from "@/lib/sat/catalogo"
 import { clasificarAreaComprasSmv, contextoSmvParaIa } from "@/lib/sat/perfil-compras-smv"
@@ -33,13 +35,7 @@ function obtenerApiKey(): string {
 }
 
 export function resolverModeloLite(): string {
-  const configurado = process.env.GEMINI_MODEL_SAT?.trim()
-  if (configurado && configurado in MODELOS_SAT_OBSOLETOS) {
-    const reemplazo = MODELOS_SAT_OBSOLETOS[configurado]
-    console.warn(`[sat] ${configurado} ya no existe; se usará ${reemplazo}`)
-    return reemplazo
-  }
-  return configurado || MODELO_SAT_LITE
+  return resolverModeloGemini(process.env.GEMINI_MODEL_SAT, MODELO_SAT_LITE, MODELOS_SAT_OBSOLETOS)
 }
 
 function resolverModeloEscalado(): string {
@@ -57,11 +53,7 @@ async function llamarGeminiTexto(
 
   const body = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema,
-      temperature: 0.1,
-    },
+    generationConfig: configGeneracionJson({ responseSchema }),
   }
 
   // The report processor retries a failed chunk. Keeping this call to one

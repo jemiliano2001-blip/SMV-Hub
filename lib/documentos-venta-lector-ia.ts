@@ -6,10 +6,47 @@
  */
 
 import { z } from "zod"
+import { configGeneracionJson } from "@/lib/gemini-generation-config"
 import { ErrorIA } from "./extraer-ia"
 import type { VentaOdooSo } from "./schemas"
 
 export const MODELO_ORDENES_CLIENTE_DEFAULT = "gemini-3.7-flash"
+
+const PO_CLIENTE_RESPONSE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    numeroOrdenCompraCliente: { type: "STRING" },
+    nombreCliente: { type: "STRING" },
+    rfcCliente: { type: "STRING" },
+    fechaOrden: { type: "STRING" },
+    fechaEntregaRequerida: { type: "STRING" },
+    moneda: { type: "STRING", enum: ["USD", "MXN", "EUR"] },
+    subtotal: { type: "NUMBER" },
+    impuestos: { type: "NUMBER" },
+    total: { type: "NUMBER" },
+    partidas: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          numeroLinea: { type: "INTEGER" },
+          numeroParteCliente: { type: "STRING" },
+          descripcion: { type: "STRING" },
+          cantidad: { type: "NUMBER" },
+          unidad: { type: "STRING" },
+          precioUnitario: { type: "NUMBER" },
+          total: { type: "NUMBER" },
+          fechaEntregaRequerida: { type: "STRING" },
+        },
+        required: ["descripcion", "cantidad"],
+      },
+    },
+    terminosEntrega: { type: "STRING" },
+    notasEspeciales: { type: "STRING" },
+    confianzaExtraccion: { type: "NUMBER" },
+  },
+  required: ["numeroOrdenCompraCliente", "nombreCliente", "partidas"],
+}
 
 export const PartidaOrdenClienteSchema = z.object({
   numeroLinea: z.number().int().optional().default(1),
@@ -117,45 +154,9 @@ export async function extraerOrdenCompraClienteIA(
       systemInstruction: {
         parts: [{ text: SYSTEM_PROMPT_PO_CLIENTE }],
       },
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: "OBJECT",
-          properties: {
-            numeroOrdenCompraCliente: { type: "STRING" },
-            nombreCliente: { type: "STRING" },
-            rfcCliente: { type: "STRING" },
-            fechaOrden: { type: "STRING" },
-            fechaEntregaRequerida: { type: "STRING" },
-            moneda: { type: "STRING", enum: ["USD", "MXN", "EUR"] },
-            subtotal: { type: "NUMBER" },
-            impuestos: { type: "NUMBER" },
-            total: { type: "NUMBER" },
-            partidas: {
-              type: "ARRAY",
-              items: {
-                type: "OBJECT",
-                properties: {
-                  numeroLinea: { type: "INTEGER" },
-                  numeroParteCliente: { type: "STRING" },
-                  descripcion: { type: "STRING" },
-                  cantidad: { type: "NUMBER" },
-                  unidad: { type: "STRING" },
-                  precioUnitario: { type: "NUMBER" },
-                  total: { type: "NUMBER" },
-                  fechaEntregaRequerida: { type: "STRING" },
-                },
-                required: ["descripcion", "cantidad"],
-              },
-            },
-            terminosEntrega: { type: "STRING" },
-            notasEspeciales: { type: "STRING" },
-            confianzaExtraccion: { type: "NUMBER" },
-          },
-          required: ["numeroOrdenCompraCliente", "nombreCliente", "partidas"],
-        },
-        temperature: 0.1,
-      },
+      generationConfig: configGeneracionJson({
+        responseSchema: PO_CLIENTE_RESPONSE_SCHEMA,
+      }),
     }
 
     const response = await fetchFn(url, {
