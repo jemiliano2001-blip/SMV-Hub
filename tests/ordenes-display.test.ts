@@ -24,6 +24,7 @@ function makeOrden(overrides: Partial<OrdenCompra> = {}): OrdenCompra {
     envio: null,
     total: 108,
     estado: "pendiente",
+    estadoRecepcion: "pendiente",
     requisitor: "Pablo",
     empresa: "SMV",
     cuentaCargo: "Stock",

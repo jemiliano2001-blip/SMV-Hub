@@ -53,6 +53,7 @@ function makeOrden(overrides: Partial<OrdenCompra> = {}): OrdenCompra {
     cuentaCargo: "",
     destino: "",
     estado: "pendiente",
+    estadoRecepcion: "pendiente",
     creadoEn: new Date("2026-06-10"),
     actualizadoEn: new Date("2026-06-10"),
     ...overrides,

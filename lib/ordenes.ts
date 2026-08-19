@@ -10,7 +10,7 @@ import {
   type QueryDocumentSnapshot,
 } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import type { OrdenCompra, NuevaCompraForm, EstadoOrden, ItemFactura } from "@/lib/schemas"
+import type { OrdenCompra, NuevaCompraForm, EstadoOrden, EstadoRecepcion, ItemFactura } from "@/lib/schemas"
 import { crearRepositorio } from "@/lib/repositorio"
 import { makeDateConverter } from "@/lib/firestore-helpers"
 
@@ -29,6 +29,10 @@ export type NuevaOrdenPayload = NuevaCompraForm & {
   linkProveedor?: string | null
   fechaEntrega?: string | null
   estado?: EstadoOrden
+  estadoRecepcion?: EstadoRecepcion
+  fechaRecepcion?: string | null
+  recibidoPor?: string | null
+  entradaAlmacenId?: string | null
   proveedorId?: string | null
   cotizacionGanadoraId?: string | null
   requisicionId?: string | null
@@ -36,7 +40,11 @@ export type NuevaOrdenPayload = NuevaCompraForm & {
 
 export async function crearOrden(payload: NuevaOrdenPayload): Promise<string> {
   return repo.crear(
-    { ...payload, estado: payload.estado ?? ("pendiente" as const) },
+    {
+      ...payload,
+      estado: payload.estado ?? ("pendiente" as const),
+      estadoRecepcion: payload.estadoRecepcion ?? ("pendiente" as const),
+    },
     `Creó orden para proveedor ${payload.proveedor}`
   )
 }
@@ -50,6 +58,7 @@ export async function crearOrdenesLote(
   const listos = payloads.map((p) => ({
     ...p,
     estado: p.estado ?? ("pendiente" as const),
+    estadoRecepcion: p.estadoRecepcion ?? ("pendiente" as const),
   }))
   return repo.crearEnLote(
     listos as Record<string, unknown>[],

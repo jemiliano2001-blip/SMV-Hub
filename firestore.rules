@@ -123,6 +123,7 @@ service cloud.firestore {
              d.empresa is string &&
              d.moneda is string &&
              d.estado in ['pendiente', 'aprobada', 'rechazada'] &&
+             (!d.keys().hasAny(['estadoRecepcion']) || d.estadoRecepcion in ['pendiente', 'parcial', 'recibida']) &&
              montoValido(d.subtotal) &&
              montoValido(d.impuestos) &&
              montoValido(d.total) &&
@@ -317,6 +318,8 @@ service cloud.firestore {
              d.cargoA is string &&
              d.recibio is string &&
              d.estatus in ['pendiente', 'entregado', 'devuelto'] &&
+             (!d.keys().hasAny(['ordenId']) || d.ordenId == null || d.ordenId is string) &&
+             (!d.keys().hasAny(['proveedor']) || d.proveedor == null || d.proveedor is string) &&
              d.creadoEn is timestamp &&
              d.actualizadoEn is timestamp;
     }
@@ -619,7 +622,8 @@ service cloud.firestore {
                'solicitud_documento_creada',
                'solicitud_documento_estado',
                'solicitud_documento_mensaje',
-               'endmills_stock_critico'
+               'endmills_stock_critico',
+               'orden_recibida_almacen'
              ] &&
              d.titulo is string &&
              d.cuerpo is string &&
@@ -639,6 +643,16 @@ service cloud.firestore {
                (d.tipo in ['requisicion_creada', 'requisicion_estado'] &&
                 d.origenModulo == 'requisiciones' && d.audiencia == 'requisiciones' &&
                 d.destinatarioUid == null) ||
+               // La recepción en almacén es el único tipo que dirige el aviso a
+               // un solicitante concreto, y solo por la vía de pedidos-almacén
+               // (una requisición no guarda uid, así que va a la audiencia).
+               (d.tipo == 'orden_recibida_almacen' &&
+                (
+                  (d.origenModulo == 'pedidos-almacen' && d.audiencia == 'pedidos-almacen' &&
+                   d.destinatarioUid is string) ||
+                  (d.origenModulo == 'requisiciones' && d.audiencia == 'requisiciones' &&
+                   d.destinatarioUid == null)
+                )) ||
                (d.tipo in ['solicitud_documento_creada', 'solicitud_documento_estado', 'solicitud_documento_mensaje'] &&
                 d.origenModulo == 'documentos-venta' && d.audiencia == 'documentos-venta' &&
                 d.destinatarioUid is string) ||

@@ -54,6 +54,11 @@ async function seed(): Promise<void> {
         email: "endmills-user@example.com",
         modulos: ["endmills"],
       }),
+      db.doc("usuarios/pedidos-user").set({
+        email: "pedidos@smv.test",
+        activo: true,
+        modulos: ["pedidos-almacen"],
+      }),
       db.doc("usuarios/super-gafetes").set({
         activo: true,
         email: "super-gafetes@example.com",
@@ -572,6 +577,42 @@ describeWithEmulator("reglas Firestore de Integridad", () => {
     // Sin el bloque duplicado permisivo, las notificaciones son inmutables.
     await assertFails(permitida.update({ titulo: "editado" }))
     await assertFails(permitida.delete())
+  })
+
+  it("no deja que el cliente dirija avisos de pedidos-almacén a otro usuario", async () => {
+    const base = {
+      tipo: "pedido_almacen_creado",
+      titulo: "Nuevo pedido de almacén",
+      cuerpo: "Se requiere material",
+      origenModulo: "pedidos-almacen",
+      origenId: "pedido-001",
+      audiencia: "pedidos-almacen",
+      destinatarioUid: null,
+      href: "/pedidos-almacen",
+      creadoPorUid: "pedidos-user",
+      creadoPorNombre: "Almacén",
+      creadoEn: new Date(),
+      actualizadoEn: new Date(),
+    }
+
+    await assertSucceeds(
+      userDb("pedidos-user").doc("notificaciones/pedido-notif-1").set(base)
+    )
+
+    await assertFails(
+      userDb("pedidos-user").doc("notificaciones/pedido-notif-2").set({
+        ...base,
+        destinatarioUid: "report-user",
+      })
+    )
+
+    await assertSucceeds(
+      userDb("pedidos-user").doc("notificaciones/pedido-notif-3").set({
+        ...base,
+        tipo: "orden_recibida_almacen",
+        destinatarioUid: "report-user",
+      })
+    )
   })
 
   it("el harness realmente ejecutó contra el emulador", () => {

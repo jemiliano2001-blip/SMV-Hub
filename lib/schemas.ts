@@ -131,6 +131,13 @@ export type NuevaCompraForm = z.infer<typeof NuevaCompraFormBaseSchema>
 export const EstadoOrdenSchema = z.enum(["pendiente", "aprobada", "rechazada"])
 export type EstadoOrden = z.infer<typeof EstadoOrdenSchema>
 
+/**
+ * Estado de recepción física de la orden en el almacén de planta.
+ * Nota: "parcial" queda reservado en el schema para v2 (sin escritor en v1).
+ */
+export const EstadoRecepcionSchema = z.enum(["pendiente", "parcial", "recibida"])
+export type EstadoRecepcion = z.infer<typeof EstadoRecepcionSchema>
+
 export const OrdenCompraSchema = NuevaCompraFormBaseSchema.extend({
   id: z.string(),
   imagenUrl: z.string().url().optional(),
@@ -138,6 +145,14 @@ export const OrdenCompraSchema = NuevaCompraFormBaseSchema.extend({
   linkProveedor: z.string().nullable().optional(),
   fechaEntrega: z.string().nullable().optional(),
   estado: EstadoOrdenSchema.default("pendiente"),
+  /** Estado de recepción física en almacén. */
+  estadoRecepcion: EstadoRecepcionSchema.default("pendiente"),
+  /** Fecha YYYY-MM-DD en que se recibió en almacén. */
+  fechaRecepcion: z.string().nullable().optional(),
+  /** Nombre o correo de quien recibió el material. */
+  recibidoPor: z.string().nullable().optional(),
+  /** FK al documento generado en 'almacen-entradas'. */
+  entradaAlmacenId: z.string().nullable().optional(),
   reporteContableId: z.string().nullable().optional(),
   /** FK opcional al catálogo de proveedores (USA Tooling). Retrocompatible. */
   proveedorId: z.string().nullable().optional(),
@@ -414,6 +429,10 @@ export const EntradaAlmacenSchema = z.object({
   revision: z.string().nullable(),
   estatus: z.enum(["pendiente", "entregado", "devuelto"]).default("entregado"),
   notas: z.string().nullable(),
+  /** FK opcional a la orden de compra en 'ordenes' que originó la entrada. */
+  ordenId: z.string().nullable().optional(),
+  /** Nombre del proveedor de la orden (desnormalizado para vistas rápidas). */
+  proveedor: z.string().nullable().optional(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 })
@@ -702,6 +721,7 @@ export const TipoNotificacionSchema = z.enum([
   "solicitud_documento_estado",
   "solicitud_documento_mensaje",
   "endmills_stock_critico",
+  "orden_recibida_almacen",
 ])
 export type TipoNotificacion = z.infer<typeof TipoNotificacionSchema>
 

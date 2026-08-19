@@ -149,6 +149,7 @@ describe("lib/ordenes CRUD operations", () => {
       expect(addDoc).toHaveBeenCalledWith(mockCollectionRef, {
         ...mockPayload,
         estado: "pendiente",
+        estadoRecepcion: "pendiente",
         creadoEn: new Date("2026-06-16T12:00:00Z"),
         actualizadoEn: new Date("2026-06-16T12:00:00Z"),
       })
@@ -167,6 +168,7 @@ describe("lib/ordenes CRUD operations", () => {
       expect(addDoc).toHaveBeenCalledWith(mockCollectionRef, {
         ...mockPayload,
         estado: "aprobada",
+        estadoRecepcion: "pendiente",
         creadoEn: new Date("2026-06-16T12:00:00Z"),
         actualizadoEn: new Date("2026-06-16T12:00:00Z"),
       })

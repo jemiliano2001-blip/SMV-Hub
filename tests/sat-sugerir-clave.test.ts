@@ -36,6 +36,7 @@ function ordenMock(
     linkProveedor: null,
     fechaEntrega: null,
     estado: "pendiente",
+    estadoRecepcion: "pendiente",
     items,
     creadoEn,
     actualizadoEn: creadoEn,

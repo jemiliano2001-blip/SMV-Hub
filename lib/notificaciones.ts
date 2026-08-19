@@ -75,6 +75,7 @@ const TITULOS: Record<TipoNotificacion, string> = {
   solicitud_documento_estado: "Solicitud de documento actualizada",
   solicitud_documento_mensaje: "Nuevo mensaje en solicitud",
   endmills_stock_critico: "Stock crítico de Endmill",
+  orden_recibida_almacen: "Material recibido en almacén",
 }
 
 export function tituloParaTipo(tipo: TipoNotificacion): string {

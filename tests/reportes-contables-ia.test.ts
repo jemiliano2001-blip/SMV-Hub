@@ -24,6 +24,7 @@ function crearOrden(id: string, lineas: number, pendiente = true): OrdenCompra {
     cuentaCargo: "Stock",
     destino: "SMV",
     estado: "pendiente",
+    estadoRecepcion: "pendiente",
     creadoEn: new Date("2026-07-14"),
     actualizadoEn: new Date("2026-07-14"),
     items: Array.from({ length: lineas }, (_, indice) => ({
