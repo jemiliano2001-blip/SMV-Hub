@@ -18,34 +18,14 @@ import {
 } from "@/lib/sat/sugerir-clave"
 import { cargarMapeosSatDesdeFirestore } from "@/lib/sat/cargar-mapeos-firestore"
 import { resolverModeloLite } from "@/lib/sat/gemini-sat"
-import { normalizarClaveProdServ } from "@/lib/sat/normalizar"
+import { normalizarHistorialEntradasSat } from "@/lib/sat/payload-sugerir-clave"
 
 const MAX_ORDENES_SEGURAS_POR_REQUEST = 2
 const MAX_ORDENES_LEGACY_POR_REQUEST = 10
 
-type HistorialEntradaRequest = {
-  descripcion: string
-  claveProdServ: string
-}
-
-function normalizarHistorialEntradas(valor: unknown): HistorialEntradaRequest[] {
-  if (!Array.isArray(valor)) return []
-
-  return valor.flatMap((entrada) => {
-    if (!entrada || typeof entrada !== "object") return []
-    const record = entrada as Record<string, unknown>
-    const descripcion = typeof record.descripcion === "string" ? record.descripcion.trim() : ""
-    const clave = typeof record.claveProdServ === "string"
-      ? normalizarClaveProdServ(record.claveProdServ)
-      : null
-
-    return descripcion && clave ? [{ descripcion, claveProdServ: clave }] : []
-  })
-}
-
 const RequestSchema = z.object({
   ordenesIds: z.array(z.string().trim().min(1)).min(1).max(MAX_ORDENES_LEGACY_POR_REQUEST),
-  historialEntradas: z.unknown().optional().transform(normalizarHistorialEntradas),
+  historialEntradas: z.unknown().optional().transform(normalizarHistorialEntradasSat),
 })
 
 const ItemOrdenSchema = z

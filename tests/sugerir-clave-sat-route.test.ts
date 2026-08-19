@@ -64,4 +64,32 @@ describe("POST /api/sugerir-clave-sat", () => {
       expect.objectContaining({ mapeos: [] })
     )
   })
+
+  it("acepta proveedor nulo e historial con claves inválidas", async () => {
+    const res = await POST(makeRequest({
+      items: [{ descripcion: "Compression spring", proveedor: null }],
+      historialEntradas: [
+        { descripcion: "Resorte", claveProdServ: "31161904" },
+        { descripcion: "Basura", claveProdServ: "ABC" },
+      ],
+    }))
+
+    expect(res.status).toBe(200)
+    expect(mockSugerirClaves).toHaveBeenCalledWith(
+      [expect.objectContaining({ descripcion: "Compression spring" })],
+      expect.any(Map),
+      expect.objectContaining({ mapeos: [] })
+    )
+  })
+
+  it("rechaza más de 50 ítems en una sola solicitud", async () => {
+    const res = await POST(makeRequest({
+      items: Array.from({ length: 51 }, () => ({ descripcion: "Compression spring" })),
+    }))
+    const body = await res.json() as { error: string }
+
+    expect(res.status).toBe(400)
+    expect(body.error).toMatch(/máximo 50/i)
+    expect(mockSugerirClaves).not.toHaveBeenCalled()
+  })
 })

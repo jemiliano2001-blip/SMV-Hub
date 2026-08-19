@@ -17,6 +17,10 @@ import { validarClaveProdServCatalogo } from '@/lib/sat/validar-clave'
 import { actualizarClavesSatLote } from '@/lib/ordenes'
 import { getClienteAuth } from '@/lib/firebase'
 import { extraerEntradasHistorialSat } from '@/lib/sat/extraer-historial-ordenes'
+import {
+  itemPayloadSugerirClaveSat,
+  partirLoteSugerirClaveSat,
+} from '@/lib/sat/payload-sugerir-clave'
 import { guardarAsignacionesSatValidadas } from '@/lib/sat/mapeos-persistir'
 import type { AlternativaSat } from '@/lib/sat/types'
 import {
@@ -101,6 +105,7 @@ export default function ModalSugerirClavesSat({
 
   useEffect(() => {
     let cancelled = false
+    const controller = new AbortController()
 
     async function cargarSugerencias() {
       setLoading(true)
@@ -125,26 +130,32 @@ export default function ModalSugerirClavesSat({
         const auth = getClienteAuth()
         const token = await auth.currentUser?.getIdToken()
 
-        const items = pendientes.map(({ orden, itemIndex }) => ({
-          descripcion: orden.items[itemIndex].descripcion,
-          proveedor: orden.proveedor,
-        }))
+        const items = pendientes.map(({ orden, itemIndex }) =>
+          itemPayloadSugerirClaveSat({
+            descripcion: orden.items[itemIndex]?.descripcion,
+            proveedor: orden.proveedor,
+          })
+        )
 
         const historialEntradas = extraerEntradasHistorialSat(historialOrdenes)
+        const sugerencias: SugerenciaApi[] = []
 
-        const res = await fetch('/api/sugerir-clave-sat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ items, historialEntradas }),
-        })
+        for (const lote of partirLoteSugerirClaveSat(items)) {
+          if (cancelled) return
+          const res = await fetch('/api/sugerir-clave-sat', {
+            method: 'POST',
+            signal: controller.signal,
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ items: lote, historialEntradas }),
+          })
 
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'Error al obtener sugerencias')
-
-        const sugerencias = data.sugerencias as SugerenciaApi[]
+          const data = await res.json() as { error?: string; sugerencias?: SugerenciaApi[] }
+          if (!res.ok) throw new Error(data.error || 'Error al obtener sugerencias')
+          sugerencias.push(...(data.sugerencias ?? []))
+        }
         if (!cancelled) {
           setFilas(
             pendientes.map(({ orden, itemIndex }, i) => {
@@ -170,9 +181,8 @@ export default function ModalSugerirClavesSat({
           )
         }
       } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Error desconocido')
-        }
+        if (cancelled || (err instanceof DOMException && err.name === 'AbortError')) return
+        setError(err instanceof Error ? err.message : 'Error desconocido')
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -181,6 +191,7 @@ export default function ModalSugerirClavesSat({
     void cargarSugerencias()
     return () => {
       cancelled = true
+      controller.abort()
     }
   }, [ordenes, historialOrdenes, reloadKey])
 

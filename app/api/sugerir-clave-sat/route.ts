@@ -10,22 +10,24 @@ import {
   type ItemParaSugerirSat,
 } from "@/lib/sat/sugerir-clave"
 import { cargarMapeosSatDesdeFirestore } from "@/lib/sat/cargar-mapeos-firestore"
+import {
+  MAX_ITEMS_SUGERIR_CLAVE_SAT,
+  normalizarHistorialEntradasSat,
+} from "@/lib/sat/payload-sugerir-clave"
 import { ErrorIA } from "@/lib/extraer-ia"
 
 const ItemRequestSchema = z.object({
-  descripcion: z.string(),
-  proveedor: z.string().optional(),
-  terminosPrevios: z.string().max(1000).optional(),
-})
-
-const HistorialEntradaSchema = z.object({
-  descripcion: z.string(),
-  claveProdServ: z.string().regex(/^\d{8}$/),
+  descripcion: z.unknown().transform((v) => (typeof v === "string" ? v : "")),
+  proveedor: z.unknown().optional().transform((v) => (typeof v === "string" ? v : undefined)),
+  terminosPrevios: z.unknown().optional().transform((v) => {
+    if (typeof v !== "string") return undefined
+    return v.length <= 1000 ? v : v.slice(0, 1000)
+  }),
 })
 
 const RequestSchema = z.object({
-  items: z.array(ItemRequestSchema).min(1).max(50),
-  historialEntradas: z.array(HistorialEntradaSchema).optional(),
+  items: z.array(ItemRequestSchema).min(1).max(MAX_ITEMS_SUGERIR_CLAVE_SAT),
+  historialEntradas: z.unknown().optional().transform(normalizarHistorialEntradasSat),
 })
 
 export async function POST(req: NextRequest) {
@@ -41,8 +43,18 @@ export async function POST(req: NextRequest) {
 
   const parsed = RequestSchema.safeParse(body)
   if (!parsed.success) {
+    const itemsRecibidos =
+      body !== null && typeof body === "object" && "items" in body && Array.isArray(body.items)
+        ? body.items.length
+        : 0
+    const demasiadosItems = itemsRecibidos > MAX_ITEMS_SUGERIR_CLAVE_SAT
     return Response.json(
-      { error: "Payload inválido", detalles: parsed.error.flatten() },
+      {
+        error: demasiadosItems
+          ? `Demasiados ítems: máximo ${MAX_ITEMS_SUGERIR_CLAVE_SAT} por solicitud`
+          : "Payload inválido",
+        detalles: parsed.error.flatten(),
+      },
       { status: 400 }
     )
   }
