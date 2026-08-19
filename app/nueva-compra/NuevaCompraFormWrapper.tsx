@@ -68,6 +68,7 @@ export default function NuevaCompraFormWrapper({
           ...data,
           id: ordenId,
           estado: 'pendiente',
+          estadoRecepcion: 'pendiente',
           creadoEn: new Date(),
           actualizadoEn: new Date(),
         })
