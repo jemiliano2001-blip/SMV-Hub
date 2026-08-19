@@ -1,9 +1,14 @@
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · tone: utilitario · scope: centro-de-trabajo */
 'use client'
 
 import { useState, useEffect, useRef, useMemo } from 'react'
-import LogoSMV from '@/app/LogoSMV'
 import PedidoAlmacenBadge from '@/app/pedidos-almacen/PedidoAlmacenBadge'
+import PageHeader from '@/components/layout/PageHeader'
+import PageShell from '@/components/layout/PageShell'
+import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
 import { tienePermiso } from '@/lib/roles'
@@ -29,7 +34,6 @@ import {
   Package,
   Receipt,
   Search,
-  Shield,
   ShieldCheck,
   ShoppingCart,
   Timer,
@@ -335,55 +339,47 @@ function TarjetaAcceso({
   const contenidoInner = (
     <>
       <div
-        className={[
+        className={cn(
           'shrink-0 rounded-md p-2 transition-colors',
-          principal ? 'bg-white/10 text-sky-300' : 'bg-slate-100 text-[#0369A1] group-hover:bg-[#0369A1] group-hover:text-white',
-        ].join(' ')}
+          principal
+            ? 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground'
+            : 'bg-muted text-primary group-hover:bg-primary group-hover:text-primary-foreground',
+        )}
       >
-        <Icon className="h-4.5 w-4.5" aria-hidden="true" />
+        <Icon className="size-4.5" aria-hidden="true" />
       </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-1">
-          <span className={['text-sm font-semibold tracking-tight', principal ? 'text-white' : 'text-slate-900'].join(' ')}>
+          <span className="text-sm font-semibold tracking-tight text-foreground">
             {label}
           </span>
           {href === '/pedidos-almacen' && <PedidoAlmacenBadge />}
           {esExterna && (
-            <span className="text-[10px] font-mono font-medium bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded border border-sky-400/30">
-              Web App ↗
+            <span className="rounded border border-sky-200 bg-sky-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-sky-800">
+              Externa
             </span>
           )}
         </div>
-        <p className={['mt-0.5 text-xs leading-normal line-clamp-2', principal ? 'text-slate-300' : 'text-slate-500'].join(' ')}>
+        <p className="mt-0.5 line-clamp-2 text-xs leading-normal text-muted-foreground">
           {desc}
         </p>
       </div>
 
       {esExterna ? (
-        <ExternalLink
-          className={[
-            'mt-0.5 h-4 w-4 shrink-0 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5',
-            principal ? 'text-slate-400 group-hover:text-white' : 'text-slate-300 group-hover:text-[#0369A1]',
-          ].join(' ')}
-        />
+        <ExternalLink className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary" />
       ) : (
-        <ArrowRight
-          className={[
-            'mt-0.5 h-4 w-4 shrink-0 transition-transform duration-150 group-hover:translate-x-0.5',
-            principal ? 'text-slate-400 group-hover:text-white' : 'text-slate-300 group-hover:text-[#0369A1]',
-          ].join(' ')}
-        />
+        <ArrowRight className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-primary" />
       )}
     </>
   )
 
-  const claseTarjeta = [
-    'group relative flex items-start gap-3.5 rounded-lg border p-3.5 transition-all duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0369A1]',
+  const claseTarjeta = cn(
+    'group relative flex items-start gap-3.5 rounded-lg border border-border bg-card p-3.5 text-left transition-all duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
     principal
-      ? 'border-slate-800 bg-slate-900 text-white shadow-sm hover:bg-slate-800 hover:border-slate-700'
-      : 'border-slate-200 bg-white hover:border-[#0369A1]/50 hover:bg-sky-50/20 hover:shadow-sm',
-  ].join(' ')
+      ? 'border-primary/25 shadow-xs hover:border-primary/50 hover:bg-sky-50/40'
+      : 'hover:border-primary/40 hover:bg-sky-50/20 hover:shadow-xs',
+  )
 
   if (esExterna) {
     return (
@@ -458,129 +454,108 @@ export default function Home() {
     })
   }, [tarjetasVisibles, busqueda])
 
-  const nombreRol = rol ? NOMBRE_ROL[rol] : 'Usuario del Sistema'
+  const nombreRol = rol ? NOMBRE_ROL[rol] : 'Usuario'
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-4 py-6 sm:px-6 lg:px-8 font-sans">
-      <div className="mx-auto w-full max-w-6xl space-y-6">
-        {/* Top Operational Bar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
-          <div className="flex items-center gap-3">
-            <LogoSMV height={28} />
-            <span className="text-slate-300 font-light">|</span>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-slate-900 tracking-tight">SMV Hub</span>
-                <span className="text-[10px] font-mono font-medium bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">
-                  v2.4 Utilitario
-                </span>
-              </div>
-              <p className="text-xs text-slate-500">Centro de Operación y Administración</p>
-            </div>
-          </div>
+    <PageShell maxWidth="6xl">
+      <PageHeader
+        title="Inicio"
+        badge={!cargando ? nombreRol : undefined}
+        icon={LayoutDashboard}
+        description="Centro de operación del taller: compras, finanzas, piso y personal."
+        actions={
+          !cargando ? (
+            <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 font-mono text-[11px] font-semibold text-emerald-700">
+              {tarjetasVisibles.length} módulos
+            </span>
+          ) : null
+        }
+      />
 
-          {!cargando && (
-            <div className="flex items-center gap-2 text-xs">
-              <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 font-mono">
-                <Shield className="h-3.5 w-3.5 text-[#0369A1]" />
-                <span className="font-semibold text-slate-800">{nombreRol}</span>
-              </div>
-              <div className="bg-emerald-50 text-emerald-700 font-mono text-[11px] px-2.5 py-1.5 rounded-lg border border-emerald-200 font-semibold">
-                {tarjetasVisibles.length} Módulos
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Buscador Rápido Utilitario (Búsqueda en Vivo) */}
-        <div className="relative">
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Buscar módulo rápidamente (ej. caja chica, odoo, almacén)..."
-              className="w-full pl-10 pr-24 py-3 text-sm bg-white border border-slate-300 rounded-xl shadow-xs focus:outline-none focus:border-[#0369A1] focus:ring-2 focus:ring-[#0369A1]/20 text-slate-900 placeholder:text-slate-400 font-medium transition-all"
-            />
-            {busqueda ? (
-              <button
-                onClick={() => setBusqueda('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-md"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            ) : (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1 text-[11px] font-mono text-slate-400 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 pointer-events-none">
-                <Command className="h-3 w-3" />
-                <span>K</span>
-              </div>
-            )}
-          </div>
-
-          {busqueda && (
-            <p className="mt-2 text-xs text-slate-500 font-mono">
-              Mostrando {tarjetasFiltradas.length} resultados para &ldquo;{busqueda}&rdquo;
-            </p>
-          )}
-        </div>
-
-        {cargando ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-24 animate-pulse rounded-lg border border-slate-200 bg-white" />
-            ))}
-          </div>
-        ) : tarjetasFiltradas.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center space-y-2">
-            <Search className="h-8 w-8 text-slate-300 mx-auto" />
-            <h3 className="text-sm font-bold text-slate-900">No se encontraron módulos</h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              No hay ninguna sección autorizada que coincida con &ldquo;{busqueda}&rdquo;. Intenta borrar el texto de búsqueda.
-            </p>
-            <button
-              onClick={() => setBusqueda('')}
-              className="mt-3 px-3 py-1.5 text-xs font-semibold text-[#0369A1] bg-sky-50 rounded-lg hover:bg-sky-100 transition-colors"
-            >
-              Limpiar búsqueda
-            </button>
-          </div>
+      <div className="relative">
+        <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          ref={searchInputRef}
+          type="text"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar módulo (caja chica, odoo, almacén)…"
+          className="h-11 bg-card pr-24 pl-10"
+        />
+        {busqueda ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setBusqueda('')}
+            className="absolute top-1/2 right-3 -translate-y-1/2"
+            aria-label="Limpiar búsqueda"
+          >
+            <X />
+          </Button>
         ) : (
-          <div className="space-y-6">
-            {/* Si no hay búsqueda activa, mostrar secciones estructuradas por área */}
-            {SECCIONES.map((seccion) => {
-              const tarjetasEnSeccion = tarjetasFiltradas.filter((t) => t.grupo === seccion.id)
-              if (tarjetasEnSeccion.length === 0) return null
-
-              return (
-                <section key={seccion.id} className="space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                    <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-2">
-                      <span>{seccion.titulo}</span>
-                    </h2>
-                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${seccion.badgeStyle}`}>
-                      {tarjetasEnSeccion.length} {tarjetasEnSeccion.length === 1 ? 'Acceso' : 'Accesos'}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {tarjetasEnSeccion.map((tarjeta) => (
-                      <TarjetaAcceso key={tarjeta.href} {...tarjeta} />
-                    ))}
-                  </div>
-                </section>
-              )
-            })}
+          <div className="pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 items-center gap-1 rounded border border-border bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground sm:flex">
+            <Command className="size-3" />
+            <span>K</span>
           </div>
         )}
-
-        {/* Footer Utilitario */}
-        <footer className="pt-4 text-center text-xs text-slate-400 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-2 font-mono">
-          <span>SMV MAQUINADOS · Hub Operativo de Escritorio</span>
-          <span>Monterrey, N.L. México</span>
-        </footer>
       </div>
-    </main>
+
+      {busqueda ? (
+        <p className="font-mono text-xs text-muted-foreground">
+          Mostrando {tarjetasFiltradas.length} resultados para &ldquo;{busqueda}&rdquo;
+        </p>
+      ) : null}
+
+      {cargando ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-24 rounded-lg" />
+          ))}
+        </div>
+      ) : tarjetasFiltradas.length === 0 ? (
+        <ModuleEmptyState
+          icon={Search}
+          title="No se encontraron módulos"
+          description={`No hay ninguna sección autorizada que coincida con “${busqueda}”.`}
+          action={
+            <Button type="button" variant="outline" size="sm" onClick={() => setBusqueda('')}>
+              Limpiar búsqueda
+            </Button>
+          }
+        />
+      ) : (
+        <div className="flex flex-col gap-6">
+          {SECCIONES.map((seccion) => {
+            const tarjetasEnSeccion = tarjetasFiltradas.filter((t) => t.grupo === seccion.id)
+            if (tarjetasEnSeccion.length === 0) return null
+
+            return (
+              <section key={seccion.id} className="flex flex-col gap-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <h2 className="text-xs font-bold tracking-wider text-foreground uppercase">
+                    {seccion.titulo}
+                  </h2>
+                  <span className={`rounded border px-2 py-0.5 font-mono text-[10px] font-bold ${seccion.badgeStyle}`}>
+                    {tarjetasEnSeccion.length} {tarjetasEnSeccion.length === 1 ? 'acceso' : 'accesos'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {tarjetasEnSeccion.map((tarjeta) => (
+                    <TarjetaAcceso key={tarjeta.href} {...tarjeta} />
+                  ))}
+                </div>
+              </section>
+            )
+          })}
+        </div>
+      )}
+
+      <footer className="flex flex-col items-center justify-between gap-2 border-t border-border pt-4 text-center font-mono text-xs text-muted-foreground sm:flex-row">
+        <span>SMV Maquinados · Hub operativo</span>
+        <span>Monterrey, N.L.</span>
+      </footer>
+    </PageShell>
   )
 }

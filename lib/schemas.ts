@@ -1415,6 +1415,8 @@ export const PartidaCotizacionOdooSchema = z.object({
   requisitor: z.string().optional().default(""),
   empresa: z.string().optional().default(""),
   uso: z.string().optional().default(""),
+  ordenTrabajoId: z.number().int().positive().optional().nullable(),
+  ordenTrabajo: z.string().optional().default(""),
 })
 export type PartidaCotizacionOdoo = z.infer<typeof PartidaCotizacionOdooSchema>
 
@@ -1427,6 +1429,8 @@ export const CotizacionOdooPayloadSchema = z.object({
   requisitorGeneral: z.string().optional().default(""),
   empresaGeneral: z.string().optional().default(""),
   usoGeneral: z.string().optional().default(""),
+  ordenTrabajoGeneralId: z.number().int().positive().optional().nullable(),
+  ordenTrabajoGeneral: z.string().optional().default(""),
   notas: z.string().optional().default(""),
   partidas: z.array(PartidaCotizacionOdooSchema).min(1, "Debe haber al menos 1 partida"),
 })

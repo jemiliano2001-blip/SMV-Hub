@@ -11,7 +11,6 @@ import {
   Save,
   Search,
   Users,
-  X,
 } from "lucide-react"
 import { authBypassActivo, useUsuario } from "@/lib/auth"
 import { usePermisos } from "@/lib/hooks/useRol"
@@ -30,6 +29,17 @@ import {
 } from "@/lib/gafetes"
 import { cargarFotoGafete, subirFotoGafete } from "@/lib/storage"
 import type { Area, GafeteAjusteFoto, GafetePerfil, Operador } from "@/lib/schemas"
+import PageHeader from "@/components/layout/PageHeader"
+import PageShell from "@/components/layout/PageShell"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 const AREAS: { value: Area; label: string }[] = [
   { value: "taller", label: "Taller" },
@@ -322,7 +332,11 @@ export default function GafetesView() {
   const cargando = cargandoPermisos || cargandoOperadores || cargandoPerfiles
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] font-sans gafetes-page">
+    <PageShell
+      className="gafetes-page"
+      printClassName="print:bg-white"
+      innerClassName="print:max-w-none print:px-0 print:py-0 print:gap-0"
+    >
       <style>{`
         .gafete-card { width: ${MEDIDAS_GAFETE_PULGADAS.ancho}in; height: ${MEDIDAS_GAFETE_PULGADAS.alto}in; position: relative; overflow: hidden; color: white; background: radial-gradient(circle at 56% 45%, #087bc7 0, #054e93 31%, #082852 74%, #061936 100%); box-shadow: 0 10px 25px rgba(15, 23, 42, .25); font-family: Arial, sans-serif; }
         .gafete-card::before { content: ''; position: absolute; z-index: 0; width: 4.6in; height: 4.6in; border: .65pt solid rgba(125, 211, 252, .46); transform: rotate(42deg); top: -2.23in; right: -2.1in; box-shadow: 0 0 0 .11in rgba(14, 165, 233, .07), 0 0 0 .22in rgba(14, 165, 233, .05); }
@@ -350,19 +364,20 @@ export default function GafetesView() {
         @media print { @page { size: letter portrait; margin: 0; } header, .gafetes-screen { display: none !important; } .gafete-print-root { display: block !important; } .gafete-print-sheet { width: 8.5in; height: 11in; display: grid; grid-template-columns: repeat(2, ${MEDIDAS_GAFETE_PULGADAS.ancho}in); grid-template-rows: repeat(2, ${MEDIDAS_GAFETE_PULGADAS.alto}in); column-gap: .26in; row-gap: .26in; padding: 1.568in 1.658in; box-sizing: border-box; break-after: page; page-break-after: always; } .gafete-print-sheet:last-child { break-after: auto; page-break-after: auto; } .gafete-print-cell { position: relative; } .gafete-crop { position: absolute; width: .09in; height: .09in; border-color: #111; border-style: solid; } .gafete-crop-tl { left: -.06in; top: -.06in; border-width: .01in 0 0 .01in; } .gafete-crop-tr { right: -.06in; top: -.06in; border-width: .01in .01in 0 0; } .gafete-crop-bl { left: -.06in; bottom: -.06in; border-width: 0 0 .01in .01in; } .gafete-crop-br { right: -.06in; bottom: -.06in; border-width: 0 .01in .01in 0; } }
       `}</style>
 
-      <div className="gafetes-screen max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
-        <section className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-bold text-slate-900 tracking-tight">Gafetes de personal</h1>
-              <span className="text-[10px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded">PRIVADO · SUPER-ADMIN</span>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">Perfiles vinculados al Personal Maestro e impresión a doble cara en tamaño real.</p>
-          </div>
-          <button onClick={imprimir} disabled={imprimibles.length === 0} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0369A1] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#075985] disabled:cursor-not-allowed disabled:opacity-45 transition-colors">
-            <Printer className="h-4 w-4" /> Imprimir {imprimibles.length || ""} gafete{imprimibles.length === 1 ? "" : "s"}
-          </button>
-        </section>
+      <div className="gafetes-screen flex flex-col gap-4">
+        <PageHeader
+          title="Gafetes de personal"
+          badge="Super-admin"
+          icon={Users}
+          description="Perfiles vinculados al personal maestro e impresión a doble cara en tamaño real."
+          className="print:hidden"
+          actions={
+            <Button size="sm" onClick={imprimir} disabled={imprimibles.length === 0}>
+              <Printer data-icon="inline-start" />
+              Imprimir {imprimibles.length || ""} gafete{imprimibles.length === 1 ? "" : "s"}
+            </Button>
+          }
+        />
 
         <section className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 text-xs text-sky-900">
           <strong>Impresión:</strong> elige “Tamaño real” o 100%, papel Carta, doble cara y <strong>voltear por borde largo</strong>. Cada frente y reverso se colocan en la misma posición y mide {MEDIDAS_GAFETE_PULGADAS.ancho} × {MEDIDAS_GAFETE_PULGADAS.alto} pulgadas.
@@ -374,7 +389,7 @@ export default function GafetesView() {
           <div className="p-3 border-b border-slate-100 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
             <label className="relative block max-w-md w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input value={busqueda} onChange={(event) => setBusqueda(event.target.value)} placeholder="Buscar trabajador, área o cargo…" className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#0369A1] focus:ring-2 focus:ring-sky-100" />
+              <input value={busqueda} onChange={(event) => setBusqueda(event.target.value)} placeholder="Buscar trabajador, área o cargo…" className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-sky-100" />
             </label>
             <p className="text-xs text-slate-500"><strong>{imprimibles.length}</strong> completos listos para imprimir · {seleccionados.length - imprimibles.length > 0 ? `${seleccionados.length - imprimibles.length} borrador(es) excluido(s)` : ""}</p>
           </div>
@@ -387,7 +402,7 @@ export default function GafetesView() {
                 const seleccionado = seleccionados.includes(operador.id)
                 return (
                   <article key={operador.id} className={`flex gap-3 items-center p-3 sm:px-4 ${!operador.activo ? "opacity-55" : ""}`}>
-                    <input aria-label={`Seleccionar ${operador.nombre} para imprimir`} type="checkbox" checked={seleccionado} onChange={() => alternarSeleccion(operador.id)} className="h-4 w-4 accent-[#0369A1] shrink-0" />
+                    <input aria-label={`Seleccionar ${operador.nombre} para imprimir`} type="checkbox" checked={seleccionado} onChange={() => alternarSeleccion(operador.id)} className="h-4 w-4 shrink-0 accent-primary" />
                     <FotoGafete url={perfil?.fotoUrl ?? ""} ajuste={perfil?.fotoAjuste ?? AJUSTE_FOTO_INICIAL} nombre={operador.nombre} className="h-11 w-9 rounded-md shrink-0" />
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-sm text-slate-900 truncate">{operador.nombre}</p>
@@ -408,12 +423,12 @@ export default function GafetesView() {
       </div>
 
       {editando && formulario && (
-        <div className="gafetes-screen fixed inset-0 z-50 overflow-y-auto bg-slate-950/45 p-3 sm:p-6">
-          <div className="mx-auto max-w-5xl rounded-2xl bg-white shadow-2xl overflow-hidden">
-            <div className="flex items-start justify-between border-b border-slate-200 p-4">
-              <div><h2 className="font-bold text-slate-900">Editar gafete</h2><p className="text-xs text-slate-500">Los datos sensibles solo son visibles para super-admin.</p></div>
-              <button onClick={cerrarEdicion} aria-label="Cerrar" className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
-            </div>
+        <Dialog open onOpenChange={(open) => !open && cerrarEdicion()}>
+          <DialogContent className="gafetes-screen flex max-h-[90vh] max-w-5xl flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl">
+            <DialogHeader className="border-b border-border px-4 py-4">
+              <DialogTitle>Editar gafete</DialogTitle>
+              <DialogDescription>Los datos sensibles solo son visibles para super-admin.</DialogDescription>
+            </DialogHeader>
             <div className="grid lg:grid-cols-[1fr_270px] gap-6 p-4 sm:p-5">
               <div className="grid sm:grid-cols-2 gap-3 content-start">
                 <Campo label="Nombre"><input value={formulario.nombre} onChange={(e) => setFormulario({ ...formulario, nombre: e.target.value })} className="campo-gafete" /></Campo>
@@ -432,10 +447,10 @@ export default function GafetesView() {
                   <label htmlFor="foto-gafete" className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-sky-300 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-100"><ImagePlus className="h-4 w-4" /> Elegir foto JPG, PNG o WebP</label>
                 </Campo>
                 <div className="sm:col-span-2 grid grid-cols-2 gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                  <Campo label={`Zoom ${formulario.fotoAjuste.zoom.toFixed(2)}×`}><input type="range" min="0.75" max="2.5" step="0.05" value={formulario.fotoAjuste.zoom} onChange={(e) => actualizarAjuste({ zoom: Number(e.target.value) })} className="w-full accent-[#0369A1]" /></Campo>
+                  <Campo label={`Zoom ${formulario.fotoAjuste.zoom.toFixed(2)}×`}><input type="range" min="0.75" max="2.5" step="0.05" value={formulario.fotoAjuste.zoom} onChange={(e) => actualizarAjuste({ zoom: Number(e.target.value) })} className="w-full accent-primary" /></Campo>
                   <Campo label="Rotación"><div className="flex gap-2"><button type="button" onClick={() => actualizarAjuste({ rotacion: formulario.fotoAjuste.rotacion - 90 })} className="ajuste-foto"><RotateCcw className="h-4 w-4" /> Izq.</button><button type="button" onClick={() => actualizarAjuste({ rotacion: formulario.fotoAjuste.rotacion + 90 })} className="ajuste-foto">Der.</button></div></Campo>
-                  <Campo label="Mover horizontal"><input type="range" min="-50" max="50" value={formulario.fotoAjuste.desplazamientoX} onChange={(e) => actualizarAjuste({ desplazamientoX: Number(e.target.value) })} className="w-full accent-[#0369A1]" /></Campo>
-                  <Campo label="Mover vertical"><input type="range" min="-50" max="50" value={formulario.fotoAjuste.desplazamientoY} onChange={(e) => actualizarAjuste({ desplazamientoY: Number(e.target.value) })} className="w-full accent-[#0369A1]" /></Campo>
+                  <Campo label="Mover horizontal"><input type="range" min="-50" max="50" value={formulario.fotoAjuste.desplazamientoX} onChange={(e) => actualizarAjuste({ desplazamientoX: Number(e.target.value) })} className="w-full accent-primary" /></Campo>
+                  <Campo label="Mover vertical"><input type="range" min="-50" max="50" value={formulario.fotoAjuste.desplazamientoY} onChange={(e) => actualizarAjuste({ desplazamientoY: Number(e.target.value) })} className="w-full accent-primary" /></Campo>
                 </div>
               </div>
               <aside className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col items-center gap-3">
@@ -444,9 +459,14 @@ export default function GafetesView() {
                 <p className="text-center text-[11px] text-slate-500">Un perfil se puede guardar como borrador. Para imprimir requiere todos los campos y foto.</p>
               </aside>
             </div>
-            <div className="flex justify-end gap-2 border-t border-slate-200 p-4"><button onClick={cerrarEdicion} disabled={guardando} className="rounded-lg px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancelar</button><button onClick={guardar} disabled={guardando} className="inline-flex items-center gap-2 rounded-lg bg-[#0369A1] px-3 py-2 text-xs font-bold text-white hover:bg-[#075985] disabled:opacity-60"><Save className="h-4 w-4" />{guardando ? "Guardando…" : "Guardar perfil"}</button></div>
-          </div>
-        </div>
+            <DialogFooter className="border-t border-border p-4">
+              <Button variant="outline" onClick={cerrarEdicion} disabled={guardando}>Cancelar</Button>
+              <Button onClick={guardar} disabled={guardando}>
+                <Save />{guardando ? "Guardando…" : "Guardar perfil"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
 
       <div className="gafete-print-root">
@@ -455,7 +475,7 @@ export default function GafetesView() {
           <HojaImpresion key={`reversos-${indice}`} hoja={hoja} reverso />,
         ])}
       </div>
-    </main>
+    </PageShell>
   )
 }
 

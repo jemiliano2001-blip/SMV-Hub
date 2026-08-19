@@ -91,7 +91,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
               className={
                 solicitud?.opciones.variant === "destructive"
                   ? "bg-rose-700 text-white hover:bg-rose-800 focus-visible:ring-rose-600"
-                  : "bg-[#0369A1] text-white hover:bg-[#075985]"
+                  : "bg-primary text-white hover:bg-primary/90"
               }
             >
               {solicitud?.opciones.confirmLabel}

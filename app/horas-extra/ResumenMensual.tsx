@@ -10,6 +10,14 @@ import {
 } from '@/lib/horas-extra-resumen'
 import type { Departamento } from '@/lib/schemas'
 import { Clock, Search, Download, Printer } from 'lucide-react'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 const DEPARTAMENTO_LABEL: Record<Departamento, string> = {
   diseno: 'Diseño',
@@ -72,7 +80,7 @@ export default function ResumenMensual({ departamento }: Props) {
             type="month"
             value={mes}
             onChange={(e) => setMes(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1]"
+            className="px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
           />
         </div>
 
@@ -84,7 +92,7 @@ export default function ResumenMensual({ departamento }: Props) {
               placeholder="Buscar empleado..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1]"
+              className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
             />
           </div>
           <button
@@ -108,7 +116,7 @@ export default function ResumenMensual({ departamento }: Props) {
           <button
             type="button"
             onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-[#0369A1] text-white rounded-md hover:bg-[#0284C7]"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary text-white rounded-md hover:bg-primary/90"
           >
             <Printer className="h-4 w-4" />
             Imprimir
@@ -145,40 +153,40 @@ export default function ResumenMensual({ departamento }: Props) {
         </div>
       ) : (
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3">Empleado</th>
-                <th className="px-6 py-3 text-right">Total horas</th>
-                <th className="px-6 py-3 text-right">Semanas</th>
-                <th className="px-6 py-3 w-40 print:hidden" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
+          <Table className="w-full text-sm text-left">
+            <TableHeader className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+              <TableRow>
+                <TableHead className="px-6 py-3">Empleado</TableHead>
+                <TableHead className="px-6 py-3 text-right">Total horas</TableHead>
+                <TableHead className="px-6 py-3 text-right">Semanas</TableHead>
+                <TableHead className="px-6 py-3 w-40 print:hidden" />
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-gray-100">
               {resumenFiltrado.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                <TableRow>
+                  <TableCell colSpan={4} className="px-6 py-8 text-center text-gray-500">
                     Sin resultados para la búsqueda
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 resumenFiltrado.map((item, index) => (
-                  <tr key={item.empleado} className="hover:bg-gray-50">
-                    <td className="px-6 py-3 font-medium text-gray-900">
+                  <TableRow key={item.empleado} className="hover:bg-gray-50">
+                    <TableCell className="px-6 py-3 font-medium text-gray-900">
                       <span className="text-gray-400 text-xs mr-2">{index + 1}.</span>
                       {item.empleado}
-                    </td>
-                    <td className="px-6 py-3 text-right font-medium text-[#0369A1]">
+                    </TableCell>
+                    <TableCell className="px-6 py-3 text-right font-medium text-primary">
                       <Clock className="inline h-3.5 w-3.5 mr-1 opacity-60" />
                       {item.totalHoras.toFixed(1)}
-                    </td>
-                    <td className="px-6 py-3 text-right text-gray-600">
+                    </TableCell>
+                    <TableCell className="px-6 py-3 text-right text-gray-600">
                       {item.semanas.length}
-                    </td>
-                    <td className="px-6 py-3 print:hidden">
+                    </TableCell>
+                    <TableCell className="px-6 py-3 print:hidden">
                       <div className="w-full bg-gray-100 rounded-full h-1.5">
                         <div
-                          className="bg-[#0369A1] h-full rounded-full opacity-70"
+                          className="bg-primary h-full rounded-full opacity-70"
                           style={{
                             width: `${Math.max(
                               4,
@@ -189,12 +197,12 @@ export default function ResumenMensual({ departamento }: Props) {
                           }}
                         />
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

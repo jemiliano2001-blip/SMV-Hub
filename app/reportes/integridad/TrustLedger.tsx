@@ -91,7 +91,7 @@ export function TrustLedger({
         )}
         <Link
           href="/reportes"
-          className="ml-auto min-h-11 content-center font-semibold text-[#0369A1] underline underline-offset-4"
+          className="ml-auto min-h-11 content-center font-semibold text-primary underline underline-offset-4"
         >
           Ver Integridad
         </Link>

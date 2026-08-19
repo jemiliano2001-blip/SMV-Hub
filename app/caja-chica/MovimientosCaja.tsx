@@ -1,4 +1,3 @@
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · tone: utilitario · scope: movimientos-caja */
 'use client'
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
@@ -14,15 +13,30 @@ import {
   AlertTriangle,
   UserCheck,
   Scissors,
-  Calendar,
-  History,
-  Sparkles,
   RefreshCw,
 } from 'lucide-react'
 import ModalMovimientoCaja from './ModalMovimientoCaja'
 import type { MovimientoCajaChica } from '@/lib/schemas'
 import { listarCortesCaja, type CorteCaja, type ModoFiltroCaja } from '@/lib/caja-chica'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import ModuleSurface from '@/components/layout/ModuleSurface'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 type FiltroTipo = 'TODOS' | 'ENTRADA' | 'SALIDA'
 type FiltroEstado = 'TODOS' | 'VERIFICADO' | 'PENDIENTE'
@@ -43,8 +57,8 @@ function MovimientoRow({ m, onVerificar, onEditar, onBorrar }: AccionesMovimient
   const isCortado = m.estadoCorte === 'CORTADO'
 
   return (
-    <tr className={`hover:bg-slate-50/80 transition-colors text-xs ${isVale ? 'bg-amber-50/30' : ''}`}>
-      <td className="px-3 py-2.5 font-mono text-slate-700">
+    <TableRow className={`hover:bg-slate-50/80 transition-colors text-xs ${isVale ? 'bg-amber-50/30' : ''}`}>
+      <TableCell className="px-3 py-2.5 font-mono text-slate-700">
         <div className="flex items-center gap-1.5">
           <span>{m.fecha}</span>
           {isCortado && (
@@ -56,23 +70,23 @@ function MovimientoRow({ m, onVerificar, onEditar, onBorrar }: AccionesMovimient
             </span>
           )}
         </div>
-      </td>
-      <td className="px-3 py-2.5 font-medium text-slate-900 max-w-[220px] truncate" title={m.descripcion}>
+      </TableCell>
+      <TableCell className="px-3 py-2.5 font-medium text-slate-900 max-w-[220px] truncate" title={m.descripcion}>
         <span>{m.descripcion}</span>
         {isVale && (
           <span className="ml-2 bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold">
             VALE PENDIENTE
           </span>
         )}
-      </td>
-      <td className="px-3 py-2.5 text-slate-600">{m.proveedor}</td>
-      <td className="px-3 py-2.5 text-slate-600">
+      </TableCell>
+      <TableCell className="px-3 py-2.5 text-slate-600">{m.proveedor}</TableCell>
+      <TableCell className="px-3 py-2.5 text-slate-600">
         <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200 text-[11px] font-medium">
           {m.categoria}
         </span>
-      </td>
-      <td className="px-3 py-2.5 text-slate-600">{m.solicitante}</td>
-      <td className="px-3 py-2.5 text-slate-600 font-mono text-[11px]">
+      </TableCell>
+      <TableCell className="px-3 py-2.5 text-slate-600">{m.solicitante}</TableCell>
+      <TableCell className="px-3 py-2.5 text-slate-600 font-mono text-[11px]">
         <div className="flex items-center gap-1.5">
           <span className={isVale ? 'text-amber-700 font-bold' : ''}>{m.comprobante}</span>
           {m.archivoUrl && (
@@ -80,7 +94,7 @@ function MovimientoRow({ m, onVerificar, onEditar, onBorrar }: AccionesMovimient
               href={m.archivoUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#0369A1] hover:text-sky-800 flex items-center gap-0.5 shrink-0"
+              className="text-primary hover:text-sky-800 flex items-center gap-0.5 shrink-0"
               title="Ver comprobante digital"
             >
               <FileText className="h-3.5 w-3.5" />
@@ -92,14 +106,14 @@ function MovimientoRow({ m, onVerificar, onEditar, onBorrar }: AccionesMovimient
             </span>
           )}
         </div>
-      </td>
-      <td className="px-3 py-2.5 text-right text-emerald-700 font-mono font-semibold tabular-nums">
+      </TableCell>
+      <TableCell className="px-3 py-2.5 text-right text-emerald-700 font-mono font-semibold tabular-nums">
         {m.tipo === 'ENTRADA' ? formatearDinero(m.monto) : '—'}
-      </td>
-      <td className="px-3 py-2.5 text-right text-rose-700 font-mono font-semibold tabular-nums">
+      </TableCell>
+      <TableCell className="px-3 py-2.5 text-right text-rose-700 font-mono font-semibold tabular-nums">
         {m.tipo === 'SALIDA' ? formatearDinero(m.monto) : '—'}
-      </td>
-      <td className="px-3 py-2.5 text-center">
+      </TableCell>
+      <TableCell className="px-3 py-2.5 text-center">
         <button
           onClick={() => onVerificar(m)}
           className={`transition-transform active:scale-90 ${m.verificado ? 'text-emerald-600' : 'text-slate-300 hover:text-slate-400'}`}
@@ -107,12 +121,12 @@ function MovimientoRow({ m, onVerificar, onEditar, onBorrar }: AccionesMovimient
         >
           <CheckCircle className="h-4.5 w-4.5 mx-auto" />
         </button>
-      </td>
-      <td className="px-3 py-2.5 text-right">
+      </TableCell>
+      <TableCell className="px-3 py-2.5 text-right">
         <div className="flex justify-end gap-1">
           <button
             onClick={() => onEditar(m)}
-            className="p-1 text-slate-400 hover:text-[#0369A1] hover:bg-sky-50 rounded transition-colors"
+            className="p-1 text-slate-400 hover:text-primary hover:bg-sky-50 rounded transition-colors"
             title="Editar"
           >
             <Edit2 className="h-3.5 w-3.5" />
@@ -125,8 +139,8 @@ function MovimientoRow({ m, onVerificar, onEditar, onBorrar }: AccionesMovimient
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   )
 }
 
@@ -166,7 +180,7 @@ function MovimientoCard({ m, onVerificar, onEditar, onBorrar }: AccionesMovimien
           <div className="flex items-center gap-1">
             <span className={isVale ? 'text-amber-800 font-bold' : 'text-slate-800'}>{m.comprobante}</span>
             {m.archivoUrl && (
-              <a href={m.archivoUrl} target="_blank" rel="noopener noreferrer" className="text-[#0369A1]">
+              <a href={m.archivoUrl} target="_blank" rel="noopener noreferrer" className="text-primary">
                 <FileText className="h-3 w-3" />
               </a>
             )}
@@ -190,7 +204,7 @@ function MovimientoCard({ m, onVerificar, onEditar, onBorrar }: AccionesMovimien
         <div className="flex gap-1">
           <button
             onClick={() => onEditar(m)}
-            className="p-1 text-slate-400 hover:text-[#0369A1] hover:bg-sky-50 rounded"
+            className="p-1 text-slate-400 hover:text-primary hover:bg-sky-50 rounded"
             title="Editar"
           >
             <Edit2 className="h-3.5 w-3.5" />
@@ -210,8 +224,8 @@ function MovimientoCard({ m, onVerificar, onEditar, onBorrar }: AccionesMovimien
 
 function SkeletonRow() {
   return (
-    <tr>
-      <td colSpan={10} className="px-3 py-2.5">
+    <TableRow>
+      <TableCell colSpan={10} className="px-3 py-2.5">
         <div className="flex items-center justify-between gap-4">
           <div className="h-3.5 bg-slate-200 rounded w-16 animate-pulse"></div>
           <div className="h-3.5 bg-slate-200 rounded w-48 animate-pulse"></div>
@@ -224,8 +238,8 @@ function SkeletonRow() {
           <div className="h-5 w-5 bg-slate-200 rounded-full animate-pulse"></div>
           <div className="h-5 w-10 bg-slate-200 rounded animate-pulse"></div>
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   )
 }
 
@@ -433,7 +447,7 @@ export default function MovimientosCaja() {
 
           <button
             onClick={handleNuevoGasto}
-            className="bg-[#0369A1] hover:bg-[#0284C7] text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 justify-center shadow-xs active:scale-[0.98] flex-1 sm:flex-none"
+            className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 justify-center shadow-xs active:scale-[0.98] flex-1 sm:flex-none"
           >
             <Plus className="h-4 w-4" />
             Nuevo Movimiento
@@ -451,7 +465,7 @@ export default function MovimientosCaja() {
               placeholder="Buscar por descripción, proveedor, solicitante..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1] focus:ring-1 focus:ring-[#0369A1] text-slate-900"
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-md focus:outline-none focus:border-primary focus:ring-1 focus:ring-ring text-slate-900"
             />
           </div>
 
@@ -461,7 +475,7 @@ export default function MovimientosCaja() {
               <select
                 value={filtroTipo}
                 onChange={(e) => setFiltroTipo(e.target.value as FiltroTipo)}
-                className="w-full sm:w-auto px-2.5 py-1.5 bg-white text-xs border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1]"
+                className="w-full sm:w-auto px-2.5 py-1.5 bg-white text-xs border border-slate-300 rounded-md focus:outline-none focus:border-primary"
               >
                 <option value="TODOS">Todos los Tipos</option>
                 <option value="ENTRADA">Entradas</option>
@@ -473,7 +487,7 @@ export default function MovimientosCaja() {
               <select
                 value={filtroEstado}
                 onChange={(e) => setFiltroEstado(e.target.value as FiltroEstado)}
-                className="w-full sm:w-auto px-2.5 py-1.5 bg-white text-xs border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1]"
+                className="w-full sm:w-auto px-2.5 py-1.5 bg-white text-xs border border-slate-300 rounded-md focus:outline-none focus:border-primary"
               >
                 <option value="TODOS">Todos los Estados</option>
                 <option value="VERIFICADO">Verificados</option>
@@ -486,12 +500,12 @@ export default function MovimientosCaja() {
               <select
                 value={modoFiltro}
                 onChange={(e) => setModoFiltro(e.target.value as ModoFiltroCaja)}
-                className="w-full sm:w-auto px-2.5 py-1.5 bg-white text-xs font-bold text-slate-800 border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1]"
+                className="w-full sm:w-auto px-2.5 py-1.5 bg-white text-xs font-bold text-slate-800 border border-slate-300 rounded-md focus:outline-none focus:border-primary"
               >
-                <option value="CICLO_ACTIVO">⚡ Ciclo Activo (Sin corte)</option>
-                <option value="TODOS">📋 Todos los Movimientos</option>
-                <option value="PERIODO">📅 Filtrar por Mes Calendario</option>
-                <option value="CORTE">🔖 Filtrar por Corte Realizado</option>
+                <option value="CICLO_ACTIVO">Ciclo activo (sin corte)</option>
+                <option value="TODOS">Todos los movimientos</option>
+                <option value="PERIODO">Filtrar por mes calendario</option>
+                <option value="CORTE">Filtrar por corte realizado</option>
               </select>
             </div>
 
@@ -500,7 +514,7 @@ export default function MovimientosCaja() {
                 type="month"
                 value={periodoSel}
                 onChange={(e) => setPeriodoSel(e.target.value)}
-                className="w-full sm:w-auto px-2.5 py-1.5 bg-white text-xs border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1] font-mono"
+                className="w-full sm:w-auto px-2.5 py-1.5 bg-white text-xs border border-slate-300 rounded-md focus:outline-none focus:border-primary font-mono"
               />
             )}
 
@@ -508,7 +522,7 @@ export default function MovimientosCaja() {
               <select
                 value={corteIdSel}
                 onChange={(e) => setCorteIdSel(e.target.value)}
-                className="w-full sm:w-auto px-2.5 py-1.5 bg-white text-xs border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1] font-mono"
+                className="w-full sm:w-auto px-2.5 py-1.5 bg-white text-xs border border-slate-300 rounded-md focus:outline-none focus:border-primary font-mono"
               >
                 {cortesHistorial.length === 0 ? (
                   <option value="">Sin cortes realizados</option>
@@ -533,23 +547,24 @@ export default function MovimientosCaja() {
       )}
 
       {/* Tabla Utilitaria para Escritorio */}
-      <div className="hidden md:block bg-white border border-slate-200 rounded-xl overflow-x-auto shadow-xs">
-        <table className="w-full text-xs text-left whitespace-nowrap">
-          <thead className="bg-slate-50 text-slate-600 font-mono text-[11px] uppercase tracking-wider border-b border-slate-200">
-            <tr>
-              <th className="px-3 py-2.5">Fecha</th>
-              <th className="px-3 py-2.5">Descripción</th>
-              <th className="px-3 py-2.5">Proveedor</th>
-              <th className="px-3 py-2.5">Categoría</th>
-              <th className="px-3 py-2.5">Solicitante</th>
-              <th className="px-3 py-2.5">Comprobante</th>
-              <th className="px-3 py-2.5 text-right">Entrada</th>
-              <th className="px-3 py-2.5 text-right">Salida</th>
-              <th className="px-3 py-2.5 text-center">Verif.</th>
-              <th className="px-3 py-2.5 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
+      <div className="hidden md:block">
+        <ModuleSurface>
+        <Table className="text-xs text-left">
+          <TableHeader className="bg-slate-50 text-slate-600 font-mono text-[11px] uppercase tracking-wider border-b border-slate-200">
+            <TableRow>
+              <TableHead className="px-3 py-2.5">Fecha</TableHead>
+              <TableHead className="px-3 py-2.5">Descripción</TableHead>
+              <TableHead className="px-3 py-2.5">Proveedor</TableHead>
+              <TableHead className="px-3 py-2.5">Categoría</TableHead>
+              <TableHead className="px-3 py-2.5">Solicitante</TableHead>
+              <TableHead className="px-3 py-2.5">Comprobante</TableHead>
+              <TableHead className="px-3 py-2.5 text-right">Entrada</TableHead>
+              <TableHead className="px-3 py-2.5 text-right">Salida</TableHead>
+              <TableHead className="px-3 py-2.5 text-center">Verif.</TableHead>
+              <TableHead className="px-3 py-2.5 text-right">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="divide-y divide-slate-100">
             {loading ? (
               <>
                 <SkeletonRow />
@@ -557,11 +572,11 @@ export default function MovimientosCaja() {
                 <SkeletonRow />
               </>
             ) : filtrados.length === 0 ? (
-              <tr>
-                <td colSpan={10} className="px-4 py-8 text-center text-slate-500 font-mono text-xs">
+              <TableRow>
+                <TableCell colSpan={10} className="px-4 py-8 text-center text-slate-500 font-mono text-xs">
                   Sin movimientos registrados para la vista seleccionada.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               filtrados.map((m) => (
                 <MovimientoRow
@@ -573,8 +588,9 @@ export default function MovimientosCaja() {
                 />
               ))
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
+        </ModuleSurface>
       </div>
 
       {/* Vista Móvil / Tarjetas Compactas */}
@@ -602,19 +618,19 @@ export default function MovimientosCaja() {
         )}
       </div>
 
-      {/* Modal Realizar Corte de Caja */}
-      {modalCorteOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200 space-y-4">
-            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-              <div className="p-2.5 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200">
+      <Dialog open={modalCorteOpen} onOpenChange={(open) => !open && setModalCorteOpen(false)}>
+        <DialogContent className="max-w-md gap-4 sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2.5 text-emerald-700">
                 <Scissors className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Realizar Corte de Caja Chica</h3>
-                <p className="text-xs text-slate-500">Cierre de ciclo activo y solicitud de reembolso</p>
+                <DialogTitle>Realizar corte de caja chica</DialogTitle>
+                <DialogDescription>Cierre de ciclo activo y solicitud de reembolso</DialogDescription>
               </div>
             </div>
+          </DialogHeader>
 
             <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-2 text-xs font-mono">
               <div className="flex justify-between">
@@ -656,71 +672,66 @@ export default function MovimientosCaja() {
                 onChange={(e) => setNotaCorte(e.target.value)}
                 placeholder="Ej. Se reciben $7,221 por viáticos de Brownsville pendientes de entregar..."
                 rows={2}
-                className="w-full text-xs p-2.5 border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1]"
+                className="w-full rounded-md border border-input p-2.5 text-xs focus:border-primary focus:outline-none"
               />
             </div>
 
-            <div className="flex gap-2 justify-end pt-2">
-              <button
+            <DialogFooter>
+              <Button
+                variant="outline"
                 onClick={() => setModalCorteOpen(false)}
                 disabled={haciendoCorte}
-                className="px-3.5 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
               >
                 Cancelar
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleConfirmarCorte}
                 disabled={haciendoCorte}
-                className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+                className="bg-emerald-600 text-white hover:bg-emerald-700"
               >
                 {haciendoCorte ? (
                   <>
-                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                    Procesando Corte...
+                    <RefreshCw className="animate-spin" data-icon="inline-start" />
+                    Procesando corte...
                   </>
                 ) : (
                   <>
-                    <Scissors className="h-3.5 w-3.5" />
-                    Confirmar Corte
+                    <Scissors data-icon="inline-start" />
+                    Confirmar corte
                   </>
                 )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* Modal de Confirmación de Borrado */}
-      {movimientoABorrar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-5 border border-slate-200">
-            <div className="flex items-center gap-2.5 text-rose-600 mb-3">
-              <AlertTriangle className="h-5 w-5" />
-              <h3 className="text-sm font-bold text-slate-900">Confirmar Eliminación</h3>
-            </div>
-            <p className="text-slate-600 text-xs mb-5">
+      <Dialog open={movimientoABorrar != null} onOpenChange={(open) => !open && setMovimientoABorrar(null)}>
+        <DialogContent className="max-w-sm sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2.5">
+              <AlertTriangle className="h-5 w-5 text-rose-600" />
+              Confirmar eliminación
+            </DialogTitle>
+            <DialogDescription>
               ¿Eliminar el movimiento{' '}
-              <span className="font-bold text-slate-900">&ldquo;{movimientoABorrar.descripcion}&rdquo;</span>{' '}
+              <span className="font-bold text-foreground">&ldquo;{movimientoABorrar?.descripcion}&rdquo;</span>{' '}
               por{' '}
-              <span className="font-mono font-bold text-slate-900">{formatearDinero(movimientoABorrar.monto)}</span>?
-            </p>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setMovimientoABorrar(null)}
-                className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleEliminar}
-                className="px-3 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-md"
-              >
-                Sí, Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <span className="font-mono font-bold text-foreground">
+                {movimientoABorrar ? formatearDinero(movimientoABorrar.monto) : ''}
+              </span>
+              ?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMovimientoABorrar(null)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleEliminar}>
+              Sí, eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal Crear / Editar */}
       {modalOpen && (

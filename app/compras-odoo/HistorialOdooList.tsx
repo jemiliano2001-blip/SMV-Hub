@@ -14,6 +14,14 @@ import {
 } from 'lucide-react'
 import type { RegistroCotizacionOdoo } from '@/lib/schemas'
 import { listarCotizacionesOdoo } from '@/lib/compras-odoo-cotizaciones'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 export default function HistorialOdooList() {
   const [registros, setRegistros] = useState<RegistroCotizacionOdoo[]>([])
@@ -88,7 +96,7 @@ export default function HistorialOdooList() {
         <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Cotizaciones Enviadas</span>
-            <Layers className="h-4 w-4 text-blue-600" />
+            <Layers className="h-4 w-4 text-primary" />
           </div>
           <p className="text-xl font-bold text-slate-900 mt-1 font-mono tabular-nums">{stats.total}</p>
         </div>
@@ -125,7 +133,7 @@ export default function HistorialOdooList() {
             placeholder="Buscar por folio (P00XXX), proveedor, ref..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 pl-8 pr-3 py-1.5 text-xs text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
+            className="w-full rounded-lg border border-slate-300 pl-8 pr-3 py-1.5 text-xs text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-ring/20 focus:outline-none transition-all"
           />
         </div>
 
@@ -143,7 +151,7 @@ export default function HistorialOdooList() {
       <div className="rounded-xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
         {cargando ? (
           <div className="py-12 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
-            <RefreshCw className="h-4 w-4 animate-spin text-blue-600" />
+            <RefreshCw className="h-4 w-4 animate-spin text-primary" />
             Cargando historial de cotizaciones Odoo...
           </div>
         ) : filtrados.length === 0 ? (
@@ -156,26 +164,26 @@ export default function HistorialOdooList() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-slate-100/90 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200">
-                <tr>
-                  <th className="py-2.5 px-3 w-8"></th>
-                  <th className="py-2.5 px-3">Folio Odoo</th>
-                  <th className="py-2.5 px-3">Proveedor</th>
-                  <th className="py-2.5 px-3">Ref. Cotización</th>
-                  <th className="py-2.5 px-3 text-center">Partidas</th>
-                  <th className="py-2.5 px-3 text-right">Total</th>
-                  <th className="py-2.5 px-3">Creado Por</th>
-                  <th className="py-2.5 px-3">Fecha</th>
-                  <th className="py-2.5 px-3 text-center w-28">Acción</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
+            <Table className="w-full text-left text-xs border-collapse">
+              <TableHeader className="bg-slate-100/90 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200">
+                <TableRow>
+                  <TableHead className="py-2.5 px-3 w-8"></TableHead>
+                  <TableHead className="py-2.5 px-3">Folio Odoo</TableHead>
+                  <TableHead className="py-2.5 px-3">Proveedor</TableHead>
+                  <TableHead className="py-2.5 px-3">Ref. Cotización</TableHead>
+                  <TableHead className="py-2.5 px-3 text-center">Partidas</TableHead>
+                  <TableHead className="py-2.5 px-3 text-right">Total</TableHead>
+                  <TableHead className="py-2.5 px-3">Creado Por</TableHead>
+                  <TableHead className="py-2.5 px-3">Fecha</TableHead>
+                  <TableHead className="py-2.5 px-3 text-center w-28">Acción</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-slate-100">
                 {filtrados.map((r) => {
                   const estaExpandido = expandidoId === r.id
                   return (
-                    <tr key={r.id} className="group hover:bg-slate-50/70 transition-colors">
-                      <td colSpan={9} className="p-0">
+                    <TableRow key={r.id} className="group hover:bg-slate-50/70 transition-colors">
+                      <TableCell colSpan={9} className="p-0">
                         <div className="flex flex-col">
                           {/* Fila Principal */}
                           <div className="flex items-center w-full py-2.5 px-3 border-b border-slate-100 last:border-0">
@@ -229,7 +237,7 @@ export default function HistorialOdooList() {
                                   href={`https://system.maquinadosvazquez.com/web#id=${r.odooId}&model=purchase.order&view_type=form`}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="inline-flex items-center gap-1 rounded bg-slate-100 border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-colors"
+                                  className="inline-flex items-center gap-1 rounded bg-slate-100 border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-blue-50 hover:text-primary hover:border-blue-200 transition-colors"
                                 >
                                   <ExternalLink className="h-3 w-3" />
                                   Odoo ERP
@@ -249,58 +257,60 @@ export default function HistorialOdooList() {
                               </div>
 
                               <div className="rounded-lg border border-slate-200 bg-white overflow-hidden shadow-2xs">
-                                <table className="w-full text-left text-xs border-collapse">
-                                  <thead className="bg-slate-100/80 text-[10px] font-bold text-slate-600 uppercase border-b border-slate-200">
-                                    <tr>
-                                      <th className="py-1.5 px-2.5 w-8 text-center">#</th>
-                                      <th className="py-1.5 px-2.5 w-24">Clave</th>
-                                      <th className="py-1.5 px-2.5">Descripción</th>
-                                      <th className="py-1.5 px-2.5 w-24">Requisitor</th>
-                                      <th className="py-1.5 px-2.5 w-20">Empresa</th>
-                                      <th className="py-1.5 px-2.5 w-20">Uso</th>
-                                      <th className="py-1.5 px-2.5 w-16 text-right">Cant.</th>
-                                      <th className="py-1.5 px-2.5 w-20 text-right">P. Unit.</th>
-                                      <th className="py-1.5 px-2.5 w-24 text-right">Subtotal</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-slate-100 text-[11px]">
+                                <Table className="w-full text-left text-xs border-collapse">
+                                  <TableHeader className="bg-slate-100/80 text-[10px] font-bold text-slate-600 uppercase border-b border-slate-200">
+                                    <TableRow>
+                                      <TableHead className="py-1.5 px-2.5 w-8 text-center">#</TableHead>
+                                      <TableHead className="py-1.5 px-2.5 w-24">Clave</TableHead>
+                                      <TableHead className="py-1.5 px-2.5">Descripción</TableHead>
+                                      <TableHead className="py-1.5 px-2.5 w-24">Requisitor</TableHead>
+                                      <TableHead className="py-1.5 px-2.5 w-20">Empresa</TableHead>
+                                      <TableHead className="py-1.5 px-2.5 w-24">OT / Uso</TableHead>
+                                      <TableHead className="py-1.5 px-2.5 w-16 text-right">Cant.</TableHead>
+                                      <TableHead className="py-1.5 px-2.5 w-20 text-right">P. Unit.</TableHead>
+                                      <TableHead className="py-1.5 px-2.5 w-24 text-right">Subtotal</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody className="divide-y divide-slate-100 text-[11px]">
                                     {r.partidas.map((p, idx) => (
-                                      <tr key={p.id || idx} className="hover:bg-slate-50/50">
-                                        <td className="py-1.5 px-2.5 text-center text-slate-400 font-mono">
+                                      <TableRow key={p.id || idx} className="hover:bg-slate-50/50">
+                                        <TableCell className="py-1.5 px-2.5 text-center text-slate-400 font-mono">
                                           {p.partida || idx + 1}
-                                        </td>
-                                        <td className="py-1.5 px-2.5 font-mono text-slate-600">
+                                        </TableCell>
+                                        <TableCell className="py-1.5 px-2.5 font-mono text-slate-600">
                                           {p.clave || '—'}
-                                        </td>
-                                        <td className="py-1.5 px-2.5 font-medium text-slate-900">
+                                        </TableCell>
+                                        <TableCell className="py-1.5 px-2.5 font-medium text-slate-900">
                                           {p.descripcion}
-                                        </td>
-                                        <td className="py-1.5 px-2.5 text-slate-600">{p.requisitor || '—'}</td>
-                                        <td className="py-1.5 px-2.5 text-slate-600">{p.empresa || '—'}</td>
-                                        <td className="py-1.5 px-2.5 text-slate-600">{p.uso || '—'}</td>
-                                        <td className="py-1.5 px-2.5 text-right font-mono font-semibold text-slate-800 tabular-nums">
+                                        </TableCell>
+                                        <TableCell className="py-1.5 px-2.5 text-slate-600">{p.requisitor || '—'}</TableCell>
+                                        <TableCell className="py-1.5 px-2.5 text-slate-600">{p.empresa || '—'}</TableCell>
+                                        <TableCell className="py-1.5 px-2.5 text-slate-600 font-mono text-[10px]">
+                                          {p.ordenTrabajo || p.uso || '—'}
+                                        </TableCell>
+                                        <TableCell className="py-1.5 px-2.5 text-right font-mono font-semibold text-slate-800 tabular-nums">
                                           {p.cantidad} {p.udm}
-                                        </td>
-                                        <td className="py-1.5 px-2.5 text-right font-mono text-slate-700 tabular-nums">
+                                        </TableCell>
+                                        <TableCell className="py-1.5 px-2.5 text-right font-mono text-slate-700 tabular-nums">
                                           ${p.precioUnitario.toFixed(2)}
-                                        </td>
-                                        <td className="py-1.5 px-2.5 text-right font-mono font-bold text-slate-900 tabular-nums">
+                                        </TableCell>
+                                        <TableCell className="py-1.5 px-2.5 text-right font-mono font-bold text-slate-900 tabular-nums">
                                           ${p.subtotal.toFixed(2)}
-                                        </td>
-                                      </tr>
+                                        </TableCell>
+                                      </TableRow>
                                     ))}
-                                  </tbody>
-                                </table>
+                                  </TableBody>
+                                </Table>
                               </div>
                             </div>
                           )}
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   )
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>

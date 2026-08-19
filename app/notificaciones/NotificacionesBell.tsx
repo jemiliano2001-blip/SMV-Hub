@@ -95,7 +95,7 @@ export default function NotificacionesBell() {
         aria-label={noLeidas > 0 ? `Notificaciones (${noLeidas} sin leer)` : 'Notificaciones'}
         aria-expanded={abierto}
         onClick={() => setAbierto((v) => !v)}
-        className="relative flex items-center justify-center rounded-md p-2 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0369A1]"
+        className="relative flex items-center justify-center rounded-md p-2 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Bell className="h-4 w-4" />
         {noLeidas > 0 && (
@@ -116,7 +116,7 @@ export default function NotificacionesBell() {
                 type="button"
                 disabled={marcandoTodas}
                 onClick={() => void onMarcarTodas()}
-                className="text-[10px] font-bold text-[#0369A1] hover:underline disabled:opacity-50"
+                className="text-[10px] font-bold text-primary hover:underline disabled:opacity-50"
               >
                 {marcandoTodas ? 'Marcando…' : `Marcar todas (${noLeidas})`}
               </button>
@@ -150,7 +150,7 @@ export default function NotificacionesBell() {
               >
                 <div className="flex items-start gap-2">
                   {!n.leida && (
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0369A1]" />
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-semibold text-slate-900 truncate">{n.titulo}</p>
@@ -167,7 +167,7 @@ export default function NotificacionesBell() {
           <Link
             href="/notificaciones"
             onClick={() => setAbierto(false)}
-            className="block px-3 py-2.5 text-center text-xs font-bold text-[#0369A1] hover:bg-sky-50 border-t border-slate-100"
+            className="block px-3 py-2.5 text-center text-xs font-bold text-primary hover:bg-sky-50 border-t border-slate-100"
           >
             Ver todas
           </Link>

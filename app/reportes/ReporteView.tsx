@@ -79,21 +79,21 @@ export default function ReporteView() {
 
   if (cargando) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="h-6 w-6 animate-spin text-blue-500 mr-2" />
-        <span className="text-sm text-gray-600">Cargando órdenes…</span>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="mr-2 size-6 animate-spin text-primary" />
+        <span className="text-sm text-muted-foreground">Cargando órdenes…</span>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
-        <AlertCircle className="h-8 w-8 text-red-500" />
-        <p className="text-sm text-gray-700">{error}</p>
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 bg-background">
+        <AlertCircle className="size-8 text-destructive" />
+        <p className="text-sm text-foreground">{error}</p>
         <button
           onClick={cargar}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           Reintentar
         </button>
@@ -107,7 +107,7 @@ export default function ReporteView() {
 
         {/* Navegación (Oculto al imprimir) */}
         <div className="mb-6 no-print flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
-          <Link href="/" className="text-xs font-bold text-[#0369A1] hover:underline flex items-center gap-1">
+          <Link href="/" className="flex items-center gap-1 text-xs font-bold text-primary hover:underline">
             ← Volver al Inicio
           </Link>
 

@@ -110,6 +110,15 @@ export async function autenticarOdoo(cred: CredencialesOdoo): Promise<number> {
   return uid
 }
 
+export interface OrdenTrabajoOdoo {
+  id: number
+  name: string
+  clientOrderRef: string | null
+  partnerId: number | null
+  partnerName: string
+  state: string
+}
+
 export async function buscarProveedoresOdoo(
   termino: string,
   limite = 20
@@ -141,6 +150,116 @@ export async function buscarProveedoresOdoo(
   )
 
   return partners || []
+}
+
+export async function buscarOrdenesTrabajoOdoo(
+  termino = "",
+  limite = 50
+): Promise<OrdenTrabajoOdoo[]> {
+  const cred = obtenerCredencialesOdoo()
+  const uid = await autenticarOdoo(cred)
+
+  const terminoLimpio = termino.trim()
+  const domain: unknown[] = []
+
+  if (terminoLimpio) {
+    domain.push(
+      "|",
+      "|",
+      ["name", "ilike", terminoLimpio],
+      ["client_order_ref", "ilike", terminoLimpio],
+      ["partner_id", "ilike", terminoLimpio]
+    )
+  }
+
+  const sos = await llamarOdooRpc<
+    Array<{
+      id: number
+      name: string
+      client_order_ref: string | false
+      partner_id: [number, string] | false
+      state: string
+    }>
+  >(
+    cred.url,
+    "object",
+    "execute_kw",
+    [
+      cred.dbName,
+      uid,
+      cred.apiKey,
+      "sale.order",
+      "search_read",
+      [domain],
+      {
+        fields: ["id", "name", "client_order_ref", "partner_id", "state"],
+        limit: Math.min(limite, 100),
+        order: "id desc",
+      },
+    ]
+  )
+
+  return (sos || []).map((so) => ({
+    id: so.id,
+    name: so.name,
+    clientOrderRef: so.client_order_ref || null,
+    partnerId: Array.isArray(so.partner_id) ? so.partner_id[0] : null,
+    partnerName: Array.isArray(so.partner_id) ? so.partner_id[1] : "",
+    state: so.state,
+  }))
+}
+
+async function resolverOrdenesTrabajoIds(
+  cred: CredencialesOdoo,
+  uid: number,
+  codigosOT: string[]
+): Promise<Map<string, number>> {
+  const mapa = new Map<string, number>()
+  const codigosValidos = Array.from(
+    new Set(codigosOT.map((c) => c.trim()).filter((c) => c.length >= 3))
+  )
+  if (codigosValidos.length === 0) return mapa
+
+  const domains = codigosValidos.map((codigo) => ["name", "ilike", codigo])
+
+  let domain: unknown[] = []
+  if (domains.length === 1) {
+    domain = [domains[0]]
+  } else {
+    for (let i = 0; i < domains.length - 1; i++) {
+      domain.push("|")
+    }
+    domain.push(...domains)
+  }
+
+  try {
+    const sos = await llamarOdooRpc<Array<{ id: number; name: string }>>(
+      cred.url,
+      "object",
+      "execute_kw",
+      [
+        cred.dbName,
+        uid,
+        cred.apiKey,
+        "sale.order",
+        "search_read",
+        [domain],
+        { fields: ["id", "name"], limit: 50 },
+      ]
+    )
+
+    for (const so of sos || []) {
+      mapa.set(so.name.toLowerCase(), so.id)
+      const partes = so.name.split("/")
+      if (partes.length > 1) {
+        mapa.set(partes[partes.length - 1].toLowerCase(), so.id)
+      }
+    }
+  } catch (err) {
+    console.warn("No se pudieron resolver IDs de sale.order:", err)
+  }
+
+  return mapa
 }
 
 /**
@@ -354,19 +473,46 @@ export async function crearCotizacionEnOdoo(
   }
 
   // 3. Armar las líneas de la orden
+  // Recolectar códigos de OT que no vengan con ID numérico explícito
+  const codigosParaResolver: string[] = []
+  for (const item of payload.partidas) {
+    const otId = item.ordenTrabajoId || payload.ordenTrabajoGeneralId
+    if (!otId) {
+      const textoOt = (
+        item.ordenTrabajo ||
+        item.uso ||
+        payload.ordenTrabajoGeneral ||
+        payload.usoGeneral ||
+        ""
+      ).trim()
+      if (
+        textoOt &&
+        !/^(stock|general|taller|mantenimiento|herramientas|oficina|limpieza)$/i.test(textoOt)
+      ) {
+        codigosParaResolver.push(textoOt)
+      }
+    }
+  }
+
+  const mapaOTs = await resolverOrdenesTrabajoIds(cred, uid, codigosParaResolver)
+
   const orderLines = payload.partidas.map((item) => {
     const prefijoClave = item.clave ? `[${item.clave.trim()}] ` : ""
     const requisitor = item.requisitor || payload.requisitorGeneral
     const empresa = item.empresa || payload.empresaGeneral
     const uso = item.uso || payload.usoGeneral
+    const ordenTrabajo = item.ordenTrabajo || payload.ordenTrabajoGeneral || uso
 
-    let descripcion = `${prefijoClave}${item.descripcion}`
-    const metaParts: string[] = []
-    if (requisitor) metaParts.push(`Req: ${requisitor}`)
-    if (empresa) metaParts.push(`Emp: ${empresa}`)
-    if (uso) metaParts.push(`Uso: ${uso}`)
-    if (metaParts.length > 0) {
-      descripcion += ` (${metaParts.join(" | ")})`
+    const descripcion = `${prefijoClave}${item.descripcion}`
+
+    let otId = item.ordenTrabajoId || payload.ordenTrabajoGeneralId || null
+    if (!otId && ordenTrabajo) {
+      const limpio = ordenTrabajo.trim().toLowerCase()
+      otId = mapaOTs.get(limpio) || null
+      if (!otId && limpio.includes("/")) {
+        const partes = limpio.split("/")
+        otId = mapaOTs.get(partes[partes.length - 1].toLowerCase()) || null
+      }
     }
 
     const lineValues: Record<string, unknown> = {
@@ -374,6 +520,13 @@ export async function crearCotizacionEnOdoo(
       name: descripcion,
       product_qty: item.cantidad,
       price_unit: item.precioUnitario,
+      requisitor: requisitor ? requisitor.trim() : false,
+      company_name: empresa ? empresa.trim() : false,
+      use: (uso || ordenTrabajo || "").trim() || false,
+    }
+
+    if (otId) {
+      lineValues.sale_orders_ids = [[6, 0, [otId]]]
     }
 
     const taxId = cacheImpuestos.get(item.tasaIva ?? 0)

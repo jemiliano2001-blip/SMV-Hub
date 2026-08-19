@@ -51,7 +51,7 @@ export function GraficaFlujoCaja({ resumen, moneda }: GraficaFlujoCajaProps) {
           <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500">Balance Neto Proyectado</p>
           <p
             className={`text-xl sm:text-2xl font-bold font-mono tabular-nums ${
-              balanceNetoProyectado >= 0 ? "text-[#0369A1]" : "text-amber-700"
+              balanceNetoProyectado >= 0 ? "text-primary" : "text-amber-700"
             }`}
           >
             {formatPrecio(balanceNetoProyectado, moneda)}
@@ -91,8 +91,8 @@ export function GraficaFlujoCaja({ resumen, moneda }: GraficaFlujoCajaProps) {
             <span className="flex items-center gap-1.5 text-rose-700 font-medium">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" /> Egresos (AP)
             </span>
-            <span className="flex items-center gap-1.5 text-[#0369A1] font-medium">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#0369A1] inline-block" /> Neto Acumulado
+            <span className="flex items-center gap-1.5 text-primary font-medium">
+              <span className="w-2.5 h-2.5 rounded-full bg-primary inline-block" /> Neto Acumulado
             </span>
           </div>
         </div>
@@ -120,7 +120,7 @@ export function GraficaFlujoCaja({ resumen, moneda }: GraficaFlujoCajaProps) {
                         {formatPrecio(p.netoSemanal, moneda)}
                       </span>{" "}
                       | Acum:{" "}
-                      <span className={`font-bold ${p.netoAcumulado >= 0 ? "text-[#0369A1]" : "text-amber-700"}`}>
+                      <span className={`font-bold ${p.netoAcumulado >= 0 ? "text-primary" : "text-amber-700"}`}>
                         {formatPrecio(p.netoAcumulado, moneda)}
                       </span>
                     </span>

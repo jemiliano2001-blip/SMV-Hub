@@ -48,6 +48,13 @@ operaciones privilegiadas. `/usuarios` exige super-administración;
 | 7 | Proveedores | Catálogo USA Tooling, inteligencia cruzada, landed price y compras Odoo |
 | 8 | Pedidos de almacén | Captura móvil y seguimiento con permiso Firestore independiente |
 | 9 | Feedback de producción | CI selectivo, Playwright/axe y E2E compra → orden → reporte en Firebase dev |
+| 10 | Flujo Integral de Abastecimiento | Cascada de recepción Admin SDK, trazabilidad de 3 pasos, bandeja de pendientes y tabs de almacén |
+
+## Decisiones y deuda registrada (Flujo de Abastecimiento v1)
+
+1. `RequisicionSchema` almacena `solicitante` como nombre (string), no como UID de Firebase Auth. Por ende, las notificaciones in-app de recepción en requisiciones se dirigen a la audiencia general `requisiciones` (`destinatarioUid: null`). Agregar `solicitanteUid` requerirá migración de históricos.
+2. `estadoRecepcion: "parcial"` permanece reservado en el schema para compatibilidad futura, sin interfaz de usuario ni escritor en v1 (recepciones atómicas completas).
+3. La vinculación de pedidos de endmills conserva a `lib/endmills.ts:registrarRecepcionPedidoEndmills` como el único dueño de `stockActual`. La cascada general de compras no modifica inventario de endmills.
 
 ## Funcionalidad retirada
 

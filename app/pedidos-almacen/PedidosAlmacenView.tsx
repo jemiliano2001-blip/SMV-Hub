@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Camera, Loader2, Send, ShoppingCart, X } from 'lucide-react'
+import { Camera, ExternalLink, Loader2, Send, ShoppingCart, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
@@ -165,7 +165,7 @@ export default function PedidosAlmacenView() {
               className={[
                 'font-mono text-[10px] font-bold uppercase',
                 pedido.estado === 'pendiente'
-                  ? 'bg-sky-50 text-[#0369A1] border-sky-200'
+                  ? 'bg-sky-50 text-primary border-sky-200'
                   : pedido.estado === 'comprado'
                   ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
                   : 'bg-slate-100 text-slate-600 border-slate-200',
@@ -177,11 +177,22 @@ export default function PedidosAlmacenView() {
           <p className="mt-1 text-xs text-slate-500 font-mono">
             {pedido.solicitadoPorNombre} · {formatFechaHoraCorta(pedido.creadoEn)}
           </p>
+          {pedido.ordenIdVinculada && (
+            <div className="mt-2">
+              <Link
+                href="/ordenes"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:text-sky-700 hover:underline bg-sky-50 px-2 py-0.5 rounded border border-sky-200"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Ver Orden de Compra vinculada
+              </Link>
+            </div>
+          )}
           {puedeGestionar && pedido.estado === 'pendiente' && (
             <div className="mt-2.5 flex flex-wrap gap-2">
               <Link
                 href={`/nueva-compra?pedidoId=${pedido.id}&descripcion=${encodeURIComponent(pedido.descripcion)}`}
-                className="inline-flex items-center gap-1 rounded-xl bg-[#0369A1] hover:bg-[#0284C7] active:scale-98 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition-all"
+                className="inline-flex items-center gap-1 rounded-xl bg-primary hover:bg-primary/90 active:scale-98 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition-all"
               >
                 <ShoppingCart className="h-3.5 w-3.5" />
                 Comprar ahora
@@ -222,7 +233,7 @@ export default function PedidosAlmacenView() {
           placeholder="¿Qué necesitas que se compre? Ej. 5 brocas de 3/8"
           value={descripcion}
           onChange={(e) => setDescripcion(e.target.value)}
-          className="w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
 
         <div className="flex flex-wrap items-center gap-2">
@@ -233,8 +244,8 @@ export default function PedidosAlmacenView() {
               onClick={() => setUrgente(opcion === 'urgente')}
               className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                 urgente === (opcion === 'urgente')
-                  ? 'border-[#0369A1] bg-[#0369A1] text-white'
-                  : 'border-gray-200 bg-white text-gray-700 hover:border-[#0369A1]/50'
+                  ? 'border-primary bg-primary text-white'
+                  : 'border-gray-200 bg-white text-gray-700 hover:border-primary/50'
               }`}
             >
               {opcion === 'urgente' ? 'Urgente' : 'Normal'}
@@ -265,7 +276,7 @@ export default function PedidosAlmacenView() {
             <button
               type="button"
               onClick={() => setIsCamaraOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:border-[#0369A1]/50 hover:bg-sky-50/50"
+              className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:border-primary/50 hover:bg-sky-50/50"
             >
               <Camera className="h-4 w-4" />
               Foto (opcional)
@@ -275,7 +286,7 @@ export default function PedidosAlmacenView() {
           <button
             type="submit"
             disabled={enviando || !descripcion.trim()}
-            className="ml-auto inline-flex items-center gap-2 rounded-md bg-[#0369A1] px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#0284C7] disabled:opacity-50"
+            className="ml-auto inline-flex items-center gap-2 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
           >
             {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             Enviar pedido

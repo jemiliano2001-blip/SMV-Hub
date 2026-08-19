@@ -5,6 +5,16 @@ import type { EntradaAlmacen } from '@/lib/schemas'
 import { fechaHoyLocal } from '@/lib/format'
 import { Plus, Trash2, Search } from 'lucide-react'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
+import { Button } from '@/components/ui/button'
+import ModuleSurface from '@/components/layout/ModuleSurface'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 type EstatusEntrada = EntradaAlmacen['estatus']
 
@@ -164,7 +174,7 @@ export default function EntradasList() {
             placeholder="Buscar por descripción o cargo..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0369A1]/20 focus:border-[#0369A1]"
+            className="w-full rounded-lg border border-input py-2 pl-9 pr-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
           />
         </div>
       </div>
@@ -178,7 +188,7 @@ export default function EntradasList() {
             required
             value={fecha}
             onChange={(e) => setFecha(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1]"
+            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
           />
         </div>
         <div className="flex-1 min-w-[200px]">
@@ -189,7 +199,7 @@ export default function EntradasList() {
             placeholder="Ej. Broca de centro #3"
             value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1]"
+            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
           />
         </div>
         <div className="w-24">
@@ -200,7 +210,7 @@ export default function EntradasList() {
             placeholder="Ej. 15 pza"
             value={cantidad}
             onChange={(e) => setCantidad(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1]"
+            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
           />
         </div>
         <div className="w-32">
@@ -210,7 +220,7 @@ export default function EntradasList() {
             required
             value={cargoA}
             onChange={(e) => setCargoA(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1]"
+            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
           />
         </div>
         <div className="w-32">
@@ -219,7 +229,7 @@ export default function EntradasList() {
             required
             value={recibio}
             onChange={(e) => setRecibio(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:border-[#0369A1]"
+            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:border-primary"
           >
             <option value="" disabled>Seleccionar...</option>
             {operadoresActivos.map((op) => (
@@ -232,78 +242,76 @@ export default function EntradasList() {
           <select
             value={estatus}
             onChange={(e) => setEstatus(e.target.value as EstatusEntrada)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:border-[#0369A1]"
+            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:border-primary"
           >
             <option value="pendiente">Pendiente</option>
             <option value="entregado">Entregado</option>
             <option value="devuelto">Devuelto</option>
           </select>
         </div>
-        <button
-          type="submit"
-          disabled={agregando}
-          className="bg-[#0369A1] hover:bg-[#0284C7] text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
-        >
-          <Plus className="h-4 w-4" />
+        <Button type="submit" disabled={agregando} size="sm">
+          <Plus />
           Registrar
-        </button>
+        </Button>
       </form>
 
       {/* Table (desktop) */}
-      <div className="hidden md:block overflow-x-auto border border-gray-200 rounded-lg">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
-            <tr>
-              <th className="px-4 py-3 w-28">Fecha</th>
-              <th className="px-4 py-3">Descripción</th>
-              <th className="px-4 py-3 w-24">Cantidad</th>
-              <th className="px-4 py-3 w-32">Cargo a</th>
-              <th className="px-4 py-3 w-32">Recibió</th>
-              <th className="px-4 py-3 w-28 text-center">Estatus</th>
-              <th className="px-4 py-3 w-16"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {filtradas.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
-                  {busqueda ? 'No se encontraron entradas' : 'No hay entradas registradas'}
-                </td>
-              </tr>
-            ) : (
-              filtradas.map((e) => (
-                <tr key={e.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 text-gray-500">{e.fecha}</td>
-                  <td className="px-4 py-2 font-medium text-gray-900">{e.descripcion}</td>
-                  <td className="px-4 py-2 text-gray-700">{e.cantidad}</td>
-                  <td className="px-4 py-2 text-gray-600">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${e.cargoA.toLowerCase() === 'stock' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-                      {e.cargoA}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2 text-gray-600">{e.recibio}</td>
-                  <td className="px-4 py-2 text-center">
-                    <button
-                      onClick={() => handleCycleEstatus(e.id, e.estatus)}
-                      title="Click para cambiar estatus"
-                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ring-1 ring-inset cursor-pointer hover:opacity-75 transition-opacity ${ESTATUS_BADGE[e.estatus]}`}
-                    >
-                      {e.estatus}
-                    </button>
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <button
-                      onClick={() => handleEliminar(e.id, e.descripcion)}
-                      className="text-gray-400 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="hidden md:block">
+        <ModuleSurface>
+          <Table>
+            <TableHeader className="bg-muted/50 text-muted-foreground">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="px-4 py-3 w-28">Fecha</TableHead>
+                <TableHead className="px-4 py-3">Descripción</TableHead>
+                <TableHead className="px-4 py-3 w-24">Cantidad</TableHead>
+                <TableHead className="px-4 py-3 w-32">Cargo a</TableHead>
+                <TableHead className="px-4 py-3 w-32">Recibió</TableHead>
+                <TableHead className="px-4 py-3 w-28 text-center">Estatus</TableHead>
+                <TableHead className="px-4 py-3 w-16" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtradas.length === 0 ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={7} className="px-4 py-8 text-center text-muted-foreground whitespace-normal">
+                    {busqueda ? 'No se encontraron entradas' : 'No hay entradas registradas'}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filtradas.map((e) => (
+                  <TableRow key={e.id}>
+                    <TableCell className="px-4 py-2 text-muted-foreground">{e.fecha}</TableCell>
+                    <TableCell className="px-4 py-2 font-medium text-foreground whitespace-normal">{e.descripcion}</TableCell>
+                    <TableCell className="px-4 py-2">{e.cantidad}</TableCell>
+                    <TableCell className="px-4 py-2">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${e.cargoA.toLowerCase() === 'stock' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+                        {e.cargoA}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-4 py-2 text-muted-foreground">{e.recibio}</TableCell>
+                    <TableCell className="px-4 py-2 text-center">
+                      <button
+                        onClick={() => handleCycleEstatus(e.id, e.estatus)}
+                        title="Click para cambiar estatus"
+                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ring-1 ring-inset cursor-pointer hover:opacity-75 transition-opacity ${ESTATUS_BADGE[e.estatus]}`}
+                      >
+                        {e.estatus}
+                      </button>
+                    </TableCell>
+                    <TableCell className="px-4 py-2 text-right">
+                      <button
+                        onClick={() => handleEliminar(e.id, e.descripcion)}
+                        className="text-muted-foreground hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </ModuleSurface>
       </div>
 
       {/* Cards (mobile) */}

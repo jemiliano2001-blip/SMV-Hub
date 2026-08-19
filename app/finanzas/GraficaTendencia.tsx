@@ -67,8 +67,8 @@ export default function GraficaTendencia({ serie, moneda }: { serie: PuntoMensua
         aria-label={`Tendencia de facturación mensual en ${moneda}`}
         onMouseLeave={() => setHover(null)}
       >
-        <path d={areaPath} fill="#0369A1" opacity={0.08} />
-        <path d={path} fill="none" stroke="#0369A1" strokeWidth={2} strokeLinejoin="round" />
+        <path d={areaPath} fill="var(--primary)" opacity={0.08} />
+        <path d={path} fill="none" stroke="var(--primary)" strokeWidth={2} strokeLinejoin="round" />
         {puntos.map((p, i) => (
           <g key={p.mes}>
             {/* zona de hover ancha e invisible por punto */}
@@ -84,8 +84,8 @@ export default function GraficaTendencia({ serie, moneda }: { serie: PuntoMensua
               cx={p.x}
               cy={p.y}
               r={hover === i ? 5 : 3}
-              fill={hover === i ? "#0369A1" : "#fff"}
-              stroke="#0369A1"
+              fill={hover === i ? "var(--primary)" : "#fff"}
+              stroke="var(--primary)"
               strokeWidth={2}
               pointerEvents="none"
             />

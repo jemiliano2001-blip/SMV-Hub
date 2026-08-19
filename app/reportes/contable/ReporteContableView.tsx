@@ -22,6 +22,15 @@ import { Loader2, AlertCircle, FileSpreadsheet, Printer, Sparkles, CheckCircle2,
 import { listarLotesContables, crearLoteContable, type ReporteContableLote } from "@/lib/reportes-contables"
 import { useConfirmDialog } from "@/components/ConfirmDialogProvider"
 import { toast } from "sonner"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableFooter,
+} from '@/components/ui/table'
 
 const MSG_ERROR = "No se pudieron cargar las órdenes. Verifica tu conexión."
 
@@ -409,7 +418,7 @@ export default function ReporteContableView() {
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
         <AlertCircle className="h-8 w-8 text-red-500" />
         <p className="text-sm text-gray-700">{error}</p>
-        <button onClick={cargar} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+        <button onClick={cargar} className="rounded-lg bg-primary text-primary-foreground hover:bg-primary/90">
           Reintentar
         </button>
       </div>
@@ -428,7 +437,7 @@ export default function ReporteContableView() {
           <Link href="/reportes" className="min-h-11 content-center text-gray-500 hover:text-gray-900">
             Reporte gerencial
           </Link>
-          <span className="min-h-11 content-center border-b-2 border-blue-600 font-semibold text-blue-600">
+          <span className="min-h-11 content-center border-b-2 border-primary font-semibold text-primary">
             Cierre contable
           </span>
         </div>
@@ -436,7 +445,7 @@ export default function ReporteContableView() {
         <div className="no-print flex gap-4 mb-6 border-b border-gray-200">
           <button 
             onClick={() => setTab("pendientes")}
-            className={`pb-2 px-1 font-medium transition-colors ${tab === "pendientes" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+            className={`pb-2 px-1 font-medium transition-colors ${tab === "pendientes" ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-700"}`}
           >
             Nuevos (Pendientes por Enviar)
           </button>
@@ -445,7 +454,7 @@ export default function ReporteContableView() {
               setTab("historial")
                if (!loteSeleccionado && lotes.length > 0) void seleccionarLote(lotes[0].id)
             }}
-            className={`pb-2 px-1 font-medium transition-colors flex items-center ${tab === "historial" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+            className={`pb-2 px-1 font-medium transition-colors flex items-center ${tab === "historial" ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-700"}`}
           >
             <History className="w-4 h-4 mr-1" />
             Historial de Reportes
@@ -509,7 +518,7 @@ export default function ReporteContableView() {
                   <select 
                     value={monedaActiva} 
                     onChange={e => setMoneda(e.target.value)}
-                    className="rounded-lg border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="rounded-lg border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-ring"
                   >
                     {monedas.map(m => (
                       <option key={m} value={m}>{m}</option>
@@ -534,7 +543,7 @@ export default function ReporteContableView() {
                   <button
                     onClick={handleGuardarLote}
                     disabled={guardandoLote || procesandoIa}
-                    className="flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
+                    className="flex items-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
                   >
                     {guardandoLote ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
                     Cerrar Reporte
@@ -566,22 +575,22 @@ export default function ReporteContableView() {
 
             <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm print:rounded-none print:border-0 print:shadow-none print:overflow-visible">
               <div className="overflow-x-auto print:overflow-visible">
-                <table className="w-full text-left text-sm text-gray-600">
-                  <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500 print:bg-white print:text-black print:border-b-2 print:border-black">
-                    <tr>
-                      <th className="px-4 py-3">Fecha</th>
-                      <th className="px-4 py-3">Proveedor / Factura</th>
-                      <th className="px-4 py-3">Descripción Simplificada</th>
-                      <th className="px-4 py-3">Clave SAT</th>
-                      <th className="px-4 py-3 text-right">Cant.</th>
-                      <th className="px-4 py-3 text-right">Precio U.</th>
-                      <th className="px-4 py-3 text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 print:divide-gray-300">
+                <Table className="w-full text-left text-sm text-gray-600">
+                  <TableHeader className="bg-gray-50 text-xs font-semibold uppercase text-gray-500 print:bg-white print:text-black print:border-b-2 print:border-black">
+                    <TableRow>
+                      <TableHead className="px-4 py-3">Fecha</TableHead>
+                      <TableHead className="px-4 py-3">Proveedor / Factura</TableHead>
+                      <TableHead className="px-4 py-3">Descripción Simplificada</TableHead>
+                      <TableHead className="px-4 py-3">Clave SAT</TableHead>
+                      <TableHead className="px-4 py-3 text-right">Cant.</TableHead>
+                      <TableHead className="px-4 py-3 text-right">Precio U.</TableHead>
+                      <TableHead className="px-4 py-3 text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody className="divide-y divide-gray-100 print:divide-gray-300">
                     {lineas.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-4 py-12 text-center">
+                      <TableRow>
+                        <TableCell colSpan={7} className="px-4 py-12 text-center">
                           {tab === "pendientes" ? (
                             <div className="text-gray-500">
                               <CheckCircle2 className="h-12 w-12 mx-auto text-emerald-400 mb-3" />
@@ -591,19 +600,19 @@ export default function ReporteContableView() {
                           ) : (
                             <p className="text-gray-500">Selecciona un lote del historial para ver sus compras.</p>
                           )}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ) : (
                       lineas.map((l, i) => (
-                        <tr key={`${l.ordenId}-${i}`} className="hover:bg-gray-50 print:hover:bg-transparent">
-                          <td className="px-4 py-3 whitespace-nowrap">
+                        <TableRow key={`${l.ordenId}-${i}`} className="hover:bg-gray-50 print:hover:bg-transparent">
+                          <TableCell className="px-4 py-3 whitespace-nowrap">
                             {l.dia ? l.dia.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" }) : "-"}
-                          </td>
-                          <td className="px-4 py-3">
+                          </TableCell>
+                          <TableCell className="px-4 py-3">
                             <div className="font-medium text-gray-900">{l.proveedor}</div>
                             <div className="text-xs text-gray-400">Ref: {l.referencia}</div>
-                          </td>
-                          <td className="px-4 py-3 max-w-xs">
+                          </TableCell>
+                          <TableCell className="px-4 py-3 max-w-xs">
                             {l.descripcionSimplificada ? (
                               <span className="font-medium text-gray-900">{l.descripcionSimplificada}</span>
                             ) : (
@@ -611,8 +620,8 @@ export default function ReporteContableView() {
                                 {l.descripcion.length > 50 ? l.descripcion.substring(0, 50) + "..." : l.descripcion}
                               </span>
                             )}
-                          </td>
-                          <td className="px-4 py-3 max-w-xs">
+                          </TableCell>
+                          <TableCell className="px-4 py-3 max-w-xs">
                             <div className="flex items-center gap-1.5">
                               <span className="font-medium text-gray-900">{l.claveProdServ || "—"}</span>
                               {l.itemIndex >= 0 && (
@@ -621,7 +630,7 @@ export default function ReporteContableView() {
                                   onClick={() => handleResugerir(l)}
                                   disabled={resugieriendo.has(`${l.ordenId}-${l.itemIndex}`)}
                                   title="Volver a sugerir la clave SAT para esta línea"
-                                  className="text-gray-400 hover:text-blue-600 disabled:opacity-50 no-print"
+                                  className="text-gray-400 hover:text-primary disabled:opacity-50 no-print"
                                 >
                                   <RefreshCw
                                     className={`h-3.5 w-3.5 ${resugieriendo.has(`${l.ordenId}-${l.itemIndex}`) ? "animate-spin" : ""}`}
@@ -654,37 +663,37 @@ export default function ReporteContableView() {
                                 ))}
                               </div>
                             )}
-                          </td>
-                          <td className="px-4 py-3 text-right font-medium">
+                          </TableCell>
+                          <TableCell className="px-4 py-3 text-right font-medium">
                             {l.cantidad !== null ? l.cantidad : "—"}
-                          </td>
-                          <td className="px-4 py-3 text-right">
+                          </TableCell>
+                          <TableCell className="px-4 py-3 text-right">
                             {l.precioUnitario !== null 
                               ? new Intl.NumberFormat("es-MX", { style: "currency", currency: monedaActiva }).format(l.precioUnitario) 
                               : "—"}
-                          </td>
-                          <td className="px-4 py-3 text-right font-semibold text-gray-900">
+                          </TableCell>
+                          <TableCell className="px-4 py-3 text-right font-semibold text-gray-900">
                             {new Intl.NumberFormat("es-MX", { style: "currency", currency: monedaActiva }).format(l.total)}
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       ))
                     )}
-                  </tbody>
+                  </TableBody>
                   {lineas.length > 0 && (
-                    <tfoot className="bg-gray-50 font-bold text-gray-900 print:bg-white print:border-t-2 print:border-black">
-                      <tr>
-                        <td colSpan={6} className="px-4 py-3 text-right uppercase text-xs text-gray-500 print:text-black">
+                    <TableFooter className="bg-gray-50 font-bold text-gray-900 print:bg-white print:border-t-2 print:border-black">
+                      <TableRow>
+                        <TableCell colSpan={6} className="px-4 py-3 text-right uppercase text-xs text-gray-500 print:text-black">
                           Total ({monedaActiva})
-                        </td>
-                        <td className="px-4 py-3 text-right text-base">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-right text-base">
                           {new Intl.NumberFormat("es-MX", { style: "currency", currency: monedaActiva }).format(
                             lineas.reduce((acc, curr) => acc + curr.total, 0)
                           )}
-                        </td>
-                      </tr>
-                    </tfoot>
+                        </TableCell>
+                      </TableRow>
+                    </TableFooter>
                   )}
-                </table>
+                </Table>
               </div>
             </div>
             

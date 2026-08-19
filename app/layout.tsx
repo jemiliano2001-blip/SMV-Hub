@@ -26,6 +26,7 @@ const firaSans = Fira_Sans({
 export const metadata: Metadata = {
   title: "SMV Hub",
   description: "Plataforma interna de SMV Maquinados — compras, diseño y operación del taller",
+  applicationName: "SMV Hub",
 };
 
 export default function RootLayout({

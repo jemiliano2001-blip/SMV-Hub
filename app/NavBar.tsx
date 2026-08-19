@@ -1,4 +1,3 @@
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · tone: utilitario · scope: navbar */
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -147,16 +146,16 @@ export default function NavBar() {
                 <div key={g.nombre} className="relative">
                   <button
                     onClick={() => setAbierto(desplegado ? null : g.nombre)}
-                    className={`flex items-center gap-1 rounded-md px-3 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0369A1] ${
+                    className={`flex items-center gap-1 rounded-md px-3 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       activo
-                        ? 'bg-slate-100 text-[#0369A1] font-bold'
+                        ? 'bg-slate-100 text-primary font-bold'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                     }`}
                   >
                     <span>{g.nombre}</span>
                     {g.links.some((l) => l.href === '/pedidos-almacen') && <PedidoAlmacenBadge />}
                     <ChevronDown
-                      className={`h-3.5 w-3.5 transition-transform duration-150 ${desplegado ? 'rotate-180 text-[#0369A1]' : 'text-slate-400'}`}
+                      className={`h-3.5 w-3.5 transition-transform duration-150 ${desplegado ? 'rotate-180 text-primary' : 'text-slate-400'}`}
                     />
                   </button>
 
@@ -186,7 +185,7 @@ export default function NavBar() {
                             href={l.href}
                             className={`flex items-center justify-between px-3 py-2 text-xs transition-colors ${
                               esActiva(l.href)
-                                ? 'bg-sky-50 text-[#0369A1] font-bold border-l-2 border-[#0369A1]'
+                                ? 'bg-sky-50 text-primary font-bold border-l-2 border-primary'
                                 : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
                             }`}
                           >
@@ -225,7 +224,7 @@ export default function NavBar() {
             <SheetContent side="right" className="w-[85vw] max-w-sm overflow-y-auto p-0 border-l border-slate-200">
               <SheetHeader className="border-b border-slate-200 p-4">
                 <SheetTitle className="text-sm font-bold flex items-center gap-2 text-slate-900">
-                  <Shield className="h-4 w-4 text-[#0369A1]" />
+                  <Shield className="h-4 w-4 text-primary" />
                   Menú de Accesos
                 </SheetTitle>
               </SheetHeader>
@@ -258,7 +257,7 @@ export default function NavBar() {
                             href={l.href}
                             className={`flex items-center justify-between rounded-md px-2.5 py-2 text-xs font-medium transition-colors ${
                               esActiva(l.href)
-                                ? 'bg-sky-50 text-[#0369A1] font-bold'
+                                ? 'bg-sky-50 text-primary font-bold'
                                 : 'text-slate-700 active:bg-slate-100'
                             }`}
                           >

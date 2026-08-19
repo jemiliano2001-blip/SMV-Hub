@@ -1,4 +1,3 @@
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · tone: utilitario · scope: resumen-caja */
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
@@ -147,10 +146,10 @@ export default function ResumenCaja() {
             <select
               value={modoFiltro}
               onChange={(e) => setModoFiltro(e.target.value as ModoFiltroCaja)}
-              className="px-2.5 py-1.5 text-xs font-bold bg-white border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1]"
+              className="px-2.5 py-1.5 text-xs font-bold bg-white border border-slate-300 rounded-md focus:outline-none focus:border-primary"
             >
-              <option value="CICLO_ACTIVO">⚡ Ciclo Activo (Sin corte)</option>
-              <option value="TODOS">📋 Todos los Movimientos</option>
+              <option value="CICLO_ACTIVO">Ciclo activo (sin corte)</option>
+              <option value="TODOS">Todos los movimientos</option>
               <option value="PERIODO">📅 Por Mes Calendario</option>
               <option value="CORTE">🔖 Por Corte Realizado</option>
             </select>
@@ -161,7 +160,7 @@ export default function ResumenCaja() {
               type="month"
               value={periodo}
               onChange={(e) => setPeriodo(e.target.value)}
-              className="px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1] font-mono text-slate-900"
+              className="px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-md focus:outline-none focus:border-primary font-mono text-slate-900"
             />
           )}
 
@@ -169,7 +168,7 @@ export default function ResumenCaja() {
             <select
               value={corteIdSel}
               onChange={(e) => setCorteIdSel(e.target.value)}
-              className="px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-md focus:outline-none focus:border-[#0369A1] font-mono text-slate-900"
+              className="px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-md focus:outline-none focus:border-primary font-mono text-slate-900"
             >
               {cortesHistorial.length === 0 ? (
                 <option value="">Sin cortes</option>
@@ -202,13 +201,13 @@ export default function ResumenCaja() {
               <div className="flex-1 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-slate-900 font-bold text-xs uppercase tracking-wider font-mono">
-                    <PiggyBank className="h-4 w-4 text-[#0369A1]" />
+                    <PiggyBank className="h-4 w-4 text-primary" />
                     <h3>Control de Fondo Fijo (Sistema Imprest)</h3>
                   </div>
                   {!isEditingFondo && (
                     <button
                       onClick={() => setIsEditingFondo(true)}
-                      className="text-slate-400 hover:text-[#0369A1] transition-colors p-1"
+                      className="text-slate-400 hover:text-primary transition-colors p-1"
                       title="Configurar Límite"
                     >
                       <Settings className="h-3.5 w-3.5" />
@@ -226,14 +225,14 @@ export default function ResumenCaja() {
                         type="number"
                         value={fondoInput}
                         onChange={(e) => setFondoInput(e.target.value)}
-                        className="pl-6 pr-3 py-1 text-xs border border-slate-300 rounded-md focus:border-[#0369A1] focus:outline-none font-mono"
+                        className="pl-6 pr-3 py-1 text-xs border border-slate-300 rounded-md focus:border-primary focus:outline-none font-mono"
                         placeholder="Ej: 5000"
                       />
                     </div>
                     <button
                       onClick={guardarFondoFijo}
                       disabled={guardandoFondo}
-                      className="bg-[#0369A1] text-white p-1 rounded hover:bg-[#0284C7] transition-colors disabled:opacity-50"
+                      className="bg-primary text-white p-1 rounded hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
                       <Save className="h-3.5 w-3.5" />
                     </button>
@@ -260,7 +259,7 @@ export default function ResumenCaja() {
                         <div className="w-full bg-slate-100 rounded-full h-2">
                           <div
                             className={`h-2 rounded-full transition-all ${
-                              requiereReabastecimiento ? 'bg-rose-500' : 'bg-[#0369A1]'
+                              requiereReabastecimiento ? 'bg-rose-500' : 'bg-primary'
                             }`}
                             style={{ width: `${Math.min(porcentajeConsumido, 100)}%` }}
                           ></div>
@@ -275,7 +274,7 @@ export default function ResumenCaja() {
                             >
                               {porcentajeConsumido.toFixed(1)}% Consumido del Límite
                             </p>
-                            <p className="text-xs font-bold font-mono text-[#0369A1] mt-0.5">
+                            <p className="text-xs font-bold font-mono text-primary mt-0.5">
                               Monto a Reembolsar: {formatearDinero(totalSalidas)}
                             </p>
                           </div>
@@ -360,7 +359,7 @@ export default function ResumenCaja() {
                     {formatearDinero(saldo)}
                   </p>
                 </div>
-                <div className="p-2.5 bg-sky-50 rounded-lg text-[#0369A1]">
+                <div className="p-2.5 bg-sky-50 rounded-lg text-primary">
                   <CreditCard className="h-5 w-5" />
                 </div>
               </div>
@@ -391,7 +390,7 @@ export default function ResumenCaja() {
                       </div>
                       <div className="w-full bg-slate-100 rounded-full h-1.5">
                         <div
-                          className="bg-[#0369A1] h-1.5 rounded-full"
+                          className="bg-primary h-1.5 rounded-full"
                           style={{ width: `${Math.min(porcentaje, 100)}%` }}
                         ></div>
                       </div>

@@ -182,8 +182,8 @@ export default function NuevaRequisicionModal({ abierto, onClose, onCrear }: Pro
     <Dialog open={abierto} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto font-sans p-6">
         <DialogHeader className="border-b border-slate-200 pb-4">
-          <DialogTitle className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5 text-[#0369A1]" />
+          <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <ShoppingCart className="h-5 w-5 text-primary" />
             Nueva Requisición de Compras (Tooling &amp; Taller)
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
@@ -232,11 +232,11 @@ export default function NuevaRequisicionModal({ abierto, onClose, onCrear }: Pro
               <select
                 value={prioridad}
                 onChange={(e) => setPrioridad(e.target.value as PrioridadFlujo)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white font-extrabold text-slate-800"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white font-bold text-slate-800"
               >
-                <option value="urgente">🚨 URGENTE (1-2 Días)</option>
-                <option value="alta">🔥 ALTA (3-5 Días)</option>
-                <option value="media">⚡ MEDIA (1-2 Semanas)</option>
+                <option value="urgente">Urgente (1-2 días)</option>
+                <option value="alta">Alta (3-5 días)</option>
+                <option value="media">Media (1-2 semanas)</option>
                 <option value="baja">🐢 BAJA (Cuando se pueda)</option>
               </select>
             </div>
@@ -256,14 +256,14 @@ export default function NuevaRequisicionModal({ abierto, onClose, onCrear }: Pro
           {/* Ítems Dinámicos */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
                 <Sparkles className="h-4 w-4 text-amber-500" />
                 Ítems / Herramientas Solicitadas ({items.length})
               </h3>
               <button
                 type="button"
                 onClick={agregarItem}
-                className="flex items-center gap-1 px-2.5 py-1 bg-[#0369A1] hover:bg-[#0284C7] text-white text-xs font-bold rounded-lg transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-lg transition-colors"
               >
                 <Plus className="h-3.5 w-3.5" /> Agregar Herramienta
               </button>
@@ -429,7 +429,7 @@ export default function NuevaRequisicionModal({ abierto, onClose, onCrear }: Pro
             <button
               type="submit"
               disabled={guardando}
-              className="px-4 py-2 text-xs font-bold text-white bg-[#0369A1] hover:bg-[#0284C7] rounded-lg shadow-xs disabled:opacity-50"
+              className="px-4 py-2 text-xs font-bold text-white bg-primary hover:bg-primary/90 rounded-lg shadow-xs disabled:opacity-50"
             >
               {guardando ? 'Guardando Requisición...' : 'Enviar Requisición a Proceso'}
             </button>

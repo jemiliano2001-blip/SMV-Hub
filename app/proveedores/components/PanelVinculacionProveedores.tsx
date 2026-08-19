@@ -23,6 +23,14 @@ import {
   type ProveedorFantasma,
   type ResultadoAplicacionVinculacion,
 } from '@/lib/proveedores-vinculacion'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 interface Props {
   proveedores: Proveedor[]
@@ -98,7 +106,7 @@ export default function PanelVinculacionProveedores({ proveedores }: Props) {
             <span className="p-1.5 rounded-lg bg-violet-50 text-violet-700 border border-violet-200">
               <Ghost className="w-5 h-5" />
             </span>
-            <h2 className="text-lg font-extrabold text-slate-900">Vincular histórico al catálogo</h2>
+            <h2 className="text-lg font-bold text-slate-900">Vincular histórico al catálogo</h2>
           </div>
           <p className="text-xs text-slate-500">
             Analiza órdenes y cotizaciones con proveedor como texto libre. Sólo un superadministrador
@@ -160,24 +168,24 @@ export default function PanelVinculacionProveedores({ proveedores }: Props) {
         )}
         {previsualizacion && previsualizacion.fantasmas.length > 0 && (
           <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 font-bold uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="p-2">Nombre libre</th>
-                  <th className="p-2">Origen</th>
-                  <th className="p-2 text-center" title="Un clic vincula hasta 20 documentos; vuelve a analizar para continuar si hay más.">Docs</th>
-                  <th className="p-2">Vincular a</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
+            <Table className="w-full text-left text-xs">
+              <TableHeader className="bg-slate-50 border-b border-slate-200 font-bold uppercase tracking-wider text-slate-500">
+                <TableRow>
+                  <TableHead className="p-2">Nombre libre</TableHead>
+                  <TableHead className="p-2">Origen</TableHead>
+                  <TableHead className="p-2 text-center" title="Un clic vincula hasta 20 documentos; vuelve a analizar para continuar si hay más.">Docs</TableHead>
+                  <TableHead className="p-2">Vincular a</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-slate-100">
                 {previsualizacion.fantasmas.map((fantasma) => {
                   const clave = `${fantasma.origen}-${fantasma.nombreLibre}`
                   return (
-                    <tr key={clave}>
-                      <td className="p-2 font-bold text-slate-900">{fantasma.nombreLibre}</td>
-                      <td className="p-2 text-slate-500">{fantasma.origen === 'orden' ? 'Órdenes' : 'Cotizaciones'}</td>
-                      <td className="p-2 text-center font-mono">{fantasma.cantidadDocs}</td>
-                      <td className="p-2">
+                    <TableRow key={clave}>
+                      <TableCell className="p-2 font-bold text-slate-900">{fantasma.nombreLibre}</TableCell>
+                      <TableCell className="p-2 text-slate-500">{fantasma.origen === 'orden' ? 'Órdenes' : 'Cotizaciones'}</TableCell>
+                      <TableCell className="p-2 text-center font-mono">{fantasma.cantidadDocs}</TableCell>
+                      <TableCell className="p-2">
                         <select
                           defaultValue={fantasma.sugerenciaCatalogo?.id ?? ''}
                           disabled={vinculando === clave || analizando || aplicando}
@@ -191,12 +199,12 @@ export default function PanelVinculacionProveedores({ proveedores }: Props) {
                             </option>
                           ))}
                         </select>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   )
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>

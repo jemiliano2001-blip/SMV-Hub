@@ -5,7 +5,17 @@ import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { iniciarSesionConGoogle, iniciarSesionConEmailYPassword, cerrarSesion, useUsuario } from '@/lib/auth'
 import { obtenerRolUsuario } from '@/lib/usuarios'
-import { LogIn, AlertCircle, Mail, Lock } from 'lucide-react'
+import { LogIn, AlertCircle, Mail, Lock, Loader2 } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
 
 const MENSAJES_ERROR: Record<string, string> = {
   no_autorizado:
@@ -82,105 +92,96 @@ function LoginForm() {
 
   if (cargandoSesion || usuario) {
     return (
-      <main className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0369A1]" />
+      <main className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="size-10 animate-spin text-primary" aria-label="Cargando" />
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center px-4 py-16">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-[#E2E8F0] p-8">
-
-        {/* Brand */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2.5 mb-3">
-            <LogoSMV height={44} />
-          </div>
-          <h1 className="text-xl font-semibold text-[#0F172A] tracking-tight mb-2">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-16">
+      <Card className="w-full max-w-md gap-0 py-0 shadow-xs">
+        <CardHeader className="items-center gap-2 px-8 pt-8 pb-6 text-center">
+          <LogoSMV height={44} />
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
             SMV Hub
           </h1>
-          <p className="text-[#64748B] text-sm leading-relaxed">
-            Inicia sesión para acceder a la plataforma interna del taller.
-          </p>
-        </div>
+          <CardDescription>
+            Inicia sesión para entrar a la plataforma interna del taller.
+          </CardDescription>
+        </CardHeader>
 
-        {/* Error Message */}
-        {mensajeError && (
-          <div
-            className="mb-6 p-4 bg-red-50 rounded-lg flex items-start gap-3 border border-red-100"
-            role="alert"
-          >
-            <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
-            <p className="text-sm text-red-700">{mensajeError}</p>
-          </div>
-        )}
+        <CardContent className="flex flex-col gap-4 px-8 pb-8">
+          {mensajeError ? (
+            <Alert variant="destructive">
+              <AlertCircle />
+              <AlertDescription>{mensajeError}</AlertDescription>
+            </Alert>
+          ) : null}
 
-        {/* Google Sign-In */}
-        <button
-          type="button"
-          onClick={handleLoginGoogle}
-          disabled={loadingGoogle || loadingPassword}
-          className="w-full flex items-center justify-center gap-3 bg-[#0F172A] hover:bg-[#1E293B] text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loadingGoogle ? (
-            <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
-          ) : (
-            <LogIn className="h-5 w-5" />
-          )}
-          <span>{loadingGoogle ? 'Iniciando sesión...' : 'Ingresar con Google'}</span>
-        </button>
-
-        {/* Separator */}
-        <div className="flex items-center gap-3 my-6">
-          <div className="h-px flex-1 bg-[#E2E8F0]" />
-          <span className="text-xs text-[#64748B]">o con tu usuario</span>
-          <div className="h-px flex-1 bg-[#E2E8F0]" />
-        </div>
-
-        {/* Email/Password form */}
-        <form onSubmit={handleLoginPassword} className="space-y-3">
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#94A3B8]" />
-            <input
-              aria-label="Correo electrónico"
-              type="email"
-              required
-              autoComplete="username"
-              value={correo}
-              onChange={(e) => setCorreo(e.target.value)}
-              placeholder="correo@ejemplo.com"
-              className="w-full pl-10 pr-3 py-2.5 rounded-lg border border-[#E2E8F0] text-sm focus:outline-none focus:ring-2 focus:ring-[#0369A1]"
-            />
-          </div>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#94A3B8]" />
-            <input
-              aria-label="Contraseña"
-              type="password"
-              required
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Contraseña"
-              className="w-full pl-10 pr-3 py-2.5 rounded-lg border border-[#E2E8F0] text-sm focus:outline-none focus:ring-2 focus:ring-[#0369A1]"
-            />
-          </div>
-          <button
-            type="submit"
+          <Button
+            type="button"
+            size="lg"
+            className="w-full"
+            onClick={handleLoginGoogle}
             disabled={loadingGoogle || loadingPassword}
-            className="w-full flex items-center justify-center gap-2 bg-white hover:bg-[#F8FAFC] text-[#0F172A] px-6 py-2.5 rounded-lg font-medium border border-[#E2E8F0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loadingPassword && (
-              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-[#0F172A]"></div>
+            {loadingGoogle ? (
+              <Loader2 className="animate-spin" data-icon="inline-start" />
+            ) : (
+              <LogIn data-icon="inline-start" />
             )}
-            <span>{loadingPassword ? 'Iniciando sesión...' : 'Ingresar'}</span>
-          </button>
-        </form>
+            {loadingGoogle ? 'Iniciando sesión...' : 'Ingresar con Google'}
+          </Button>
 
-      </div>
+          <div className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <span className="text-xs text-muted-foreground">o con tu usuario</span>
+            <Separator className="flex-1" />
+          </div>
 
-      <p className="mt-8 text-xs text-[#64748B]">
+          <form onSubmit={handleLoginPassword} className="flex flex-col gap-3">
+            <div className="relative">
+              <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                aria-label="Correo electrónico"
+                type="email"
+                required
+                autoComplete="username"
+                value={correo}
+                onChange={(e) => setCorreo(e.target.value)}
+                placeholder="correo@ejemplo.com"
+                className="h-10 pl-10"
+              />
+            </div>
+            <div className="relative">
+              <Lock className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                aria-label="Contraseña"
+                type="password"
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Contraseña"
+                className="h-10 pl-10"
+              />
+            </div>
+            <Button
+              type="submit"
+              variant="outline"
+              size="lg"
+              className="w-full"
+              disabled={loadingGoogle || loadingPassword}
+            >
+              {loadingPassword ? <Loader2 className="animate-spin" data-icon="inline-start" /> : null}
+              {loadingPassword ? 'Iniciando sesión...' : 'Ingresar'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <p className="mt-8 text-xs text-muted-foreground">
         Acceso restringido · SMV Maquinados
       </p>
     </main>
@@ -191,8 +192,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0369A1]" />
+        <main className="flex min-h-screen items-center justify-center bg-background">
+          <Loader2 className="size-10 animate-spin text-primary" aria-label="Cargando" />
         </main>
       }
     >

@@ -25,6 +25,15 @@ import {
   Loader2,
 } from 'lucide-react'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
+import ModuleSurface from '@/components/layout/ModuleSurface'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 interface Props {
   departamento: Departamento
@@ -304,10 +313,10 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
         )}
         {total > 0 && (
           <div className="text-sm text-gray-600">
-            <span className="font-medium text-[#0369A1]">{conHoras}/{total}</span> empleados con horas
+            <span className="font-medium text-primary">{conHoras}/{total}</span> empleados con horas
             <div className="mt-1 w-48 h-1.5 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#0369A1] rounded-full transition-all"
+                className="h-full bg-primary rounded-full transition-all"
                 style={{ width: `${total > 0 ? (conHoras / total) * 100 : 0}%` }}
               />
             </div>
@@ -328,7 +337,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
           required
           value={nuevoEmpleado}
           onChange={(e) => setNuevoEmpleado(e.target.value)}
-          className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:border-[#0369A1]"
+          className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:border-primary"
         >
           <option value="" disabled>
             Agregar empleado a la semana...
@@ -342,7 +351,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
         <button
           type="submit"
           disabled={agregando}
-          className="bg-[#0369A1] hover:bg-[#0284C7] text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+          className="bg-primary hover:bg-primary/90 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
         >
           <Plus className="h-4 w-4" />
         </button>
@@ -368,43 +377,43 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
       )}
 
       {/* Grid */}
-      <div className="border border-gray-200 rounded-lg overflow-x-auto min-w-[800px]">
-        <table className="w-full text-sm text-center">
-          <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
-            <tr>
-              <th className="px-4 py-3 text-left w-48 sticky left-0 bg-gray-50 border-r border-gray-200 z-10">
+      <ModuleSurface>
+        <Table className="min-w-[800px] text-sm text-center">
+          <TableHeader className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+            <TableRow>
+              <TableHead className="h-auto px-4 py-3 text-left w-48 sticky left-0 bg-gray-50 border-r border-gray-200 z-10">
                 Nombre del Empleado
-              </th>
+              </TableHead>
               {DIAS_SEMANA.map((d) => (
-                <th
+                <TableHead
                   key={d}
-                  className={`px-2 py-3 w-20 border-r border-gray-100 ${
+                  className={`px-2 py-3 w-20 text-center border-r border-gray-100 ${
                     FIN_DE_SEMANA.has(d) ? 'bg-amber-50/80' : ''
                   }`}
                 >
                   {etiquetaDia(d)}
-                </th>
+                </TableHead>
               ))}
-              <th className="px-3 py-3 w-24 border-r border-gray-200 bg-gray-50">Total Hrs</th>
-              <th className="px-3 py-3 text-left min-w-[180px]">Notas</th>
-              <th className="px-2 py-3 w-16" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
+              <TableHead className="px-3 py-3 w-24 text-center border-r border-gray-200 bg-gray-50">Total Hrs</TableHead>
+              <TableHead className="px-3 py-3 text-left min-w-[180px]">Notas</TableHead>
+              <TableHead className="px-2 py-3 w-16" />
+            </TableRow>
+          </TableHeader>
+          <TableBody className="divide-y divide-gray-100">
             {registros.length === 0 ? (
-              <tr>
-                <td colSpan={11} className="px-4 py-12 text-center text-gray-500">
+              <TableRow>
+                <TableCell colSpan={11} className="px-4 py-12 text-center text-gray-500">
                   No hay registros. Usa &quot;Cargar equipo&quot; o agrega empleados manualmente.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               registros.map((r) => {
                 const status = saveStatus[r.id] ?? 'idle'
                 const totalFila = calcularTotalHoras(r)
 
                 return (
-                  <tr key={r.id} className="hover:bg-gray-50/80">
-                    <td className="px-4 py-2 font-medium text-gray-900 text-left sticky left-0 bg-white border-r border-gray-200 z-10">
+                  <TableRow key={r.id} className="hover:bg-gray-50/80">
+                    <TableCell className="px-4 py-2 font-medium text-gray-900 text-left sticky left-0 bg-white border-r border-gray-200 z-10">
                       <div className="flex items-center gap-2">
                         {r.empleado}
                         {status === 'saving' && (
@@ -414,7 +423,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                           <Check className="h-3 w-3 text-emerald-500" />
                         )}
                       </div>
-                    </td>
+                    </TableCell>
 
                     {DIAS_SEMANA.map((dia) => {
                       const isActive =
@@ -424,7 +433,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                       const finSemana = FIN_DE_SEMANA.has(dia)
 
                       return (
-                        <td
+                        <TableCell
                           key={dia}
                           className={`p-0.5 border-r border-gray-100 ${finSemana ? 'bg-amber-50/40' : ''}`}
                         >
@@ -439,7 +448,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                               }}
                               onBlur={() => cerrarEdicion(true)}
                               onKeyDown={handleKeyDown}
-                              className="w-full h-8 text-center text-sm border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-[#0369A1] bg-white"
+                              className="w-full h-8 text-center text-sm border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-ring bg-white"
                               placeholder="-"
                             />
                           ) : (
@@ -469,15 +478,15 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                               {valorCelda || '-'}
                             </div>
                           )}
-                        </td>
+                        </TableCell>
                       )
                     })}
 
-                    <td className="px-3 py-2 border-r border-gray-200 bg-gray-50 font-medium text-[#0369A1]">
+                    <TableCell className="px-3 py-2 border-r border-gray-200 bg-gray-50 font-medium text-primary">
                       {totalFila > 0 ? totalFila.toFixed(1).replace(/\.0$/, '') : (r.totalHoras ?? 0)}
-                    </td>
+                    </TableCell>
 
-                    <td className="p-0.5">
+                    <TableCell className="p-0.5">
                       {activeCell?.rowId === r.id && activeCell.field === 'notas' ? (
                         <input
                           ref={inputRef}
@@ -489,7 +498,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                           }}
                           onBlur={() => cerrarEdicion(true)}
                           onKeyDown={handleKeyDown}
-                          className="w-full h-8 px-2 text-sm border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-[#0369A1] bg-white"
+                          className="w-full h-8 px-2 text-sm border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-ring bg-white"
                           placeholder="Nota (ej. Permiso)"
                         />
                       ) : (
@@ -516,9 +525,9 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                             ))}
                         </div>
                       )}
-                    </td>
+                    </TableCell>
 
-                    <td className="px-2 py-2">
+                    <TableCell className="px-2 py-2">
                       {puedeEditar && (
                         <button
                           type="button"
@@ -529,14 +538,14 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                           <Trash2 className="h-4 w-4" />
                         </button>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )
               })
             )}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </ModuleSurface>
 
       {puedeEditar ? (
         <p className="text-xs text-gray-500">

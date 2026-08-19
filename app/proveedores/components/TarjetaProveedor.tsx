@@ -1,14 +1,18 @@
 'use client'
 
 import {
-  Star,
-  Clock,
   ChevronRight,
+  Clock,
   Edit2,
+  Package,
+  Star,
+  Zap,
 } from 'lucide-react'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { Proveedor } from '@/lib/schemas'
+import { cn } from '@/lib/utils'
 
 interface TarjetaProveedorProps {
   proveedor: Proveedor
@@ -16,6 +20,16 @@ interface TarjetaProveedorProps {
   onEdit: (proveedor: Proveedor) => void
   esPrimario?: boolean
   esBackup?: boolean
+}
+
+function etiquetaTipo(tipo: Proveedor['tipoProveedor']) {
+  if (tipo === 'premium') {
+    return { label: 'Premium', icon: Star, className: 'border-purple-300 text-purple-800 bg-purple-50' }
+  }
+  if (tipo === 'barato') {
+    return { label: 'Económico', icon: Zap, className: 'border-amber-300 text-amber-800 bg-amber-50' }
+  }
+  return { label: 'Estándar', icon: Package, className: 'border-sky-300 text-primary bg-sky-50' }
 }
 
 export default function TarjetaProveedor({
@@ -27,102 +41,88 @@ export default function TarjetaProveedor({
 }: TarjetaProveedorProps) {
   const esPremium = proveedor.tipoProveedor === 'premium'
   const esBarato = proveedor.tipoProveedor === 'barato'
+  const tipo = etiquetaTipo(proveedor.tipoProveedor)
+  const TipoIcon = tipo.icon
 
   return (
     <div
-      className={`group relative rounded-2xl border transition-all duration-200 hover:shadow-md flex flex-col justify-between overflow-hidden bg-white ${
+      className={cn(
+        'group relative flex flex-col justify-between overflow-hidden rounded-xl border bg-card transition-all duration-200 hover:shadow-md',
         esPremium
           ? 'border-purple-200 hover:border-purple-400'
           : esBarato
-          ? 'border-amber-200 hover:border-amber-400'
-          : 'border-slate-200 hover:border-[#0369A1]'
-      }`}
+            ? 'border-amber-200 hover:border-amber-400'
+            : 'border-border hover:border-primary'
+      )}
     >
-      {/* Indicador superior de Tier y badges */}
-      <div className="p-5 pb-3 space-y-3">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <Badge
-            variant="outline"
-            className={`text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full ${
-              esPremium
-                ? 'border-purple-300 text-purple-800 bg-purple-50'
-                : esBarato
-                ? 'border-amber-300 text-amber-800 bg-amber-50'
-                : 'border-sky-300 text-[#0369A1] bg-sky-50'
-            }`}
-          >
-            {esPremium ? '⭐ Premium Performance' : esBarato ? '⚡ Económico ($ Barato)' : '📦 Estándar ($)'}
+      <div className="flex flex-col gap-3 p-5 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Badge variant="outline" className={cn('rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider', tipo.className)}>
+            <TipoIcon className="mr-1 inline size-3" aria-hidden />
+            {tipo.label}
           </Badge>
 
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-            <span>{proveedor.pais === 'Estados Unidos' ? '🇺🇸 USA' : '🇲🇽 MX'}</span>
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+            <Badge variant="outline" className="text-[10px]">
+              {proveedor.pais === 'Estados Unidos' ? 'USA' : 'MX'}
+            </Badge>
             {typeof proveedor.ordenesOdoo === 'number' && proveedor.ordenesOdoo >= 1 && (
-              <Badge
-                variant="outline"
-                className="border-sky-200 bg-sky-50 text-sky-800 text-[9px] font-extrabold px-2 py-0"
-              >
+              <Badge variant="outline" className="border-sky-200 bg-sky-50 text-[9px] text-sky-800">
                 {proveedor.ordenesOdoo} compras Odoo
               </Badge>
             )}
-            {esPrimario && (
-              <Badge className="bg-emerald-600 text-white text-[9px] uppercase font-extrabold px-2 py-0">
-                Primario
-              </Badge>
-            )}
-            {esBackup && (
-              <Badge className="bg-indigo-600 text-white text-[9px] uppercase font-extrabold px-2 py-0">
-                Backup
-              </Badge>
-            )}
+            {esPrimario ? (
+              <Badge className="bg-emerald-600 text-[9px] uppercase text-white">Primario</Badge>
+            ) : null}
+            {esBackup ? (
+              <Badge className="bg-indigo-600 text-[9px] uppercase text-white">Backup</Badge>
+            ) : null}
           </div>
         </div>
 
-        {/* Nombre & Subtítulo */}
         <div>
-          <h3
+          <button
+            type="button"
             onClick={() => onSelect(proveedor)}
-            className="text-base font-extrabold text-slate-900 group-hover:text-[#0369A1] transition-colors cursor-pointer flex items-center justify-between"
+            className="flex w-full cursor-pointer items-center justify-between text-left text-base font-bold text-foreground transition-colors group-hover:text-primary"
           >
             <span className="line-clamp-1">{proveedor.nombre}</span>
-            <ChevronRight className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-          </h3>
-          {proveedor.contacto && (
-            <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
-              Atención: <span className="font-medium text-slate-700">{proveedor.contacto}</span>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+          </button>
+          {proveedor.contacto ? (
+            <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
+              Atención: <span className="font-medium text-foreground">{proveedor.contacto}</span>
             </p>
-          )}
+          ) : null}
         </div>
 
-        {/* Marcas representadas */}
         <div className="flex flex-wrap gap-1 pt-1">
           {proveedor.marcas && proveedor.marcas.length > 0 ? (
-            proveedor.marcas.slice(0, 3).map((m, idx) => (
+            proveedor.marcas.slice(0, 3).map((marca) => (
               <span
-                key={idx}
-                className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200/80"
+                key={marca}
+                className="rounded border border-border bg-muted px-2 py-0.5 text-[10px] font-semibold text-foreground"
               >
-                {m}
+                {marca}
               </span>
             ))
           ) : (
-            <span className="text-[10px] text-slate-400 italic">Distribuidores multimarca</span>
+            <span className="text-[10px] italic text-muted-foreground">Distribuidores multimarca</span>
           )}
-          {proveedor.marcas && proveedor.marcas.length > 3 && (
-            <span className="text-[10px] text-slate-400 font-bold">+{proveedor.marcas.length - 3}</span>
-          )}
+          {proveedor.marcas && proveedor.marcas.length > 3 ? (
+            <span className="text-[10px] font-bold text-muted-foreground">+{proveedor.marcas.length - 3}</span>
+          ) : null}
         </div>
       </div>
 
-      {/* Footer de la tarjeta con lead time, calificacion y acciones */}
-      <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
+      <div className="flex items-center justify-between border-t border-border bg-muted/50 px-5 py-3 text-xs">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 font-bold text-amber-500">
-            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+            <Star className="size-3.5 fill-amber-400 text-amber-400" aria-hidden />
             <span>{proveedor.calificacion || 5}.0</span>
           </div>
-
-          <div className="flex items-center gap-1 text-slate-500">
-            <Clock className="w-3.5 h-3.5 text-slate-400" />
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <Clock className="size-3.5" aria-hidden />
             <span>{proveedor.leadTimeDias || '3-5'}d</span>
           </div>
         </div>
@@ -130,21 +130,14 @@ export default function TarjetaProveedor({
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
-            size="sm"
+            size="icon-sm"
             onClick={() => onEdit(proveedor)}
-            className="h-8 w-8 p-0 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60"
             title="Editar proveedor"
           >
-            <Edit2 className="w-3.5 h-3.5" />
+            <Edit2 aria-hidden />
           </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onSelect(proveedor)}
-            className="h-8 px-2.5 text-xs font-bold text-[#0369A1] border-sky-200 bg-sky-50/50 hover:bg-sky-100/80"
-          >
-            Ficha Detalle
+          <Button variant="outline" size="sm" onClick={() => onSelect(proveedor)}>
+            Ficha detalle
           </Button>
         </div>
       </div>

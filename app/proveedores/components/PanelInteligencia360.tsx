@@ -12,6 +12,14 @@ import { Button } from '@/components/ui/button'
 import type { Proveedor, CategoriaProveedor } from '@/lib/schemas'
 import type { ScorecardAutomatica } from '@/lib/proveedores-inteligencia-cruzada'
 import type { MatrizBackupProveedores } from '@/lib/proveedores'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 interface PanelInteligencia360Props {
   proveedores: Proveedor[]
@@ -75,10 +83,10 @@ export default function PanelInteligencia360({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-sky-50 text-[#0369A1] border border-sky-200">
+              <span className="p-1.5 rounded-lg bg-sky-50 text-primary border border-sky-200">
                 <Layers className="w-5 h-5" />
               </span>
-              <h2 className="text-lg font-extrabold text-slate-900">
+              <h2 className="text-lg font-bold text-slate-900">
                 Matriz de Cobertura: Proveedor Primario vs Backup
               </h2>
             </div>
@@ -86,7 +94,7 @@ export default function PanelInteligencia360({
               Garantiza la continuidad operativa del taller asignando un proveedor principal y una alternativa de respaldo por categoría de herramental.
             </p>
           </div>
-          <Badge variant="outline" className="bg-sky-50 text-[#0369A1] border-sky-200 text-xs w-fit">
+          <Badge variant="outline" className="bg-sky-50 text-primary border-sky-200 text-xs w-fit">
             Contingencia CNC Activa
           </Badge>
         </div>
@@ -123,7 +131,7 @@ export default function PanelInteligencia360({
                     <select
                       value={selPrimario}
                       onChange={(e) => handleSeleccionarPrimario(catItem.id, e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0369A1]"
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-primary"
                     >
                       <option value="">Seleccionar primario...</option>
                       {disponibles.map((p) => (
@@ -141,13 +149,13 @@ export default function PanelInteligencia360({
 
                   {/* Selector Backup */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-[#0369A1] flex items-center gap-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1">
                       <Zap className="w-3 h-3" /> Backup (Respaldo)
                     </label>
                     <select
                       value={selBackup}
                       onChange={(e) => handleSeleccionarBackup(catItem.id, e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0369A1]"
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-primary"
                     >
                       <option value="">Seleccionar backup...</option>
                       {disponibles.map((p) => (
@@ -177,7 +185,7 @@ export default function PanelInteligencia360({
               <span className="p-1.5 rounded-lg bg-amber-50 text-amber-600 border border-amber-200">
                 <Award className="w-5 h-5" />
               </span>
-              <h2 className="text-lg font-extrabold text-slate-900">
+              <h2 className="text-lg font-bold text-slate-900">
                 Scorecards de Desempeño 360° (Odoo + Requisiciones)
               </h2>
             </div>
@@ -219,49 +227,49 @@ export default function PanelInteligencia360({
           </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 font-bold uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="p-3">Proveedor</th>
-                  <th className="p-3 text-center">Órdenes Totales</th>
-                  <th className="p-3 text-center">Ratio Aprobación</th>
-                  <th className="p-3 text-center">Lead Time Score</th>
-                  <th className="p-3 text-center">Score General</th>
-                  <th className="p-3">Observaciones / Fortalezas</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+            <Table className="w-full text-left text-xs">
+              <TableHeader className="bg-slate-50 border-b border-slate-200 font-bold uppercase tracking-wider text-slate-500">
+                <TableRow>
+                  <TableHead className="p-3">Proveedor</TableHead>
+                  <TableHead className="p-3 text-center">Órdenes Totales</TableHead>
+                  <TableHead className="p-3 text-center">Ratio Aprobación</TableHead>
+                  <TableHead className="p-3 text-center">Lead Time Score</TableHead>
+                  <TableHead className="p-3 text-center">Score General</TableHead>
+                  <TableHead className="p-3">Observaciones / Fortalezas</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-slate-100 font-medium text-slate-700">
                 {scorecards.map((sc, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                    <td className="p-3 font-bold text-slate-900">
+                  <TableRow key={idx} className="hover:bg-slate-50 transition-colors">
+                    <TableCell className="p-3 font-bold text-slate-900">
                       {sc.proveedorNombre}
-                    </td>
+                    </TableCell>
 
-                    <td className="p-3 text-center font-mono">
+                    <TableCell className="p-3 text-center font-mono">
                       {sc.totalOrdenes} ({sc.ordenesAprobadas} aprobadas)
-                    </td>
+                    </TableCell>
 
-                    <td className="p-3 text-center">
+                    <TableCell className="p-3 text-center">
                       <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">
                         {((sc.ordenesAprobadas / Math.max(1, sc.totalOrdenes)) * 100).toFixed(0)}%
                       </Badge>
-                    </td>
+                    </TableCell>
 
-                    <td className="p-3 text-center font-bold text-sky-700">
+                    <TableCell className="p-3 text-center font-bold text-sky-700">
                       ⏱️ {sc.scoreCalidad.toFixed(1)} / 5.0
-                    </td>
+                    </TableCell>
 
-                    <td className="p-3 text-center font-extrabold text-amber-600 text-sm">
+                    <TableCell className="p-3 text-center font-bold text-amber-600 text-sm">
                       ⭐ {sc.promedioGeneral.toFixed(1)}
-                    </td>
+                    </TableCell>
 
-                    <td className="p-3 text-slate-500 text-[11px]">
+                    <TableCell className="p-3 text-slate-500 text-[11px]">
                       {sc.evaluacionPayload.fortalezas.join(', ') || 'Desempeño estable'}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>

@@ -71,4 +71,43 @@ describe("odoo-cotizacion schemas y payload", () => {
       expect(res.data.partidas[0].subtotal).toBe(388)
     }
   })
+
+  it("valida payload con campos de Orden de Trabajo (OT) vinculada", () => {
+    const payload = {
+      proveedor: "DISTRIBUIDORA DE TUNGSTENO RAZO*",
+      referenciaProveedor: "MVC2556",
+      moneda: "MXN",
+      fecha: "2026-08-19",
+      requisitorGeneral: "Antonio",
+      empresaGeneral: "Mecalux",
+      usoGeneral: "2026/S01641",
+      ordenTrabajoGeneral: "2026/S01641",
+      ordenTrabajoGeneralId: 2876,
+      partidas: [
+        {
+          id: "p1",
+          descripcion: "Tugsteno de carburo 3/16 x 3/4 x 6",
+          cantidad: 2,
+          udm: "Pieza",
+          precioUnitario: 2090.05,
+          subtotal: 4180.1,
+          impuesto: "IVA 16%",
+          tasaIva: 0.16,
+          requisitor: "Antonio",
+          empresa: "Mecalux",
+          uso: "S01641",
+          ordenTrabajo: "2026/S01641",
+          ordenTrabajoId: 2876,
+        },
+      ],
+    }
+
+    const res = CotizacionOdooPayloadSchema.safeParse(payload)
+    expect(res.success).toBe(true)
+    if (res.success) {
+      expect(res.data.ordenTrabajoGeneralId).toBe(2876)
+      expect(res.data.partidas[0].ordenTrabajoId).toBe(2876)
+      expect(res.data.partidas[0].ordenTrabajo).toBe("2026/S01641")
+    }
+  })
 })

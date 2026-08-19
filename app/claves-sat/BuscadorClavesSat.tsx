@@ -111,7 +111,7 @@ export default function BuscadorClavesSat() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Ej. resorte de compresión, tornillo, 31161500"
-              className="w-full rounded-xl border border-gray-300 bg-white py-3 pl-9 pr-4 text-sm text-gray-900 outline-none transition focus:border-blue-400"
+              className="w-full rounded-xl border border-gray-300 bg-white py-3 pl-9 pr-4 text-sm text-gray-900 outline-none transition focus:border-primary"
             />
           </div>
         </label>
@@ -139,7 +139,7 @@ export default function BuscadorClavesSat() {
                 : "Empieza escribiendo una descripción o una clave SAT."}
             </p>
           </div>
-          {loading && <Loader2 className="h-4 w-4 animate-spin text-blue-600" />}
+          {loading && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
         </div>
 
         {data && data.meta.total === 0 ? (

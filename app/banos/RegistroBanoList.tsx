@@ -11,8 +11,26 @@ import {
 } from '@/lib/format'
 import { resolverOperadorActivo } from '@/lib/banos-captura'
 import { MOTIVOS_SOLICITUD_BORRADO_BANO } from '@/lib/banos-solicitudes-borrado'
-import { Plus, Trash2, Check, Search, Pencil, X, Clock } from 'lucide-react'
+import { Plus, Trash2, Check, Search, Pencil, Clock } from 'lucide-react'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
+import { Button } from '@/components/ui/button'
+import ModuleSurface from '@/components/layout/ModuleSurface'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 const BANOS: Bano[] = ['Baño #1', 'Baño #2', 'CNC', 'Automatizacion']
 
@@ -311,8 +329,8 @@ export default function RegistroBanoList() {
               }}
               className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
                 bano === b
-                  ? 'bg-[#0369A1] text-white border-[#0369A1]'
-                  : 'bg-white text-gray-700 border-gray-200 hover:border-[#0369A1]/50'
+                  ? 'bg-primary text-white border-primary'
+                  : 'bg-white text-gray-700 border-gray-200 hover:border-primary/50'
               }`}
             >
               {b}
@@ -334,7 +352,7 @@ export default function RegistroBanoList() {
                 setErrorDuplicado(null)
                 setErrorCaptura(null)
               }}
-              className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:border-[#0369A1]"
+              className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:border-primary"
             />
             <datalist id="operadores-list">
               {operadoresActivos.map(op => (
@@ -356,7 +374,7 @@ export default function RegistroBanoList() {
                   ? 'Selecciona un baño primero'
                   : undefined
             }
-            className="bg-[#0369A1] hover:bg-[#0284C7] text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 sm:ml-auto"
+            className="bg-primary hover:bg-primary/90 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 sm:ml-auto"
           >
             <Plus className="h-4 w-4" />
             Registrar Entrada
@@ -371,7 +389,7 @@ export default function RegistroBanoList() {
           placeholder="Buscar operador..."
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1]"
+          className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
         />
       </div>
 
@@ -381,43 +399,43 @@ export default function RegistroBanoList() {
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
             En el baño ({enCurso.length})
           </h3>
-          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-            <table className="min-w-[560px] w-full text-left text-xs">
-              <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
-                <tr>
-                  <th className="px-4 py-2">Operador</th>
-                  <th className="px-4 py-2">Baño</th>
-                  <th className="px-4 py-2 w-20">Entrada</th>
-                  <th className="px-4 py-2 w-28 text-right">Acción</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
+          <ModuleSurface>
+            <Table className="text-xs">
+              <TableHeader className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+                <TableRow>
+                  <TableHead className="px-4 py-2">Operador</TableHead>
+                  <TableHead className="px-4 py-2">Baño</TableHead>
+                  <TableHead className="px-4 py-2 w-20">Entrada</TableHead>
+                  <TableHead className="px-4 py-2 w-28 text-right">Acción</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-gray-100">
                 {enCurso.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-6 text-center text-gray-500 text-xs">
+                  <TableRow>
+                    <TableCell colSpan={4} className="px-4 py-6 text-center text-gray-500 text-xs">
                       {filtro && enCursoTodos.length > 0 ? 'Sin coincidencias' : 'Nadie en el baño'}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   enCurso.map((r) => (
-                    <tr key={r.id} className="hover:bg-amber-50/50">
-                      <td className="px-4 py-2 font-medium text-gray-900">
+                    <TableRow key={r.id} className="hover:bg-amber-50/50">
+                      <TableCell className="px-4 py-2 font-medium text-gray-900">
                         <div className="flex items-center gap-2">
                           <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${AREA_COLORS[operadoresActivos.find(o => o.nombre === r.operador)?.area || 'taller'] || 'bg-gray-100 text-gray-600'}`}>
                             {getInitials(r.operador)}
                           </div>
                           {r.operador}
                         </div>
-                      </td>
-                      <td className="px-4 py-2 text-gray-600">{r.bano}</td>
-                      <td className="px-4 py-2 text-gray-900">{r.horaEntrada}</td>
-                      <td className="px-4 py-2 text-right">
+                      </TableCell>
+                      <TableCell className="px-4 py-2 text-gray-600">{r.bano}</TableCell>
+                      <TableCell className="px-4 py-2 text-gray-900">{r.horaEntrada}</TableCell>
+                      <TableCell className="px-4 py-2 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
                             type="button"
                             onClick={() => abrirModalEditar(r)}
                             title="Editar hora de entrada"
-                            className="text-xs font-semibold text-[#0369A1] bg-sky-50 hover:bg-sky-100 border border-sky-200/80 px-2 py-0.5 rounded-md inline-flex items-center gap-1 transition-colors"
+                            className="text-xs font-semibold text-primary bg-sky-50 hover:bg-sky-100 border border-sky-200/80 px-2 py-0.5 rounded-md inline-flex items-center gap-1 transition-colors"
                           >
                             <Pencil className="h-3 w-3" />
                             Editar
@@ -447,13 +465,13 @@ export default function RegistroBanoList() {
                             )
                           )}
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+          </ModuleSurface>
         </div>
 
         <div>
@@ -461,53 +479,53 @@ export default function RegistroBanoList() {
             <span className="w-2 h-2 rounded-full bg-gray-300"></span>
             Completados hoy ({terminados.length})
           </h3>
-          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-            <table className="min-w-[560px] w-full text-left text-xs">
-              <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
-                <tr>
-                  <th className="px-4 py-2">Operador</th>
-                  <th className="px-4 py-2">Baño</th>
-                  <th className="px-4 py-2 w-32">Horario</th>
-                  <th className="px-4 py-2 w-20 text-right">Total</th>
-                  <th className="px-4 py-2 w-16 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
+          <ModuleSurface>
+            <Table className="text-xs">
+              <TableHeader className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+                <TableRow>
+                  <TableHead className="px-4 py-2">Operador</TableHead>
+                  <TableHead className="px-4 py-2">Baño</TableHead>
+                  <TableHead className="px-4 py-2 w-32">Horario</TableHead>
+                  <TableHead className="px-4 py-2 w-20 text-right">Total</TableHead>
+                  <TableHead className="px-4 py-2 w-16 text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-gray-100">
                 {terminados.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-gray-500 text-xs">
+                  <TableRow>
+                    <TableCell colSpan={5} className="px-4 py-6 text-center text-gray-500 text-xs">
                       {filtro && terminadosTodos.length > 0 ? 'Sin coincidencias' : 'No hay registros completados'}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   terminados.map((r) => (
-                    <tr key={r.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 font-medium text-gray-900">
+                    <TableRow key={r.id} className="hover:bg-gray-50">
+                      <TableCell className="px-4 py-2 font-medium text-gray-900">
                         <div className="flex items-center gap-2">
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold ${AREA_COLORS[operadoresActivos.find(o => o.nombre === r.operador)?.area || 'taller'] || 'bg-gray-100 text-gray-600'}`}>
                             {getInitials(r.operador)}
                           </div>
                           {r.operador}
                         </div>
-                      </td>
-                      <td className="px-4 py-2 text-gray-500 text-xs">{r.bano}</td>
-                      <td
+                      </TableCell>
+                      <TableCell className="px-4 py-2 text-gray-500 text-xs">{r.bano}</TableCell>
+                      <TableCell
                         onClick={() => abrirModalEditar(r)}
-                        className="px-4 py-2 text-gray-600 text-xs tracking-tighter cursor-pointer hover:text-[#0369A1] hover:underline"
+                        className="px-4 py-2 text-gray-600 text-xs tracking-tighter cursor-pointer hover:text-primary hover:underline"
                         title="Clic para editar horario"
                       >
                         {r.horaEntrada} - {r.horaLlegada}
-                      </td>
-                      <td className="px-4 py-2 text-right font-medium text-gray-900">
+                      </TableCell>
+                      <TableCell className="px-4 py-2 text-right font-medium text-gray-900">
                         {r.tiempoMinutos} m
-                      </td>
-                      <td className="px-4 py-2 text-right">
+                      </TableCell>
+                      <TableCell className="px-4 py-2 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
                             onClick={() => abrirModalEditar(r)}
                             title="Editar hora que llegó / horario"
-                            className="text-xs font-semibold text-[#0369A1] bg-sky-50 hover:bg-sky-100 border border-sky-200/80 px-2 py-0.5 rounded-md inline-flex items-center gap-1 transition-colors"
+                            className="text-xs font-semibold text-primary bg-sky-50 hover:bg-sky-100 border border-sky-200/80 px-2 py-0.5 rounded-md inline-flex items-center gap-1 transition-colors"
                           >
                             <Pencil className="h-3 w-3" />
                             Editar
@@ -539,34 +557,26 @@ export default function RegistroBanoList() {
                             )
                           )}
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+          </ModuleSurface>
         </div>
       </div>
 
-      {/* Modal de edición de horario */}
-      {editandoRegistro && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-md p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="font-bold text-slate-900 text-base">Editar Horario de Registro</h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {editandoRegistro.operador} — <span className="font-medium text-slate-700">{editandoRegistro.bano}</span> ({editandoRegistro.fecha})
-                </p>
-              </div>
-              <button
-                onClick={() => setEditandoRegistro(null)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-100 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+      <Dialog open={editandoRegistro != null} onOpenChange={(open) => !open && setEditandoRegistro(null)}>
+        <DialogContent className="max-w-md sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar horario de registro</DialogTitle>
+            {editandoRegistro ? (
+              <DialogDescription>
+                {editandoRegistro.operador} — {editandoRegistro.bano} ({editandoRegistro.fecha})
+              </DialogDescription>
+            ) : null}
+          </DialogHeader>
 
             {errorEdit && (
               <div className="bg-red-50 border border-red-200 text-red-700 p-2.5 rounded-lg text-xs">
@@ -586,7 +596,7 @@ export default function RegistroBanoList() {
                     required
                     value={editHoraEntrada}
                     onChange={(e) => setEditHoraEntrada(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0369A1]/20 focus:border-[#0369A1]"
+                    className="w-full rounded-lg border border-input px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
                   />
                 </div>
 
@@ -600,7 +610,7 @@ export default function RegistroBanoList() {
                     required
                     value={editHoraLlegada}
                     onChange={(e) => setEditHoraLlegada(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0369A1]/20 focus:border-[#0369A1]"
+                    className="w-full rounded-lg border border-input px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
                   />
                 </div>
               </div>
@@ -608,50 +618,33 @@ export default function RegistroBanoList() {
               {/* Dynamic preview badge */}
               <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-center justify-between text-xs">
                 <span className="text-slate-600 font-medium">Duración recalculada:</span>
-                <span className="font-bold text-[#0369A1] text-sm bg-sky-50 border border-sky-200/60 px-2 py-0.5 rounded">
+                <span className="rounded border border-sky-200/60 bg-sky-50 px-2 py-0.5 text-sm font-bold text-primary">
                   {editHoraEntrada && editHoraLlegada ? `${calcularMinutos(editHoraEntrada, editHoraLlegada)} min` : '--'}
                 </span>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setEditandoRegistro(null)}
-                  className="px-3.5 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
-                >
+              <DialogFooter>
+                <Button type="button" variant="outline" size="sm" onClick={() => setEditandoRegistro(null)}>
                   Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={guardandoEdit}
-                  className="px-4 py-1.5 text-xs font-semibold bg-[#0369A1] hover:bg-[#0284C7] text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
-                >
-                  {guardandoEdit ? 'Guardando...' : 'Guardar Horario'}
-                </button>
-              </div>
+                </Button>
+                <Button type="submit" size="sm" disabled={guardandoEdit}>
+                  {guardandoEdit ? 'Guardando...' : 'Guardar horario'}
+                </Button>
+              </DialogFooter>
             </form>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
-      {/* Modal de solicitud de eliminación */}
-      {solicitandoRegistro && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-md p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="font-bold text-slate-900 text-base">Solicitar eliminación</h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {solicitandoRegistro.operador} — <span className="font-medium text-slate-700">{solicitandoRegistro.bano}</span> ({solicitandoRegistro.fecha})
-                </p>
-              </div>
-              <button
-                onClick={() => setSolicitandoRegistro(null)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-100 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+      <Dialog open={solicitandoRegistro != null} onOpenChange={(open) => !open && setSolicitandoRegistro(null)}>
+        <DialogContent className="max-w-md sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Solicitar eliminación</DialogTitle>
+            {solicitandoRegistro ? (
+              <DialogDescription>
+                {solicitandoRegistro.operador} — {solicitandoRegistro.bano} ({solicitandoRegistro.fecha})
+              </DialogDescription>
+            ) : null}
+          </DialogHeader>
 
             {errorSolicitud && (
               <div className="bg-red-50 border border-red-200 text-red-700 p-2.5 rounded-lg text-xs">
@@ -666,10 +659,10 @@ export default function RegistroBanoList() {
                     key={m.value}
                     type="button"
                     onClick={() => setMotivoSolicitud(m.value)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                       motivoSolicitud === m.value
-                        ? 'bg-[#0369A1] text-white border-[#0369A1]'
-                        : 'bg-white text-gray-700 border-gray-200 hover:border-[#0369A1]/50'
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border bg-background text-foreground hover:border-primary/50'
                     }`}
                   >
                     {m.label}
@@ -684,30 +677,21 @@ export default function RegistroBanoList() {
                   onChange={(e) => setNotaSolicitud(e.target.value)}
                   placeholder="Explica brevemente el motivo..."
                   rows={3}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0369A1]/20 focus:border-[#0369A1]"
+                  className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
                 />
               )}
 
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setSolicitandoRegistro(null)}
-                  className="px-3.5 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
-                >
+              <DialogFooter>
+                <Button type="button" variant="outline" size="sm" onClick={() => setSolicitandoRegistro(null)}>
                   Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={enviandoSolicitud || !motivoSolicitud}
-                  className="px-4 py-1.5 text-xs font-semibold bg-[#0369A1] hover:bg-[#0284C7] text-white rounded-lg transition-colors disabled:opacity-50"
-                >
+                </Button>
+                <Button type="submit" size="sm" disabled={enviandoSolicitud || !motivoSolicitud}>
                   {enviandoSolicitud ? 'Enviando...' : 'Enviar solicitud'}
-                </button>
-              </div>
+                </Button>
+              </DialogFooter>
             </form>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

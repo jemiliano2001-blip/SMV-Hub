@@ -289,7 +289,7 @@ export default function IntegrityWorkspace() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 px-1">
-        <ShieldCheck className="h-5 w-5 text-[#0369A1]" aria-hidden="true" />
+        <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" />
         <div>
           <h1 className="text-xl font-semibold text-slate-950">Integridad del gasto</h1>
           <p className="text-sm text-slate-600">
@@ -381,21 +381,32 @@ export default function IntegrityWorkspace() {
         </Sheet>
       )}
 
-      {viewport === "mobile" && selectedId && (
-        <div className="fixed inset-0 z-50 overflow-hidden bg-white">
-          <IntegrityInspector
-            detail={detail}
-            loading={detailLoading}
-            error={detailError}
-            fresh={trust.sourceStatus === "current"}
-            busy={busy}
-            message={message}
-            onRetry={() => void loadDetail(selectedId, trust.activeRunId ?? undefined)}
-            onBack={closeResponsiveDetail}
-            onCommand={runCommand}
-            onNext={items.length > 1 ? nextCase : undefined}
-          />
-        </div>
+      {viewport === "mobile" && (
+        <Sheet open={selectedId != null} onOpenChange={(open) => !open && closeResponsiveDetail()}>
+          <SheetContent
+            side="bottom"
+            className="h-[100dvh] max-h-[100dvh] w-full gap-0 overflow-hidden p-0"
+          >
+            <SheetHeader className="sr-only">
+              <SheetTitle>Detalle del caso de Integridad</SheetTitle>
+              <SheetDescription>
+                Evidencia y acciones del workflow seleccionado.
+              </SheetDescription>
+            </SheetHeader>
+            <IntegrityInspector
+              detail={detail}
+              loading={detailLoading}
+              error={detailError}
+              fresh={trust.sourceStatus === "current"}
+              busy={busy}
+              message={message}
+              onRetry={() => selectedId && void loadDetail(selectedId, trust.activeRunId ?? undefined)}
+              onBack={closeResponsiveDetail}
+              onCommand={runCommand}
+              onNext={items.length > 1 ? nextCase : undefined}
+            />
+          </SheetContent>
+        </Sheet>
       )}
     </div>
   )

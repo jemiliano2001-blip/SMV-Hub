@@ -4,6 +4,8 @@ import { useMemo, useState } from "react"
 import { AlertTriangle, Boxes, ClipboardList, Clock, PackageCheck, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import PageHeader from "@/components/layout/PageHeader"
+import PageShell from "@/components/layout/PageShell"
 import { useEndmills } from "@/lib/hooks/useEndmills"
 import { useUsuario } from "@/lib/auth"
 import { calcularLeadTimePromedio, clasificarStockEndmill } from "@/lib/endmills-calculos"
@@ -45,37 +47,31 @@ export default function EndmillsView() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-7xl space-y-4 px-4 py-6 sm:px-6 lg:px-8">
-        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <Boxes className="h-5 w-5 text-sky-700" />
-                <h1 className="text-lg font-bold tracking-tight text-slate-950">Endmills China</h1>
-                <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-700">
-                  USD
+    <PageShell>
+        <PageHeader
+          title="Endmills China"
+          badge="USD"
+          icon={Boxes}
+          description="Inventario, precios y ciclos con ChangZhou North Alloy Tool Co. · Rita"
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              {leadTimePromedio !== null ? (
+                <span className="flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                  <Clock className="size-3 text-emerald-600" aria-hidden />
+                  Lead time promedio: {leadTimePromedio} días
                 </span>
-                {leadTimePromedio !== null && (
-                  <span className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                    <Clock className="h-3 w-3 text-emerald-600" />
-                    Lead time promedio: {leadTimePromedio} días
-                  </span>
-                )}
-              </div>
-              <p className="mt-1 text-xs text-slate-500">
-                Inventario, precios y ciclos con ChangZhou North Alloy Tool Co. · Rita
-              </p>
+              ) : null}
+              <Button
+                size="sm"
+                onClick={() => setRevisionAbierta(true)}
+                disabled={endmills.medidas.length === 0 || !usuario}
+              >
+                <ClipboardList data-icon="inline-start" />
+                Preparar pedido
+              </Button>
             </div>
-            <Button
-              onClick={() => setRevisionAbierta(true)}
-              disabled={endmills.medidas.length === 0 || !usuario}
-              className="bg-sky-700 hover:bg-sky-800"
-            >
-              <ClipboardList className="h-4 w-4" />
-              Preparar pedido
-            </Button>
-          </div>
+          }
+        />
 
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
             <Kpi
@@ -114,7 +110,6 @@ export default function EndmillsView() {
               onClick={() => toggleFiltro("confirmar")}
             />
           </div>
-        </section>
 
         {(endmills.errorMedidas || endmills.errorPedidos) && (
           <div className="flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
@@ -130,6 +125,36 @@ export default function EndmillsView() {
               <RefreshCw className="h-3.5 w-3.5" />
               Reintentar
             </Button>
+          </div>
+        )}
+
+        {resumen.criticas > 0 && filtroEstado !== 'critico' && (
+          <div className="flex flex-col gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-300 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0" />
+              <span>
+                Hay <strong className="text-rose-200 font-bold">{resumen.criticas}</strong> herramientas en nivel crítico por debajo del stock objetivo.
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => toggleFiltro('critico')}
+                className="h-7 text-xs border-rose-500/40 text-rose-300 hover:bg-rose-500/20"
+              >
+                Filtrar críticas
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setRevisionAbierta(true)}
+                disabled={!usuario}
+                className="h-7 text-xs bg-rose-600 hover:bg-rose-500 text-white gap-1"
+              >
+                <ClipboardList className="h-3 w-3" />
+                Preparar pedido
+              </Button>
+            </div>
           </div>
         )}
 
@@ -163,7 +188,6 @@ export default function EndmillsView() {
             />
           </TabsContent>
         </Tabs>
-      </div>
 
       {revisionAbierta && (
         <RevisionPedidoEndmills
@@ -174,7 +198,7 @@ export default function EndmillsView() {
           onClose={() => setRevisionAbierta(false)}
         />
       )}
-    </main>
+    </PageShell>
   )
 }
 

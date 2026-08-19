@@ -4,6 +4,14 @@ import { useState } from "react"
 import type { FacturaProveedor } from "@/lib/schemas"
 import { formatPrecio, fechaHoyLocal } from "@/lib/format"
 import { Search } from "lucide-react"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 interface TablaCuentasPorPagarProps {
   facturas: FacturaProveedor[]
@@ -39,7 +47,7 @@ export function TablaCuentasPorPagar({ facturas }: TablaCuentasPorPagarProps) {
             placeholder="Buscar por folio, proveedor u orden..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0369A1] focus:border-transparent transition-all"
+            className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
           />
         </div>
 
@@ -79,40 +87,40 @@ export function TablaCuentasPorPagar({ facturas }: TablaCuentasPorPagarProps) {
 
       {/* Tabla */}
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500">
-            <tr>
-              <th className="px-4 py-3">Factura / Folio</th>
-              <th className="px-4 py-3">Proveedor</th>
-              <th className="px-4 py-3">Fecha Factura</th>
-              <th className="px-4 py-3">Vencimiento</th>
-              <th className="px-4 py-3 text-right">Total Odoo</th>
-              <th className="px-4 py-3 text-right">Saldo Pendiente</th>
-              <th className="px-4 py-3 text-center">Estado Pago</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
+        <Table className="w-full text-left text-xs">
+          <TableHeader className="bg-slate-50 border-b border-slate-200 text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500">
+            <TableRow>
+              <TableHead className="px-4 py-3">Factura / Folio</TableHead>
+              <TableHead className="px-4 py-3">Proveedor</TableHead>
+              <TableHead className="px-4 py-3">Fecha Factura</TableHead>
+              <TableHead className="px-4 py-3">Vencimiento</TableHead>
+              <TableHead className="px-4 py-3 text-right">Total Odoo</TableHead>
+              <TableHead className="px-4 py-3 text-right">Saldo Pendiente</TableHead>
+              <TableHead className="px-4 py-3 text-center">Estado Pago</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="divide-y divide-slate-100">
             {facturasFiltradas.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-slate-500 font-mono text-xs">
+              <TableRow>
+                <TableCell colSpan={7} className="px-4 py-8 text-center text-slate-500 font-mono text-xs">
                   No se encontraron facturas de proveedor con los criterios seleccionados.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               facturasFiltradas.map((f) => {
                 const esVencida = f.saldoPendiente > 0 && f.fechaVencimiento && f.fechaVencimiento < hoyStr
 
                 return (
-                  <tr key={f.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-4 py-3 font-mono font-semibold text-slate-900">
+                  <TableRow key={f.id} className="hover:bg-slate-50/80 transition-colors">
+                    <TableCell className="px-4 py-3 font-mono font-semibold text-slate-900">
                       {f.numeroFactura}
                       {f.origenPo && (
                         <div className="text-[11px] text-slate-500 font-normal font-sans">PO: {f.origenPo}</div>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 font-medium">{f.proveedorNombre || "N/A"}</td>
-                    <td className="px-4 py-3 text-slate-500 font-mono text-[11px]">{f.fechaFactura || "—"}</td>
-                    <td className="px-4 py-3 font-mono text-[11px]">
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-slate-700 font-medium">{f.proveedorNombre || "N/A"}</TableCell>
+                    <TableCell className="px-4 py-3 text-slate-500 font-mono text-[11px]">{f.fechaFactura || "—"}</TableCell>
+                    <TableCell className="px-4 py-3 font-mono text-[11px]">
                       {f.fechaVencimiento ? (
                         <span className={esVencida ? "text-rose-600 font-bold" : "text-slate-600"}>
                           {f.fechaVencimiento} {esVencida && "(Vencida)"}
@@ -120,14 +128,14 @@ export function TablaCuentasPorPagar({ facturas }: TablaCuentasPorPagarProps) {
                       ) : (
                         <span className="text-slate-400">—</span>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono font-bold text-slate-900 tabular-nums">
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-right font-mono font-bold text-slate-900 tabular-nums">
                       {formatPrecio(f.total, f.moneda)}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono font-bold text-amber-700 tabular-nums">
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-right font-mono font-bold text-amber-700 tabular-nums">
                       {f.saldoPendiente > 0 ? formatPrecio(f.saldoPendiente, f.moneda) : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-center">
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-center">
                       {f.saldoPendiente <= 0 ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                           Pagada
@@ -141,13 +149,13 @@ export function TablaCuentasPorPagar({ facturas }: TablaCuentasPorPagarProps) {
                           Pendiente
                         </span>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )
               })
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   )

@@ -1,8 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { ShoppingCart, Download, Trash2, X, Plus, Minus, Building2, ChevronRight } from 'lucide-react'
+import { ShoppingCart, Download, Trash2, Plus, Minus, Building2, ChevronRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { formatPrecio } from '@/lib/format'
 import type { PartidaPresupuesto } from '@/lib/hooks/usePresupuestoInsumos'
 import type { CompraOdooItem } from '@/lib/schemas'
@@ -72,7 +81,7 @@ export default function DrawerPresupuestoInsumos({
           </div>
 
           <div className="text-left font-mono">
-            <p className="text-xs font-extrabold text-white">Presupuesto de Materiales</p>
+            <p className="text-xs font-bold text-white">Presupuesto de materiales</p>
             <p className="text-[11px] text-emerald-400 font-bold">
               {formatPrecio(totalMxn, 'MXN')} · {formatPrecio(totalUsd, 'USD')}
             </p>
@@ -82,30 +91,17 @@ export default function DrawerPresupuestoInsumos({
         </button>
       </div>
 
-      {/* Drawer Overlay y Modal */}
-      {abierto && (
-        <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/60 backdrop-blur-xs flex justify-end">
-          <div className="w-full max-w-2xl bg-white h-full shadow-2xl flex flex-col justify-between animate-in slide-in-from-right duration-300">
-            {/* Header del Drawer */}
-            <div className="p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <ShoppingCart className="h-5 w-5 text-sky-400" />
-                <div>
-                  <h2 className="text-sm font-extrabold">Presupuesto de Insumos</h2>
-                  <p className="text-xs text-slate-400">
-                    {totalPartidas} {totalPartidas === 1 ? 'partida agregada' : 'partidas agregadas'}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setAbierto(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      <Sheet open={abierto} onOpenChange={setAbierto}>
+        <SheetContent side="right" className="flex h-full w-full max-w-2xl flex-col gap-0 p-0 sm:max-w-2xl">
+          <SheetHeader className="border-b border-border px-4 py-3">
+            <SheetTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5 text-primary" />
+              Presupuesto de insumos
+            </SheetTitle>
+            <SheetDescription>
+              {totalPartidas} {totalPartidas === 1 ? 'partida agregada' : 'partidas agregadas'}
+            </SheetDescription>
+          </SheetHeader>
 
             {/* Cuerpo del Drawer: Lista de Partidas */}
             <div className="p-4 overflow-y-auto flex-1 space-y-3">
@@ -128,7 +124,7 @@ export default function DrawerPresupuestoInsumos({
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className="text-xs font-extrabold text-slate-900 line-clamp-2">
+                          <p className="line-clamp-2 text-xs font-bold text-slate-900">
                             {p.descripcion}
                           </p>
                           <div className="flex items-center gap-2 mt-1">
@@ -196,7 +192,7 @@ export default function DrawerPresupuestoInsumos({
                             >
                               <Minus className="h-3 w-3" />
                             </button>
-                            <span className="px-2 py-0.5 font-mono font-extrabold text-xs text-slate-900 min-w-[24px] text-center">
+                            <span className="px-2 py-0.5 font-mono font-bold text-xs text-slate-900 min-w-[24px] text-center">
                               {p.cantidad}
                             </span>
                             <button
@@ -209,7 +205,7 @@ export default function DrawerPresupuestoInsumos({
                           </div>
 
                           <div className="text-right font-mono">
-                            <p className="text-xs font-extrabold text-slate-900">
+                            <p className="text-xs font-bold text-slate-900">
                               {formatPrecio(p.subtotal, p.moneda === 'USD' ? 'USD' : 'MXN')}
                             </p>
                             <p className="text-[10px] text-slate-400">
@@ -224,53 +220,52 @@ export default function DrawerPresupuestoInsumos({
               )}
             </div>
 
-            {/* Footer con Totales y Botones de Exportación */}
             {partidas.length > 0 && (
-              <div className="p-4 bg-slate-100 border-t border-slate-200 space-y-3">
-                <div className="grid grid-cols-2 gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-xs font-mono">
-                  <div className="bg-emerald-50 border border-emerald-100 p-2.5 rounded-lg">
-                    <p className="text-[10px] font-extrabold uppercase text-emerald-700">
-                      Total MXN Estimado
+              <SheetFooter className="border-t border-border bg-muted/30">
+                <div className="grid w-full grid-cols-2 gap-3 rounded-xl border border-border bg-card p-3 font-mono shadow-xs">
+                  <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-2.5">
+                    <p className="text-[10px] font-bold uppercase text-emerald-700">
+                      Total MXN estimado
                     </p>
-                    <p className="text-lg font-black text-emerald-950 mt-0.5">
+                    <p className="mt-0.5 text-lg font-bold text-emerald-950">
                       {formatPrecio(totalMxn, 'MXN')}
                     </p>
                   </div>
 
-                  <div className="bg-sky-50 border border-sky-100 p-2.5 rounded-lg">
-                    <p className="text-[10px] font-extrabold uppercase text-sky-700">
-                      Total USD Estimado
+                  <div className="rounded-lg border border-sky-100 bg-sky-50 p-2.5">
+                    <p className="text-[10px] font-bold uppercase text-sky-700">
+                      Total USD estimado
                     </p>
-                    <p className="text-lg font-black text-sky-950 mt-0.5">
+                    <p className="mt-0.5 text-lg font-bold text-sky-950">
                       {formatPrecio(totalUsd, 'USD')}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button
+                <div className="flex w-full items-center gap-2">
+                  <Button
                     type="button"
                     onClick={onExportarAExcel}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-xl shadow-xs transition-colors"
+                    className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700"
                   >
-                    <Download className="h-4 w-4" />
+                    <Download />
                     Exportar a Excel (.csv)
-                  </button>
+                  </Button>
 
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="icon"
                     onClick={onLimpiarTodo}
-                    className="p-2.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors border border-slate-300"
                     title="Vaciar presupuesto"
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                    <Trash2 />
+                  </Button>
                 </div>
-              </div>
+              </SheetFooter>
             )}
-          </div>
-        </div>
-      )}
+        </SheetContent>
+      </Sheet>
     </>
   )
 }

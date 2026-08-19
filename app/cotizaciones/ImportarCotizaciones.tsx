@@ -17,6 +17,15 @@ import {
 } from '@/lib/cotizaciones-importar'
 import { clavesExistentes } from '@/lib/cotizaciones'
 import { formatPrecio } from '@/lib/format'
+import ModuleSurface from '@/components/layout/ModuleSurface'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 const cls = {
   section: 'rounded-xl border border-gray-200 bg-white p-6 shadow-xs',
@@ -154,7 +163,7 @@ export default function ImportarCotizaciones() {
           </p>
           <button
             onClick={reiniciar}
-            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
           >
             Importar otro archivo
           </button>
@@ -190,7 +199,7 @@ export default function ImportarCotizaciones() {
               <button
                 onClick={importar}
                 disabled={importando || seleccionadas === 0}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
                 {importando ? (
                   <>
@@ -205,58 +214,58 @@ export default function ImportarCotizaciones() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
-          <div className="overflow-x-auto max-h-[60vh]">
-            <table className="w-full text-sm text-left text-gray-500">
-              <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200 sticky top-0">
-                <tr>
-                  <th className="px-3 py-3 w-10"></th>
-                  <th className="px-3 py-3 font-semibold whitespace-nowrap">Fecha</th>
-                  <th className="px-3 py-3 font-semibold whitespace-nowrap">Proveedor</th>
-                  <th className="px-3 py-3 font-semibold">Descripción</th>
-                  <th className="px-3 py-3 font-semibold whitespace-nowrap">No. parte</th>
-                  <th className="px-3 py-3 font-semibold text-center">Ubic.</th>
-                  <th className="px-3 py-3 font-semibold text-center">Cant.</th>
-                  <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">P. Unit.</th>
-                  <th className="px-3 py-3 font-semibold">Notas / estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
+        <ModuleSurface>
+          <div className="max-h-[60vh]">
+            <Table className="text-sm text-left text-muted-foreground">
+              <TableHeader className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200 sticky top-0">
+                <TableRow>
+                  <TableHead className="px-3 py-3 w-10"></TableHead>
+                  <TableHead className="px-3 py-3 font-semibold whitespace-nowrap">Fecha</TableHead>
+                  <TableHead className="px-3 py-3 font-semibold whitespace-nowrap">Proveedor</TableHead>
+                  <TableHead className="px-3 py-3 font-semibold">Descripción</TableHead>
+                  <TableHead className="px-3 py-3 font-semibold whitespace-nowrap">No. parte</TableHead>
+                  <TableHead className="px-3 py-3 font-semibold text-center">Ubic.</TableHead>
+                  <TableHead className="px-3 py-3 font-semibold text-center">Cant.</TableHead>
+                  <TableHead className="px-3 py-3 font-semibold text-right whitespace-nowrap">P. Unit.</TableHead>
+                  <TableHead className="px-3 py-3 font-semibold">Notas / estado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-gray-100">
                 {filas.map((f) => {
                   const conErr = f.errores.length > 0
                   const dup = duplicados.has(f.indice)
                   return (
-                    <tr key={f.indice} className={conErr ? 'bg-red-50/40' : dup ? 'bg-yellow-50/40' : ''}>
-                      <td className="px-3 py-2.5 text-center">
+                    <TableRow key={f.indice} className={conErr ? 'bg-red-50/40' : dup ? 'bg-yellow-50/40' : ''}>
+                      <TableCell className="px-3 py-2.5 text-center">
                         <input
                           type="checkbox"
                           checked={f.seleccionada}
                           disabled={conErr}
                           onChange={() => toggleFila(f.indice)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer disabled:opacity-40"
+                          className="rounded border-gray-300 text-primary focus:ring-ring cursor-pointer disabled:opacity-40"
                         />
-                      </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap">{f.datos.fecha ?? '-'}</td>
-                      <td className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap">{f.datos.proveedor || '—'}</td>
-                      <td className="px-3 py-2.5 text-gray-900 min-w-[200px]">{f.datos.descripcion || '—'}</td>
-                      <td className="px-3 py-2.5 font-mono text-xs whitespace-nowrap">{f.datos.numeroParte ?? '-'}</td>
-                      <td className="px-3 py-2.5 text-center">{f.datos.ubicacion === 'USA' ? 'EUA' : 'MX'}</td>
-                      <td className="px-3 py-2.5 text-center">{f.datos.cantidad ?? '-'}</td>
-                      <td className="px-3 py-2.5 text-right whitespace-nowrap">{formatPrecio(f.datos.precioUnitario, f.datos.moneda)}</td>
-                      <td className="px-3 py-2.5">
+                      </TableCell>
+                      <TableCell className="px-3 py-2.5 whitespace-nowrap">{f.datos.fecha ?? '-'}</TableCell>
+                      <TableCell className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap">{f.datos.proveedor || '—'}</TableCell>
+                      <TableCell className="px-3 py-2.5 text-gray-900 min-w-[200px]">{f.datos.descripcion || '—'}</TableCell>
+                      <TableCell className="px-3 py-2.5 font-mono text-xs whitespace-nowrap">{f.datos.numeroParte ?? '-'}</TableCell>
+                      <TableCell className="px-3 py-2.5 text-center">{f.datos.ubicacion === 'USA' ? 'EUA' : 'MX'}</TableCell>
+                      <TableCell className="px-3 py-2.5 text-center">{f.datos.cantidad ?? '-'}</TableCell>
+                      <TableCell className="px-3 py-2.5 text-right whitespace-nowrap">{formatPrecio(f.datos.precioUnitario, f.datos.moneda)}</TableCell>
+                      <TableCell className="px-3 py-2.5">
                         {conErr && <span className="text-xs text-red-600 font-medium">{f.errores.join(', ')}</span>}
                         {!conErr && dup && <span className="text-xs text-yellow-700 font-medium">Ya existe (duplicada)</span>}
                         {!conErr && !dup && f.advertencias.length > 0 && (
                           <span className="text-xs text-gray-400">{f.advertencias.join(', ')}</span>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   )
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
-        </div>
+        </ModuleSurface>
       </div>
     )
   }
@@ -285,7 +294,7 @@ export default function ImportarCotizaciones() {
             dragActive ? 'border-blue-500 bg-blue-50/50' : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50/30'
           }`}
         >
-          <UploadCloud className={`h-12 w-12 transition-colors ${dragActive ? 'text-blue-600' : 'text-gray-400'}`} />
+          <UploadCloud className={`h-12 w-12 transition-colors ${dragActive ? 'text-primary' : 'text-gray-400'}`} />
           <div className="text-center">
             <span className="text-sm font-semibold text-gray-700 block mb-1">
               Haz clic para seleccionar o arrastra un archivo CSV

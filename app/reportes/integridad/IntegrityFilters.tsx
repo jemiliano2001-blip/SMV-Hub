@@ -213,7 +213,7 @@ export default function IntegrityFilters({
               {chip.label}
               <button
                 type="button"
-                className="rounded-sm p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0369A1]"
+                className="rounded-sm p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label={`Quitar filtro ${chip.label}`}
                 onClick={() => onChange({ ...filters, [chip.key]: "all" })}
               >

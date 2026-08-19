@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Mail } from "lucide-react"
+import { Mail, Download } from "lucide-react"
 import ModalEnviarReporte from "@/app/reportes/components/ModalEnviarReporte"
 import type { Grupo, Kpis, CriterioAgrupacion } from "@/lib/reportes"
 
@@ -90,7 +90,8 @@ export default function CabeceraReporte({
             onClick={handleImprimir}
             className="flex min-h-9 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 sm:flex-none"
           >
-            ⬇ Guardar PDF
+            <Download className="size-4" aria-hidden />
+            Guardar PDF
           </button>
         </div>
       </div>

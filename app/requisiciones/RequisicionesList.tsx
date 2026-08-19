@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Loader2, AlertCircle, ClipboardList, Trash2, Edit2, Sparkles } from 'lucide-react'
+import Link from 'next/link'
+import { Loader2, AlertCircle, ClipboardList, Trash2, Edit2, Sparkles, ShoppingCart, ExternalLink } from 'lucide-react'
 import type { EstatusRequisicion, PrioridadRequisicion, TipoRequisicion, Requisicion } from '@/lib/schemas'
 import type { NuevaRequisicionPayload } from '@/lib/requisiciones'
 import { useRequisiciones } from '@/lib/hooks/useRequisiciones'
@@ -29,6 +30,17 @@ import DetalleRequisicionModal from './DetalleRequisicionModal'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { toast } from 'sonner'
 import { Zap, Plus, ArrowRight, Eye, Layers } from 'lucide-react'
+import ModuleFilterChips from '@/components/layout/ModuleFilterChips'
+import ModuleSurface from '@/components/layout/ModuleSurface'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 export const SOLICITANTES = ['Lorena/Stock', 'Salvador', 'Oscar', 'Pantoja', 'Rojo']
 export const EMPRESAS = ['AFX', 'Taller', 'OHD', 'Siltech']
@@ -61,7 +73,7 @@ function emptyForm() {
 }
 
 const INPUT_CLS =
-  'rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
+  'rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-ring'
 
 function esUrl(texto: string): boolean {
   return /^https?:\/\//i.test(texto.trim())
@@ -86,7 +98,7 @@ function CeldaDescripcion({ r }: { r: Requisicion }) {
           href={link}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-600 hover:underline"
+          className="text-primary hover:underline"
         >
           {r.descripcion}
         </a>
@@ -134,7 +146,7 @@ function RequisicionCard({
             type="checkbox"
             checked={selected}
             onChange={(e) => onToggleSelect(r.id, e as unknown as React.MouseEvent)}
-            className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0"
+            className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-ring shrink-0"
           />
           <div className="min-w-0">
             <p className="text-xs text-gray-500">
@@ -149,7 +161,7 @@ function RequisicionCard({
         <select
           value={r.estado}
           onChange={(e) => onCambioEstado(r.id, e.target.value as EstatusRequisicion)}
-          className={`shrink-0 rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset border-0 focus:ring-2 focus:ring-blue-500 ${ESTADO_BADGE[r.estado]}`}
+          className={`shrink-0 rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset border-0 focus:ring-2 focus:ring-ring ${ESTADO_BADGE[r.estado]}`}
           title="Cambiar estado"
         >
           {ESTADOS_REQUISICION.map((e) => (
@@ -189,7 +201,7 @@ function RequisicionCard({
             <div className="min-w-0">
               <span className="text-gray-400 block">Link</span>
               {r.link ? (
-                <a href={r.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                <a href={r.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                   Abrir
                 </a>
               ) : '-'}
@@ -199,7 +211,7 @@ function RequisicionCard({
               <select
                 value={r.recibio ?? ''}
                 onChange={(e) => onCampoInline(r.id, 'recibio', e.target.value)}
-                className="rounded border-0 bg-transparent text-gray-900 focus:ring-1 focus:ring-blue-500 -ml-1"
+                className="rounded border-0 bg-transparent text-gray-900 focus:ring-1 focus:ring-ring -ml-1"
               >
                 <option value="">—</option>
                 {SOLICITANTES.map((s) => (
@@ -212,7 +224,7 @@ function RequisicionCard({
               <select
                 value={r.revisionFinanzas ?? ''}
                 onChange={(e) => onCampoInline(r.id, 'revisionFinanzas', e.target.value)}
-                className={`rounded px-1 -ml-1 font-semibold border-0 focus:ring-1 focus:ring-blue-500 ${
+                className={`rounded px-1 -ml-1 font-semibold border-0 focus:ring-1 focus:ring-ring ${
                   r.revisionFinanzas === 'Entrega parcial' ? 'bg-yellow-100 text-yellow-800' : 'bg-transparent text-gray-900'
                 }`}
               >
@@ -258,7 +270,24 @@ function RequisicionCard({
       </div>
 
       <div className="flex items-center justify-end gap-3 pl-[26px] pt-2 border-t border-gray-50">
-        <button onClick={() => onEditar(r)} className="p-1.5 text-gray-400 hover:text-blue-600" title="Editar">
+        {r.estado !== 'comprado' && r.estado !== 'recibido' ? (
+          <Link
+            href={`/nueva-compra?requisicionId=${r.id}&descripcion=${encodeURIComponent(r.descripcion || r.nota || '')}`}
+            className="p-1.5 text-gray-400 hover:text-emerald-600 transition-colors"
+            title="Comprar en SMV Hub"
+          >
+            <ShoppingCart className="h-4 w-4" />
+          </Link>
+        ) : (
+          <Link
+            href="/ordenes"
+            className="p-1.5 text-emerald-600 hover:text-emerald-700 transition-colors"
+            title="Ver orden de compra vinculada"
+          >
+            <ExternalLink className="h-4 w-4" />
+          </Link>
+        )}
+        <button onClick={() => onEditar(r)} className="p-1.5 text-gray-400 hover:text-primary" title="Editar">
           <Edit2 className="h-4 w-4" />
         </button>
         <button onClick={() => onEliminar(r.id, r.descripcion)} className="p-1.5 text-gray-400 hover:text-red-600" title="Eliminar">
@@ -475,54 +504,24 @@ export default function RequisicionesList() {
     }
   }
 
-  const chip = (activo: boolean, onClick: () => void, label: string) => (
-    <button
-      key={label}
-      onClick={onClick}
-      className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-        activo
-          ? 'bg-blue-600 text-white'
-          : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
-      }`}
-    >
-      {label}
-    </button>
-  )
-
   const urlParaAutollenar = form.link.trim() || form.descripcion.trim()
 
   return (
     <div className="space-y-6">
       {/* PESTAÑAS PRINCIPALES DE NAVEGACIÓN */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
-        <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
-          <button
-            onClick={() => setTabVista('flujo')}
-            className={[
-              'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2',
-              tabVista === 'flujo'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60',
-            ].join(' ')}
-          >
-            <Zap className="h-4 w-4 text-amber-400" />
-            Flujo de Compras End-to-End ({totalRequisiciones})
-          </button>
-          <button
-            onClick={() => {
-              setTabVista('tabla')
-            }}
-            className={[
-              'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2',
-              tabVista === 'tabla'
-                ? 'bg-white text-slate-900 shadow-xs border border-slate-200'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60',
-            ].join(' ')}
-          >
-            <Layers className="h-4 w-4 text-slate-500" />
-            Catálogo Tradicional de Requisiciones
-          </button>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Tabs value={tabVista} onValueChange={(value) => setTabVista(value as 'flujo' | 'tabla')}>
+          <TabsList className="h-auto w-full flex-wrap justify-start sm:w-fit">
+            <TabsTrigger value="flujo" className="gap-2 text-xs sm:text-sm">
+              <Zap className="h-4 w-4 text-amber-500" />
+              Flujo de Compras End-to-End ({totalRequisiciones})
+            </TabsTrigger>
+            <TabsTrigger value="tabla" className="gap-2 text-xs sm:text-sm">
+              <Layers className="h-4 w-4" />
+              Catálogo Tradicional de Requisiciones
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {tabVista === 'flujo' && (
           <div className="flex flex-wrap items-center gap-2">
@@ -539,7 +538,7 @@ export default function RequisicionesList() {
             )}
             <button
               onClick={() => setModalNuevaFlujo(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#0369A1] hover:bg-[#0284C7] text-white text-xs font-bold rounded-xl shadow-xs transition-transform active:scale-95"
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-xl shadow-xs transition-transform active:scale-95"
             >
               <Plus className="h-4 w-4" /> + Nueva Requisición (Tooling)
             </button>
@@ -573,11 +572,11 @@ export default function RequisicionesList() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Solicitudes</span>
-              <p className="text-xl font-extrabold text-slate-900 font-mono">{totalRequisiciones}</p>
+              <p className="text-xl font-bold text-slate-900 font-mono">{totalRequisiciones}</p>
             </div>
             <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-2xs space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700">En Cotización</span>
-              <p className="text-xl font-extrabold text-amber-900 font-mono">
+              <p className="text-xl font-bold text-amber-900 font-mono">
                 {coleccionCompleta
                   ? todasFlujo.filter((r) => !r.estatusFlujo || r.estatusFlujo === 'cotizando' || r.estatusFlujo === 'enviada').length
                   : '—'}
@@ -585,13 +584,13 @@ export default function RequisicionesList() {
             </div>
             <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 shadow-2xs space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700">Ganador Seleccionado</span>
-              <p className="text-xl font-extrabold text-purple-900 font-mono">
+              <p className="text-xl font-bold text-purple-900 font-mono">
                 {coleccionCompleta ? todasFlujo.filter((r) => r.estatusFlujo === 'aprobada').length : '—'}
               </p>
             </div>
             <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-2xs space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">OC Generadas</span>
-              <p className="text-xl font-extrabold text-emerald-900 font-mono">
+              <p className="text-xl font-bold text-emerald-900 font-mono">
                 {coleccionCompleta
                   ? todasFlujo.filter((r) => r.estatusFlujo === 'convertida_a_oc' || r.estado === 'comprado').length
                   : '—'}
@@ -634,11 +633,11 @@ export default function RequisicionesList() {
                             : 'bg-sky-100 text-sky-800 border-sky-300',
                         ].join(' ')}
                       >
-                        {esOC ? '✓ OC GENERADA' : esAprobada ? '★ GANADOR ELEGIDO' : esCotiz ? '⚡ COTIZANDO' : 'ENVIADA'}
+                        {esOC ? 'OC generada' : esAprobada ? 'Ganador elegido' : esCotiz ? 'Cotizando' : 'Enviada'}
                       </span>
                     </div>
 
-                    <h3 className="text-sm font-extrabold text-slate-900 leading-snug">{req.descripcion}</h3>
+                    <h3 className="text-sm font-bold text-slate-900 leading-snug">{req.descripcion}</h3>
 
                     <div className="text-xs text-slate-500 space-y-1 font-mono">
                       <div className="flex items-center justify-between">
@@ -662,7 +661,7 @@ export default function RequisicionesList() {
                     {req.proveedorGanadorNombre && (
                       <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-0.5">
                         <span className="text-[10px] font-bold text-emerald-800 uppercase block">Proveedor Seleccionado</span>
-                        <p className="font-extrabold text-emerald-950 flex items-center justify-between">
+                        <p className="font-bold text-emerald-950 flex items-center justify-between">
                           <span>{req.proveedorGanadorNombre}</span>
                           {req.ordenCompraFolio && (
                             <span className="font-mono text-[10px] bg-emerald-700 text-white px-2 py-0.5 rounded">
@@ -677,7 +676,7 @@ export default function RequisicionesList() {
                   <div className="pt-3 border-t border-slate-100">
                     <button
                       onClick={() => setReqDetalleModal(req)}
-                      className="w-full py-2 bg-[#0369A1] hover:bg-[#0284C7] text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                      className="w-full py-2 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
                     >
                       <Eye className="h-4 w-4" /> Ver Flujo / Cotizar / Emitir OC <ArrowRight className="h-3.5 w-3.5" />
                     </button>
@@ -711,30 +710,24 @@ export default function RequisicionesList() {
       {tabVista === 'tabla' && (
         <div className="space-y-6">
           {/* Sub-tabs */}
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
-            {(['general', 'automatizacion'] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => {
-                  setTipoActivo(t)
-                  setFiltroEstado('todos')
-                  setFiltroEmpresa('')
-                  setBusqueda('')
-                  setSelectedIds(new Set())
-                }}
-                className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${
-                  tipoActivo === t
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {t === 'general' ? 'Compras generales' : 'Automatización'}
-              </button>
-            ))}
-          </div>
+          <ModuleFilterChips
+            ariaLabel="Tipo de requisición"
+            value={tipoActivo}
+            onValueChange={(value) => {
+              setTipoActivo(value as TipoRequisicion)
+              setFiltroEstado('todos')
+              setFiltroEmpresa('')
+              setBusqueda('')
+              setSelectedIds(new Set())
+            }}
+            options={[
+              { value: 'general', label: 'Compras generales' },
+              { value: 'automatizacion', label: 'Automatización' },
+            ]}
+          />
 
       {/* Form */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-xs p-5">
+      <ModuleSurface className="p-5">
         <h2 className="text-sm font-semibold text-gray-900 mb-4">
           {isAuto ? 'Nueva compra — Automatización' : 'Nueva requisición'}
         </h2>
@@ -887,7 +880,7 @@ export default function RequisicionesList() {
             <button
               type="submit"
               disabled={saving || !form.descripcion.trim()}
-              className="ml-auto flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="ml-auto flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               Agregar
@@ -899,22 +892,32 @@ export default function RequisicionesList() {
             {scrapeError} — puedes guardar la requisición con el link tal cual.
           </p>
         )}
-      </div>
+      </ModuleSurface>
 
       {/* Filters */}
       {!loading && !error && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-xs p-4 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-gray-400 mr-1">Estado:</span>
-            {chip(filtroEstado === 'todos', () => setFiltroEstado('todos'), 'Todos')}
-            {ESTADOS_REQUISICION.map((e) =>
-              chip(filtroEstado === e, () => setFiltroEstado(e), ESTADO_LABEL[e])
-            )}
-            <span className="text-xs font-semibold text-gray-400 mx-1 ml-3">Empresa:</span>
-            {chip(!filtroEmpresa, () => setFiltroEmpresa(''), 'Todas')}
-            {EMPRESAS.map((emp) =>
-              chip(filtroEmpresa === emp, () => setFiltroEmpresa(filtroEmpresa === emp ? '' : emp), emp)
-            )}
+        <ModuleSurface className="flex flex-col gap-3 p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs font-semibold text-muted-foreground">Estado:</span>
+            <ModuleFilterChips
+              ariaLabel="Filtrar por estado"
+              value={filtroEstado}
+              onValueChange={(value) => setFiltroEstado(value as EstatusRequisicion | 'todos')}
+              options={[
+                { value: 'todos', label: 'Todos' },
+                ...ESTADOS_REQUISICION.map((e) => ({ value: e, label: ESTADO_LABEL[e] })),
+              ]}
+            />
+            <span className="text-xs font-semibold text-muted-foreground">Empresa:</span>
+            <ModuleFilterChips
+              ariaLabel="Filtrar por empresa"
+              value={filtroEmpresa || 'todas'}
+              onValueChange={(value) => setFiltroEmpresa(value === 'todas' ? '' : value)}
+              options={[
+                { value: 'todas', label: 'Todas' },
+                ...EMPRESAS.map((emp) => ({ value: emp, label: emp })),
+              ]}
+            />
           </div>
           <input
             type="text"
@@ -955,15 +958,15 @@ export default function RequisicionesList() {
               </button>
             )}
           </div>
-        </div>
+        </ModuleSurface>
       )}
 
       {/* Loading */}
       {loading && (
-        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-gray-200 shadow-xs">
-          <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-4" />
-          <p className="text-gray-500 text-sm">Cargando requisiciones…</p>
-        </div>
+        <ModuleSurface className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="mb-4 size-10 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Cargando requisiciones…</p>
+        </ModuleSurface>
       )}
 
       {/* Error */}
@@ -985,7 +988,7 @@ export default function RequisicionesList() {
 
       {/* Table */}
       {!loading && !error && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
+        <ModuleSurface>
           {filtradas.length === 0 ? (
             <div className="text-center py-20">
               <div className="mx-auto w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-4 text-gray-400">
@@ -1003,104 +1006,104 @@ export default function RequisicionesList() {
               </p>
             </div>
           ) : (
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-sm text-left text-gray-500">
-                <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-3 py-3 w-10 text-center">
+            <div className="hidden md:block">
+              <Table className="text-sm text-left text-muted-foreground">
+                <TableHeader className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
+                  <TableRow>
+                    <TableHead className="px-3 py-3 w-10 text-center">
                       <input
                         type="checkbox"
                         checked={filtradas.length > 0 && selectedIds.size === filtradas.length}
                         onChange={toggleAllSelection}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        className="rounded border-gray-300 text-primary focus:ring-ring cursor-pointer"
                       />
-                    </th>
+                    </TableHead>
                     {isAuto ? (
                       <>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Fecha</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap">F. entrega</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Estado</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Recibió</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Rev. fin.</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Proveedor</th>
-                        <th className="px-3 py-3 font-semibold text-center">Cant.</th>
-                        <th className="px-3 py-3 font-semibold min-w-[180px]">Descripción</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Parte #</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Link</th>
-                        <th className="px-3 py-3 font-semibold">Empresa</th>
-                        <th className="px-3 py-3 font-semibold">O.T.</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Plazo</th>
+                        <TableHead className="px-3 py-3 font-semibold whitespace-nowrap">Fecha</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold whitespace-nowrap">F. entrega</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold whitespace-nowrap">Estado</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold whitespace-nowrap">Recibió</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold whitespace-nowrap">Rev. fin.</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold whitespace-nowrap">Proveedor</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold text-center">Cant.</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold min-w-[180px]">Descripción</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold whitespace-nowrap">Parte #</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold whitespace-nowrap">Link</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold">Empresa</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold">O.T.</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold whitespace-nowrap">Plazo</TableHead>
                       </>
                     ) : (
                       <>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Fecha</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Solicitante</th>
-                        <th className="px-3 py-3 font-semibold min-w-[180px]">Descripción</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Tienda</th>
-                        <th className="px-3 py-3 font-semibold text-center">Cant.</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Prioridad</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Límite</th>
-                        <th className="px-3 py-3 font-semibold">Empresa</th>
-                        <th className="px-3 py-3 font-semibold">O.T.</th>
-                        <th className="px-3 py-3 font-semibold">Estado</th>
+                        <TableHead className="px-3 py-3 font-semibold whitespace-nowrap">Fecha</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold whitespace-nowrap">Solicitante</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold min-w-[180px]">Descripción</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold whitespace-nowrap">Tienda</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold text-center">Cant.</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold whitespace-nowrap">Prioridad</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold whitespace-nowrap">Límite</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold">Empresa</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold">O.T.</TableHead>
+                        <TableHead className="px-3 py-3 font-semibold">Estado</TableHead>
                       </>
                     )}
-                    <th className="px-3 py-3" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
+                    <TableHead className="px-3 py-3" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-gray-200">
                   {filtradas.map((r) => (
-                    <tr
+                    <TableRow
                       key={r.id}
                       className={`hover:bg-gray-50 transition-colors ${
                         r.estado === 'parcial' ? 'bg-pink-50/40' : ''
                       }`}
                     >
-                      <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                      <TableCell className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={selectedIds.has(r.id)}
                           onChange={(e) => toggleSelection(r.id, e as unknown as React.MouseEvent)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          className="rounded border-gray-300 text-primary focus:ring-ring cursor-pointer"
                         />
-                      </td>
+                      </TableCell>
                       {isAuto ? (
                         <>
-                          <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
+                          <TableCell className="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
                             {formatFecha(r.fechaPedido)}
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
+                          </TableCell>
+                          <TableCell className="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
                             {r.fechaEntregaEst ? formatFecha(r.fechaEntregaEst) : '-'}
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap">
+                          </TableCell>
+                          <TableCell className="px-3 py-3 whitespace-nowrap">
                             <select
                               value={r.estado}
                               onChange={(e) => handleCambioEstado(r.id, e.target.value as EstatusRequisicion)}
-                              className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset cursor-pointer border-0 focus:ring-2 focus:ring-blue-500 ${ESTADO_BADGE[r.estado]}`}
+                              className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset cursor-pointer border-0 focus:ring-2 focus:ring-ring ${ESTADO_BADGE[r.estado]}`}
                               title="Cambiar estado"
                             >
                               {ESTADOS_REQUISICION.map((e) => (
                                 <option key={e} value={e}>{ESTADO_LABEL[e]}</option>
                               ))}
                             </select>
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap">
+                          </TableCell>
+                          <TableCell className="px-3 py-3 whitespace-nowrap">
                             <select
                               value={r.recibio ?? ''}
                               onChange={(e) => handleCampoInline(r.id, 'recibio', e.target.value)}
-                              className="rounded border-0 bg-transparent text-xs text-gray-700 focus:ring-1 focus:ring-blue-500 cursor-pointer max-w-[120px]"
+                              className="rounded border-0 bg-transparent text-xs text-gray-700 focus:ring-1 focus:ring-ring cursor-pointer max-w-[120px]"
                             >
                               <option value="">—</option>
                               {SOLICITANTES.map((s) => (
                                 <option key={s} value={s}>{s}</option>
                               ))}
                             </select>
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap">
+                          </TableCell>
+                          <TableCell className="px-3 py-3 whitespace-nowrap">
                             <select
                               value={r.revisionFinanzas ?? ''}
                               onChange={(e) => handleCampoInline(r.id, 'revisionFinanzas', e.target.value)}
-                              className={`rounded px-1.5 py-0.5 text-xs font-semibold border-0 cursor-pointer focus:ring-1 focus:ring-blue-500 ${
+                              className={`rounded px-1.5 py-0.5 text-xs font-semibold border-0 cursor-pointer focus:ring-1 focus:ring-ring ${
                                 r.revisionFinanzas === 'Entrega parcial'
                                   ? 'bg-yellow-100 text-yellow-800'
                                   : 'bg-transparent text-gray-700'
@@ -1110,88 +1113,105 @@ export default function RequisicionesList() {
                                 <option key={op || 'vacio'} value={op}>{op || '—'}</option>
                               ))}
                             </select>
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap">{r.tienda || '-'}</td>
-                          <td className="px-3 py-3 text-center whitespace-nowrap">{r.cantidad || '-'}</td>
-                          <td className="px-3 py-3"><CeldaDescripcion r={r} /></td>
-                          <td className="px-3 py-3 whitespace-nowrap font-mono text-xs">{r.parteNumero || '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap max-w-[100px]">
+                          </TableCell>
+                          <TableCell className="px-3 py-3 whitespace-nowrap">{r.tienda || '-'}</TableCell>
+                          <TableCell className="px-3 py-3 text-center whitespace-nowrap">{r.cantidad || '-'}</TableCell>
+                          <TableCell className="px-3 py-3"><CeldaDescripcion r={r} /></TableCell>
+                          <TableCell className="px-3 py-3 whitespace-nowrap font-mono text-xs">{r.parteNumero || '-'}</TableCell>
+                          <TableCell className="px-3 py-3 whitespace-nowrap max-w-[100px]">
                             {r.link ? (
                               <a
                                 href={r.link}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline text-xs truncate block max-w-[100px]"
+                                className="text-primary hover:underline text-xs truncate block max-w-[100px]"
                                 title={r.link}
                               >
                                 Link
                               </a>
                             ) : '-'}
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap">
+                          </TableCell>
+                          <TableCell className="px-3 py-3 whitespace-nowrap">
                             {r.empresa ? (
                               <span className={`rounded px-2 py-0.5 text-xs font-semibold ${badgeEmpresa(r.empresa)}`}>
                                 {r.empresa}
                               </span>
                             ) : '-'}
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap font-mono text-xs">
+                          </TableCell>
+                          <TableCell className="px-3 py-3 whitespace-nowrap font-mono text-xs">
                             {r.ordenServicio || '-'}
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap">
+                          </TableCell>
+                          <TableCell className="px-3 py-3 whitespace-nowrap">
                             <CeldaAtraso r={r} hoy={hoy} isAuto />
-                          </td>
+                          </TableCell>
                         </>
                       ) : (
                         <>
-                          <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
+                          <TableCell className="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
                             {formatFecha(r.fechaPedido)}
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap font-medium text-gray-900">
+                          </TableCell>
+                          <TableCell className="px-3 py-3 whitespace-nowrap font-medium text-gray-900">
                             {r.solicitante || '-'}
-                          </td>
-                          <td className="px-3 py-3"><CeldaDescripcion r={r} /></td>
-                          <td className="px-3 py-3 whitespace-nowrap">{r.tienda || '-'}</td>
-                          <td className="px-3 py-3 text-center whitespace-nowrap">{r.cantidad || '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap">
+                          </TableCell>
+                          <TableCell className="px-3 py-3"><CeldaDescripcion r={r} /></TableCell>
+                          <TableCell className="px-3 py-3 whitespace-nowrap">{r.tienda || '-'}</TableCell>
+                          <TableCell className="px-3 py-3 text-center whitespace-nowrap">{r.cantidad || '-'}</TableCell>
+                          <TableCell className="px-3 py-3 whitespace-nowrap">
                             {r.prioridad ? (
                               <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${PRIORIDAD_BADGE[r.prioridad]}`}>
                                 {r.prioridad}
                               </span>
                             ) : '-'}
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap">
+                          </TableCell>
+                          <TableCell className="px-3 py-3 whitespace-nowrap">
                             <CeldaAtraso r={r} hoy={hoy} isAuto={false} />
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap">
+                          </TableCell>
+                          <TableCell className="px-3 py-3 whitespace-nowrap">
                             {r.empresa ? (
                               <span className={`rounded px-2 py-0.5 text-xs font-semibold ${badgeEmpresa(r.empresa)}`}>
                                 {r.empresa}
                               </span>
                             ) : '-'}
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap font-mono text-xs">
+                          </TableCell>
+                          <TableCell className="px-3 py-3 whitespace-nowrap font-mono text-xs">
                             {r.ordenServicio || '-'}
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap">
+                          </TableCell>
+                          <TableCell className="px-3 py-3 whitespace-nowrap">
                             <select
                               value={r.estado}
                               onChange={(e) => handleCambioEstado(r.id, e.target.value as EstatusRequisicion)}
-                              className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset cursor-pointer border-0 focus:ring-2 focus:ring-blue-500 ${ESTADO_BADGE[r.estado]}`}
+                              className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset cursor-pointer border-0 focus:ring-2 focus:ring-ring ${ESTADO_BADGE[r.estado]}`}
                               title="Cambiar estado"
                             >
                               {ESTADOS_REQUISICION.map((e) => (
                                 <option key={e} value={e}>{ESTADO_LABEL[e]}</option>
                               ))}
                             </select>
-                          </td>
+                          </TableCell>
                         </>
                       )}
-                      <td className="px-3 py-3">
+                      <TableCell className="px-3 py-3">
                         <div className="flex items-center gap-2">
+                          {r.estado !== 'comprado' && r.estado !== 'recibido' ? (
+                            <Link
+                              href={`/nueva-compra?requisicionId=${r.id}&descripcion=${encodeURIComponent(r.descripcion || r.nota || '')}`}
+                              className="text-gray-400 hover:text-emerald-600 transition-colors"
+                              title="Comprar en SMV Hub"
+                            >
+                              <ShoppingCart className="h-4 w-4" />
+                            </Link>
+                          ) : (
+                            <Link
+                              href="/ordenes"
+                              className="text-emerald-600 hover:text-emerald-700 transition-colors"
+                              title="Ver orden de compra vinculada"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Link>
+                          )}
                           <button
                             onClick={() => setRequisicionToEdit(r)}
-                            className="text-gray-400 hover:text-blue-600 transition-colors"
+                            className="text-gray-400 hover:text-primary transition-colors"
                             title="Editar"
                           >
                             <Edit2 className="h-4 w-4" />
@@ -1204,11 +1224,11 @@ export default function RequisicionesList() {
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
 
@@ -1243,7 +1263,7 @@ export default function RequisicionesList() {
               </button>
             </div>
           )}
-        </div>
+        </ModuleSurface>
       )}
     </div>
   )}

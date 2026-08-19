@@ -271,7 +271,7 @@ export default function BuscadorGlobalCommand() {
             <>
               <CommandGroup heading="Módulos de Compras & Tooling">
                 <CommandItem onSelect={() => runCommand(() => router.push('/requisiciones'))}>
-                  <ShoppingCart className="mr-2 h-4 w-4 text-[#0369A1]" />
+                  <ShoppingCart className="mr-2 h-4 w-4 text-primary" />
                   <span>Flujo de Requisiciones &amp; Cotizaciones</span>
                   <CommandShortcut>REQ</CommandShortcut>
                 </CommandItem>

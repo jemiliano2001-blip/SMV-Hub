@@ -2,6 +2,14 @@ import { useState, useMemo } from 'react'
 import { useBanos } from '@/lib/hooks/useBanos'
 import { Search, Download } from 'lucide-react'
 import { fechaHoyLocal } from '@/lib/format'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 export default function CuentaDiaria() {
   const [mes, setMes] = useState(() => fechaHoyLocal().slice(0, 7)) // YYYY-MM
@@ -83,7 +91,7 @@ export default function CuentaDiaria() {
             type="month"
             value={mes}
             onChange={(e) => setMes(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1]"
+            className="px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
           />
         </div>
 
@@ -95,7 +103,7 @@ export default function CuentaDiaria() {
               placeholder="Buscar operador..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1]"
+              className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
             />
           </div>
 
@@ -119,29 +127,29 @@ export default function CuentaDiaria() {
         </div>
       ) : (
         <div className="overflow-x-auto border border-gray-200 rounded-lg bg-white shadow-sm">
-          <table className="w-full text-sm text-center">
-            <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 text-left sticky left-0 bg-gray-50 border-r border-gray-200 z-10 whitespace-nowrap">
+          <Table className="w-full text-sm text-center">
+            <TableHeader className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+              <TableRow>
+                <TableHead className="px-4 py-3 text-left sticky left-0 bg-gray-50 border-r border-gray-200 z-10 whitespace-nowrap">
                   Fecha
-                </th>
+                </TableHead>
                 {operadoresFiltrados.map(op => (
-                  <th key={op} className="px-3 py-3 whitespace-nowrap border-l border-gray-100 font-medium">
+                  <TableHead key={op} className="px-3 py-3 text-center whitespace-nowrap border-l border-gray-100 font-medium">
                     <div className="w-16 truncate mx-auto" title={op}>{op.split(' ')[0]}</div>
-                  </th>
+                  </TableHead>
                 ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-gray-100">
               {pivot.fechas.map(fecha => (
-                <tr key={fecha} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 font-medium text-gray-900 text-left sticky left-0 bg-white border-r border-gray-200 whitespace-nowrap">
+                <TableRow key={fecha} className="hover:bg-gray-50">
+                  <TableCell className="px-4 py-2 font-medium text-gray-900 text-left sticky left-0 bg-white border-r border-gray-200 whitespace-nowrap">
                     {fecha}
-                  </td>
+                  </TableCell>
                   {operadoresFiltrados.map(op => {
                     const count = pivot.conteos[fecha][op]
                     return (
-                      <td key={op} className="px-3 py-2 border-l border-gray-100">
+                      <TableCell key={op} className="px-3 py-2 border-l border-gray-100">
                         <span className={`inline-flex w-6 h-6 items-center justify-center rounded-full text-xs ${
                           count === 0 ? 'text-gray-300' :
                           count > 2 ? 'bg-red-100 text-red-700 font-bold' :
@@ -150,13 +158,13 @@ export default function CuentaDiaria() {
                         }`}>
                           {count}
                         </span>
-                      </td>
+                      </TableCell>
                     )
                   })}
-                </tr>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

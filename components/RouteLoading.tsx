@@ -9,7 +9,7 @@ export default function RouteLoading({
 }) {
   return (
     <main
-      className="min-h-[70vh] bg-[#F8FAFC] px-4 py-8 sm:px-6 lg:px-8"
+      className="min-h-[70vh] bg-background px-4 py-8 sm:px-6 lg:px-8"
       role="status"
       aria-live="polite"
       aria-busy="true"

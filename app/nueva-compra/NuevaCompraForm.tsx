@@ -24,6 +24,7 @@ import {
 } from '@/lib/schemas'
 import { validarClaveProdServCatalogo } from '@/lib/sat/validar-clave'
 import { obtenerProveedores } from '@/lib/proveedores'
+import { Button } from '@/components/ui/button'
 
 type FormInput = z.input<typeof NuevaCompraFormSchema>
 
@@ -45,8 +46,8 @@ const ITEM_VACIO: ItemFactura = {
 }
 
 const cls = {
-  input: 'w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50',
-  inputSm: 'w-full min-w-0 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50',
+  input: 'w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:bg-gray-50',
+  inputSm: 'w-full min-w-0 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:bg-gray-50',
   label: 'block text-sm font-medium text-gray-700 mb-1',
   error: 'text-xs text-red-500 mt-1',
   section: 'rounded-xl border border-gray-200 bg-white p-6 shadow-sm',
@@ -514,7 +515,7 @@ export default function NuevaCompraForm({
             <Upload className="h-8 w-8 text-gray-400" />
             <span className="text-sm text-gray-500">Haz clic, arrastra o pega una imagen o PDF</span>
             <span className="text-xs text-gray-400">JPG · PNG · WEBP · PDF</span>
-            <span className="mt-1 text-xs text-blue-600">Clic en esta zona para seleccionar archivo</span>
+            <span className="mt-1 text-xs text-primary">Clic en esta zona para seleccionar archivo</span>
             <input
               ref={fileInputRef}
               type="file"
@@ -699,7 +700,7 @@ export default function NuevaCompraForm({
             type="button"
             onClick={() => append({ ...ITEM_VACIO })}
             disabled={extrayendo}
-            className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800 disabled:opacity-50"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-blue-800 disabled:opacity-50"
           >
             <Plus className="h-4 w-4" /> Añadir ítem
           </button>
@@ -870,25 +871,24 @@ export default function NuevaCompraForm({
           </span>
         </label>
 
-        <button
+        <Button
           type="submit"
           disabled={extrayendo || isSubmitting || verificandoDuplicado || Boolean(duplicadoDetectado)}
-          className="rounded-lg bg-blue-600 px-8 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isSubmitting ? (
             <span className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" /> Guardando…
+              <Loader2 className="animate-spin" /> Guardando…
             </span>
           ) : verificandoDuplicado ? (
             <span className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" /> Verificando…
+              <Loader2 className="animate-spin" /> Verificando…
             </span>
           ) : duplicadoDetectado ? (
             'Factura duplicada — no se puede guardar'
           ) : (
             'Guardar compra'
           )}
-        </button>
+        </Button>
       </div>
     </form>
   )

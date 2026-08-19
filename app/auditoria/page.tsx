@@ -1,10 +1,20 @@
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · tone: utilitario · scope: auditoria */
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import AuthGuard from '@/app/AuthGuard'
+import PageHeader from '@/components/layout/PageHeader'
+import PageShell from '@/components/layout/PageShell'
+import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Search, Filter, RefreshCw, UserCheck, Layers, Tag } from 'lucide-react'
 
 export default function AuditoriaPage() {
@@ -95,46 +105,36 @@ export default function AuditoriaPage() {
 
   return (
     <AuthGuard>
-      <main className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
-        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-1 space-y-4">
-          
-          {/* Header */}
-          <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-bold text-slate-900 tracking-tight">Bitácora de Auditoría</h1>
-                <span className="text-[10px] font-mono font-bold bg-rose-50 text-rose-800 border border-rose-200 px-1.5 py-0.5 rounded">
-                  Seguridad Logs
-                </span>
-                <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
-                  Acceso restringido
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Registro inmutable de operaciones, modificaciones y borrados realizados por todos los usuarios.
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <button
-                onClick={fetchLogs}
-                disabled={cargando}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors border border-slate-200"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${cargando ? 'animate-spin' : ''}`} />
-                Actualizar
-              </button>
-              <select
-                value={limiteLogs}
-                onChange={(e) => setLimiteLogs(Number(e.target.value))}
-                className="bg-white border border-slate-200 text-xs rounded-lg px-2 py-1.5 text-slate-700 font-medium focus:ring-1 focus:ring-rose-500"
-              >
-                <option value={100}>100 más recientes</option>
-                <option value={300}>300 más recientes</option>
-                <option value={500}>500 más recientes</option>
-              </select>
-            </div>
-          </div>
+      <PageShell>
+          <PageHeader
+            title="Bitácora de auditoría"
+            badge="Acceso restringido"
+            icon={Layers}
+            description="Registro inmutable de operaciones, modificaciones y borrados realizados por todos los usuarios."
+            actions={
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchLogs}
+                  disabled={cargando}
+                >
+                  <RefreshCw className={cargando ? 'animate-spin' : undefined} data-icon="inline-start" />
+                  Actualizar
+                </Button>
+                <select
+                  value={limiteLogs}
+                  onChange={(e) => setLimiteLogs(Number(e.target.value))}
+                  className="rounded-lg border border-input bg-card px-2 py-1.5 text-xs font-medium text-foreground focus:ring-1 focus:ring-ring"
+                >
+                  <option value={100}>100 más recientes</option>
+                  <option value={300}>300 más recientes</option>
+                  <option value={500}>500 más recientes</option>
+                </select>
+              </>
+            }
+          />
 
           {/* Barra de Filtros y Búsqueda */}
           <div className="bg-white border border-slate-200 p-3.5 rounded-xl shadow-xs space-y-3">
@@ -264,43 +264,42 @@ export default function AuditoriaPage() {
           </div>
 
           {/* Escritorio */}
-          <div className="hidden md:block bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left whitespace-nowrap">
-                <thead className="bg-slate-50 text-slate-600 font-mono text-[11px] uppercase tracking-wider border-b border-slate-200">
-                  <tr>
-                    <th className="px-3.5 py-2.5">Fecha y Hora</th>
-                    <th className="px-3.5 py-2.5">Usuario</th>
-                    <th className="px-3.5 py-2.5">Acción</th>
-                    <th className="px-3.5 py-2.5">Colección / Sección</th>
-                    <th className="px-3.5 py-2.5">ID Doc</th>
-                    <th className="px-3.5 py-2.5">Resumen</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
+          <div className="hidden md:block overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+            <Table className="text-xs text-left">
+                <TableHeader className="bg-slate-50 text-slate-600 font-mono text-[11px] uppercase tracking-wider border-b border-slate-200">
+                  <TableRow>
+                    <TableHead className="px-3.5 py-2.5">Fecha y Hora</TableHead>
+                    <TableHead className="px-3.5 py-2.5">Usuario</TableHead>
+                    <TableHead className="px-3.5 py-2.5">Acción</TableHead>
+                    <TableHead className="px-3.5 py-2.5">Colección / Sección</TableHead>
+                    <TableHead className="px-3.5 py-2.5">ID Doc</TableHead>
+                    <TableHead className="px-3.5 py-2.5">Resumen</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-slate-100">
                   {cargando ? (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-6 text-center text-xs font-mono text-slate-500">Cargando bitácora...</td>
-                    </tr>
+                    <TableRow>
+                      <TableCell colSpan={6} className="px-4 py-6 text-center text-xs font-mono text-slate-500">Cargando bitácora...</TableCell>
+                    </TableRow>
                   ) : errorLogs ? (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-6 text-center text-xs font-mono text-red-600">
+                    <TableRow>
+                      <TableCell colSpan={6} className="px-4 py-6 text-center text-xs font-mono text-red-600">
                         <p>{errorLogs}</p>
                         <button onClick={fetchLogs} className="mt-1 font-semibold underline hover:no-underline">Reintentar</button>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ) : logsFiltrados.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-6 text-center text-xs font-mono text-slate-500">No hay registros que coincidan con los filtros.</td>
-                    </tr>
+                    <TableRow>
+                      <TableCell colSpan={6} className="px-4 py-6 text-center text-xs font-mono text-slate-500">No hay registros que coincidan con los filtros.</TableCell>
+                    </TableRow>
                   ) : (
                     logsFiltrados.map(log => (
-                      <tr key={log.id} className="hover:bg-slate-50 font-sans">
-                        <td className="px-3.5 py-2 text-slate-600 font-mono text-[11px]">
+                      <TableRow key={log.id} className="hover:bg-slate-50 font-sans">
+                        <TableCell className="px-3.5 py-2 text-slate-600 font-mono text-[11px]">
                           {log.fechaHora?.toDate ? log.fechaHora.toDate().toLocaleString('es-MX') : ''}
-                        </td>
-                        <td className="px-3.5 py-2 font-semibold text-slate-900">{log.emailUsuario}</td>
-                        <td className="px-3.5 py-2">
+                        </TableCell>
+                        <TableCell className="px-3.5 py-2 font-semibold text-slate-900">{log.emailUsuario}</TableCell>
+                        <TableCell className="px-3.5 py-2">
                           <span className={`px-1.5 py-0.5 text-[9px] font-mono font-bold uppercase rounded border ${
                             log.accion === 'CREAR' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
                             log.accion === 'EDITAR' ? 'bg-sky-50 text-sky-800 border-sky-200' :
@@ -308,20 +307,18 @@ export default function AuditoriaPage() {
                           }`}>
                             {log.accion}
                           </span>
-                        </td>
-                        <td className="px-3.5 py-2 text-slate-600 font-mono text-[11px]">{log.coleccion}</td>
-                        <td className="px-3.5 py-2 text-slate-500 font-mono text-[11px]">{log.idDoc}</td>
-                        <td className="px-3.5 py-2 text-slate-700 max-w-md truncate" title={log.resumen}>{log.resumen}</td>
-                      </tr>
+                        </TableCell>
+                        <TableCell className="px-3.5 py-2 text-slate-600 font-mono text-[11px]">{log.coleccion}</TableCell>
+                        <TableCell className="px-3.5 py-2 text-slate-500 font-mono text-[11px]">{log.idDoc}</TableCell>
+                        <TableCell className="px-3.5 py-2 text-slate-700 max-w-md truncate" title={log.resumen}>{log.resumen}</TableCell>
+                      </TableRow>
                     ))
                   )}
-                </tbody>
-              </table>
-            </div>
+                </TableBody>
+              </Table>
           </div>
 
-        </div>
-      </main>
+      </PageShell>
     </AuthGuard>
   )
 }

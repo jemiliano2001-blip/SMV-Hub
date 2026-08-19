@@ -31,6 +31,14 @@ import {
   type EmparejamientoVentaOdoo,
   emparejarConVentasOdoo,
 } from '@/lib/documentos-venta-lector-ia'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 interface ModalLectorOrdenClienteProps {
   abierto: boolean
@@ -341,44 +349,44 @@ export default function ModalLectorOrdenCliente({
                 Partidas Extraídas de la Orden de Compra ({ordenExtraida.partidas.length})
               </h4>
               <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
-                    <tr>
-                      <th className="py-2 px-3 w-12 text-center">#</th>
-                      <th className="py-2 px-3">No. Parte / Ref</th>
-                      <th className="py-2 px-3">Descripción de Producto</th>
-                      <th className="py-2 px-3 text-right">Cant.</th>
-                      <th className="py-2 px-3 text-right">P. Unitario</th>
-                      <th className="py-2 px-3 text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white">
+                <Table className="w-full text-xs text-left">
+                  <TableHeader className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+                    <TableRow>
+                      <TableHead className="py-2 px-3 w-12 text-center">#</TableHead>
+                      <TableHead className="py-2 px-3">No. Parte / Ref</TableHead>
+                      <TableHead className="py-2 px-3">Descripción de Producto</TableHead>
+                      <TableHead className="py-2 px-3 text-right">Cant.</TableHead>
+                      <TableHead className="py-2 px-3 text-right">P. Unitario</TableHead>
+                      <TableHead className="py-2 px-3 text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody className="divide-y divide-slate-100 bg-white">
                     {ordenExtraida.partidas.map((p, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50">
-                        <td className="py-2 px-3 text-center text-slate-400 font-mono">
+                      <TableRow key={idx} className="hover:bg-slate-50">
+                        <TableCell className="py-2 px-3 text-center text-slate-400 font-mono">
                           {p.numeroLinea || idx + 1}
-                        </td>
-                        <td className="py-2 px-3 font-mono font-medium text-slate-700">
+                        </TableCell>
+                        <TableCell className="py-2 px-3 font-mono font-medium text-slate-700">
                           {p.numeroParteCliente || '-'}
-                        </td>
-                        <td className="py-2 px-3 text-slate-800">{p.descripcion}</td>
-                        <td className="py-2 px-3 text-right font-bold text-slate-900">
+                        </TableCell>
+                        <TableCell className="py-2 px-3 text-slate-800">{p.descripcion}</TableCell>
+                        <TableCell className="py-2 px-3 text-right font-bold text-slate-900">
                           {p.cantidad} {p.unidad}
-                        </td>
-                        <td className="py-2 px-3 text-right text-slate-600 font-mono">
+                        </TableCell>
+                        <TableCell className="py-2 px-3 text-right text-slate-600 font-mono">
                           {p.precioUnitario !== null && p.precioUnitario !== undefined
                             ? formatPrecio(p.precioUnitario, ordenExtraida.moneda)
                             : '-'}
-                        </td>
-                        <td className="py-2 px-3 text-right font-bold text-slate-800 font-mono">
+                        </TableCell>
+                        <TableCell className="py-2 px-3 text-right font-bold text-slate-800 font-mono">
                           {p.total !== null && p.total !== undefined
                             ? formatPrecio(p.total, ordenExtraida.moneda)
                             : '-'}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             </div>
 

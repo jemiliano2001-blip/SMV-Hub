@@ -62,7 +62,7 @@ export default function ArqueoCaja() {
   return (
     <div className="space-y-6 max-w-2xl mx-auto py-6">
       <div className="text-center space-y-2">
-        <div className="mx-auto w-12 h-12 bg-[#0369A1]/10 text-[#0369A1] rounded-full flex items-center justify-center mb-4">
+        <div className="mx-auto w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
           <Calculator className="h-6 w-6" />
         </div>
         <h2 className="text-xl font-medium text-gray-900">Arqueo de Caja Chica</h2>
@@ -96,7 +96,7 @@ export default function ArqueoCaja() {
                   min="0"
                   value={efectivoReal}
                   onChange={e => setEfectivoReal(e.target.value)}
-                  className="w-full pl-7 pr-3 py-2 text-right text-xl font-bold border border-gray-300 rounded-md shadow-sm focus:ring-[#0369A1] focus:border-[#0369A1]"
+                  className="w-full pl-7 pr-3 py-2 text-right text-xl font-bold border border-gray-300 rounded-md shadow-sm focus:ring-ring focus:border-primary"
                   placeholder="0.00"
                 />
               </div>
@@ -147,7 +147,7 @@ export default function ArqueoCaja() {
               type="button"
               onClick={guardarArqueo}
               disabled={efectivoReal === '' || guardando}
-              className="w-full flex items-center justify-center gap-2 bg-[#0369A1] hover:bg-[#0284C7] disabled:opacity-50 text-white font-bold py-2.5 rounded-lg transition-colors"
+              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white font-bold py-2.5 rounded-lg transition-colors"
             >
               <Save className="h-4 w-4" />
               {guardando ? 'Guardando...' : 'Guardar Arqueo'}

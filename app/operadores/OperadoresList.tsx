@@ -6,6 +6,15 @@ import { useUsuarios } from '@/lib/hooks/useUsuarios'
 import { departamentoDesdeArea } from '@/lib/operadores-departamento'
 import type { Area, Operador } from '@/lib/schemas'
 import { Plus, Search, UserCheck, UserX, Download, Check, X, Mail } from 'lucide-react'
+import ModuleSurface from '@/components/layout/ModuleSurface'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 const SIN_HORAS_EXTRA_TITULO = 'Esta área no participa en horas extra (no tiene departamento equivalente en /horas-extra)'
 
@@ -69,7 +78,7 @@ function OperadorCard({
               type="text"
               value={nombreEditado}
               onChange={(e) => onNombreEditadoChange(e.target.value)}
-              className="w-full min-w-0 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-[#0369A1]"
+              className="w-full min-w-0 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-primary"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') onGuardarEdicion()
@@ -82,7 +91,7 @@ function OperadorCard({
         ) : (
           <div className="min-w-0 flex-1">
             <p
-              className="font-medium text-gray-900 truncate cursor-pointer hover:text-[#0369A1]"
+              className="font-medium text-gray-900 truncate cursor-pointer hover:text-primary"
               onClick={onEmpezarEdicion}
               title="Clic para editar"
             >
@@ -266,7 +275,7 @@ export default function OperadoresList() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0369A1]" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     )
   }
@@ -299,7 +308,7 @@ export default function OperadoresList() {
               type="checkbox"
               checked={mostrarInactivos}
               onChange={(e) => setMostrarInactivos(e.target.checked)}
-              className="rounded border-gray-300 text-[#0369A1] focus:ring-[#0369A1]"
+              className="rounded border-gray-300 text-primary focus:ring-ring"
             />
             Mostrar inactivos
           </label>
@@ -310,7 +319,7 @@ export default function OperadoresList() {
           <select
             value={filtroArea}
             onChange={(e) => setFiltroArea(e.target.value as Area | 'todas')}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#0369A1]/20 focus:border-[#0369A1]"
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-primary"
           >
             <option value="todas">Todas las áreas</option>
             {AREAS.map((a) => (
@@ -326,7 +335,7 @@ export default function OperadoresList() {
               placeholder="Buscar por nombre o correo…"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0369A1]/20 focus:border-[#0369A1]"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-primary"
             />
           </div>
           <button
@@ -350,7 +359,7 @@ export default function OperadoresList() {
             value={nuevoNombre}
             onChange={(e) => { setNuevoNombre(e.target.value); setErrorForm(null) }}
             placeholder="Nombre del operador…"
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0369A1]/20 focus:border-[#0369A1]"
+            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-primary"
             disabled={agregando}
           />
         </div>
@@ -359,7 +368,7 @@ export default function OperadoresList() {
           <select
             value={nuevaArea}
             onChange={(e) => setNuevaArea(e.target.value as Area)}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#0369A1]/20 focus:border-[#0369A1]"
+            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-primary"
             disabled={agregando}
           >
             {AREAS.map((a) => (
@@ -370,7 +379,7 @@ export default function OperadoresList() {
         <button
           type="submit"
           disabled={agregando || !nuevoNombre.trim()}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-[#0369A1] rounded-lg hover:bg-[#0284C7] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Plus className="h-4 w-4" />
           Agregar
@@ -409,32 +418,33 @@ export default function OperadoresList() {
       </div>
 
       {/* Tabla de operadores (desktop) */}
-      <div className="hidden md:block bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Nombre</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Área</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Correo Vinculado</th>
-              <th className="text-center px-4 py-3 font-medium text-gray-500">Estado</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
+      <div className="hidden md:block">
+        <ModuleSurface>
+        <Table className="text-sm">
+          <TableHeader>
+            <TableRow className="bg-gray-50 border-b border-gray-200">
+              <TableHead className="text-left px-4 py-3 font-medium text-gray-500">Nombre</TableHead>
+              <TableHead className="text-left px-4 py-3 font-medium text-gray-500">Área</TableHead>
+              <TableHead className="text-left px-4 py-3 font-medium text-gray-500">Correo Vinculado</TableHead>
+              <TableHead className="text-center px-4 py-3 font-medium text-gray-500">Estado</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="divide-y divide-gray-100">
             {filtrados.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="text-center py-12 text-gray-400">
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-12 text-gray-400">
                   {busqueda ? 'Sin resultados para la búsqueda' : 'No hay operadores registrados'}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               filtrados.map((op) => {
                 const correo = obtenerCorreoVinculado(op.id, op.nombre)
                 return (
-                  <tr
+                  <TableRow
                     key={op.id}
                     className={`hover:bg-gray-50 transition-colors ${!op.activo ? 'opacity-50' : ''}`}
                   >
-                    <td className="px-4 py-3">
+                    <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${AREA_COLORS[op.area]}`}>
                           {getInitials(op.nombre)}
@@ -445,7 +455,7 @@ export default function OperadoresList() {
                               type="text"
                               value={nombreEditado}
                               onChange={(e) => setNombreEditado(e.target.value)}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-[#0369A1]"
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-primary"
                               autoFocus
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') guardarEdicion(op.id)
@@ -457,7 +467,7 @@ export default function OperadoresList() {
                           </div>
                         ) : (
                           <span 
-                            className="font-medium text-gray-900 cursor-pointer hover:text-[#0369A1] hover:underline"
+                            className="font-medium text-gray-900 cursor-pointer hover:text-primary hover:underline"
                             onClick={() => { setEditandoId(op.id); setNombreEditado(op.nombre); }}
                             title="Clic para editar"
                           >
@@ -465,8 +475,8 @@ export default function OperadoresList() {
                           </span>
                         )}
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
                       <select
                         value={op.area}
                         onChange={(e) => handleCambiarArea(op.id, e.target.value as Area)}
@@ -481,8 +491,8 @@ export default function OperadoresList() {
                           No aplica a horas extra
                         </p>
                       )}
-                    </td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
                       {correo ? (
                         <span className="inline-flex items-center gap-1.5 text-xs font-mono text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
                           <Mail className="w-3.5 h-3.5 text-emerald-600" />
@@ -493,8 +503,8 @@ export default function OperadoresList() {
                           Sin correo
                         </span>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-center">
                       <button
                         onClick={() => handleToggle(op.id, op.activo)}
                         className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${
@@ -510,13 +520,14 @@ export default function OperadoresList() {
                           <><UserX className="h-3.5 w-3.5" /> Inactivo</>
                         )}
                       </button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )
               })
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
+        </ModuleSurface>
       </div>
     </div>
   )

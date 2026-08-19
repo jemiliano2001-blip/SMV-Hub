@@ -1,19 +1,29 @@
 'use client'
 
 import {
+  Award,
   Building2,
-  X,
   Edit2,
-  Trash2,
+  ExternalLink,
   Globe,
   Mail,
-  Phone,
   MapPin,
-  Award,
-  ExternalLink,
+  Package,
+  Phone,
+  Star,
+  Trash2,
+  Zap,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import type { Proveedor } from '@/lib/schemas'
 
 interface DrawerDetalleProveedorProps {
@@ -31,6 +41,12 @@ interface DrawerDetalleProveedorProps {
   }
 }
 
+function etiquetaTipo(tipo: Proveedor['tipoProveedor']) {
+  if (tipo === 'premium') return { label: 'Premium', icon: Star }
+  if (tipo === 'barato') return { label: 'Económico', icon: Zap }
+  return { label: 'Estándar', icon: Package }
+}
+
 export default function DrawerDetalleProveedor({
   proveedor,
   open,
@@ -39,208 +55,159 @@ export default function DrawerDetalleProveedor({
   onDelete,
   scorecard,
 }: DrawerDetalleProveedorProps) {
-  if (!open || !proveedor) return null
+  if (!proveedor) return null
+
+  const tipo = etiquetaTipo(proveedor.tipoProveedor)
+  const TipoIcon = tipo.icon
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/30 backdrop-blur-xs transition-opacity animate-in fade-in duration-200">
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md md:max-w-lg bg-white border-l border-slate-200 shadow-2xl flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-300">
-          {/* Header del Drawer */}
-          <div className="p-6 border-b border-slate-200 bg-slate-50 sticky top-0 z-10">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className={`uppercase text-[10px] font-bold ${
-                      proveedor.tipoProveedor === 'premium'
-                        ? 'border-purple-300 text-purple-800 bg-purple-50'
-                        : proveedor.tipoProveedor === 'barato'
-                        ? 'border-amber-300 text-amber-800 bg-amber-50'
-                        : 'border-sky-300 text-[#0369A1] bg-sky-50'
-                    }`}
-                  >
-                    {proveedor.tipoProveedor === 'premium'
-                      ? '⭐ Premium Performance'
-                      : proveedor.tipoProveedor === 'barato'
-                      ? '⚡ Económico ($ Barato)'
-                      : '📦 Estándar ($)'}
-                  </Badge>
-                  <span className="text-xs text-slate-500 font-medium">
-                    {proveedor.pais === 'Estados Unidos' ? '🇺🇸 USA' : '🇲🇽 México'}
+    <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
+      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-lg">
+        <SheetHeader className="border-b border-border bg-muted/40 px-6 py-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className="text-[10px] font-bold uppercase">
+              <TipoIcon className="mr-1 inline size-3" aria-hidden />
+              {tipo.label}
+            </Badge>
+            <Badge variant="outline" className="text-[10px]">
+              {proveedor.pais === 'Estados Unidos' ? 'USA' : 'México'}
+            </Badge>
+          </div>
+          <SheetTitle className="text-left text-lg font-bold">{proveedor.nombre}</SheetTitle>
+          <div className="flex items-center justify-between pt-2 text-xs">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span className="flex items-center gap-1 font-bold text-amber-500">
+                <Star className="size-3.5 fill-amber-400 text-amber-400" aria-hidden />
+                {proveedor.calificacion || 5}.0
+              </span>
+              <span>Lead time: {proveedor.leadTimeDias || '3-5'} días</span>
+            </div>
+            <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
+              {proveedor.estatus === 'actual' ? 'Activo' : proveedor.estatus}
+            </Badge>
+          </div>
+        </SheetHeader>
+
+        <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-5 text-foreground">
+          <div className="rounded-xl border border-border bg-muted/30 p-4">
+            <div className="mb-3 flex items-center justify-between text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <Award className="size-4 text-primary" aria-hidden />
+                Scorecard SMV
+              </span>
+              <span>{scorecard ? `${scorecard.promedioGeneral.toFixed(1)} / 5.0` : 'Sin datos'}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="rounded-lg border border-border bg-card p-2.5">
+                <div className="text-[10px] text-muted-foreground">Lead time prometido</div>
+                <div className="text-sm font-bold">
+                  {scorecard?.leadTimePromedio ?? 'Sin datos'}
+                  {scorecard ? ' días' : ''}
+                </div>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-2.5">
+                <div className="text-[10px] text-muted-foreground">Lead time real (Odoo)</div>
+                <div className="text-sm font-bold text-emerald-700">
+                  {scorecard?.leadTimeReal ?? 'Sin datos'}
+                  {scorecard ? ' días' : ''}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <section className="flex flex-col gap-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Contacto y web
+            </h3>
+            <div className="flex flex-col gap-2 text-sm">
+              {proveedor.web ? (
+                <a
+                  href={proveedor.web.startsWith('http') ? proveedor.web : `https://${proveedor.web}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group flex items-center justify-between rounded-lg border border-sky-200/60 bg-sky-50/60 p-2.5 text-xs font-semibold text-primary transition-all hover:bg-sky-100/80"
+                >
+                  <span className="flex items-center gap-2">
+                    <Globe className="size-4" aria-hidden />
+                    {proveedor.web}
+                  </span>
+                  <ExternalLink className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                </a>
+              ) : null}
+              {proveedor.email ? (
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 p-2.5 text-xs">
+                  <Mail className="size-4 text-muted-foreground" aria-hidden />
+                  <span>{proveedor.email}</span>
+                </div>
+              ) : null}
+              {proveedor.telefono ? (
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 p-2.5 text-xs">
+                  <Phone className="size-4 text-muted-foreground" aria-hidden />
+                  <span>{proveedor.telefono}</span>
+                </div>
+              ) : null}
+              {proveedor.contacto ? (
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 p-2.5 text-xs">
+                  <Building2 className="size-4 text-muted-foreground" aria-hidden />
+                  <span>
+                    Atención: <strong>{proveedor.contacto}</strong>
                   </span>
                 </div>
-                <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
-                  {proveedor.nombre}
-                </h2>
-              </div>
-
-              <button
-                onClick={onClose}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-all"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              ) : null}
             </div>
+          </section>
 
-            {/* Quick Rating & Status Bar */}
-            <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-200 text-xs">
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-amber-500">⭐ {proveedor.calificacion || 5}.0</span>
-                <span className="text-slate-300">|</span>
-                <span className="text-slate-600 font-medium">
-                  Lead Time: {proveedor.leadTimeDias || '3-5'} días
-                </span>
-              </div>
-              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                {proveedor.estatus === 'actual' ? 'Proveedor Activo' : proveedor.estatus}
-              </Badge>
+          <section className="flex flex-col gap-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Marcas representadas
+            </h3>
+            <div className="flex flex-wrap gap-1.5">
+              {proveedor.marcas && proveedor.marcas.length > 0 ? (
+                proveedor.marcas.map((marca) => (
+                  <Badge key={marca} variant="secondary" className="px-2.5 py-1 text-xs font-semibold">
+                    {marca}
+                  </Badge>
+                ))
+              ) : (
+                <span className="text-xs italic text-muted-foreground">Sin marcas registradas</span>
+              )}
             </div>
-          </div>
+          </section>
 
-          {/* Cuerpo / Secciones */}
-          <div className="p-6 space-y-6 flex-1 text-slate-800">
-            {/* Scorecard 360° Metrics Box Light */}
-            <div className="p-4 rounded-xl bg-slate-900 text-white space-y-3 shadow-xs">
-              <div className="flex items-center justify-between text-xs font-bold tracking-wider text-indigo-300 uppercase">
-                <span className="flex items-center gap-1.5">
-                  <Award className="w-4 h-4 text-indigo-400" /> Scorecard 360° SMV Hub
-                </span>
-                <span>{scorecard ? `⭐ ${scorecard.promedioGeneral.toFixed(1)} / 5.0` : 'Sin datos'}</span>
+          {proveedor.shippingAddressUSA ? (
+            <div className="flex flex-col gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-amber-900">
+              <div className="flex items-center gap-1.5 text-xs font-bold">
+                <MapPin className="size-4 text-amber-600" aria-hidden />
+                Dirección de envío (USA)
               </div>
-
-              <div className="grid grid-cols-2 gap-3 text-xs pt-1">
-                <div className="p-2.5 rounded-lg bg-slate-800 border border-slate-700">
-                  <div className="text-slate-400 text-[10px]">Lead Time Prometido</div>
-                  <div className="font-bold text-white text-sm">{scorecard?.leadTimePromedio ?? 'Sin datos'}{scorecard ? ' días' : ''}</div>
-                </div>
-                <div className="p-2.5 rounded-lg bg-slate-800 border border-slate-700">
-                  <div className="text-slate-400 text-[10px]">Lead Time Real (Odoo)</div>
-                  <div className="font-bold text-emerald-400 text-sm">{scorecard?.leadTimeReal ?? 'Sin datos'}{scorecard ? ' días' : ''}</div>
-                </div>
-              </div>
+              <p className="font-mono text-xs text-amber-800">{proveedor.shippingAddressUSA}</p>
             </div>
+          ) : null}
 
-            {/* Contactos & Datos de Comunicación */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Contacto Directo & Web
-              </h3>
-
-              <div className="space-y-2 text-sm">
-                {proveedor.web && (
-                  <a
-                    href={proveedor.web.startsWith('http') ? proveedor.web : `https://${proveedor.web}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-between p-2.5 rounded-lg bg-sky-50/60 hover:bg-sky-100/80 text-[#0369A1] transition-all font-semibold text-xs group border border-sky-200/60"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-[#0369A1]" /> {proveedor.web}
-                    </span>
-                    <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                  </a>
-                )}
-
-                {proveedor.email && (
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 text-slate-700 text-xs">
-                    <Mail className="w-4 h-4 text-slate-400" />
-                    <span>{proveedor.email}</span>
-                  </div>
-                )}
-
-                {proveedor.telefono && (
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 text-slate-700 text-xs">
-                    <Phone className="w-4 h-4 text-slate-400" />
-                    <span>{proveedor.telefono}</span>
-                  </div>
-                )}
-
-                {proveedor.contacto && (
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 text-slate-700 text-xs">
-                    <Building2 className="w-4 h-4 text-slate-400" />
-                    <span>Atención: <strong>{proveedor.contacto}</strong></span>
-                  </div>
-                )}
-              </div>
+          {proveedor.notas ? (
+            <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+              <span className="font-bold text-foreground">Notas de compras:</span>
+              <p className="mt-1 leading-relaxed">{proveedor.notas}</p>
             </div>
-
-            {/* Categorías & Marcas Representadas */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Marcas Representadas & Especialidad
-              </h3>
-
-              <div className="flex flex-wrap gap-1.5">
-                {proveedor.marcas && proveedor.marcas.length > 0 ? (
-                  proveedor.marcas.map((m, idx) => (
-                    <Badge
-                      key={idx}
-                      variant="secondary"
-                      className="bg-slate-100 text-slate-700 text-xs font-semibold px-2.5 py-1"
-                    >
-                      {m}
-                    </Badge>
-                  ))
-                ) : (
-                  <span className="text-xs text-slate-400 italic">No se han registrado marcas específicas</span>
-                )}
-              </div>
-            </div>
-
-            {/* Dirección EE. UU. / Logística */}
-            {proveedor.shippingAddressUSA && (
-              <div className="space-y-2 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
-                <div className="text-xs font-bold flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-amber-600" /> Shipping / Warehouse Address (USA)
-                </div>
-                <p className="text-xs text-amber-800 font-mono">
-                  {proveedor.shippingAddressUSA}
-                </p>
-              </div>
-            )}
-
-            {/* Notas / Experiencia de Compra */}
-            {proveedor.notas && (
-              <div className="space-y-1.5 p-3 rounded-lg bg-slate-50 border border-slate-200/80 text-xs text-slate-600">
-                <span className="font-bold text-slate-700">Notas de Compras:</span>
-                <p className="leading-relaxed">{proveedor.notas}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Footer del Drawer con Acciones */}
-          <div className="p-6 border-t border-slate-200 bg-slate-50 flex items-center justify-between gap-3 sticky bottom-0 z-10">
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => onDelete(proveedor.id)}
-              className="gap-1.5 text-xs font-semibold"
-            >
-              <Trash2 className="w-4 h-4" /> Eliminar
-            </Button>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onClose}
-                className="text-xs"
-              >
-                Cerrar
-              </Button>
-
-              <Button
-                size="sm"
-                onClick={() => onEdit(proveedor)}
-                className="bg-[#0369A1] hover:bg-[#0284C7] text-white gap-1.5 text-xs font-bold"
-              >
-                <Edit2 className="w-4 h-4" /> Editar Proveedor
-              </Button>
-            </div>
-          </div>
+          ) : null}
         </div>
-      </div>
-    </div>
+
+        <SheetFooter className="flex-row justify-between border-t border-border bg-muted/40 px-6 py-4">
+          <Button variant="destructive" size="sm" onClick={() => onDelete(proveedor.id)}>
+            <Trash2 data-icon="inline-start" />
+            Eliminar
+          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={onClose}>
+              Cerrar
+            </Button>
+            <Button size="sm" onClick={() => onEdit(proveedor)}>
+              <Edit2 data-icon="inline-start" />
+              Editar
+            </Button>
+          </div>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 }

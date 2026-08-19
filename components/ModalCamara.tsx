@@ -1,7 +1,13 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Camera, RefreshCw, X, Check, RotateCcw, AlertCircle } from 'lucide-react'
+import { Camera, RefreshCw, Check, RotateCcw, AlertCircle } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface ModalCamaraProps {
   isOpen: boolean
@@ -149,25 +155,15 @@ export function ModalCamara({
     onClose()
   }
 
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/80 p-3 backdrop-blur-sm">
-      <div className="flex max-h-[95vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-gray-900 text-white shadow-2xl">
-        {/* Cabecera del modal */}
-        <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3">
-          <div className="flex items-center gap-2">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[95vh] max-w-lg flex-col gap-0 overflow-hidden border-gray-800 bg-gray-900 p-0 text-white sm:max-w-lg">
+        <DialogHeader className="border-b border-gray-800 px-4 py-3">
+          <DialogTitle className="flex items-center gap-2 text-white">
             <Camera className="h-5 w-5 text-sky-400" />
-            <h3 className="text-base font-semibold">{titulo}</h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-800 hover:text-white"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+            {titulo}
+          </DialogTitle>
+        </DialogHeader>
 
         {/* Visor o Vista Previa */}
         <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-black min-h-[300px] max-h-[60vh]">
@@ -265,7 +261,7 @@ export function ModalCamara({
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

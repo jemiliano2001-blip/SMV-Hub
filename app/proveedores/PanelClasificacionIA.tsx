@@ -12,6 +12,14 @@ import {
   cargarMapeosClasificacion,
   aplicarMapeosAprobados,
 } from '@/lib/compras-odoo/mapeos-clasificacion'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 type ItemSugerido = {
   item: CompraOdooItem
@@ -197,7 +205,7 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
             <Sparkles className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               Clasificación Inteligente IA
               <Badge variant="secondary" className="bg-sky-100 text-sky-800 font-mono text-[10px]">
                 Gemini 3.5 Flash Lite
@@ -265,24 +273,24 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
 
           <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs">
             <div className="overflow-x-auto max-h-80">
-              <table className="w-full text-left text-[11px]">
-                <thead className="sticky top-0 bg-slate-100 text-slate-600 font-bold uppercase tracking-wider">
-                  <tr>
-                    <th className="px-3 py-2">Descripción Producto</th>
-                    <th className="px-3 py-2">Categoría Sugerida</th>
-                    <th className="px-3 py-2">Tipo Insumo</th>
-                    <th className="px-3 py-2">Medida</th>
-                    <th className="px-3 py-2 text-center">Confianza</th>
-                    <th className="px-3 py-2 text-right">Acción</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
+              <Table className="w-full text-left text-[11px]">
+                <TableHeader className="sticky top-0 bg-slate-100 text-slate-600 font-bold uppercase tracking-wider">
+                  <TableRow>
+                    <TableHead className="px-3 py-2">Descripción Producto</TableHead>
+                    <TableHead className="px-3 py-2">Categoría Sugerida</TableHead>
+                    <TableHead className="px-3 py-2">Tipo Insumo</TableHead>
+                    <TableHead className="px-3 py-2">Medida</TableHead>
+                    <TableHead className="px-3 py-2 text-center">Confianza</TableHead>
+                    <TableHead className="px-3 py-2 text-right">Acción</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-slate-100">
                   {sugerencias.map((sug, idx) => (
-                    <tr
+                    <TableRow
                       key={sug.item.id}
                       className={`hover:bg-slate-50 ${sug.estado === 'aprobado' ? 'bg-emerald-50/50' : ''}`}
                     >
-                      <td className="px-3 py-2 max-w-[240px]">
+                      <TableCell className="px-3 py-2 max-w-[240px]">
                         <p className="font-semibold text-slate-900 truncate" title={sug.item.descripcion}>
                           {sug.item.descripcion}
                         </p>
@@ -291,9 +299,9 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
                             Cat Odoo: {sug.item.odooCategoria}
                           </p>
                         )}
-                      </td>
+                      </TableCell>
 
-                      <td className="px-3 py-2">
+                      <TableCell className="px-3 py-2">
                         <select
                           value={sug.categoriaEditada}
                           disabled={sug.estado !== 'pendiente'}
@@ -311,9 +319,9 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
                             </option>
                           ))}
                         </select>
-                      </td>
+                      </TableCell>
 
-                      <td className="px-3 py-2">
+                      <TableCell className="px-3 py-2">
                         <input
                           type="text"
                           value={sug.tipoEditado}
@@ -327,9 +335,9 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
                           }}
                           className="w-28 rounded border border-slate-300 px-2 py-1 text-xs bg-white font-mono focus:ring-1 focus:ring-sky-500"
                         />
-                      </td>
+                      </TableCell>
 
-                      <td className="px-3 py-2">
+                      <TableCell className="px-3 py-2">
                         <input
                           type="text"
                           value={sug.medidaEditada}
@@ -343,9 +351,9 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
                           }}
                           className="w-24 rounded border border-slate-300 px-2 py-1 text-xs bg-white font-mono focus:ring-1 focus:ring-sky-500"
                         />
-                      </td>
+                      </TableCell>
 
-                      <td className="px-3 py-2 text-center font-mono">
+                      <TableCell className="px-3 py-2 text-center font-mono">
                         <Badge
                           variant="outline"
                           className={
@@ -358,9 +366,9 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
                         >
                           {Math.round(sug.clasificacion.confianza * 100)}%
                         </Badge>
-                      </td>
+                      </TableCell>
 
-                      <td className="px-3 py-2 text-right">
+                      <TableCell className="px-3 py-2 text-right">
                         {sug.estado === 'pendiente' && (
                           <div className="flex items-center justify-end gap-1">
                             <button
@@ -399,11 +407,11 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
                             Error
                           </span>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </div>
         </div>

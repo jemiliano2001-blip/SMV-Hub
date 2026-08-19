@@ -1,6 +1,8 @@
 'use client'
 
 import AuthGuard from "@/app/AuthGuard"
+import PageHeader from "@/components/layout/PageHeader"
+import PageShell from "@/components/layout/PageShell"
 import { Fragment, useMemo, useState } from "react"
 import {
   AlertCircle,
@@ -38,6 +40,14 @@ import FinanzasNav from "@/app/finanzas/FinanzasNav"
 import BannerSync from "@/app/finanzas/BannerSync"
 import SelectorMes from "@/app/finanzas/SelectorMes"
 import SeguimientoCobranzaEditor from "@/app/finanzas/cobranza/SeguimientoCobranzaEditor"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 type FilaCobranza = {
   factura: FacturaCliente
@@ -270,7 +280,7 @@ function Cobranza() {
       <div className="flex flex-col items-center justify-center gap-4 py-24">
         <AlertCircle className="h-8 w-8 text-red-500" />
         <p className="text-sm text-gray-700">{error}</p>
-        <button onClick={recargar} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+        <button onClick={recargar} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
           Reintentar
         </button>
       </div>
@@ -288,7 +298,7 @@ function Cobranza() {
                 key={p}
                 onClick={() => setPeriodoTipo(p)}
                 className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                  periodoTipo === p ? "bg-white text-[#0369A1] shadow-sm" : "text-gray-500"
+                  periodoTipo === p ? "bg-white text-primary shadow-sm" : "text-gray-500"
                 }`}
               >
                 {p === "todas" ? "Todas" : "Por mes"}
@@ -303,7 +313,7 @@ function Cobranza() {
                   key={m}
                   onClick={() => setMonedaActiva(m)}
                   className={`px-3 py-1 text-xs font-medium rounded-full border ${
-                    m === moneda ? "bg-[#0369A1] text-white border-[#0369A1]" : "bg-white text-gray-600 border-gray-200"
+                    m === moneda ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200"
                   }`}
                 >
                   {m}
@@ -456,7 +466,7 @@ function Cobranza() {
             key={f}
             onClick={() => setFiltro(f)}
             className={`px-3 py-1 text-xs font-medium rounded-md transition-all capitalize ${
-              filtro === f ? "bg-white text-[#0369A1] shadow-sm" : "text-gray-500"
+              filtro === f ? "bg-white text-primary shadow-sm" : "text-gray-500"
             }`}
           >
             {f === "disputa" ? "En disputa" : f}
@@ -487,46 +497,46 @@ function Cobranza() {
               ))}
             </div>
             <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b-2 border-gray-300">
-                  <th className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Cliente</th>
-                  <th className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Factura</th>
-                  <th className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Vencimiento</th>
-                  <th className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Total</th>
-                  <th className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Saldo</th>
-                  <th className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Días atraso</th>
-                  <th className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Antigüedad</th>
-                  <th className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Estado</th>
-                  <th className="pb-2 text-right text-xs font-semibold text-gray-600">Seguimiento</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="w-full text-sm border-collapse">
+              <TableHeader>
+                <TableRow className="border-b-2 border-gray-300">
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Cliente</TableHead>
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Factura</TableHead>
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Vencimiento</TableHead>
+                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Total</TableHead>
+                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Saldo</TableHead>
+                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Días atraso</TableHead>
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Antigüedad</TableHead>
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Estado</TableHead>
+                  <TableHead className="pb-2 text-right text-xs font-semibold text-gray-600">Seguimiento</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filasFiltradas.map(({ factura, estado, atraso, bucket }) => {
                   const seguimiento = seguimientos.get(factura.id)
                   const expandida = facturaExpandida === factura.id
                   const prioritaria = idsPrioritarias.has(factura.id)
                   return (
                     <Fragment key={factura.id}>
-                      <tr
+                      <TableRow
                         className={`border-b border-gray-100 hover:bg-gray-50 ${
                           prioritaria ? "bg-amber-50/70" : ""
                         }`}
                       >
-                        <td className="py-2 pr-3">{factura.cliente}</td>
-                        <td className="py-2 pr-3 font-mono text-xs text-gray-500">{factura.numeroFactura}</td>
-                        <td className="py-2 pr-3">{formatFecha(factura.fechaVencimiento)}</td>
-                        <td className="py-2 pr-3 text-right tabular-nums">{formatPrecio(factura.total, moneda)}</td>
-                        <td className="py-2 pr-3 text-right tabular-nums font-medium">
+                        <TableCell className="py-2 pr-3">{factura.cliente}</TableCell>
+                        <TableCell className="py-2 pr-3 font-mono text-xs text-gray-500">{factura.numeroFactura}</TableCell>
+                        <TableCell className="py-2 pr-3">{formatFecha(factura.fechaVencimiento)}</TableCell>
+                        <TableCell className="py-2 pr-3 text-right tabular-nums">{formatPrecio(factura.total, moneda)}</TableCell>
+                        <TableCell className="py-2 pr-3 text-right tabular-nums font-medium">
                           {formatPrecio(factura.saldoPendiente, moneda)}
                           {prioritaria && (
                             <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
                               Prioridad
                             </span>
                           )}
-                        </td>
-                        <td className="py-2 pr-3 text-right tabular-nums text-gray-500">{atraso > 0 ? atraso : "—"}</td>
-                        <td className="py-2 pr-3">
+                        </TableCell>
+                        <TableCell className="py-2 pr-3 text-right tabular-nums text-gray-500">{atraso > 0 ? atraso : "—"}</TableCell>
+                        <TableCell className="py-2 pr-3">
                           {factura.saldoPendiente > 0 && atraso > 0 ? (
                             <span
                               className="inline-flex items-center gap-1 text-xs font-medium"
@@ -542,8 +552,8 @@ function Cobranza() {
                           ) : (
                             <span className="text-xs text-gray-400">—</span>
                           )}
-                        </td>
-                        <td className="py-2 pr-3">
+                        </TableCell>
+                        <TableCell className="py-2 pr-3">
                           {seguimiento?.enDisputa ? (
                             <span className="rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">
                               En disputa
@@ -553,8 +563,8 @@ function Cobranza() {
                               {ETIQUETA_ESTADO[estado].label}
                             </span>
                           )}
-                        </td>
-                        <td className="py-2 text-right">
+                        </TableCell>
+                        <TableCell className="py-2 text-right">
                           <button
                             type="button"
                             onClick={() =>
@@ -574,14 +584,14 @@ function Cobranza() {
                               <ChevronDown className="h-3.5 w-3.5" />
                             )}
                           </button>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                       {expandida && (
-                        <tr
+                        <TableRow
                           id={`seguimiento-${factura.id}`}
                           className="border-b border-gray-100"
                         >
-                          <td colSpan={COLUMNAS_TABLA} className="px-2 py-3">
+                          <TableCell colSpan={COLUMNAS_TABLA} className="px-2 py-3">
                             {usuario?.email ? (
                               <SeguimientoCobranzaEditor
                                 facturaId={factura.id}
@@ -595,14 +605,14 @@ function Cobranza() {
                                 No se pudo identificar la sesión para registrar la trazabilidad.
                               </p>
                             )}
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       )}
                     </Fragment>
                   )
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
             </div>
           </>
         )}
@@ -614,24 +624,15 @@ function Cobranza() {
 export default function CobranzaPage() {
   return (
     <AuthGuard>
-      <main className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
-        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-1 space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-bold text-slate-900 tracking-tight">Cobranza</h1>
-                <span className="text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded">
-                  Odoo Mirror
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">Facturas pagadas, pendientes y vencidas</p>
-            </div>
-            <FinanzasNav />
-          </div>
-
-          <Cobranza />
-        </div>
-      </main>
+      <PageShell>
+        <PageHeader
+          title="Cobranza"
+          badge="Odoo"
+          description="Facturas pagadas, pendientes y vencidas."
+          actions={<FinanzasNav />}
+        />
+        <Cobranza />
+      </PageShell>
     </AuthGuard>
   )
 }

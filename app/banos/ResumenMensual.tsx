@@ -2,6 +2,14 @@ import { useState, useMemo } from 'react'
 import { useBanos } from '@/lib/hooks/useBanos'
 import { Clock, Search, Download } from 'lucide-react'
 import { fechaHoyLocal } from '@/lib/format'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 function formatearHorasMinutos(minutosTotales: number): string {
   const horas = Math.floor(minutosTotales / 60)
@@ -70,7 +78,7 @@ export default function ResumenMensual() {
             type="month"
             value={mes}
             onChange={(e) => setMes(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1]"
+            className="px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
           />
         </div>
         
@@ -82,7 +90,7 @@ export default function ResumenMensual() {
               placeholder="Buscar operador..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1]"
+              className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
             />
           </div>
 
@@ -99,7 +107,7 @@ export default function ResumenMensual() {
       </div>
 
       {!loading && resumenFiltrado.length > 0 && (
-        <div className="flex items-center gap-2 text-sm bg-[#0369A1]/10 text-[#0369A1] px-4 py-2 rounded-lg font-medium w-fit ml-auto">
+        <div className="flex items-center gap-2 text-sm bg-primary/10 text-primary px-4 py-2 rounded-lg font-medium w-fit ml-auto">
           <Clock className="h-4 w-4" />
           Total filtrado: {formatearHorasMinutos(granTotalMinutos)}
         </div>
@@ -113,49 +121,49 @@ export default function ResumenMensual() {
         </div>
       ) : (
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-4">Operador</th>
-                <th className="px-6 py-4 text-right w-48">Total Minutos</th>
-                <th className="px-6 py-4 text-right w-48">Horas y Minutos</th>
-                <th className="px-6 py-4 w-32"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
+          <Table className="w-full text-sm text-left">
+            <TableHeader className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+              <TableRow>
+                <TableHead className="px-6 py-4">Operador</TableHead>
+                <TableHead className="px-6 py-4 text-right w-48">Total Minutos</TableHead>
+                <TableHead className="px-6 py-4 text-right w-48">Horas y Minutos</TableHead>
+                <TableHead className="px-6 py-4 w-32"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-gray-100">
               {resumenFiltrado.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                <TableRow>
+                  <TableCell colSpan={4} className="px-6 py-8 text-center text-gray-500">
                     No se encontraron resultados para la búsqueda
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 resumenFiltrado.map((item, index) => (
-                  <tr key={item.operador} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-3 font-medium text-gray-900 flex items-center gap-3">
+                  <TableRow key={item.operador} className="hover:bg-gray-50 transition-colors">
+                    <TableCell className="px-6 py-3 font-medium text-gray-900 flex items-center gap-3">
                       <span className="w-6 text-xs text-gray-400 text-right">{index + 1}.</span>
                       {item.operador}
-                    </td>
-                    <td className="px-6 py-3 text-right font-medium text-[#0369A1]">
+                    </TableCell>
+                    <TableCell className="px-6 py-3 text-right font-medium text-primary">
                       {item.minutos} m
-                    </td>
-                    <td className="px-6 py-3 text-right text-gray-600 font-mono tracking-tight">
+                    </TableCell>
+                    <TableCell className="px-6 py-3 text-right text-gray-600 font-mono tracking-tight">
                       {item.formatoHoras}
-                    </td>
-                    <td className="px-6 py-3">
+                    </TableCell>
+                    <TableCell className="px-6 py-3">
                       {/* Visual bar relative to the max */}
                       <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
                         <div 
-                          className="bg-[#0369A1] h-full rounded-full opacity-70"
+                          className="bg-primary h-full rounded-full opacity-70"
                           style={{ width: `${Math.max(2, (item.minutos / resumen[0].minutos) * 100)}%` }}
                         ></div>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

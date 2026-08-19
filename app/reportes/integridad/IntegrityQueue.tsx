@@ -172,7 +172,7 @@ export default function IntegrityQueue({
           <article
             key={item.caseId}
             className={`border bg-white p-4 ${
-              selectedId === item.caseId ? "border-[#0369A1]" : "border-slate-200"
+              selectedId === item.caseId ? "border-primary" : "border-slate-200"
             }`}
           >
             <div className="flex items-start justify-between gap-3">

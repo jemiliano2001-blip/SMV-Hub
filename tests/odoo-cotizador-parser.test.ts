@@ -101,4 +101,27 @@ describe("odoo-cotizador-parser", () => {
     expect(resultado.advertencias.some((a) => a.includes("difiere del cálculo"))).toBe(true)
     expect(resultado.partidas[1].subtotal).toBe(80) // Mantiene importe del archivo
   })
+
+  it("reconoce encabezado de OT / Orden de trabajo y lo asigna al uso y ordenTrabajo", () => {
+    const rawTsv = [
+      "Descripción\tOT\tCantidad\tPrecio Unitario",
+      "Tugsteno de carburo 3/16 x 3/4 x 6\t2026/S01641\t2\t2090.05",
+    ].join("\n")
+
+    const resultado = parsearTextoExcel(rawTsv, {
+      requisitor: "Antonio",
+      empresa: "Mecalux",
+    })
+
+    expect(resultado.partidas).toHaveLength(1)
+    const p = resultado.partidas[0]
+    expect(p.descripcion).toBe("Tugsteno de carburo 3/16 x 3/4 x 6")
+    expect(p.uso).toBe("2026/S01641")
+    expect(p.ordenTrabajo).toBe("2026/S01641")
+    expect(p.requisitor).toBe("Antonio")
+    expect(p.empresa).toBe("Mecalux")
+    expect(p.cantidad).toBe(2)
+    expect(p.precioUnitario).toBe(2090.05)
+    expect(p.subtotal).toBe(4180.1)
+  })
 })

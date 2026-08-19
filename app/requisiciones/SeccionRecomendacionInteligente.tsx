@@ -1,26 +1,31 @@
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · tone: utilitario-premium · scope: motor-recomendador */
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
-  Sparkles,
   Award,
-  SlidersHorizontal,
   ChevronDown,
   ChevronUp,
+  Lightbulb,
+  RefreshCw,
+  Settings2,
+  SlidersHorizontal,
+  Sparkles,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { Progress } from '@/components/ui/progress'
+
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 import { Slider } from '@/components/ui/slider'
-import type { Proveedor, EvaluacionProveedor, CompraProveedor } from '@/lib/schemas'
 import {
-  evaluarYRecomendarProveedores,
   CONFIGURACION_PESOS_DEFAULT,
-  type OfertaParaEvaluacion,
+  evaluarYRecomendarProveedores,
   type ConfiguracionPesosRecomendador,
+  type OfertaParaEvaluacion,
 } from '@/lib/motor-recomendador-proveedores'
+import type { CompraProveedor, EvaluacionProveedor, Proveedor } from '@/lib/schemas'
 import { TIPO_CAMBIO_DEFAULT_USD_MXN } from '@/lib/tipo-cambio'
+import { cn } from '@/lib/utils'
 
 interface Props {
   ofertas: OfertaParaEvaluacion[]
@@ -28,10 +33,14 @@ interface Props {
   evaluacionesHistoricas?: EvaluacionProveedor[]
   comprasHistoricas?: CompraProveedor[]
   onSeleccionarProveedor?: (provId: string, provNombre: string, razon: string) => void
-  /** MXN por 1 USD (configurable). */
   tipoCambioUsdMxn?: number
-  /** Score de confiabilidad lead-time por proveedorId (1–5). */
   confiabilidadPorProveedor?: Record<string, number>
+}
+
+function etiquetaModo(modo: string) {
+  if (modo === 'primera_compra') return 'Primera compra'
+  if (modo === 'recompra') return 'Recompra histórica'
+  return 'Personalizado'
 }
 
 export default function SeccionRecomendacionInteligente({
@@ -47,280 +56,205 @@ export default function SeccionRecomendacionInteligente({
   const [mostrarConfigPesos, setMostrarConfigPesos] = useState(false)
   const [mostrarDesgloseDetallado, setMostrarDesgloseDetallado] = useState(false)
 
-  // Ejecutar el motor de recomendación inteligente
-  const resultado = useMemo(() => {
-    return evaluarYRecomendarProveedores(
+  const resultado = useMemo(
+    () =>
+      evaluarYRecomendarProveedores(
+        ofertas,
+        proveedoresCatalogo,
+        evaluacionesHistoricas,
+        comprasHistoricas,
+        pesos,
+        tipoCambioUsdMxn,
+        confiabilidadPorProveedor
+      ),
+    [
       ofertas,
       proveedoresCatalogo,
       evaluacionesHistoricas,
       comprasHistoricas,
       pesos,
       tipoCambioUsdMxn,
-      confiabilidadPorProveedor
-    )
-  }, [
-    ofertas,
-    proveedoresCatalogo,
-    evaluacionesHistoricas,
-    comprasHistoricas,
-    pesos,
-    tipoCambioUsdMxn,
-    confiabilidadPorProveedor,
-  ])
+      confiabilidadPorProveedor,
+    ]
+  )
 
-  const {
-    proveedorRecomendado,
-    modoEvaluacion,
-    explicacionModo,
-  } = resultado
+  const { proveedorRecomendado, modoEvaluacion, explicacionModo } = resultado
 
   return (
-    <div className="space-y-5 font-sans bg-slate-900 text-white p-6 rounded-3xl border border-slate-800 shadow-md">
-      {/* HEADER DE RECOMENDACIÓN AUTOMÁTICA CON ESTRUCTURA HALLMARK */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+    <div className="flex flex-col gap-5 rounded-xl border border-border bg-card p-5 shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-amber-500/20 text-amber-400 rounded-2xl border border-amber-500/30">
-            <Sparkles className="h-5 w-5" />
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-amber-600">
+            <Sparkles className="size-5" aria-hidden />
           </div>
           <div>
-            <h3 className="text-base font-extrabold tracking-tight flex items-center gap-2">
-              Motor de Recomendación Inteligente
+            <h3 className="flex items-center gap-2 text-base font-bold tracking-tight text-foreground">
+              Motor de recomendación
               <Badge
                 variant="outline"
-                className={[
-                  'font-mono font-bold text-[10px] uppercase px-2.5 py-0.5 border',
-                  modoEvaluacion === 'primera_compra'
-                    ? 'bg-sky-400/20 text-sky-300 border-sky-400/40'
-                    : modoEvaluacion === 'recompra'
-                    ? 'bg-emerald-400/20 text-emerald-300 border-emerald-400/40'
-                    : 'bg-amber-400/20 text-amber-300 border-amber-400/40',
-                ].join(' ')}
+                className={cn(
+                  'px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase',
+                  modoEvaluacion === 'primera_compra' && 'border-sky-200 bg-sky-50 text-sky-800',
+                  modoEvaluacion === 'recompra' && 'border-emerald-200 bg-emerald-50 text-emerald-800',
+                  modoEvaluacion !== 'primera_compra' &&
+                    modoEvaluacion !== 'recompra' &&
+                    'border-amber-200 bg-amber-50 text-amber-800'
+                )}
               >
-                {modoEvaluacion === 'primera_compra'
-                  ? '🆕 MODO PRIMERA COMPRA'
-                  : modoEvaluacion === 'recompra'
-                  ? '🔄 MODO RECOMPRA HISTÓRICA'
-                  : '⚙️ MODO PERSONALIZADO'}
+                {modoEvaluacion === 'recompra' ? (
+                  <RefreshCw className="mr-1 inline size-3" aria-hidden />
+                ) : modoEvaluacion === 'primera_compra' ? null : (
+                  <Settings2 className="mr-1 inline size-3" aria-hidden />
+                )}
+                {etiquetaModo(modoEvaluacion)}
               </Badge>
             </h3>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">{explicacionModo}</p>
+            <p className="mt-0.5 text-xs font-medium text-muted-foreground">{explicacionModo}</p>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setMostrarConfigPesos(!mostrarConfigPesos)}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 active:scale-98 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition-all cursor-pointer"
-        >
-          <SlidersHorizontal className="h-3.5 w-3.5 text-amber-400" />
-          {mostrarConfigPesos ? 'Ocultar Pesos' : 'Ajustar Pesos Algoritmo'}
-        </button>
+        <Button variant="outline" size="sm" onClick={() => setMostrarConfigPesos(!mostrarConfigPesos)}>
+          <SlidersHorizontal data-icon="inline-start" />
+          {mostrarConfigPesos ? 'Ocultar pesos' : 'Ajustar pesos'}
+        </Button>
       </div>
 
-      {/* PANEL CONFIGURACIÓN EDITABLE DE PESOS CON COMPONENTE SHADCN SLIDER (FASE 6) */}
-      {mostrarConfigPesos && (
-        <div className="p-5 bg-slate-950/90 rounded-2xl border border-slate-800 space-y-4 text-xs">
-          <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-            <span className="font-extrabold text-amber-400 flex items-center gap-2 text-xs">
-              <SlidersHorizontal className="h-4 w-4" /> Configuración de Ponderación (Suma 100%)
+      {mostrarConfigPesos ? (
+        <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-5 text-xs">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <span className="flex items-center gap-2 text-xs font-bold text-foreground">
+              <SlidersHorizontal className="size-4 text-primary" aria-hidden />
+              Configuración de ponderación
             </span>
             <button
               type="button"
               onClick={() => {
                 setPesos(CONFIGURACION_PESOS_DEFAULT)
-                toast.info('Pesos del algoritmo restablecidos a valores por defecto.')
+                toast.info('Pesos restablecidos a valores por defecto.')
               }}
-              className="text-[11px] font-mono text-slate-400 hover:text-white underline cursor-pointer"
+              className="cursor-pointer text-[11px] font-mono text-muted-foreground underline hover:text-foreground"
             >
-              Restablecer Valores Default
+              Restablecer
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-slate-300 font-semibold">
-                <span>Precio Cotizado</span>
-                <span className="font-mono text-amber-400">{(pesos.pesoPrecio * 100).toFixed(0)}%</span>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {(
+              [
+                ['Precio cotizado', 'pesoPrecio', 10, 50] as const,
+                ['Lead time de entrega', 'pesoLeadTime', 10, 40] as const,
+                ['Calidad de herramienta', 'pesoCalidad', 10, 40] as const,
+                ['Cumplimiento de entregas', 'pesoCumplimiento', 5, 30] as const,
+                ['Comunicación y respuesta', 'pesoComunicacion', 5, 25] as const,
+                ['Historial comprobado', 'pesoHistorial', 0, 20] as const,
+              ] as const
+            ).map(([label, key, min, max]) => (
+              <div key={key} className="flex flex-col gap-2">
+                <div className="flex justify-between font-semibold text-foreground">
+                  <span>{label}</span>
+                  <span className="font-mono text-primary">{(pesos[key] * 100).toFixed(0)}%</span>
+                </div>
+                <Slider
+                  value={[pesos[key] * 100]}
+                  min={min}
+                  max={max}
+                  step={5}
+                  onValueChange={(val) => setPesos((prev) => ({ ...prev, [key]: val[0] / 100 }))}
+                />
               </div>
-              <Slider
-                value={[pesos.pesoPrecio * 100]}
-                min={10}
-                max={50}
-                step={5}
-                onValueChange={(val) => setPesos((p) => ({ ...p, pesoPrecio: val[0] / 100 }))}
-                className="cursor-pointer"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between text-slate-300 font-semibold">
-                <span>Lead Time de Entrega</span>
-                <span className="font-mono text-amber-400">{(pesos.pesoLeadTime * 100).toFixed(0)}%</span>
-              </div>
-              <Slider
-                value={[pesos.pesoLeadTime * 100]}
-                min={10}
-                max={40}
-                step={5}
-                onValueChange={(val) => setPesos((p) => ({ ...p, pesoLeadTime: val[0] / 100 }))}
-                className="cursor-pointer"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between text-slate-300 font-semibold">
-                <span>Calidad de Herramienta</span>
-                <span className="font-mono text-amber-400">{(pesos.pesoCalidad * 100).toFixed(0)}%</span>
-              </div>
-              <Slider
-                value={[pesos.pesoCalidad * 100]}
-                min={10}
-                max={40}
-                step={5}
-                onValueChange={(val) => setPesos((p) => ({ ...p, pesoCalidad: val[0] / 100 }))}
-                className="cursor-pointer"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between text-slate-300 font-semibold">
-                <span>Cumplimiento de Entregas</span>
-                <span className="font-mono text-amber-400">{(pesos.pesoCumplimiento * 100).toFixed(0)}%</span>
-              </div>
-              <Slider
-                value={[pesos.pesoCumplimiento * 100]}
-                min={5}
-                max={30}
-                step={5}
-                onValueChange={(val) => setPesos((p) => ({ ...p, pesoCumplimiento: val[0] / 100 }))}
-                className="cursor-pointer"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between text-slate-300 font-semibold">
-                <span>Comunicación &amp; Respuesta</span>
-                <span className="font-mono text-amber-400">{(pesos.pesoComunicacion * 100).toFixed(0)}%</span>
-              </div>
-              <Slider
-                value={[pesos.pesoComunicacion * 100]}
-                min={5}
-                max={25}
-                step={5}
-                onValueChange={(val) => setPesos((p) => ({ ...p, pesoComunicacion: val[0] / 100 }))}
-                className="cursor-pointer"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between text-slate-300 font-semibold">
-                <span>Historial Comprobado</span>
-                <span className="font-mono text-amber-400">{(pesos.pesoHistorial * 100).toFixed(0)}%</span>
-              </div>
-              <Slider
-                value={[pesos.pesoHistorial * 100]}
-                min={0}
-                max={20}
-                step={5}
-                onValueChange={(val) => setPesos((p) => ({ ...p, pesoHistorial: val[0] / 100 }))}
-                className="cursor-pointer"
-              />
-            </div>
+            ))}
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* RECOMENDACIÓN CLARA */}
-      {proveedorRecomendado && !proveedorRecomendado.esInformacionInsuficiente && (
-        <div className="bg-slate-950 p-5 rounded-2xl border border-emerald-500/40 space-y-4">
+      {proveedorRecomendado && !proveedorRecomendado.esInformacionInsuficiente ? (
+        <div className="flex flex-col gap-4 rounded-xl border border-emerald-200 bg-emerald-50/50 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <Badge className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs font-mono px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
-                <Award className="h-4 w-4" /> #1 RECOMENDADO SMV
+              <Badge className="flex items-center gap-1.5 bg-emerald-600 text-white">
+                <Award className="size-4" aria-hidden />
+                Recomendado
               </Badge>
-              <h4 className="text-base font-extrabold text-white">{proveedorRecomendado.proveedorNombre}</h4>
+              <h4 className="text-base font-bold text-foreground">{proveedorRecomendado.proveedorNombre}</h4>
             </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 font-mono font-bold">Score Total:</span>
-              <span className="text-lg font-black text-emerald-400 font-mono bg-emerald-950/80 border border-emerald-800 px-3.5 py-1 rounded-xl">
-                {proveedorRecomendado.scoreTotal} / 100 Pts
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-mono font-bold text-muted-foreground">Score total:</span>
+              <span className="rounded-xl border border-emerald-200 bg-white px-3.5 py-1 font-mono text-lg font-bold text-emerald-700">
+                {proveedorRecomendado.scoreTotal} / 100
               </span>
             </div>
           </div>
 
-          <p className="text-xs text-slate-300 leading-relaxed font-sans bg-slate-900/90 p-3.5 rounded-xl border border-slate-800">
-            💡 <strong>Razón Principal:</strong> {proveedorRecomendado.razonRecomendacion}
+          <p className="flex items-start gap-2 rounded-xl border border-border bg-card p-3.5 text-xs leading-relaxed text-muted-foreground">
+            <Lightbulb className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+            <span>
+              <strong className="text-foreground">Razón principal:</strong>{' '}
+              {proveedorRecomendado.razonRecomendacion}
+            </span>
           </p>
 
-          {/* DESGROSE CON BARRAS SHADCN PROGRESS */}
-          <div className="space-y-3 pt-2">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Desglose Transparente de Puntuación por Criterio
+          <div className="flex flex-col gap-3 pt-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Desglose por criterio
               </span>
               <button
                 type="button"
                 onClick={() => setMostrarDesgloseDetallado(!mostrarDesgloseDetallado)}
-                className="text-[11px] font-bold text-amber-400 hover:underline flex items-center gap-1 cursor-pointer"
+                className="flex cursor-pointer items-center gap-1 text-[11px] font-bold text-primary hover:underline"
               >
-                {mostrarDesgloseDetallado ? 'Ocultar Barras' : 'Ver Barras por Criterio'}
-                {mostrarDesgloseDetallado ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                {mostrarDesgloseDetallado ? 'Ocultar barras' : 'Ver barras'}
+                {mostrarDesgloseDetallado ? (
+                  <ChevronUp className="size-3" aria-hidden />
+                ) : (
+                  <ChevronDown className="size-3" aria-hidden />
+                )}
               </button>
             </div>
 
-            {mostrarDesgloseDetallado && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1 text-xs">
-                <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1.5">
-                  <div className="flex justify-between text-[11px] text-slate-400">
-                    <span>Precio ({(pesos.pesoPrecio * 100).toFixed(0)}%)</span>
-                    <span className="font-mono font-bold text-white">{proveedorRecomendado.desglose.scorePrecio}/100</span>
+            {mostrarDesgloseDetallado ? (
+              <div className="grid grid-cols-1 gap-3.5 pt-1 text-xs sm:grid-cols-2 lg:grid-cols-3">
+                {(
+                  [
+                    ['Precio', proveedorRecomendado.desglose.scorePrecio, pesos.pesoPrecio] as const,
+                    ['Lead time', proveedorRecomendado.desglose.scoreLeadTime, pesos.pesoLeadTime] as const,
+                    ['Calidad', proveedorRecomendado.desglose.scoreCalidad, pesos.pesoCalidad] as const,
+                  ] as const
+                ).map(([label, score, peso]) => (
+                  <div key={label} className="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-3">
+                    <div className="flex justify-between text-[11px] text-muted-foreground">
+                      <span>
+                        {label} ({(peso * 100).toFixed(0)}%)
+                      </span>
+                      <span className="font-mono font-bold text-foreground">{score}/100</span>
+                    </div>
+                    <Progress value={score} className="h-1.5" />
                   </div>
-                  <Progress value={proveedorRecomendado.desglose.scorePrecio} className="h-1.5 bg-slate-800" />
-                </div>
-
-                <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1.5">
-                  <div className="flex justify-between text-[11px] text-slate-400">
-                    <span>Lead Time ({(pesos.pesoLeadTime * 100).toFixed(0)}%)</span>
-                    <span className="font-mono font-bold text-white">{proveedorRecomendado.desglose.scoreLeadTime}/100</span>
-                  </div>
-                  <Progress value={proveedorRecomendado.desglose.scoreLeadTime} className="h-1.5 bg-slate-800" />
-                </div>
-
-                <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1.5">
-                  <div className="flex justify-between text-[11px] text-slate-400">
-                    <span>Calidad ({(pesos.pesoCalidad * 100).toFixed(0)}%)</span>
-                    <span className="font-mono font-bold text-white">{proveedorRecomendado.desglose.scoreCalidad}/100</span>
-                  </div>
-                  <Progress value={proveedorRecomendado.desglose.scoreCalidad} className="h-1.5 bg-slate-800" />
-                </div>
+                ))}
               </div>
-            )}
+            ) : null}
           </div>
 
-          {/* CTA SELECCIÓN CON FEEDBACK SONNER */}
-          {onSeleccionarProveedor && (
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  onSeleccionarProveedor(
-                    proveedorRecomendado.proveedorId,
-                    proveedorRecomendado.proveedorNombre,
-                    proveedorRecomendado.razonRecomendacion
-                  )
-                  toast.success(`Proveedor Ganador Confirmado`, {
-                    description: `Se seleccionó a ${proveedorRecomendado.proveedorNombre} como ganador de la cotización.`,
-                  })
-                }}
-                className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 active:scale-98 text-slate-950 text-xs font-black rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <Award className="h-4 w-4" /> Aceptar Recomendación ({proveedorRecomendado.proveedorNombre})
-              </button>
-            </div>
-          )}
+          {onSeleccionarProveedor ? (
+            <Button
+              className="w-full bg-emerald-600 hover:bg-emerald-700"
+              onClick={() => {
+                onSeleccionarProveedor(
+                  proveedorRecomendado.proveedorId,
+                  proveedorRecomendado.proveedorNombre,
+                  proveedorRecomendado.razonRecomendacion
+                )
+                toast.success('Proveedor seleccionado', {
+                  description: `Se eligió a ${proveedorRecomendado.proveedorNombre}.`,
+                })
+              }}
+            >
+              <Award data-icon="inline-start" />
+              Aceptar recomendación ({proveedorRecomendado.proveedorNombre})
+            </Button>
+          ) : null}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

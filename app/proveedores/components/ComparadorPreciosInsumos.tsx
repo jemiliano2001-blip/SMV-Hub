@@ -9,13 +9,19 @@ import {
   Check,
   DollarSign,
   Info,
-  X,
   FileText,
   Package,
   Calendar,
   TrendingUp,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { formatPrecio } from '@/lib/format'
 import { aMXN, aUSD, TIPO_CAMBIO_DEFAULT_USD_MXN } from '@/lib/tipo-cambio'
 import type { CompraOdooItem } from '@/lib/schemas'
@@ -33,6 +39,14 @@ import {
   type RangoHistoricoClave,
   type PosicionPrecioRango,
 } from '@/lib/compras-odoo'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 type Props = {
   items: CompraOdooItem[]
@@ -228,7 +242,7 @@ export default function ComparadorPreciosInsumos({
       {/* Encabezado y Barra de Búsqueda */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <Search className="h-4 w-4 text-sky-600" />
             Comparador inteligente de precios
           </h3>
@@ -245,7 +259,7 @@ export default function ComparadorPreciosInsumos({
           <button
             type="button"
             onClick={() => setModoMoneda('original')}
-            className={`px-2.5 py-1 text-[11px] font-extrabold rounded-md transition-all ${
+            className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all ${
               modoMoneda === 'original'
                 ? 'bg-white text-slate-900 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
@@ -256,7 +270,7 @@ export default function ComparadorPreciosInsumos({
           <button
             type="button"
             onClick={() => setModoMoneda('MXN')}
-            className={`px-2.5 py-1 text-[11px] font-extrabold rounded-md transition-all ${
+            className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all ${
               modoMoneda === 'MXN'
                 ? 'bg-white text-emerald-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
@@ -267,7 +281,7 @@ export default function ComparadorPreciosInsumos({
           <button
             type="button"
             onClick={() => setModoMoneda('USD')}
-            className={`px-2.5 py-1 text-[11px] font-extrabold rounded-md transition-all ${
+            className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all ${
               modoMoneda === 'USD'
                 ? 'bg-white text-sky-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
@@ -417,7 +431,7 @@ export default function ComparadorPreciosInsumos({
       {/* Resultados de Búsqueda */}
       <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
         <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs font-extrabold text-slate-700">
+          <span className="text-xs font-bold text-slate-700">
             {!hayCriterio
               ? 'Busca un material, SKU o filtra una familia para empezar a comparar'
               : `${itemsFiltrados.length} resultados ${soloComparables ? 'comparables' : 'encontrados'}${proveedorFiltro !== 'todos' ? ` para "${proveedorFiltro}"` : ''}`}
@@ -431,33 +445,33 @@ export default function ComparadorPreciosInsumos({
         </div>
 
         <div className="overflow-x-auto max-h-[500px]">
-          <table className="w-full text-left text-xs">
-            <thead className="sticky top-0 bg-slate-100 text-slate-600 font-bold uppercase tracking-wider text-[10px] z-10 shadow-xs">
-              <tr>
-                <th className="px-3 py-2.5">Proveedor</th>
-                <th className="px-3 py-2.5">Descripción Material</th>
-                <th className="px-3 py-2.5">Familia / Tipo</th>
-                <th className="px-3 py-2.5 text-center">Cant. / UdM</th>
-                <th className="px-3 py-2.5">Doc. Ref / Estado</th>
-                <th className="px-3 py-2.5">Fecha</th>
-                <th className="px-3 py-2.5 text-right">Precio Unitario</th>
-                <th className="px-3 py-2.5 text-center">Acción</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+          <Table className="w-full text-left text-xs">
+            <TableHeader className="sticky top-0 bg-slate-100 text-slate-600 font-bold uppercase tracking-wider text-[10px] z-10 shadow-xs">
+              <TableRow>
+                <TableHead className="px-3 py-2.5">Proveedor</TableHead>
+                <TableHead className="px-3 py-2.5">Descripción Material</TableHead>
+                <TableHead className="px-3 py-2.5">Familia / Tipo</TableHead>
+                <TableHead className="px-3 py-2.5 text-center">Cant. / UdM</TableHead>
+                <TableHead className="px-3 py-2.5">Doc. Ref / Estado</TableHead>
+                <TableHead className="px-3 py-2.5">Fecha</TableHead>
+                <TableHead className="px-3 py-2.5 text-right">Precio Unitario</TableHead>
+                <TableHead className="px-3 py-2.5 text-center">Acción</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-slate-100">
               {!hayCriterio && (
-                <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-slate-500 text-xs">
+                <TableRow>
+                  <TableCell colSpan={8} className="px-4 py-12 text-center text-slate-500 text-xs">
                     Escribe el material, SKU, referencia o clave SAT. El comparador evitará mezclar piezas distintas.
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
               {hayCriterio && itemsFiltrados.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-slate-400 text-xs">
+                <TableRow>
+                  <TableCell colSpan={8} className="px-4 py-12 text-center text-slate-400 text-xs">
                     No se encontraron insumos o compras que coincidan con los filtros aplicados.
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
 
               {hayCriterio && itemsFiltrados.slice(0, 300).map((it) => {
@@ -500,7 +514,7 @@ export default function ComparadorPreciosInsumos({
                 const unidadTexto = it.unidad || it.odooUom || 'Pza'
 
                 return (
-                  <tr
+                  <TableRow
                     key={it.id}
                     className={`hover:bg-sky-50/50 transition-colors cursor-pointer ${
                       esMejorPrecio ? 'bg-amber-50/40' : ''
@@ -508,17 +522,17 @@ export default function ComparadorPreciosInsumos({
                     onClick={() => setItemDetalle(it)}
                   >
                     {/* Proveedor */}
-                    <td className="px-3 py-2.5 font-bold text-slate-900">
+                    <TableCell className="px-3 py-2.5 font-bold text-slate-900">
                       <div className="flex items-center gap-1.5">
                         <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                         <span className="truncate max-w-[150px]" title={it.proveedorNombre}>
                           {it.proveedorNombre}
                         </span>
                       </div>
-                    </td>
+                    </TableCell>
 
                     {/* Descripción & Detalles del Material */}
-                    <td className="px-3 py-2.5 max-w-[260px]">
+                    <TableCell className="px-3 py-2.5 max-w-[260px]">
                       <p className="font-bold text-slate-900 truncate" title={it.descripcion}>
                         {it.descripcion}
                       </p>
@@ -539,10 +553,10 @@ export default function ComparadorPreciosInsumos({
                           </span>
                         )}
                       </div>
-                    </td>
+                    </TableCell>
 
                     {/* Familia / Tipo */}
-                    <td className="px-3 py-2.5">
+                    <TableCell className="px-3 py-2.5">
                       <div className="flex flex-col gap-0.5">
                         <Badge variant="outline" className="w-fit text-[10px] font-mono">
                           {obtenerCategoriaDef(it.categoriaId)?.etiqueta ?? it.categoriaId}
@@ -553,18 +567,18 @@ export default function ComparadorPreciosInsumos({
                           </span>
                         )}
                       </div>
-                    </td>
+                    </TableCell>
 
                     {/* Cantidad & UdM */}
-                    <td className="px-3 py-2.5 text-center font-mono font-bold text-slate-800">
+                    <TableCell className="px-3 py-2.5 text-center font-mono font-bold text-slate-800">
                       <div className="inline-flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-md text-[11px] border border-slate-200">
                         <Package className="h-3 w-3 text-slate-500" />
                         <span>{it.cantidad} {unidadTexto}</span>
                       </div>
-                    </td>
+                    </TableCell>
 
                     {/* Doc. Ref & Badge de Estado */}
-                    <td className="px-3 py-2.5">
+                    <TableCell className="px-3 py-2.5">
                       <div className="flex flex-col gap-0.5">
                         <span className="font-mono text-[11px] font-bold text-slate-700 flex items-center gap-1">
                           <FileText className="h-3 w-3 text-slate-400" />
@@ -572,31 +586,31 @@ export default function ComparadorPreciosInsumos({
                         </span>
 
                         {it.fuente === 'factura' ? (
-                          <span className="text-[9px] font-extrabold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.2 rounded w-fit">
+                          <span className="text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.2 rounded w-fit">
                             Factura
                           </span>
                         ) : it.esRfq ? (
-                          <span className="text-[9px] font-extrabold text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.2 rounded w-fit">
+                          <span className="text-[9px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.2 rounded w-fit">
                             Cotización
                           </span>
                         ) : (
-                          <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded w-fit">
+                          <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded w-fit">
                             Orden de compra
                           </span>
                         )}
                       </div>
-                    </td>
+                    </TableCell>
 
                     {/* Fecha */}
-                    <td className="px-3 py-2.5 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                    <TableCell className="px-3 py-2.5 font-mono text-[11px] text-slate-500 whitespace-nowrap">
                       {it.fecha ?? '—'}
-                    </td>
+                    </TableCell>
 
                     {/* Precio Unitario */}
-                    <td className="px-3 py-2.5 text-right">
+                    <TableCell className="px-3 py-2.5 text-right">
                       <div className="flex flex-col items-end gap-0.5">
                         <span
-                          className={`font-mono font-extrabold text-sm ${
+                          className={`font-mono font-bold text-sm ${
                             esMejorPrecio ? 'text-emerald-700' : 'text-slate-900'
                           }`}
                         >
@@ -607,7 +621,7 @@ export default function ComparadorPreciosInsumos({
                         </span>
 
                         {esMejorPrecio && (
-                          <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[9px] px-1 py-0 font-extrabold flex items-center gap-1">
+                          <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[9px] px-1 py-0 font-bold flex items-center gap-1">
                             <Trophy className="h-2.5 w-2.5 text-amber-600" />
                             Mejor Precio
                           </Badge>
@@ -619,16 +633,16 @@ export default function ComparadorPreciosInsumos({
                         )}
                         {posicion && (
                           <span
-                            className={`text-[9px] font-extrabold px-1.5 py-0 rounded border ${clasePosicion(posicion)}`}
+                            className={`text-[9px] font-bold px-1.5 py-0 rounded border ${clasePosicion(posicion)}`}
                           >
                             {etiquetaPosicion(posicion)}
                           </span>
                         )}
                       </div>
-                    </td>
+                    </TableCell>
 
                     {/* Acción */}
-                    <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                    <TableCell className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-center gap-1">
                         <button
                           type="button"
@@ -658,36 +672,25 @@ export default function ComparadorPreciosInsumos({
                           )}
                         </button>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
 
-      {/* Modal / Drawer Ficha de Detalle de Compra Odoo */}
-      {itemDetalle && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full p-6 space-y-4 animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-start justify-between border-b border-slate-200 pb-3">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 font-mono">
-                  Ficha de Registro Odoo #{itemDetalle.odooDocId}
-                </span>
-                <h3 className="text-base font-extrabold text-slate-900 mt-0.5">
-                  {itemDetalle.descripcion}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setItemDetalle(null)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      <Dialog open={itemDetalle != null} onOpenChange={(open) => !open && setItemDetalle(null)}>
+        <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto sm:max-w-xl">
+          {itemDetalle ? (
+            <>
+            <DialogHeader>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-primary">
+                Ficha de registro Odoo #{itemDetalle.odooDocId}
+              </span>
+              <DialogTitle>{itemDetalle.descripcion}</DialogTitle>
+            </DialogHeader>
 
             {rangoDetalle && <BandaRangoHistorico rango={rangoDetalle} />}
 
@@ -696,7 +699,7 @@ export default function ComparadorPreciosInsumos({
                 <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
                   <Building2 className="h-3 w-3" /> Proveedor
                 </span>
-                <p className="font-extrabold text-slate-900 text-sm">{itemDetalle.proveedorNombre}</p>
+                <p className="text-sm font-bold text-slate-900">{itemDetalle.proveedorNombre}</p>
                 <p className="text-[11px] text-slate-500 font-mono">Partner ID: #{itemDetalle.odooPartnerId}</p>
               </div>
 
@@ -704,7 +707,7 @@ export default function ComparadorPreciosInsumos({
                 <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
                   <FileText className="h-3 w-3" /> Documento Odoo
                 </span>
-                <p className="font-extrabold text-slate-900 text-sm">{itemDetalle.referenciaDoc}</p>
+                <p className="text-sm font-bold text-slate-900">{itemDetalle.referenciaDoc}</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   {itemDetalle.fuente === 'factura' ? (
                     <Badge className="bg-purple-100 text-purple-800 border-purple-300 text-[10px]">Factura de Proveedor</Badge>
@@ -720,7 +723,7 @@ export default function ComparadorPreciosInsumos({
                 <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
                   <Package className="h-3 w-3" /> Cantidad y Medida
                 </span>
-                <p className="font-extrabold text-slate-900 text-sm">
+                <p className="text-sm font-bold text-slate-900">
                   {itemDetalle.cantidad} {itemDetalle.unidad || itemDetalle.odooUom || 'Pieza'}
                 </p>
                 {itemDetalle.medida && (
@@ -732,7 +735,7 @@ export default function ComparadorPreciosInsumos({
                 <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
                   <DollarSign className="h-3 w-3" /> Precio Unitario & Subtotal
                 </span>
-                <p className="font-extrabold text-emerald-700 text-sm font-mono">
+                <p className="font-mono text-sm font-bold text-emerald-700">
                   {formatPrecio(itemDetalle.precioUnitario, itemDetalle.moneda === 'USD' ? 'USD' : 'MXN')}
                 </p>
                 <p className="text-[11px] text-slate-500 font-mono">
@@ -743,7 +746,7 @@ export default function ComparadorPreciosInsumos({
 
             {historicoDetalle.length > 0 && (
               <div className="border border-slate-200 rounded-xl overflow-hidden">
-                <p className="px-3 py-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-50 border-b border-slate-200">
+                <p className="border-b border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                   Otras compras del mismo ítem
                 </p>
                 <ul className="divide-y divide-slate-100 max-h-40 overflow-y-auto">
@@ -756,7 +759,7 @@ export default function ComparadorPreciosInsumos({
                           {compra.fecha ? ` · ${compra.fecha}` : ''}
                         </p>
                       </div>
-                      <span className="font-mono font-extrabold text-slate-900 shrink-0">
+                      <span className="shrink-0 font-mono font-bold text-slate-900">
                         {formatPrecio(
                           compra.precioUnitario,
                           compra.moneda === 'USD' ? 'USD' : 'MXN',
@@ -775,21 +778,21 @@ export default function ComparadorPreciosInsumos({
               </span>
 
               <div className="flex items-center gap-2">
-                <button
+                <Button
                   type="button"
                   onClick={() => {
                     handleAgregar(itemDetalle)
                     setItemDetalle(null)
                   }}
-                  className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5"
                 >
-                  <Plus className="h-4 w-4" /> Agregar al Presupuesto
-                </button>
+                  <Plus /> Agregar al presupuesto
+                </Button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

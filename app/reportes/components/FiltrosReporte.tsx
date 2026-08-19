@@ -38,9 +38,9 @@ export default function FiltrosReporte({
   ocultarAgrupar,
 }: Props) {
   const btnBase = "shrink-0 rounded-md px-3 py-1.5 text-xs font-bold transition-colors"
-  const btnActive = "bg-[#0369A1] text-white"
-  const btnInactive = "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-  const inputCls = "min-w-0 rounded-md border border-slate-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#0369A1]"
+  const btnActive = "bg-primary text-primary-foreground"
+  const btnInactive = "border border-border bg-card text-foreground hover:bg-muted"
+  const inputCls = "min-w-0 rounded-md border border-input px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
 
   return (
     <div className="no-print mb-4 flex flex-wrap items-end gap-3 sm:mb-6">

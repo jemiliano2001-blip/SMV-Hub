@@ -18,6 +18,8 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import AuthGuard from '@/app/AuthGuard'
+import PageShell from '@/components/layout/PageShell'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDirectorioProveedores } from '@/lib/hooks/useDirectorioProveedores'
 import { useProveedoresInteligencia } from '@/lib/hooks/useProveedoresInteligencia'
 import type {
@@ -71,6 +73,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 const CATEGORIAS_OPCIONES: { valor: CategoriaProveedor; etiqueta: string }[] = [
   { valor: 'endmills', etiqueta: 'Endmills (Cortadores CNC)' },
@@ -214,7 +224,7 @@ function FormularioProveedorModal({
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
-            <Building2 className="h-5 w-5 text-[#0369A1]" />
+            <Building2 className="h-5 w-5 text-primary" />
             {proveedorEdicion ? 'Editar Proveedor' : 'Nuevo Proveedor (Compras USA / Tooling CNC)'}
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
@@ -238,7 +248,7 @@ function FormularioProveedorModal({
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
                 placeholder="Ej. Shars Tool, OnlineCarbide, YG-1 USA..."
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
 
@@ -247,7 +257,7 @@ function FormularioProveedorModal({
               <select
                 value={estatus}
                 onChange={(e) => setEstatus(e.target.value as EstatusProveedor)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
               >
                 <option value="actual">Activo (Actual)</option>
                 <option value="prospecto">Prospecto</option>
@@ -264,7 +274,7 @@ function FormularioProveedorModal({
                   setTipoProveedor(val)
                   if (val === 'barato') setBarato(true)
                 }}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold text-[#0369A1] focus:outline-none focus:border-[#0369A1]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold text-primary focus:outline-none focus:border-primary"
               >
                 <option value="barato">Económico ($ Barato)</option>
                 <option value="estandar">Estándar ($)</option>
@@ -274,34 +284,34 @@ function FormularioProveedorModal({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-sky-50 rounded-xl border border-sky-200">
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-[#0369A1]">
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-primary">
               <input
                 type="checkbox"
                 checked={barato}
                 onChange={(e) => setBarato(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-[#0369A1] focus:ring-[#0369A1]"
+                className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-ring"
               />
               <Sparkles className="h-4 w-4 text-amber-500" />
               Marcar como Opción Económica ($ Barato)
             </label>
 
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-[#0369A1]">
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-primary">
               <input
                 type="checkbox"
                 checked={recomendado}
                 onChange={(e) => setRecomendado(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-[#0369A1] focus:ring-[#0369A1]"
+                className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-ring"
               />
               <ThumbsUp className="h-4 w-4 text-emerald-600" />
               Proveedor Recomendado por Taller
             </label>
 
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-[#0369A1]">
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-primary">
               <input
                 type="checkbox"
                 checked={facturaUSD}
                 onChange={(e) => setFacturaUSD(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-[#0369A1] focus:ring-[#0369A1]"
+                className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-ring"
               />
               <FileCheck className="h-4 w-4 text-sky-700" />
               Emite Invoice Fiscal en USD
@@ -335,7 +345,7 @@ function FormularioProveedorModal({
 
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
             <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-              <Truck className="h-4 w-4 text-[#0369A1]" /> Logística &amp; Aduanas EE.UU. &rarr; México
+              <Truck className="h-4 w-4 text-primary" /> Logística &amp; Aduanas EE.UU. &rarr; México
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
@@ -345,7 +355,7 @@ function FormularioProveedorModal({
                   value={shippingAddressUSA}
                   onChange={(e) => setShippingAddressUSA(e.target.value)}
                   placeholder="Ej. 840 S Frontenac St, Aurora IL (Warehouse Laredo TX)"
-                  className="w-full px-3 py-2 border border-slate-300 bg-white rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                  className="w-full px-3 py-2 border border-slate-300 bg-white rounded-lg text-xs focus:outline-none focus:border-primary"
                 />
               </div>
 
@@ -356,7 +366,7 @@ function FormularioProveedorModal({
                   value={brokerAduanal}
                   onChange={(e) => setBrokerAduanal(e.target.value)}
                   placeholder="Ej. Agencia Aduanal Rangel (Laredo, TX)"
-                  className="w-full px-3 py-2 border border-slate-300 bg-white rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                  className="w-full px-3 py-2 border border-slate-300 bg-white rounded-lg text-xs focus:outline-none focus:border-primary"
                 />
               </div>
             </div>
@@ -376,7 +386,7 @@ function FormularioProveedorModal({
                       className={[
                         'px-2.5 py-1 rounded-md text-[11px] border transition-colors',
                         selec
-                          ? 'bg-[#0369A1] text-white border-[#0369A1] font-bold'
+                          ? 'bg-primary text-white border-primary font-bold'
                           : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50',
                       ].join(' ')}
                     >
@@ -392,7 +402,7 @@ function FormularioProveedorModal({
               <select
                 value={tiempoRespuesta}
                 onChange={(e) => setTiempoRespuesta(e.target.value as TiempoRespuesta)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
               >
                 <option value="inmediato">Inmediato (&lt; 1 hora)</option>
                 <option value="mismo_dia">Mismo día</option>
@@ -406,7 +416,7 @@ function FormularioProveedorModal({
               <select
                 value={prioridad}
                 onChange={(e) => setPrioridad(e.target.value as Prioridad)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
               >
                 <option value="alta">Alta</option>
                 <option value="media">Media</option>
@@ -423,7 +433,7 @@ function FormularioProveedorModal({
                 value={contacto}
                 onChange={(e) => setContacto(e.target.value)}
                 placeholder="Ej. Sales Dept / Mark Stevens"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
 
@@ -434,7 +444,7 @@ function FormularioProveedorModal({
                 value={web}
                 onChange={(e) => setWeb(e.target.value)}
                 placeholder="https://www.shars.com"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
 
@@ -445,7 +455,7 @@ function FormularioProveedorModal({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="sales@proveedor.com"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
 
@@ -457,14 +467,14 @@ function FormularioProveedorModal({
                   value={telefono}
                   onChange={(e) => setTelefono(e.target.value)}
                   placeholder="Tel: +1 800-000-0000"
-                  className="w-1/2 px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                  className="w-1/2 px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
                 />
                 <input
                   type="text"
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
                   placeholder="WhatsApp..."
-                  className="w-1/2 px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                  className="w-1/2 px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
                 />
               </div>
             </div>
@@ -478,7 +488,7 @@ function FormularioProveedorModal({
                 value={pais}
                 onChange={(e) => setPais(e.target.value)}
                 placeholder="Estados Unidos, México..."
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
 
@@ -489,7 +499,7 @@ function FormularioProveedorModal({
                 value={ubicacion}
                 onChange={(e) => setUbicacion(e.target.value)}
                 placeholder="Ej. Aurora, Illinois, USA"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
           </div>
@@ -501,7 +511,7 @@ function FormularioProveedorModal({
               value={marcasTexto}
               onChange={(e) => setMarcasTexto(e.target.value)}
               placeholder="Ej. YG-1, Shars, Korloy, OnlineCarbide, Deskar"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
             />
           </div>
 
@@ -511,7 +521,7 @@ function FormularioProveedorModal({
               <select
                 value={moneda}
                 onChange={(e) => setMoneda(e.target.value as 'USD' | 'MXN')}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
               >
                 <option value="USD">USD ($)</option>
                 <option value="MXN">MXN ($)</option>
@@ -526,7 +536,7 @@ function FormularioProveedorModal({
                 value={leadTimeDias}
                 onChange={(e) => setLeadTimeDias(e.target.value)}
                 placeholder="Ej. 4"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
 
@@ -538,7 +548,7 @@ function FormularioProveedorModal({
                 value={pedidoMinimo}
                 onChange={(e) => setPedidoMinimo(e.target.value)}
                 placeholder="Ej. 50"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
 
@@ -547,13 +557,13 @@ function FormularioProveedorModal({
               <select
                 value={calificacion}
                 onChange={(e) => setCalificacion(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
               >
-                <option value={5}>⭐⭐⭐⭐⭐ (5 - Excelente)</option>
-                <option value={4}>⭐⭐⭐⭐ (4 - Bueno)</option>
-                <option value={3}>⭐⭐⭐ (3 - Regular)</option>
-                <option value={2}>⭐⭐ (2 - Bajo)</option>
-                <option value={1}>⭐ (1 - No recomendado)</option>
+                <option value={5}>5 — Excelente</option>
+                <option value={4}>4 — Bueno</option>
+                <option value={3}>3 — Regular</option>
+                <option value={2}>2 — Bajo</option>
+                <option value={1}>1 — No recomendado</option>
               </select>
             </div>
           </div>
@@ -566,7 +576,7 @@ function FormularioProveedorModal({
                 value={notas}
                 onChange={(e) => setNotas(e.target.value)}
                 placeholder="Detalles de descuento, observaciones sobre envíos, códigos de cupón, etc."
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
 
@@ -577,7 +587,7 @@ function FormularioProveedorModal({
                 value={experienciaCompra}
                 onChange={(e) => setExperienciaCompra(e.target.value)}
                 placeholder="Resumen de cómo llegó el paquete, rendimiento del cortador, atención a clientes..."
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0369A1]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
           </div>
@@ -593,7 +603,7 @@ function FormularioProveedorModal({
             <button
               type="submit"
               disabled={guardando}
-              className="px-4 py-2 text-xs font-bold text-white bg-[#0369A1] hover:bg-[#0284C7] rounded-lg shadow-xs transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-xs font-bold text-white bg-primary hover:bg-primary/90 rounded-lg shadow-xs transition-colors disabled:opacity-50"
             >
               {guardando ? 'Guardando...' : proveedorEdicion ? 'Actualizar' : 'Guardar Proveedor'}
             </button>
@@ -664,7 +674,7 @@ function GenerarPOModal({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
-            <Printer className="h-5 w-5 text-[#0369A1]" /> Generar Orden de Compra Internacional (PO / PDF)
+            <Printer className="h-5 w-5 text-primary" /> Generar Orden de Compra Internacional (PO / PDF)
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
             Genera e imprime el documento de compra formateado para proveedores de EE.UU. y registra en el historial.
@@ -679,7 +689,7 @@ function GenerarPOModal({
               <select
                 value={proveedorId}
                 onChange={(e) => setProveedorId(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold text-[#0369A1]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold text-primary"
               >
                 {proveedores.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -788,11 +798,11 @@ function GenerarPOModal({
             <div className="p-4 bg-white border border-slate-300 rounded-xl space-y-3 font-mono text-[11px] shadow-xs">
               <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                 <div>
-                  <h3 className="font-extrabold text-slate-900 text-xs">SMV MAQUINADOS S.A. DE C.V.</h3>
+                  <h3 className="font-bold text-slate-900 text-xs">SMV MAQUINADOS S.A. DE C.V.</h3>
                   <p className="text-[10px] text-slate-500">Monterrey, N.L. México | Compras Internacionales</p>
                 </div>
                 <div className="text-right">
-                  <span className="font-bold text-[#0369A1]">{numeroOrden}</span>
+                  <span className="font-bold text-primary">{numeroOrden}</span>
                   <p className="text-[10px] text-slate-400">{fechaHoyLocal()}</p>
                 </div>
               </div>
@@ -805,31 +815,31 @@ function GenerarPOModal({
                 </div>
 
                 <div className="bg-sky-50 p-2 rounded border border-sky-200">
-                  <span className="font-bold text-[#0369A1] block uppercase">SHIP TO / BODEGA USA:</span>
+                  <span className="font-bold text-primary block uppercase">SHIP TO / BODEGA USA:</span>
                   <p className="font-bold text-slate-900">{prov.shippingAddressUSA || 'Laredo TX Crossing Warehouse'}</p>
                   <p className="text-slate-600">Broker: {prov.brokerAduanal || 'Agencia Rangel'}</p>
                 </div>
               </div>
 
               <div className="border border-slate-200 rounded overflow-hidden">
-                <table className="w-full text-left text-[10px]">
-                  <thead className="bg-slate-100 text-slate-600 font-bold border-b border-slate-200">
-                    <tr>
-                      <th className="px-2 py-1">Item / Descripción</th>
-                      <th className="px-2 py-1">Cant</th>
-                      <th className="px-2 py-1">P.U.</th>
-                      <th className="px-2 py-1 text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="px-2 py-1 font-sans">{producto} ({marca})</td>
-                      <td className="px-2 py-1">{cantidad}</td>
-                      <td className="px-2 py-1">${precioUnitario} USD</td>
-                      <td className="px-2 py-1 text-right font-bold">${subtotal.toFixed(2)} USD</td>
-                    </tr>
-                  </tbody>
-                </table>
+                <Table className="w-full text-left text-[10px]">
+                  <TableHeader className="bg-slate-100 text-slate-600 font-bold border-b border-slate-200">
+                    <TableRow>
+                      <TableHead className="px-2 py-1">Item / Descripción</TableHead>
+                      <TableHead className="px-2 py-1">Cant</TableHead>
+                      <TableHead className="px-2 py-1">P.U.</TableHead>
+                      <TableHead className="px-2 py-1 text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="px-2 py-1 font-sans">{producto} ({marca})</TableCell>
+                      <TableCell className="px-2 py-1">{cantidad}</TableCell>
+                      <TableCell className="px-2 py-1">${precioUnitario} USD</TableCell>
+                      <TableCell className="px-2 py-1 text-right font-bold">${subtotal.toFixed(2)} USD</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
               </div>
 
               <div className="flex justify-between items-center pt-2 border-t border-slate-200 text-xs">
@@ -850,7 +860,7 @@ function GenerarPOModal({
             <button
               type="button"
               onClick={handlePrintAndSave}
-              className="px-4 py-2 font-bold text-white bg-[#0369A1] hover:bg-[#0284C7] rounded-lg shadow-xs flex items-center gap-1.5"
+              className="px-4 py-2 font-bold text-white bg-primary hover:bg-primary/90 rounded-lg shadow-xs flex items-center gap-1.5"
             >
               <Printer className="h-4 w-4" /> Guardar e Imprimir Orden (PDF)
             </button>
@@ -1114,9 +1124,7 @@ function ProveedoresContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-4 py-6 sm:px-6 lg:px-8 font-sans">
-      <div className="mx-auto w-full max-w-7xl space-y-5">
-        {/* Cabecera Principal y Centro de Mando Hero */}
+    <PageShell>
         <HeaderCentroMando
           totalProveedores={totalProveedores}
           totalUSA={resumenProveedores.usa}
@@ -1129,36 +1137,19 @@ function ProveedoresContent() {
           onAbrirInvestigacion={() => setModalInvestigacionAbierto(true)}
         />
 
-        {/* Navegación por Pestañas Principales */}
-        <div className="flex items-center gap-1.5 overflow-x-auto border border-slate-200 bg-white p-1.5 rounded-xl shadow-2xs text-xs font-bold">
-          <button
-            type="button"
-            onClick={() => setSeccion('proveedores')}
-            className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5 transition-all ${
-              seccion === 'proveedores'
-                ? 'bg-[#0369A1] text-white shadow-xs font-extrabold'
-                : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            <Building2 className="h-4 w-4" /> Directorio Proveedores ({totalProveedoresRegion}{resumenProveedores.sinMercado > 0 ? '+' : ''})
-          </button>
+        <Tabs value={seccion} onValueChange={(v) => setSeccion(v as typeof seccion)}>
+          <TabsList className="h-auto w-full flex-wrap justify-start sm:w-fit">
+            <TabsTrigger value="proveedores" className="gap-2 text-xs">
+              <Building2 className="size-4" aria-hidden />
+              Directorio ({totalProveedoresRegion}{resumenProveedores.sinMercado > 0 ? '+' : ''})
+            </TabsTrigger>
+            <TabsTrigger value="comparar" className="gap-2 text-xs">
+              <Scale className="size-4 text-emerald-600" aria-hidden />
+              Comparador de precios
+            </TabsTrigger>
+          </TabsList>
 
-          <button
-            type="button"
-            onClick={() => setSeccion('comparar')}
-            className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5 transition-all ${
-              seccion === 'comparar'
-                ? 'bg-[#0369A1] text-white shadow-xs font-extrabold'
-                : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            <Scale className="h-4 w-4 text-emerald-500" /> Comparador de Precios
-          </button>
-
-        </div>
-
-        {/* PESTAÑA 1: DIRECTORIO DE PROVEEDORES */}
-        {seccion === 'proveedores' && (
+          <TabsContent value="proveedores">
           <DirectorioProveedores
             proveedores={proveedores}
             mercado={region}
@@ -1180,8 +1171,11 @@ function ProveedoresContent() {
             proveedoresPrimarios={proveedoresPrimarios}
             proveedoresBackup={proveedoresBackup}
           />
-        )}
-        {seccion === 'comparar' && <PanelComprasOdoo />}
+          </TabsContent>
+          <TabsContent value="comparar">
+            <PanelComprasOdoo />
+          </TabsContent>
+        </Tabs>
 
         {/* Comparador histórico anterior, retenido temporalmente mientras se migran los escenarios existentes. */}
         {false && seccion === 'comparar' && region === 'usa' && (
@@ -1189,7 +1183,7 @@ function ProveedoresContent() {
             <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                  <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                     <Scale className="h-5 w-5 text-emerald-600" />
                     Comparador Inteligente de Cotizaciones SMV
                   </h2>
@@ -1248,10 +1242,10 @@ function ProveedoresContent() {
                   <div key={cot.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
                       <div>
-                        <span className="text-[10px] font-mono font-bold bg-sky-50 text-[#0369A1] px-2 py-0.5 rounded border border-sky-200 uppercase">
+                        <span className="text-[10px] font-mono font-bold bg-sky-50 text-primary px-2 py-0.5 rounded border border-sky-200 uppercase">
                           Escenario: {cot.categoria}
                         </span>
-                        <h3 className="text-sm font-extrabold text-slate-900 mt-1">{cot.concepto}</h3>
+                        <h3 className="text-sm font-bold text-slate-900 mt-1">{cot.concepto}</h3>
                         <BandaRangoMetalConcepto concepto={cot.concepto} items={itemsComprasOdoo} />
                       </div>
                       <span className="text-xs font-mono text-slate-400">Fecha: {cot.fecha}</span>
@@ -1295,14 +1289,14 @@ function ProveedoresContent() {
                                 </span>
                               )}
                               {of.esMasRapido && (
-                                <span className="bg-sky-100 text-[#0369A1] border border-sky-300 text-[10px] font-bold font-mono px-2 py-0.5 rounded flex items-center gap-1">
+                                <span className="bg-sky-100 text-primary border border-sky-300 text-[10px] font-bold font-mono px-2 py-0.5 rounded flex items-center gap-1">
                                   ⚡ Más Rápido
                                 </span>
                               )}
                             </div>
 
                             <div className="flex items-center justify-between">
-                              <h4 className="text-xs font-extrabold text-slate-900">{of.proveedorNombre}</h4>
+                              <h4 className="text-xs font-bold text-slate-900">{of.proveedorNombre}</h4>
                               <span className="text-xs font-mono font-black text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">
                                 {of.scoreCalculado} pts
                               </span>
@@ -1313,7 +1307,7 @@ function ProveedoresContent() {
                             <div className="mt-3 space-y-1.5 text-xs font-mono">
                               <div className="flex justify-between items-center">
                                 <span className="text-slate-500 text-[11px]">Precio Unitario:</span>
-                                <span className="font-extrabold text-slate-900 text-sm">
+                                <span className="font-bold text-slate-900 text-sm">
                                   ${of.precioUnitario} {of.moneda}
                                 </span>
                               </div>
@@ -1350,7 +1344,7 @@ function ProveedoresContent() {
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
               <div>
-                <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <History className="h-5 w-5 text-amber-600" />
                   Historial Registrado de Compras a Proveedores US
                 </h2>
@@ -1363,41 +1357,41 @@ function ProveedoresContent() {
 
             <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs font-sans">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
-                    <tr>
-                      <th className="px-4 py-3">Fecha / Orden</th>
-                      <th className="px-4 py-3">Proveedor</th>
-                      <th className="px-4 py-3">Producto / Herramienta</th>
-                      <th className="px-4 py-3">Categoría</th>
-                      <th className="px-4 py-3">Cant.</th>
-                      <th className="px-4 py-3">P. Unitario</th>
-                      <th className="px-4 py-3">Total</th>
-                      <th className="px-4 py-3">Lead Time Real</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                <Table className="w-full text-left text-xs font-sans">
+                  <TableHeader className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
+                    <TableRow>
+                      <TableHead className="px-4 py-3">Fecha / Orden</TableHead>
+                      <TableHead className="px-4 py-3">Proveedor</TableHead>
+                      <TableHead className="px-4 py-3">Producto / Herramienta</TableHead>
+                      <TableHead className="px-4 py-3">Categoría</TableHead>
+                      <TableHead className="px-4 py-3">Cant.</TableHead>
+                      <TableHead className="px-4 py-3">P. Unitario</TableHead>
+                      <TableHead className="px-4 py-3">Total</TableHead>
+                      <TableHead className="px-4 py-3">Lead Time Real</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody className="divide-y divide-slate-100 text-slate-700">
                     {comprasConPrecio.map((c) => (
-                      <tr key={c.id} className="hover:bg-slate-50/80 transition-colors font-mono text-[11px]">
-                        <td className="px-4 py-3">
+                      <TableRow key={c.id} className="hover:bg-slate-50/80 transition-colors font-mono text-[11px]">
+                        <TableCell className="px-4 py-3">
                           <span className="font-bold text-slate-900 block">{c.fecha}</span>
                           <span className="text-[10px] text-slate-400">{c.numeroOrden}</span>
-                        </td>
-                        <td className="px-4 py-3 font-bold text-slate-800">{c.proveedorNombre}</td>
-                        <td className="px-4 py-3 font-sans font-semibold text-slate-900">{c.producto}</td>
-                        <td className="px-4 py-3">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 font-bold text-slate-800">{c.proveedorNombre}</TableCell>
+                        <TableCell className="px-4 py-3 font-sans font-semibold text-slate-900">{c.producto}</TableCell>
+                        <TableCell className="px-4 py-3">
                           <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 text-[10px]">
                             {c.categoria}
                           </span>
-                        </td>
-                        <td className="px-4 py-3 font-bold text-slate-800">{c.cantidad}</td>
-                        <td className="px-4 py-3">${c.precioUnitario} {c.moneda}</td>
-                        <td className="px-4 py-3 font-extrabold text-emerald-700">${c.costoTotal} {c.moneda}</td>
-                        <td className="px-4 py-3 font-bold text-slate-800">{c.leadTimeRealDias} días</td>
-                      </tr>
+                        </TableCell>
+                        <TableCell className="px-4 py-3 font-bold text-slate-800">{c.cantidad}</TableCell>
+                        <TableCell className="px-4 py-3">${c.precioUnitario} {c.moneda}</TableCell>
+                        <TableCell className="px-4 py-3 font-bold text-emerald-700">${c.costoTotal} {c.moneda}</TableCell>
+                        <TableCell className="px-4 py-3 font-bold text-slate-800">{c.leadTimeRealDias} días</TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             </div>
           </div>
@@ -1491,8 +1485,7 @@ function ProveedoresContent() {
           ordenesHistoricas={ordenesScorecard}
           itemsOdoo={itemsComprasOdoo}
         />
-      </div>
-    </main>
+    </PageShell>
   )
 }
 

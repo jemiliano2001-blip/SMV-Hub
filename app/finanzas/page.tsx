@@ -1,6 +1,8 @@
 "use client"
 
 import AuthGuard from "@/app/AuthGuard"
+import PageHeader from "@/components/layout/PageHeader"
+import PageShell from "@/components/layout/PageShell"
 import { useEffect, useMemo, useState } from "react"
 import { Loader2, AlertCircle, AlertTriangle, TrendingUp, TrendingDown, DollarSign, Wallet, RefreshCw } from "lucide-react"
 import { useFinanzasFacturas } from "@/lib/hooks/useFinanzasFacturas"
@@ -35,6 +37,14 @@ import FinanzasNav from "@/app/finanzas/FinanzasNav"
 import BannerSync from "@/app/finanzas/BannerSync"
 import SelectorMes from "@/app/finanzas/SelectorMes"
 import GraficaTendencia from "@/app/finanzas/GraficaTendencia"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 type TabFinanzas = "ar" | "ap" | "flujo" | "conciliacion"
 
@@ -218,7 +228,7 @@ function ResumenFinanzas() {
   if (loading && facturas.length === 0) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-5 w-5 animate-spin text-[#0369A1] mr-2" />
+        <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
         <span className="text-xs font-mono text-slate-600">Cargando facturación…</span>
       </div>
     )
@@ -229,7 +239,7 @@ function ResumenFinanzas() {
       <div className="flex flex-col items-center justify-center gap-3 py-20">
         <AlertCircle className="h-7 w-7 text-rose-500" />
         <p className="text-xs text-slate-700 font-mono">{error}</p>
-        <button onClick={recargar} className="rounded-md bg-[#0369A1] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#0284C7]">
+        <button onClick={recargar} className="rounded-md bg-primary px-3.5 py-1.5 text-xs font-bold text-white hover:bg-primary/90">
           Reintentar
         </button>
       </div>
@@ -248,7 +258,7 @@ function ResumenFinanzas() {
                 key={m}
                 onClick={() => setMonedaActiva(m)}
                 className={`px-2.5 py-1 text-xs font-mono font-bold rounded-md border ${
-                  m === moneda ? "bg-[#0369A1] text-white border-[#0369A1]" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                  m === moneda ? "bg-primary text-white border-primary" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
                 }`}
               >
                 {m}
@@ -264,7 +274,7 @@ function ResumenFinanzas() {
           onClick={() => setTabActiva("ar")}
           className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
             tabActiva === "ar"
-              ? "bg-[#0369A1] text-white shadow-xs"
+              ? "bg-primary text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           }`}
         >
@@ -276,7 +286,7 @@ function ResumenFinanzas() {
           onClick={() => setTabActiva("ap")}
           className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
             tabActiva === "ap"
-              ? "bg-[#0369A1] text-white shadow-xs"
+              ? "bg-primary text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           }`}
         >
@@ -288,7 +298,7 @@ function ResumenFinanzas() {
           onClick={() => setTabActiva("flujo")}
           className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
             tabActiva === "flujo"
-              ? "bg-[#0369A1] text-white shadow-xs"
+              ? "bg-primary text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           }`}
         >
@@ -300,7 +310,7 @@ function ResumenFinanzas() {
           onClick={() => setTabActiva("conciliacion")}
           className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
             tabActiva === "conciliacion"
-              ? "bg-[#0369A1] text-white shadow-xs"
+              ? "bg-primary text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           }`}
         >
@@ -349,17 +359,17 @@ function ResumenFinanzas() {
             {topClientes.length === 0 ? (
               <p className="text-xs text-slate-500 py-4 text-center font-mono">Sin facturación registrada este año.</p>
             ) : (
-              <table className="w-full text-xs">
-                <tbody>
+              <Table className="w-full text-xs">
+                <TableBody>
                   {topClientes.map((g) => (
-                    <tr key={g.cliente} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                      <td className="py-2 pr-3 font-semibold text-slate-800">{g.cliente}</td>
-                      <td className="py-2 pr-3 text-right font-mono font-bold text-slate-900 tabular-nums">{formatPrecio(g.total, moneda)}</td>
-                      <td className="py-2 text-right font-mono text-slate-500 w-20 tabular-nums">{g.pctDelTotal.toFixed(1)}%</td>
-                    </tr>
+                    <TableRow key={g.cliente} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                      <TableCell className="py-2 pr-3 font-semibold text-slate-800">{g.cliente}</TableCell>
+                      <TableCell className="py-2 pr-3 text-right font-mono font-bold text-slate-900 tabular-nums">{formatPrecio(g.total, moneda)}</TableCell>
+                      <TableCell className="py-2 text-right font-mono text-slate-500 w-20 tabular-nums">{g.pctDelTotal.toFixed(1)}%</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             )}
           </div>
         </div>
@@ -369,7 +379,7 @@ function ResumenFinanzas() {
         <div className="space-y-4">
           {cargandoAP ? (
             <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5 flex items-center justify-center py-12">
-              <Loader2 className="h-5 w-5 animate-spin text-[#0369A1] mr-2" />
+              <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
               <span className="text-xs font-mono text-slate-600">Cargando facturas de proveedor…</span>
             </div>
           ) : (
@@ -391,28 +401,28 @@ function ResumenFinanzas() {
                     Top Proveedores por Saldo Pendiente
                   </h2>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
-                        <tr>
-                          <th className="py-2 pr-3">Proveedor</th>
-                          <th className="py-2 pr-3 text-right">Facturas Pendientes</th>
-                          <th className="py-2 pr-3 text-right">Total por Pagar</th>
-                          <th className="py-2 pr-3 text-right">% del Total</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
+                    <Table className="w-full text-left text-xs">
+                      <TableHeader className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                        <TableRow>
+                          <TableHead className="py-2 pr-3">Proveedor</TableHead>
+                          <TableHead className="py-2 pr-3 text-right">Facturas Pendientes</TableHead>
+                          <TableHead className="py-2 pr-3 text-right">Total por Pagar</TableHead>
+                          <TableHead className="py-2 pr-3 text-right">% del Total</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody className="divide-y divide-slate-100">
                         {topProveedoresAP.map((g) => (
-                          <tr key={g.proveedor}>
-                            <td className="py-2 pr-3 font-medium text-slate-800">{g.proveedor}</td>
-                            <td className="py-2 pr-3 text-right font-mono">{g.facturasPendientes}</td>
-                            <td className="py-2 pr-3 text-right font-mono font-bold text-slate-900 tabular-nums">
+                          <TableRow key={g.proveedor}>
+                            <TableCell className="py-2 pr-3 font-medium text-slate-800">{g.proveedor}</TableCell>
+                            <TableCell className="py-2 pr-3 text-right font-mono">{g.facturasPendientes}</TableCell>
+                            <TableCell className="py-2 pr-3 text-right font-mono font-bold text-slate-900 tabular-nums">
                               {formatPrecio(g.totalPorPagar, moneda)}
-                            </td>
-                            <td className="py-2 pr-3 text-right font-mono text-slate-500">{g.pctDelTotal.toFixed(1)}%</td>
-                          </tr>
+                            </TableCell>
+                            <TableCell className="py-2 pr-3 text-right font-mono text-slate-500">{g.pctDelTotal.toFixed(1)}%</TableCell>
+                          </TableRow>
                         ))}
-                      </tbody>
-                    </table>
+                      </TableBody>
+                    </Table>
                   </div>
                 </div>
               )}
@@ -436,7 +446,7 @@ function ResumenFinanzas() {
             </h2>
             {cargandoAP ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-5 w-5 animate-spin text-[#0369A1] mr-2" />
+                <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
                 <span className="text-xs font-mono text-slate-600">Calculando proyección de liquidez…</span>
               </div>
             ) : (
@@ -454,7 +464,7 @@ function ResumenFinanzas() {
             </h2>
             {cargandoAP ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-5 w-5 animate-spin text-[#0369A1] mr-2" />
+                <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
                 <span className="text-xs font-mono text-slate-600">Analizando discrepancias y emparejamiento…</span>
               </div>
             ) : (
@@ -470,26 +480,15 @@ function ResumenFinanzas() {
 export default function FinanzasPage() {
   return (
     <AuthGuard>
-      <main className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
-        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-1 space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-bold text-slate-900 tracking-tight">Finanzas y Cobranza 360°</h1>
-                <span className="text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded">
-                  Odoo Mirror
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Cuentas por cobrar (AR), Cuentas por pagar (AP), Flujo de caja y Conciliación de compras.
-              </p>
-            </div>
-            <FinanzasNav />
-          </div>
-
-          <ResumenFinanzas />
-        </div>
-      </main>
+      <PageShell>
+        <PageHeader
+          title="Finanzas y cobranza"
+          badge="Odoo"
+          description="Cuentas por cobrar, cuentas por pagar, flujo de caja y conciliación de compras."
+          actions={<FinanzasNav />}
+        />
+        <ResumenFinanzas />
+      </PageShell>
     </AuthGuard>
   )
 }

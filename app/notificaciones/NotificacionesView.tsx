@@ -165,7 +165,7 @@ export default function NotificacionesView() {
               onClick={() => setOrigen(value)}
               className={`rounded-md px-2.5 py-1 text-[11px] font-semibold border transition-colors ${
                 origen === value
-                  ? 'bg-[#0369A1] text-white border-[#0369A1]'
+                  ? 'bg-primary text-white border-primary'
                   : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
               }`}
             >
@@ -200,7 +200,7 @@ export default function NotificacionesView() {
           type="button"
           disabled={noLeidas === 0 || marcando}
           onClick={() => void onMarcarTodas()}
-          className="text-[11px] font-bold text-[#0369A1] disabled:opacity-40 hover:underline"
+          className="text-[11px] font-bold text-primary disabled:opacity-40 hover:underline"
         >
           {marcando ? 'Marcando…' : 'Marcar todas como leídas'}
         </button>
@@ -279,7 +279,7 @@ export default function NotificacionesView() {
                   void onClickFila(n.id, n.href, n.leida)
                 }
               }}
-              className={`w-full text-left rounded-xl border p-3.5 transition-colors hover:border-[#0369A1]/40 cursor-pointer ${
+              className={`w-full text-left rounded-xl border p-3.5 transition-colors hover:border-primary/40 cursor-pointer ${
                 n.leida
                   ? 'bg-white border-slate-200'
                   : 'bg-sky-50/60 border-sky-200'
@@ -290,7 +290,7 @@ export default function NotificacionesView() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-semibold text-slate-900">{n.titulo}</span>
                     {!n.leida && (
-                      <Badge variant="outline" className="text-[10px] bg-white border-sky-300 text-[#0369A1]">
+                      <Badge variant="outline" className="text-[10px] bg-white border-sky-300 text-primary">
                         Nueva
                       </Badge>
                     )}
@@ -335,7 +335,7 @@ export default function NotificacionesView() {
                       e.stopPropagation()
                       void onMarcarUna(n.id)
                     }}
-                    className="shrink-0 rounded-md border border-sky-200 bg-white px-2 py-1 text-[10px] font-bold text-[#0369A1] hover:bg-sky-50 disabled:opacity-50"
+                    className="shrink-0 rounded-md border border-sky-200 bg-white px-2 py-1 text-[10px] font-bold text-primary hover:bg-sky-50 disabled:opacity-50"
                   >
                     {marcandoId === n.id ? 'Marcando…' : 'Marcar leída'}
                   </button>

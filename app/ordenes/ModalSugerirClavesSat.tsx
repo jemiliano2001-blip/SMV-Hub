@@ -1,7 +1,16 @@
 'use client'
 
 import { useState, useEffect, Fragment } from 'react'
-import { Loader2, X, Search, Check, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
+import { Loader2, Search, Check, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import type { OrdenCompra, ItemFactura } from '@/lib/schemas'
 import { normalizarClaveProdServ } from '@/lib/sat/normalizar'
 import { validarClaveProdServCatalogo } from '@/lib/sat/validar-clave'
@@ -10,6 +19,14 @@ import { getClienteAuth } from '@/lib/firebase'
 import { extraerEntradasHistorialSat } from '@/lib/sat/extraer-historial-ordenes'
 import { guardarAsignacionesSatValidadas } from '@/lib/sat/mapeos-persistir'
 import type { AlternativaSat } from '@/lib/sat/types'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 type SugerenciaApi = {
   claveProdServ: string | null
@@ -285,19 +302,14 @@ export default function ModalSugerirClavesSat({
   const filasConClave = filas.filter((f) => f.aplicar && validarClaveProdServCatalogo(f.claveProdServ)).length
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
-      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col my-8">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 shrink-0">
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">Sugerir claves SAT</h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Solo se preseleccionan sugerencias de confianza alta. Revisa media/baja antes de aplicar.
-            </p>
-          </div>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[90vh] max-w-6xl flex-col gap-0 overflow-hidden p-0 sm:max-w-6xl">
+        <DialogHeader className="border-b border-border px-6 py-4">
+          <DialogTitle>Sugerir claves SAT</DialogTitle>
+          <DialogDescription>
+            Solo se preseleccionan sugerencias de confianza alta. Revisa media/baja antes de aplicar.
+          </DialogDescription>
+        </DialogHeader>
 
         <div className="p-6 overflow-y-auto flex-1">
           {error && (
@@ -309,7 +321,7 @@ export default function ModalSugerirClavesSat({
 
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 text-gray-500">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-3" />
+              <Loader2 className="mb-3 h-8 w-8 animate-spin text-primary" />
               <p className="text-sm">Generando sugerencias…</p>
             </div>
           ) : error ? (
@@ -321,7 +333,7 @@ export default function ModalSugerirClavesSat({
                   setError(null)
                   setReloadKey((k) => k + 1)
                 }}
-                className="text-sm font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2"
+                className="text-sm font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
               >
                 Reintentar
               </button>
@@ -332,33 +344,33 @@ export default function ModalSugerirClavesSat({
             </p>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-gray-200">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-3 py-2 w-10">✓</th>
-                    <th className="px-3 py-2">Proveedor</th>
-                    <th className="px-3 py-2">Descripción (EN)</th>
-                    <th className="px-3 py-2 w-28">Clave SAT</th>
-                    <th className="px-3 py-2">Descripción SAT</th>
-                    <th className="px-3 py-2 w-20">Conf.</th>
-                    <th className="px-3 py-2">Motivo</th>
-                    <th className="px-3 py-2 w-36">Buscar</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
+              <Table className="w-full text-sm text-left">
+                <TableHeader className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
+                  <TableRow>
+                    <TableHead className="px-3 py-2 w-10">✓</TableHead>
+                    <TableHead className="px-3 py-2">Proveedor</TableHead>
+                    <TableHead className="px-3 py-2">Descripción (EN)</TableHead>
+                    <TableHead className="px-3 py-2 w-28">Clave SAT</TableHead>
+                    <TableHead className="px-3 py-2">Descripción SAT</TableHead>
+                    <TableHead className="px-3 py-2 w-20">Conf.</TableHead>
+                    <TableHead className="px-3 py-2">Motivo</TableHead>
+                    <TableHead className="px-3 py-2 w-36">Buscar</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-gray-100">
                   {filas.map((fila, index) => (
                     <Fragment key={`${fila.ordenId}-${fila.itemIndex}`}>
-                      <tr className="hover:bg-gray-50">
-                        <td className="px-3 py-2">
+                      <TableRow className="hover:bg-gray-50">
+                        <TableCell className="px-3 py-2">
                           <input
                             type="checkbox"
                             checked={fila.aplicar}
                             onChange={(e) => actualizarFila(index, { aplicar: e.target.checked })}
-                            className="rounded border-gray-300 text-blue-600"
+                            className="rounded border-gray-300 text-primary"
                           />
-                        </td>
-                        <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{fila.ordenProveedor}</td>
-                        <td className="px-3 py-2 text-gray-900 max-w-[200px]">
+                        </TableCell>
+                        <TableCell className="px-3 py-2 text-gray-700 whitespace-nowrap">{fila.ordenProveedor}</TableCell>
+                        <TableCell className="px-3 py-2 text-gray-900 max-w-[200px]">
                           <div className="truncate" title={fila.descripcion}>
                             {fila.descripcion}
                           </div>
@@ -368,8 +380,8 @@ export default function ModalSugerirClavesSat({
                               Revisar
                             </span>
                           )}
-                        </td>
-                        <td className="px-3 py-2">
+                        </TableCell>
+                        <TableCell className="px-3 py-2">
                           <input
                             value={fila.claveProdServ}
                             onChange={(e) => {
@@ -379,18 +391,18 @@ export default function ModalSugerirClavesSat({
                               })
                             }}
                             placeholder="8 dígitos"
-                            className="w-full rounded border border-gray-300 px-2 py-1 text-xs font-mono focus:border-blue-400 focus:outline-none"
+                            className="w-full rounded border border-gray-300 px-2 py-1 text-xs font-mono focus:border-primary focus:outline-none"
                           />
-                        </td>
-                        <td className="px-3 py-2 text-gray-600 text-xs max-w-[180px] truncate" title={fila.descripcionSat ?? ''}>
+                        </TableCell>
+                        <TableCell className="px-3 py-2 text-gray-600 text-xs max-w-[180px] truncate" title={fila.descripcionSat ?? ''}>
                           {fila.descripcionSat ?? '—'}
-                        </td>
-                        <td className="px-3 py-2">
+                        </TableCell>
+                        <TableCell className="px-3 py-2">
                           <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${confianzaClase(fila.confianza)}`}>
                             {fila.confianza}
                           </span>
-                        </td>
-                        <td className="px-3 py-2 text-xs text-gray-500 max-w-[160px]">
+                        </TableCell>
+                        <TableCell className="px-3 py-2 text-xs text-gray-500 max-w-[160px]">
                           <div className="truncate" title={fila.motivo}>
                             {fila.motivo}
                           </div>
@@ -400,7 +412,7 @@ export default function ModalSugerirClavesSat({
                               onClick={() =>
                                 actualizarFila(index, { mostrarAlternativas: !fila.mostrarAlternativas })
                               }
-                              className="mt-1 flex items-center gap-0.5 text-blue-600 hover:text-blue-700 text-[10px] font-semibold"
+                              className="mt-1 flex items-center gap-0.5 text-primary hover:text-primary text-[10px] font-semibold"
                             >
                               {fila.mostrarAlternativas ? (
                                 <ChevronUp className="h-3 w-3" />
@@ -410,8 +422,8 @@ export default function ModalSugerirClavesSat({
                               {fila.alternativas.length} alternativa(s)
                             </button>
                           )}
-                        </td>
-                        <td className="px-3 py-2">
+                        </TableCell>
+                        <TableCell className="px-3 py-2">
                           <form
                             className="flex gap-1"
                             onSubmit={(e) => {
@@ -425,12 +437,12 @@ export default function ModalSugerirClavesSat({
                               key={`q-${fila.terminosBusqueda || fila.descripcion}`}
                               placeholder="Buscar…"
                               defaultValue={fila.terminosBusqueda || fila.descripcion.slice(0, 40)}
-                              className="flex-1 min-w-0 rounded border border-gray-300 px-1.5 py-1 text-xs focus:border-blue-400 focus:outline-none"
+                              className="flex-1 min-w-0 rounded border border-gray-300 px-1.5 py-1 text-xs focus:border-primary focus:outline-none"
                             />
                             <button
                               type="submit"
                               disabled={fila.buscando}
-                              className="p-1 text-blue-600 hover:bg-blue-50 rounded disabled:opacity-50"
+                              className="p-1 text-primary hover:bg-blue-50 rounded disabled:opacity-50"
                               title="Buscar en catálogo"
                             >
                               {fila.buscando ? (
@@ -440,11 +452,11 @@ export default function ModalSugerirClavesSat({
                               )}
                             </button>
                           </form>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                       {fila.mostrarAlternativas && fila.alternativas.length > 0 && (
-                        <tr className="bg-blue-50/50">
-                          <td colSpan={8} className="px-3 py-2">
+                        <TableRow className="bg-blue-50/50">
+                          <TableCell colSpan={8} className="px-3 py-2">
                             <div className="flex flex-wrap gap-2">
                               {fila.alternativas.map((alt) => (
                                 <button
@@ -458,40 +470,35 @@ export default function ModalSugerirClavesSat({
                                 </button>
                               ))}
                             </div>
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       )}
                     </Fragment>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-gray-200 px-6 py-4 bg-gray-50 rounded-b-xl shrink-0">
-          <p className="text-xs text-gray-500">
+        <DialogFooter className="justify-between border-t border-border bg-muted/30 px-6 py-4 sm:justify-between">
+          <p className="text-xs text-muted-foreground">
             {filasConClave} de {filas.length} filas listas para aplicar
           </p>
           <div className="flex gap-2">
-            <button
-              onClick={onClose}
-              type="button"
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-            >
+            <Button variant="outline" onClick={onClose} type="button">
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => void handleAplicar()}
               disabled={saving || loading || filasConClave === 0}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              {saving ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <Check data-icon="inline-start" />}
               Aplicar seleccionadas
-            </button>
+            </Button>
           </div>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

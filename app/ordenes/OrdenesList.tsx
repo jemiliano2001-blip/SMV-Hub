@@ -8,7 +8,9 @@ import {
   cuentaCargoEfectiva,
   ordenTieneSatPendiente,
 } from '@/lib/ordenes-display'
-import { Loader2, AlertCircle } from 'lucide-react'
+import { Loader2, AlertCircle, Package } from 'lucide-react'
+import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
+import ModuleSurface from '@/components/layout/ModuleSurface'
 
 import OrdenFormModal from './OrdenFormModal'
 import ModalSugerirClavesSat from './ModalSugerirClavesSat'
@@ -307,10 +309,10 @@ export default function OrdenesList() {
   // Loading state
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-gray-200 shadow-xs">
-        <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-4" />
-        <p className="text-gray-500 text-sm">Cargando órdenes de compra…</p>
-      </div>
+      <ModuleSurface className="flex flex-col items-center justify-center py-20">
+        <Loader2 className="mb-4 size-10 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Cargando órdenes de compra…</p>
+      </ModuleSurface>
     )
   }
 
@@ -336,15 +338,11 @@ export default function OrdenesList() {
   // Empty state
   if (ordenes.length === 0) {
     return (
-      <div className="text-center py-20 bg-white rounded-xl border border-gray-200 shadow-xs">
-        <div className="mx-auto w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-4 text-gray-400">
-          <AlertCircle className="h-6 w-6" />
-        </div>
-        <h3 className="text-sm font-semibold text-gray-900">No hay órdenes</h3>
-        <p className="text-sm text-gray-500 mt-1 max-w-xs mx-auto">
-          No hay órdenes de compra registradas. Sube una nueva factura para comenzar.
-        </p>
-      </div>
+      <ModuleEmptyState
+        icon={Package}
+        title="No hay órdenes"
+        description="No hay órdenes de compra registradas. Sube una nueva factura para comenzar."
+      />
     )
   }
 
@@ -411,7 +409,7 @@ export default function OrdenesList() {
               type="button"
               onClick={() => void cargarMas()}
               disabled={cargandoMas}
-              className="min-h-10 min-w-32 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-[#0369A1] hover:bg-slate-50 disabled:opacity-50"
+              className="min-h-10 min-w-32 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-primary hover:bg-slate-50 disabled:opacity-50"
             >
               {cargandoMas ? 'Cargando…' : 'Cargar más'}
             </button>
@@ -428,6 +426,7 @@ export default function OrdenesList() {
           onApprove={() => onChangeEstadoClick(selectedOrden.id, 'aprobada')}
           onReject={() => onChangeEstadoClick(selectedOrden.id, 'rechazada')}
           onSugerirSat={() => void abrirSugerirSat([selectedOrden])}
+          onRecepcionExitosa={fetchOrdenes}
         />
       )}
 

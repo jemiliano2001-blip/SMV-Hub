@@ -54,7 +54,7 @@ export default function PanelComprasOdoo() {
           <div className="flex items-start gap-3">
             <Database className="h-5 w-5 text-sky-600 mt-0.5" />
             <div>
-              <h2 className="text-sm font-extrabold text-slate-900">Base de compras Odoo · solo lectura</h2>
+              <h2 className="text-sm font-bold text-slate-900">Base de compras Odoo · solo lectura</h2>
               <p className="text-xs text-slate-500 mt-0.5">
                 Espejo de POs y facturas de proveedor. Última sync:{' '}
                 <span className="font-mono text-slate-700">{formatFecha(estadoSync?.ultimaCorridaEn ?? null)}</span>
@@ -85,7 +85,7 @@ export default function PanelComprasOdoo() {
             type="button"
             onClick={() => void sincronizarAhora()}
             disabled={sincronizando}
-            className="flex items-center gap-1.5 px-3 py-2 bg-[#0369A1] hover:bg-[#0284C7] disabled:opacity-60 text-white text-xs font-bold rounded-lg"
+            className="flex items-center gap-1.5 px-3 py-2 bg-primary hover:bg-primary/90 disabled:opacity-60 text-white text-xs font-bold rounded-lg"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${sincronizando ? 'animate-spin' : ''}`} />
             {sincronizando ? 'Sincronizando…' : 'Sincronizar ahora'}

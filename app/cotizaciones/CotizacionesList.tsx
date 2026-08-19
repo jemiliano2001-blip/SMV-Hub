@@ -30,6 +30,19 @@ import {
 } from '@/lib/cotizaciones-tabla'
 import { useCotizaciones } from '@/lib/hooks/useCotizaciones'
 import CotizacionFormModal from './CotizacionFormModal'
+import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
+import ModuleFilterChips from '@/components/layout/ModuleFilterChips'
+import ModuleSurface from '@/components/layout/ModuleSurface'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 const ESTATUS_BADGE: Record<EstatusCotizacion, string> = {
   cotizado: 'bg-green-50 text-green-700 ring-green-600/20',
@@ -55,7 +68,7 @@ function CotizacionCard({ c, selected, onToggleSelect, onEditar }: CotizacionCar
             checked={selected}
             onChange={(e) => onToggleSelect(c.id, e as unknown as React.MouseEvent)}
             onClick={(e) => e.stopPropagation()}
-            className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0"
+            className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-ring shrink-0"
           />
           <div className="min-w-0">
             <p className="text-xs text-gray-500">{formatFecha(c.fecha)} · {c.solicitante || '—'}</p>
@@ -98,7 +111,7 @@ function CotizacionCard({ c, selected, onToggleSelect, onEditar }: CotizacionCar
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="text-gray-400 hover:text-blue-600"
+              className="text-gray-400 hover:text-primary"
             >
               <ExternalLink className="h-4 w-4" />
             </a>
@@ -210,13 +223,13 @@ export default function CotizacionesList() {
     label: string,
     className = ''
   ) => (
-    <th
-      className={`px-4 py-3 font-semibold whitespace-nowrap cursor-pointer select-none hover:bg-gray-100 ${className}`}
+    <TableHead
+      className={`px-4 py-3 font-semibold cursor-pointer select-none hover:bg-muted ${className}`}
       onClick={() => handleOrdenColumna(columna)}
     >
       {label}
       {iconoOrden(columna)}
-    </th>
+    </TableHead>
   )
 
   const toggleSelection = (id: string, e: React.MouseEvent) => {
@@ -262,10 +275,10 @@ export default function CotizacionesList() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-gray-200 shadow-xs">
-        <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-4" />
-        <p className="text-gray-500 text-sm">Cargando cotizaciones…</p>
-      </div>
+      <ModuleSurface className="flex flex-col items-center justify-center py-20">
+        <Loader2 className="mb-4 size-10 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Cargando cotizaciones…</p>
+      </ModuleSurface>
     )
   }
 
@@ -287,23 +300,17 @@ export default function CotizacionesList() {
   if (cotizaciones.length === 0) {
     return (
       <>
-        <div className="text-center py-20 bg-white rounded-xl border border-gray-200 shadow-xs">
-          <div className="mx-auto w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-4 text-gray-400">
-            <FileSearch className="h-6 w-6" />
-          </div>
-          <h3 className="text-sm font-semibold text-gray-900">No hay cotizaciones</h3>
-          <p className="text-sm text-gray-500 mt-1 max-w-xs mx-auto">
-            Aún no hay cotizaciones registradas. Usa la pestaña <strong>Importar desde Sheet</strong> para cargar el histórico,
-            o agrega una manualmente.
-          </p>
-          <button
-            onClick={() => setIsAddingMode(true)}
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"
-          >
-            <Plus className="h-4 w-4" />
-            Añadir Cotización
-          </button>
-        </div>
+        <ModuleEmptyState
+          icon={FileSearch}
+          title="No hay cotizaciones"
+          description="Aún no hay cotizaciones registradas. Usa Importar desde Sheet para cargar el histórico, o agrega una a mano."
+          action={
+            <Button type="button" onClick={() => setIsAddingMode(true)}>
+              <Plus data-icon="inline-start" />
+              Añadir cotización
+            </Button>
+          }
+        />
         {isAddingMode && (
           <CotizacionFormModal
             onClose={() => setIsAddingMode(false)}
@@ -314,24 +321,12 @@ export default function CotizacionesList() {
     )
   }
 
-  const chip = (activo: boolean, onClick: () => void, label: string) => (
-    <button
-      onClick={onClick}
-      className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-        activo ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
-      }`}
-    >
-      {label}
-    </button>
-  )
-
   return (
     <>
-      {/* Buscador + filtros */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-xs p-4 space-y-3 mb-4">
+      <ModuleSurface className="mb-4 flex flex-col gap-3 p-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
             type="text"
             value={busqueda}
             onChange={(e) => {
@@ -339,19 +334,40 @@ export default function CotizacionesList() {
               resetPaginaYSeleccion()
             }}
             placeholder="Buscar por descripción, no. de parte o proveedor…"
-            className="w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="pl-9"
+            aria-label="Buscar cotizaciones"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-gray-400 mr-1">Ubicación:</span>
-          {chip(filtroUbicacion === 'todas', () => { setFiltroUbicacion('todas'); resetPaginaYSeleccion() }, 'Todas')}
-          {chip(filtroUbicacion === 'MX', () => { setFiltroUbicacion('MX'); resetPaginaYSeleccion() }, 'México')}
-          {chip(filtroUbicacion === 'USA', () => { setFiltroUbicacion('USA'); resetPaginaYSeleccion() }, 'EUA')}
-          <span className="text-xs font-semibold text-gray-400 mx-1 ml-3">Estatus:</span>
-          {chip(filtroEstatus === 'todos', () => { setFiltroEstatus('todos'); resetPaginaYSeleccion() }, 'Todos')}
-          {chip(filtroEstatus === 'cotizado', () => { setFiltroEstatus('cotizado'); resetPaginaYSeleccion() }, 'Cotizado')}
-          {chip(filtroEstatus === 'revisar', () => { setFiltroEstatus('revisar'); resetPaginaYSeleccion() }, 'Revisar')}
-          {chip(filtroEstatus === 'cancelado', () => { setFiltroEstatus('cancelado'); resetPaginaYSeleccion() }, 'Cancelado')}
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-xs font-semibold text-muted-foreground">Ubicación:</span>
+          <ModuleFilterChips
+            ariaLabel="Filtrar por ubicación"
+            value={filtroUbicacion}
+            onValueChange={(value) => {
+              setFiltroUbicacion(value as FiltroUbicacion)
+              resetPaginaYSeleccion()
+            }}
+            options={[
+              { value: 'todas', label: 'Todas' },
+              { value: 'MX', label: 'México' },
+              { value: 'USA', label: 'EUA' },
+            ]}
+          />
+          <span className="text-xs font-semibold text-muted-foreground">Estatus:</span>
+          <ModuleFilterChips
+            ariaLabel="Filtrar por estatus"
+            value={filtroEstatus}
+            onValueChange={(value) => {
+              setFiltroEstatus(value as FiltroEstatus)
+              resetPaginaYSeleccion()
+            }}
+            options={[
+              { value: 'todos', label: 'Todos' },
+              { value: 'cotizado', label: 'Cotizado' },
+              { value: 'revisar', label: 'Revisar' },
+              { value: 'cancelado', label: 'Cancelado' },
+            ]}
+          />
         </div>
         <div className="flex items-center justify-between gap-3">
           <div className="flex flex-col gap-0.5">
@@ -397,89 +413,85 @@ export default function CotizacionesList() {
               </p>
             )}
           </div>
-          <button
-            onClick={() => setIsAddingMode(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"
-          >
-            <Plus className="h-4 w-4" />
-            Añadir Cotización
-          </button>
+            <Button type="button" size="sm" onClick={() => setIsAddingMode(true)}>
+              <Plus data-icon="inline-start" />
+              Añadir cotización
+            </Button>
         </div>
-      </div>
+      </ModuleSurface>
 
-      {/* Tabla (desktop) / Tarjetas (celular) */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm text-left text-gray-500">
-            <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 w-12 text-center">
+      <ModuleSurface>
+        <div className="hidden md:block">
+          <Table className="text-sm text-left text-muted-foreground">
+            <TableHeader className="bg-muted/50 text-xs uppercase">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="px-4 py-3 w-12 text-center">
                   <input
                     type="checkbox"
                     checked={filasPagina.length > 0 && filasPagina.every((c) => selectedIds.has(c.id))}
                     onChange={toggleAllSelection}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    className="rounded border-gray-300 text-primary focus:ring-ring cursor-pointer"
                   />
-                </th>
+                </TableHead>
                 {thOrdenable('fecha', 'Fecha')}
                 {thOrdenable('solicitante', 'Solicitante')}
                 {thOrdenable('proveedor', 'Proveedor')}
                 {thOrdenable('descripcion', 'Descripción', 'min-w-[220px]')}
                 {thOrdenable('numeroParte', 'No. parte')}
-                <th className="px-4 py-3 font-semibold text-center">Ubic.</th>
+                <TableHead className="px-4 py-3 font-semibold text-center">Ubic.</TableHead>
                 {thOrdenable('cantidad', 'Cant.', 'text-center')}
                 {thOrdenable('precioUnitario', 'P. Unit.', 'text-right')}
                 {thOrdenable('total', 'Total', 'text-right')}
                 {thOrdenable('estatus', 'Estatus')}
-                <th className="px-4 py-3 font-semibold text-center">Link</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
+                <TableHead className="px-4 py-3 font-semibold text-center">Link</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filasPagina.map((c) => (
-                <tr
+                <TableRow
                   key={c.id}
                   onClick={() => setCotizacionToEdit(c)}
-                  className="hover:bg-gray-50 cursor-pointer transition-colors"
+                  className="cursor-pointer"
                 >
-                  <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                  <TableCell className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={selectedIds.has(c.id)}
                       onChange={(e) => toggleSelection(c.id, e as unknown as React.MouseEvent)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      className="rounded border-gray-300 text-primary focus:ring-ring cursor-pointer"
                     />
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">{formatFecha(c.fecha)}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">{c.solicitante || '-'}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">{c.proveedor}</td>
-                  <td className="px-4 py-3 text-gray-900 min-w-[220px]">{c.descripcion}</td>
-                  <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">{c.numeroParte || '-'}</td>
-                  <td className="px-4 py-3 text-center">
+                  </TableCell>
+                  <TableCell className="px-4 py-3">{formatFecha(c.fecha)}</TableCell>
+                  <TableCell className="px-4 py-3">{c.solicitante || '-'}</TableCell>
+                  <TableCell className="px-4 py-3 font-medium text-foreground">{c.proveedor}</TableCell>
+                  <TableCell className="px-4 py-3 whitespace-normal text-foreground min-w-[220px]">{c.descripcion}</TableCell>
+                  <TableCell className="px-4 py-3 font-mono text-xs">{c.numeroParte || '-'}</TableCell>
+                  <TableCell className="px-4 py-3 text-center">
                     <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${c.ubicacion === 'USA' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
                       {c.ubicacion === 'USA' ? 'EUA' : 'MX'}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">{c.cantidad ?? '-'}</td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">{formatPrecio(c.precioUnitario, c.moneda)}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-gray-900 whitespace-nowrap">{formatPrecio(c.total, c.moneda)}</td>
-                  <td className="px-4 py-3">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-center">{c.cantidad ?? '-'}</TableCell>
+                  <TableCell className="px-4 py-3 text-right">{formatPrecio(c.precioUnitario, c.moneda)}</TableCell>
+                  <TableCell className="px-4 py-3 text-right font-semibold text-foreground">{formatPrecio(c.total, c.moneda)}</TableCell>
+                  <TableCell className="px-4 py-3">
                     <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold capitalize ring-1 ring-inset ${ESTATUS_BADGE[c.estatus]}`}>
                       {c.estatus}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                     {c.link && /^https?:\/\//i.test(c.link) ? (
-                      <a href={c.link} target="_blank" rel="noopener noreferrer" className="inline-flex text-gray-500 hover:text-blue-600" title="Abrir enlace">
+                      <a href={c.link} target="_blank" rel="noopener noreferrer" className="inline-flex text-muted-foreground hover:text-primary" title="Abrir enlace">
                         <ExternalLink className="h-4 w-4" />
                       </a>
                     ) : (
-                      <span className="text-gray-300">-</span>
+                      <span className="text-muted-foreground/40">-</span>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
 
         <div className="md:hidden divide-y divide-gray-100">
@@ -522,7 +534,7 @@ export default function CotizacionesList() {
             </button>
           </div>
         )}
-      </div>
+      </ModuleSurface>
 
       {(isAddingMode || cotizacionToEdit) && (
         <CotizacionFormModal

@@ -3,6 +3,14 @@
 import { useState } from "react"
 import type { ResumenConciliacion, EstatusConciliacion } from "@/lib/conciliaciones-odoo"
 import { formatPrecio } from "@/lib/format"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 interface TablaConciliacionOdooProps {
   resumen: ResumenConciliacion
@@ -109,40 +117,40 @@ export function TablaConciliacionOdoo({ resumen }: TablaConciliacionOdooProps) {
 
       {/* Tabla de Conciliaciones */}
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500">
-            <tr>
-              <th className="px-4 py-3">Folio / Factura</th>
-              <th className="px-4 py-3">Proveedor</th>
-              <th className="px-4 py-3 text-right">SMV Hub (Local)</th>
-              <th className="px-4 py-3 text-right">Odoo (Real)</th>
-              <th className="px-4 py-3 text-right">Diferencia</th>
-              <th className="px-4 py-3 text-center">Estado</th>
-              <th className="px-4 py-3">Observación / Alerta</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
+        <Table className="w-full text-left text-xs">
+          <TableHeader className="bg-slate-50 border-b border-slate-200 text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500">
+            <TableRow>
+              <TableHead className="px-4 py-3">Folio / Factura</TableHead>
+              <TableHead className="px-4 py-3">Proveedor</TableHead>
+              <TableHead className="px-4 py-3 text-right">SMV Hub (Local)</TableHead>
+              <TableHead className="px-4 py-3 text-right">Odoo (Real)</TableHead>
+              <TableHead className="px-4 py-3 text-right">Diferencia</TableHead>
+              <TableHead className="px-4 py-3 text-center">Estado</TableHead>
+              <TableHead className="px-4 py-3">Observación / Alerta</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="divide-y divide-slate-100">
             {itemsFiltrados.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-slate-500 font-mono text-xs">
+              <TableRow>
+                <TableCell colSpan={7} className="px-4 py-8 text-center text-slate-500 font-mono text-xs">
                   No hay registros que coincidan con el filtro seleccionado.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               itemsFiltrados.map((it) => {
                 const monedaLocal = it.ordenCompraLocal?.moneda ?? "USD"
                 const monedaOdoo = it.facturaOdoo?.moneda ?? "USD"
                 return (
-                <tr key={it.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-4 py-3 font-mono font-semibold text-slate-900">{it.folio}</td>
-                  <td className="px-4 py-3 text-slate-700 font-medium">{it.proveedor}</td>
-                  <td className="px-4 py-3 text-right font-mono text-slate-800 tabular-nums">
+                <TableRow key={it.id} className="hover:bg-slate-50/80 transition-colors">
+                  <TableCell className="px-4 py-3 font-mono font-semibold text-slate-900">{it.folio}</TableCell>
+                  <TableCell className="px-4 py-3 text-slate-700 font-medium">{it.proveedor}</TableCell>
+                  <TableCell className="px-4 py-3 text-right font-mono text-slate-800 tabular-nums">
                     {it.montoLocal > 0 ? formatPrecio(it.montoLocal, monedaLocal) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono text-slate-800 tabular-nums">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-right font-mono text-slate-800 tabular-nums">
                     {it.montoOdoo > 0 ? formatPrecio(it.montoOdoo, monedaOdoo) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono font-bold tabular-nums">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-right font-mono font-bold tabular-nums">
                     {it.diferenciaMonto > 0 ? (
                       <span className={it.porcentajeDesviacion > 2 ? "text-amber-700" : "text-slate-600"}>
                         {formatPrecio(it.diferenciaMonto, monedaLocal)}
@@ -150,8 +158,8 @@ export function TablaConciliacionOdoo({ resumen }: TablaConciliacionOdooProps) {
                     ) : (
                       <span className="text-slate-400">$0.00</span>
                     )}
-                  </td>
-                  <td className="px-4 py-3 text-center">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-center">
                     {it.estatus === "conciliado_exacto" && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                         Exacto
@@ -172,16 +180,16 @@ export function TablaConciliacionOdoo({ resumen }: TablaConciliacionOdooProps) {
                         Solo Odoo
                       </span>
                     )}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-slate-600">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-xs text-slate-600">
                     {it.alertaInconsistencia || <span className="text-slate-400">Sin observaciones</span>}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
                 )
               })
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   )

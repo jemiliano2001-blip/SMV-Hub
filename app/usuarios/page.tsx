@@ -1,4 +1,3 @@
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · tone: utilitario · scope: usuarios */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -20,6 +19,25 @@ import {
   Filter,
 } from 'lucide-react'
 import AuthGuard from '../AuthGuard'
+import PageHeader from '@/components/layout/PageHeader'
+import PageShell from '@/components/layout/PageShell'
+import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useUsuarios, type UsuarioAdmin } from '@/lib/hooks/useUsuarios'
 import { useOperadores } from '@/lib/hooks/useOperadores'
 import type { ModuloId, Rol, Area, Operador } from '@/lib/schemas'
@@ -59,7 +77,7 @@ function BannerPasswordTemporal({ password, onClose }: { password: string; onClo
 
   return (
     <div className="p-4 bg-sky-50 rounded-xl border border-sky-200">
-      <p className="text-xs font-mono font-bold text-[#0369A1] uppercase tracking-wider mb-2">
+      <p className="text-xs font-mono font-bold text-primary uppercase tracking-wider mb-2">
         Contraseña temporal — cópiala ahora (no se vuelve a mostrar):
       </p>
       <div className="flex items-center gap-2">
@@ -68,7 +86,7 @@ function BannerPasswordTemporal({ password, onClose }: { password: string; onClo
         </code>
         <button
           onClick={copiar}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#0369A1] hover:bg-[#0284C7] text-white text-xs font-bold transition-colors"
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-bold transition-colors"
         >
           {copiado ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           {copiado ? 'Copiada' : 'Copiar'}
@@ -114,7 +132,7 @@ function MatrizModulos({
                   type="checkbox"
                   checked={set.has(m.id)}
                   onChange={() => toggle(m.id)}
-                  className="rounded border-slate-300 text-[#0369A1] focus:ring-[#0369A1]"
+                  className="rounded border-slate-300 text-primary focus:ring-ring"
                 />
                 {m.label}
               </label>
@@ -154,7 +172,7 @@ function TarjetaCoberturaOperadores({
     <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-sky-50 border border-sky-200 flex items-center justify-center text-[#0369A1]">
+          <div className="w-10 h-10 rounded-lg bg-sky-50 border border-sky-200 flex items-center justify-center text-primary">
             <UserCheck className="h-5 w-5" />
           </div>
           <div>
@@ -180,7 +198,7 @@ function TarjetaCoberturaOperadores({
 
       <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
         <div
-          className="bg-[#0369A1] h-2 rounded-full transition-all duration-300"
+          className="bg-primary h-2 rounded-full transition-all duration-300"
           style={{ width: `${porcentaje}%` }}
         />
       </div>
@@ -204,7 +222,7 @@ function TarjetaCoberturaOperadores({
                   </span>
                   <button
                     onClick={() => onSeleccionarParaCrear(op)}
-                    className="flex items-center gap-1 text-[11px] font-bold text-[#0369A1] hover:underline ml-1"
+                    className="flex items-center gap-1 text-[11px] font-bold text-primary hover:underline ml-1"
                     title={`Crear usuario para ${op.nombre} (sugiere plantilla ${rec})`}
                   >
                     <UserPlus className="h-3 w-3" />
@@ -340,7 +358,7 @@ function FormNuevoUsuario({
           Nuevo usuario y vinculación
         </span>
         {opSeleccionado && (
-          <span className="flex items-center gap-1 text-[11px] font-mono font-bold bg-sky-50 text-[#0369A1] border border-sky-200 px-2 py-0.5 rounded-full">
+          <span className="flex items-center gap-1 text-[11px] font-mono font-bold bg-sky-50 text-primary border border-sky-200 px-2 py-0.5 rounded-full">
             <Sparkles className="h-3 w-3" />
             Plantilla sugerida ({plantillaRecomendadaPorArea(opSeleccionado.area)}) por área {opSeleccionado.area}
           </span>
@@ -358,7 +376,7 @@ function FormNuevoUsuario({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="persona@gmail.com"
-            className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-[#0369A1]"
+            className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-primary"
           />
         </div>
 
@@ -369,7 +387,7 @@ function FormNuevoUsuario({
           <select
             value={operadorId || ''}
             onChange={(e) => handleSeleccionarOperador(e.target.value)}
-            className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white text-slate-900 focus:outline-none focus:border-[#0369A1]"
+            className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white text-slate-900 focus:outline-none focus:border-primary"
           >
             <option value="">-- Sin operador (externo / administrativo) --</option>
             {operadores
@@ -389,7 +407,7 @@ function FormNuevoUsuario({
           <select
             value={plantilla}
             onChange={(e) => handlePlantilla(e.target.value as Rol)}
-            className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white text-slate-900 focus:outline-none focus:border-[#0369A1]"
+            className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white text-slate-900 focus:outline-none focus:border-primary"
           >
             {PLANTILLAS.map((r) => (
               <option key={r} value={r}>
@@ -408,14 +426,14 @@ function FormNuevoUsuario({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="En blanco = temporal"
-            className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-[#0369A1]"
+            className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-primary"
           />
         </div>
 
         <button
           type="submit"
           disabled={enviando}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#0369A1] hover:bg-[#0284C7] text-white text-xs font-bold disabled:opacity-50 transition-colors active:scale-[0.98]"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-bold disabled:opacity-50 transition-colors active:scale-[0.98]"
         >
           <UserPlus className="h-3.5 w-3.5" />
           {enviando ? 'Creando...' : 'Crear usuario'}
@@ -428,7 +446,7 @@ function FormNuevoUsuario({
             type="checkbox"
             checked={esSuperAdmin}
             onChange={(e) => setEsSuperAdmin(e.target.checked)}
-            className="rounded border-slate-300 text-[#0369A1]"
+            className="rounded border-slate-300 text-primary"
           />
           <Shield className="h-3.5 w-3.5 text-rose-600" />
           Super-admin (puede editar usuarios)
@@ -438,7 +456,7 @@ function FormNuevoUsuario({
             type="checkbox"
             checked={atiendeDocumentosVenta}
             onChange={(e) => setAtiendeDocumentosVenta(e.target.checked)}
-            className="rounded border-slate-300 text-[#0369A1]"
+            className="rounded border-slate-300 text-primary"
           />
           Atiende documentos de venta (cola remisión/factura)
         </label>
@@ -447,7 +465,7 @@ function FormNuevoUsuario({
             type="checkbox"
             checked={editaHorasExtra}
             onChange={(e) => setEditaHorasExtra(e.target.checked)}
-            className="rounded border-slate-300 text-[#0369A1]"
+            className="rounded border-slate-300 text-primary"
           />
           Edita horas extra (además de admin/compras)
         </label>
@@ -557,17 +575,13 @@ function ModalEditarPermisos({
   const opSeleccionado = operadores.find((o) => o.id === operadorId)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-xl border border-slate-200 shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto p-4 space-y-3">
-        <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900">Editar permisos y operador</h2>
-            <p className="text-xs text-slate-500 break-all">{usuario.email}</p>
-          </div>
-          <button onClick={onCerrar} className="text-xs text-slate-500 hover:underline">
-            Cerrar
-          </button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onCerrar()}>
+      <DialogContent className="flex max-h-[90vh] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <DialogHeader className="border-b border-border px-4 py-3">
+          <DialogTitle>Editar permisos y operador</DialogTitle>
+          <DialogDescription className="break-all">{usuario.email}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 overflow-y-auto p-4">
 
         <div>
           <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">
@@ -577,7 +591,7 @@ function ModalEditarPermisos({
             <select
               value={operadorId || ''}
               onChange={(e) => handleSeleccionarOperador(e.target.value)}
-              className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white text-slate-900 focus:outline-none focus:border-[#0369A1]"
+              className="flex-1 rounded-lg border border-input bg-background px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
             >
               <option value="">-- Sin operador vinculado --</option>
               {operadores.map((op) => (
@@ -590,7 +604,7 @@ function ModalEditarPermisos({
               <button
                 type="button"
                 onClick={aplicarSugerenciaArea}
-                className="px-2.5 py-1.5 rounded-lg border border-sky-200 bg-sky-50 hover:bg-sky-100 text-[#0369A1] text-xs font-bold flex items-center gap-1 shrink-0"
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-xs font-bold text-primary hover:bg-sky-100"
                 title={`Aplicar plantilla recomendada (${plantillaRecomendadaPorArea(opSeleccionado.area)})`}
               >
                 <Sparkles className="h-3.5 w-3.5" />
@@ -622,7 +636,7 @@ function ModalEditarPermisos({
               type="checkbox"
               checked={esSuperAdmin}
               onChange={(e) => setEsSuperAdmin(e.target.checked)}
-              className="rounded border-slate-300 text-[#0369A1]"
+              className="rounded border-input text-primary"
             />
             <Shield className="h-3.5 w-3.5 text-rose-600" />
             Super-admin
@@ -632,7 +646,7 @@ function ModalEditarPermisos({
               type="checkbox"
               checked={atiendeDocumentosVenta}
               onChange={(e) => setAtiendeDocumentosVenta(e.target.checked)}
-              className="rounded border-slate-300 text-[#0369A1]"
+              className="rounded border-input text-primary"
             />
             Atiende documentos de venta
           </label>
@@ -641,7 +655,7 @@ function ModalEditarPermisos({
               type="checkbox"
               checked={editaHorasExtra}
               onChange={(e) => setEditaHorasExtra(e.target.checked)}
-              className="rounded border-slate-300 text-[#0369A1]"
+              className="rounded border-input text-primary"
             />
             Edita horas extra (además de admin/compras)
           </label>
@@ -654,27 +668,18 @@ function ModalEditarPermisos({
 
         <MatrizModulos modulos={modulos} onChange={setModulos} />
 
-        {error && <p className="text-xs font-mono text-rose-600">{error}</p>}
-
-        <div className="flex justify-end gap-2 pt-1">
-          <button
-            type="button"
-            onClick={onCerrar}
-            className="px-3 py-1.5 text-xs text-slate-600 hover:underline"
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            disabled={guardando}
-            onClick={guardar}
-            className="px-3.5 py-1.5 rounded-lg bg-[#0369A1] text-white text-xs font-bold disabled:opacity-50"
-          >
-            {guardando ? 'Guardando...' : 'Guardar'}
-          </button>
+        {error && <p className="font-mono text-xs text-rose-600">{error}</p>}
         </div>
-      </div>
-    </div>
+        <DialogFooter className="border-t border-border px-4 py-3">
+          <Button type="button" variant="outline" size="sm" onClick={onCerrar}>
+            Cancelar
+          </Button>
+          <Button type="button" size="sm" disabled={guardando} onClick={guardar}>
+            {guardando ? 'Guardando...' : 'Guardar'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -734,7 +739,7 @@ function AccionesUsuario({
     <div className="flex flex-wrap items-center gap-3 font-mono">
       <button
         onClick={onEditar}
-        className="flex items-center gap-1 text-[11px] font-bold text-[#0369A1] hover:underline"
+        className="flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
       >
         <Pencil className="h-3 w-3" />
         Permisos
@@ -750,7 +755,7 @@ function AccionesUsuario({
               placeholder="Temporal..."
               className="w-28 px-2 py-1 text-xs rounded border border-slate-300"
             />
-            <button onClick={confirmarReset} className="text-[11px] font-bold text-[#0369A1] hover:underline">
+            <button onClick={confirmarReset} className="text-[11px] font-bold text-primary hover:underline">
               OK
             </button>
             <button
@@ -768,7 +773,7 @@ function AccionesUsuario({
         ) : (
           <button
             onClick={() => setMostrarReset(true)}
-            className="flex items-center gap-1 text-[11px] font-bold text-[#0369A1] hover:underline"
+            className="flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
           >
             <KeyRound className="h-3 w-3" />
             Password
@@ -896,19 +901,13 @@ function UsuariosContent() {
   })
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
-      <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-1 space-y-4">
-        <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
-          <div className="flex items-center gap-2">
-            <h1 className="text-base font-bold text-slate-900 tracking-tight">Usuarios y Matriz de Permisos</h1>
-            <span className="text-[10px] font-mono font-bold bg-rose-50 text-rose-800 border border-rose-200 px-1.5 py-0.5 rounded">
-              Super-admin
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Asigna módulos por persona y vincula su cuenta con un operador del catálogo maestro.
-          </p>
-        </div>
+    <PageShell maxWidth="6xl">
+        <PageHeader
+          title="Usuarios y matriz de permisos"
+          badge="Super-admin"
+          icon={Shield}
+          description="Asigna módulos por persona y vincula su cuenta con un operador del catálogo maestro."
+        />
 
         {passwordTemporal && (
           <BannerPasswordTemporal password={passwordTemporal} onClose={() => setPasswordTemporal(null)} />
@@ -957,7 +956,7 @@ function UsuariosContent() {
               placeholder="Buscar por correo u operador..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-[#0369A1]"
+              className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-primary"
             />
           </div>
 
@@ -995,7 +994,7 @@ function UsuariosContent() {
         </div>
 
         {/* Tabla / Lista de usuarios */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
           <div className="md:hidden divide-y divide-slate-100">
             {loading ? (
               <p className="px-4 py-6 text-center text-xs font-mono text-slate-500">Cargando usuarios...</p>
@@ -1054,37 +1053,37 @@ function UsuariosContent() {
             )}
           </div>
 
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-xs text-left whitespace-nowrap">
-              <thead className="bg-slate-50 text-slate-600 font-mono text-[11px] uppercase tracking-wider border-b border-slate-200">
-                <tr>
-                  <th className="px-3.5 py-2.5">Correo</th>
-                  <th className="px-3.5 py-2.5">Operador Vinculado</th>
-                  <th className="px-3.5 py-2.5">Plantilla</th>
-                  <th className="px-3.5 py-2.5">Módulos</th>
-                  <th className="px-3.5 py-2.5">Proveedor</th>
-                  <th className="px-3.5 py-2.5 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
+          <div className="hidden md:block">
+            <Table className="text-xs text-left">
+              <TableHeader className="bg-slate-50 text-slate-600 font-mono text-[11px] uppercase tracking-wider border-b border-slate-200">
+                <TableRow>
+                  <TableHead className="px-3.5 py-2.5">Correo</TableHead>
+                  <TableHead className="px-3.5 py-2.5">Operador Vinculado</TableHead>
+                  <TableHead className="px-3.5 py-2.5">Plantilla</TableHead>
+                  <TableHead className="px-3.5 py-2.5">Módulos</TableHead>
+                  <TableHead className="px-3.5 py-2.5">Proveedor</TableHead>
+                  <TableHead className="px-3.5 py-2.5 text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-slate-100">
                 {loading ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-xs font-mono text-slate-500">
+                  <TableRow>
+                    <TableCell colSpan={6} className="px-4 py-6 text-center text-xs font-mono text-slate-500">
                       Cargando usuarios...
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : usuariosFiltrados.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-xs font-mono text-slate-500">
+                  <TableRow>
+                    <TableCell colSpan={6} className="px-4 py-6 text-center text-xs font-mono text-slate-500">
                       Sin usuarios registrados o que coincidan con los filtros.
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   usuariosFiltrados.map((u) => {
                     const opVinculado = u.operadorId ? operadores.find((o) => o.id === u.operadorId) : null
                     return (
-                      <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50 text-xs">
-                        <td className="px-3.5 py-2.5 font-semibold text-slate-900">
+                      <TableRow key={u.id} className="border-b border-slate-100 hover:bg-slate-50 text-xs">
+                        <TableCell className="px-3.5 py-2.5 font-semibold text-slate-900">
                           <div className="flex items-center gap-1.5">
                             {u.email}
                             {u.esSuperAdmin && (
@@ -1098,8 +1097,8 @@ function UsuariosContent() {
                               </span>
                             )}
                           </div>
-                        </td>
-                        <td className="px-3.5 py-2.5">
+                        </TableCell>
+                        <TableCell className="px-3.5 py-2.5">
                           {u.operadorNombre ? (
                             <span className="inline-flex items-center gap-1 text-slate-800 font-medium bg-slate-100 px-2 py-0.5 rounded-full text-xs">
                               <User className="h-3 w-3 text-slate-500" />
@@ -1113,11 +1112,11 @@ function UsuariosContent() {
                           ) : (
                             <span className="text-[11px] text-slate-400 font-mono italic">Sin operador</span>
                           )}
-                        </td>
-                        <td className="px-3.5 py-2.5 font-mono">{u.plantilla}</td>
-                        <td className="px-3.5 py-2.5 text-slate-500 font-mono">{u.modulos.length}</td>
-                        <td className="px-3.5 py-2.5 text-slate-500 font-mono text-[11px]">{u.proveedor}</td>
-                        <td className="px-3.5 py-2.5">
+                        </TableCell>
+                        <TableCell className="px-3.5 py-2.5 font-mono">{u.plantilla}</TableCell>
+                        <TableCell className="px-3.5 py-2.5 text-slate-500 font-mono">{u.modulos.length}</TableCell>
+                        <TableCell className="px-3.5 py-2.5 text-slate-500 font-mono text-[11px]">{u.proveedor}</TableCell>
+                        <TableCell className="px-3.5 py-2.5">
                           <div className="flex justify-end">
                             <AccionesUsuario
                               usuario={u}
@@ -1127,16 +1126,15 @@ function UsuariosContent() {
                               onEliminar={handleEliminar}
                             />
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     )
                   })
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </div>
-      </div>
 
       {editando && (
         <ModalEditarPermisos
@@ -1146,7 +1144,7 @@ function UsuariosContent() {
           onCerrar={() => setEditando(null)}
         />
       )}
-    </main>
+    </PageShell>
   )
 }
 

@@ -1,7 +1,15 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Loader2, X, Plus, Trash2, Wand2 } from 'lucide-react'
+import { Loader2, Plus, Trash2, Wand2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import type { OrdenCompra, EstadoOrden, ItemFactura, Proveedor } from '@/lib/schemas'
 import { sincronizarCamposLegacyOrden } from '@/lib/schemas'
 import type { NuevaOrdenPayload } from '@/lib/ordenes'
@@ -226,16 +234,11 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
-      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col my-8">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 shrink-0">
-          <h2 className="text-lg font-bold text-gray-900">
-            {ordenBase ? 'Editar Orden' : 'Añadir Nueva Orden'}
-          </h2>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl">
+        <DialogHeader className="border-b border-border px-6 py-4">
+          <DialogTitle>{ordenBase ? 'Editar orden' : 'Añadir nueva orden'}</DialogTitle>
+        </DialogHeader>
 
         <div className="p-6 overflow-y-auto flex-1">
           {error && (
@@ -253,7 +256,7 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
                   list="catalogo-proveedores-orden"
                   value={formData.proveedor}
                   onChange={e => setFormData({ ...formData, proveedor: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+                  className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none"
                 />
                 <datalist id="catalogo-proveedores-orden">
                   {catalogoProveedores.map((p) => (
@@ -263,7 +266,7 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Estado</label>
-                <select value={formData.estado} onChange={e => setFormData({ ...formData, estado: e.target.value as EstadoOrden })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none">
+                <select value={formData.estado} onChange={e => setFormData({ ...formData, estado: e.target.value as EstadoOrden })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none">
                   <option value="pendiente">Pendiente</option>
                   <option value="aprobada">Aprobada</option>
                   <option value="rechazada">Rechazada</option>
@@ -271,7 +274,7 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Moneda</label>
-                <select value={formData.moneda} onChange={e => setFormData({ ...formData, moneda: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none">
+                <select value={formData.moneda} onChange={e => setFormData({ ...formData, moneda: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none">
                   <option value="USD">USD</option>
                   <option value="MXN">MXN</option>
                 </select>
@@ -281,45 +284,45 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Subtotal</label>
-                <input type="number" step="any" value={formData.subtotal} onChange={e => setFormData({ ...formData, subtotal: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                <input type="number" step="any" value={formData.subtotal} onChange={e => setFormData({ ...formData, subtotal: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Envío</label>
-                <input type="number" step="any" value={formData.envio} onChange={e => setFormData({ ...formData, envio: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                <input type="number" step="any" value={formData.envio} onChange={e => setFormData({ ...formData, envio: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Impuestos</label>
-                <input type="number" step="any" value={formData.impuestos} onChange={e => setFormData({ ...formData, impuestos: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                <input type="number" step="any" value={formData.impuestos} onChange={e => setFormData({ ...formData, impuestos: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Total</label>
-                <input type="number" step="any" value={formData.total} onChange={e => setFormData({ ...formData, total: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                <input type="number" step="any" value={formData.total} onChange={e => setFormData({ ...formData, total: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">N° Factura</label>
-                <input value={formData.numeroFactura} onChange={e => setFormData({ ...formData, numeroFactura: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                <input value={formData.numeroFactura} onChange={e => setFormData({ ...formData, numeroFactura: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Fecha Factura</label>
-                <input type="date" value={formData.fechaFactura} onChange={e => setFormData({ ...formData, fechaFactura: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                <input type="date" value={formData.fechaFactura} onChange={e => setFormData({ ...formData, fechaFactura: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Fecha Entrega</label>
-                <input type="date" value={formData.fechaEntrega} onChange={e => setFormData({ ...formData, fechaEntrega: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                <input type="date" value={formData.fechaEntrega} onChange={e => setFormData({ ...formData, fechaEntrega: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Link Proveedor</label>
-                <input type="url" value={formData.linkProveedor} onChange={e => setFormData({ ...formData, linkProveedor: e.target.value })} placeholder="https://" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                <input type="url" value={formData.linkProveedor} onChange={e => setFormData({ ...formData, linkProveedor: e.target.value })} placeholder="https://" className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-gray-900 border-b border-gray-100 pb-1">Ítems</h3>
-                <button type="button" onClick={handleAddItem} className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                <button type="button" onClick={handleAddItem} className="text-xs font-semibold text-primary hover:text-blue-800 flex items-center gap-1">
                   <Plus className="h-3 w-3" /> Añadir Ítem
                 </button>
               </div>
@@ -327,24 +330,24 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
                 <div key={index} className="flex gap-2 items-start bg-gray-50/50 p-3 rounded-xl border border-gray-100 mb-3">
                   <div className="flex-1 space-y-2">
                     <div className="flex gap-2">
-                      <input type="url" placeholder="URL del producto para auto-completar (opcional)" value={item.url} onChange={e => handleItemChange(index, 'url', e.target.value)} className="flex-1 rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none bg-white" />
+                      <input type="url" placeholder="URL del producto para auto-completar (opcional)" value={item.url} onChange={e => handleItemChange(index, 'url', e.target.value)} className="flex-1 rounded-lg border border-input bg-card px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
                       <button type="button" onClick={() => handleScrape(index)} disabled={scrapingIndex === index || !item.url} className="px-3 py-1.5 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 transition-colors">
                         {scrapingIndex === index ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
                         Auto-llenar
                       </button>
                     </div>
-                    <input placeholder="Descripción" value={item.descripcion} onChange={e => handleItemChange(index, 'descripcion', e.target.value)} className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none bg-white" />
+                    <input placeholder="Descripción" value={item.descripcion} onChange={e => handleItemChange(index, 'descripcion', e.target.value)} className="w-full rounded-lg border border-input bg-card px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                      <input required placeholder="Empresa *" value={item.empresa} onChange={e => handleItemChange(index, 'empresa', e.target.value)} className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none bg-white" />
-                      <input placeholder="Cuenta cargo" value={item.cuentaCargo} onChange={e => handleItemChange(index, 'cuentaCargo', e.target.value)} className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none bg-white" />
-                      <input required placeholder="Requisitor *" value={item.requisitor} onChange={e => handleItemChange(index, 'requisitor', e.target.value)} className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none bg-white" />
-                      <input placeholder="OT" value={item.ordenTrabajo} onChange={e => handleItemChange(index, 'ordenTrabajo', e.target.value)} className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none bg-white" />
+                      <input required placeholder="Empresa *" value={item.empresa} onChange={e => handleItemChange(index, 'empresa', e.target.value)} className="rounded-lg border border-input bg-card px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
+                      <input placeholder="Cuenta cargo" value={item.cuentaCargo} onChange={e => handleItemChange(index, 'cuentaCargo', e.target.value)} className="rounded-lg border border-input bg-card px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
+                      <input required placeholder="Requisitor *" value={item.requisitor} onChange={e => handleItemChange(index, 'requisitor', e.target.value)} className="rounded-lg border border-input bg-card px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
+                      <input placeholder="OT" value={item.ordenTrabajo} onChange={e => handleItemChange(index, 'ordenTrabajo', e.target.value)} className="rounded-lg border border-input bg-card px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
                     </div>
                     <div className="flex gap-2">
-                      <input type="number" step="any" placeholder="Cant." value={item.cantidad} onChange={e => handleItemChange(index, 'cantidad', e.target.value)} className="w-1/4 rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none bg-white" />
-                      <input type="number" step="any" placeholder="P.Unit." value={item.precioUnitario} onChange={e => handleItemChange(index, 'precioUnitario', e.target.value)} className="w-1/4 rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none bg-white" />
-                      <input type="number" step="any" placeholder="Total" value={item.total} onChange={e => handleItemChange(index, 'total', e.target.value)} className="w-1/4 rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none bg-white" />
-                      <input placeholder="Clave SAT (8 díg.)" value={item.claveProdServ} onChange={e => handleItemChange(index, 'claveProdServ', e.target.value)} className="w-1/4 rounded-lg border border-gray-300 px-2 py-1.5 text-sm font-mono focus:border-blue-400 focus:outline-none bg-white" />
+                      <input type="number" step="any" placeholder="Cant." value={item.cantidad} onChange={e => handleItemChange(index, 'cantidad', e.target.value)} className="w-1/4 rounded-lg border border-input bg-card px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
+                      <input type="number" step="any" placeholder="P.Unit." value={item.precioUnitario} onChange={e => handleItemChange(index, 'precioUnitario', e.target.value)} className="w-1/4 rounded-lg border border-input bg-card px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
+                      <input type="number" step="any" placeholder="Total" value={item.total} onChange={e => handleItemChange(index, 'total', e.target.value)} className="w-1/4 rounded-lg border border-input bg-card px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
+                      <input placeholder="Clave SAT (8 díg.)" value={item.claveProdServ} onChange={e => handleItemChange(index, 'claveProdServ', e.target.value)} className="w-1/4 rounded-lg border border-gray-300 px-2 py-1.5 text-sm font-mono focus:border-primary focus:outline-none bg-white" />
                     </div>
                   </div>
                   {formData.items.length > 1 && (
@@ -358,16 +361,16 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
           </form>
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-gray-200 px-6 py-4 bg-gray-50 rounded-b-xl shrink-0">
-          <button onClick={onClose} type="button" className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+        <DialogFooter className="border-t border-border bg-muted/30 px-6 py-4">
+          <Button variant="outline" onClick={onClose} type="button">
             Cancelar
-          </button>
-          <button type="submit" form="orden-form" disabled={loading} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors">
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {ordenBase ? 'Guardar Cambios' : 'Crear Orden'}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+          <Button type="submit" form="orden-form" disabled={loading}>
+            {loading ? <Loader2 className="animate-spin" data-icon="inline-start" /> : null}
+            {ordenBase ? 'Guardar cambios' : 'Crear orden'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

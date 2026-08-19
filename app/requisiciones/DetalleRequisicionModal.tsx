@@ -28,6 +28,14 @@ import {
 } from '@/lib/proveedores-inteligencia-cruzada'
 import { generarLlavePieza } from '@/lib/pieza-matching'
 import { listarCotizaciones } from '@/lib/cotizaciones'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 interface Props {
   abierto: boolean
@@ -279,7 +287,7 @@ export default function DetalleRequisicionModal({
                 <span className="text-xs font-mono font-black bg-slate-900 text-white px-2 py-0.5 rounded">
                   {requisicion.folio || `REQ-${requisicion.id.substring(0, 6)}`}
                 </span>
-                <DialogTitle className="text-base font-extrabold text-slate-900">
+                <DialogTitle className="text-base font-bold text-slate-900">
                   {requisicion.descripcion}
                 </DialogTitle>
               </div>
@@ -332,7 +340,7 @@ export default function DetalleRequisicionModal({
           {/* DETALLES Y JUSTIFICACIÓN */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
             <div className="sm:col-span-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
-              <span className="font-extrabold text-slate-700 block uppercase text-[10px] tracking-wider">
+              <span className="font-bold text-slate-700 block uppercase text-[10px] tracking-wider">
                 Motivo / Justificación Taller
               </span>
               <p className="text-slate-800 leading-relaxed font-medium">
@@ -341,7 +349,7 @@ export default function DetalleRequisicionModal({
             </div>
 
             <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
-              <span className="font-extrabold text-slate-700 block uppercase text-[10px] tracking-wider">
+              <span className="font-bold text-slate-700 block uppercase text-[10px] tracking-wider">
                 Aprobación de Compra
               </span>
               <p className="text-slate-800 font-semibold flex items-center gap-1.5">
@@ -364,21 +372,21 @@ export default function DetalleRequisicionModal({
 
           {/* DESGLOSE DE ÍTEMS REQUERIDOS */}
           <div className="space-y-2">
-            <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
               Ítems y Herramientas Solicitadas ({requisicion.items?.length || 1})
             </h3>
             <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-              <table className="w-full text-left text-xs font-sans">
-                <thead className="bg-slate-100 text-slate-600 font-bold text-[10px] uppercase">
-                  <tr>
-                    <th className="px-3 py-2">Descripción</th>
-                    <th className="px-3 py-2">Categoría</th>
-                    <th className="px-3 py-2">Cantidad</th>
-                    <th className="px-3 py-2">Marca / Espec.</th>
-                    <th className="px-3 py-2">Proveedor Sugerido</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 bg-white">
+              <Table className="w-full text-left text-xs font-sans">
+                <TableHeader className="bg-slate-100 text-slate-600 font-bold text-[10px] uppercase">
+                  <TableRow>
+                    <TableHead className="px-3 py-2">Descripción</TableHead>
+                    <TableHead className="px-3 py-2">Categoría</TableHead>
+                    <TableHead className="px-3 py-2">Cantidad</TableHead>
+                    <TableHead className="px-3 py-2">Marca / Espec.</TableHead>
+                    <TableHead className="px-3 py-2">Proveedor Sugerido</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-slate-200 bg-white">
                   {(requisicion.items && requisicion.items.length > 0
                     ? requisicion.items
                     : [
@@ -394,22 +402,22 @@ export default function DetalleRequisicionModal({
                         },
                       ]
                   ).map((it, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50">
-                      <td className="px-3 py-2 font-bold text-slate-900">{it.descripcion}</td>
-                      <td className="px-3 py-2 uppercase font-mono text-[11px] text-slate-600">{it.categoria}</td>
-                      <td className="px-3 py-2 font-mono font-bold text-slate-900">
+                    <TableRow key={idx} className="hover:bg-slate-50">
+                      <TableCell className="px-3 py-2 font-bold text-slate-900">{it.descripcion}</TableCell>
+                      <TableCell className="px-3 py-2 uppercase font-mono text-[11px] text-slate-600">{it.categoria}</TableCell>
+                      <TableCell className="px-3 py-2 font-mono font-bold text-slate-900">
                         {it.cantidad} {it.unidad}
-                      </td>
-                      <td className="px-3 py-2 text-slate-600 font-mono text-[11px]">
+                      </TableCell>
+                      <TableCell className="px-3 py-2 text-slate-600 font-mono text-[11px]">
                         {it.marcaPreferida || 'Cualquiera'} {it.especificacion ? `(${it.especificacion})` : ''}
-                      </td>
-                      <td className="px-3 py-2 text-[#0369A1] font-bold">
+                      </TableCell>
+                      <TableCell className="px-3 py-2 text-primary font-bold">
                         {it.proveedorSugeridoNombre || 'Shars Tool / OnlineCarbide'}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </div>
 
@@ -417,7 +425,7 @@ export default function DetalleRequisicionModal({
           <div className="space-y-3 pt-2 border-t border-slate-200">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
                   <Sparkles className="h-4 w-4 text-amber-500" />
                   Comparador Multicriterio de Cotizaciones ({cotizaciones.length})
                 </h3>
@@ -439,7 +447,7 @@ export default function DetalleRequisicionModal({
             {mostrarFormCot && (
               <form onSubmit={handleGuardarCotizacion} className="p-4 bg-amber-50/70 border border-amber-200 rounded-xl space-y-3 text-xs">
                 <div className="flex justify-between items-center">
-                  <h4 className="font-extrabold text-amber-900 flex items-center gap-1">
+                  <h4 className="font-bold text-amber-900 flex items-center gap-1">
                     <Plus className="h-4 w-4 text-amber-700" /> Registrar Cotización de Proveedor
                   </h4>
                   <button type="button" onClick={() => setMostrarFormCot(false)} className="text-amber-800 font-bold hover:underline">
@@ -598,7 +606,7 @@ export default function DetalleRequisicionModal({
                     ].join(' ')}
                   >
                     {cot.ganadora && (
-                      <span className="absolute -top-2.5 right-3 bg-emerald-600 text-white text-[10px] font-mono font-extrabold px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1">
+                      <span className="absolute -top-2.5 right-3 bg-emerald-600 text-white text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1">
                         <CheckCircle2 className="h-3 w-3" /> GANADOR SELECCIONADO
                       </span>
                     )}
@@ -615,7 +623,7 @@ export default function DetalleRequisicionModal({
                         </span>
                       )}
                       {cot.esMasRapido && (
-                        <span className="bg-sky-100 text-[#0369A1] border border-sky-300 text-[10px] font-bold font-mono px-2 py-0.5 rounded">
+                        <span className="bg-sky-100 text-primary border border-sky-300 text-[10px] font-bold font-mono px-2 py-0.5 rounded">
                           ⚡ Más Rápido
                         </span>
                       )}
@@ -623,7 +631,7 @@ export default function DetalleRequisicionModal({
 
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className="text-sm font-extrabold text-slate-900">{cot.proveedorNombre}</h4>
+                        <h4 className="text-sm font-bold text-slate-900">{cot.proveedorNombre}</h4>
                         <p className="text-[11px] text-slate-500 font-mono">Pago: {cot.condicionesPago}</p>
                       </div>
 
@@ -698,7 +706,7 @@ export default function DetalleRequisicionModal({
             <div className="p-4 bg-emerald-900 text-white rounded-xl shadow-md space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-sm font-extrabold flex items-center gap-2">
+                  <h3 className="text-sm font-bold flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5 text-emerald-400" />
                     Proveedor Ganador Confirmado: {cotizacionGanadora.proveedorNombre}
                   </h3>

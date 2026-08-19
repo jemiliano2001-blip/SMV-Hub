@@ -1,6 +1,8 @@
 'use client'
 
 import AuthGuard from "@/app/AuthGuard"
+import PageHeader from "@/components/layout/PageHeader"
+import PageShell from "@/components/layout/PageShell"
 import { useMemo, useState } from "react"
 import { Loader2, AlertCircle } from "lucide-react"
 import { useFinanzasFacturas } from "@/lib/hooks/useFinanzasFacturas"
@@ -17,6 +19,15 @@ import { formatPrecio } from "@/lib/format"
 import FinanzasNav from "@/app/finanzas/FinanzasNav"
 import BannerSync from "@/app/finanzas/BannerSync"
 import SelectorMes from "@/app/finanzas/SelectorMes"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableFooter,
+} from '@/components/ui/table'
 
 type Periodo = "mes" | "anio"
 
@@ -52,7 +63,7 @@ function FacturacionPorCliente() {
       <div className="flex flex-col items-center justify-center gap-4 py-24">
         <AlertCircle className="h-8 w-8 text-red-500" />
         <p className="text-sm text-gray-700">{error}</p>
-        <button onClick={recargar} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+        <button onClick={recargar} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
           Reintentar
         </button>
       </div>
@@ -71,7 +82,7 @@ function FacturacionPorCliente() {
                   key={m}
                   onClick={() => setMonedaActiva(m)}
                   className={`px-3 py-1 text-xs font-medium rounded-full border ${
-                    m === moneda ? "bg-[#0369A1] text-white border-[#0369A1]" : "bg-white text-gray-600 border-gray-200"
+                    m === moneda ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200"
                   }`}
                 >
                   {m}
@@ -85,7 +96,7 @@ function FacturacionPorCliente() {
                 key={p}
                 onClick={() => setPeriodo(p)}
                 className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                  periodo === p ? "bg-white text-[#0369A1] shadow-sm" : "text-gray-500"
+                  periodo === p ? "bg-white text-primary shadow-sm" : "text-gray-500"
                 }`}
               >
                 {p === "mes" ? "Por mes" : "Acumulado del año"}
@@ -126,39 +137,39 @@ function FacturacionPorCliente() {
           </div>
 
           <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b-2 border-gray-300">
-                  <th className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Cliente</th>
-                  <th className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Facturas</th>
-                  <th className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Subtotal</th>
-                  <th className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Total</th>
-                  <th className="pb-2 text-right text-xs font-semibold text-gray-600">% del total</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="w-full text-sm border-collapse">
+              <TableHeader>
+                <TableRow className="border-b-2 border-gray-300">
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Cliente</TableHead>
+                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Facturas</TableHead>
+                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Subtotal</TableHead>
+                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Total</TableHead>
+                  <TableHead className="pb-2 text-right text-xs font-semibold text-gray-600">% del total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {grupos.map((g) => (
-                  <tr key={g.cliente} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-2 pr-3">{g.cliente}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums">{g.facturas.length}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums">{formatPrecio(g.subtotal, moneda)}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums font-medium">{formatPrecio(g.total, moneda)}</td>
-                    <td className="py-2 text-right tabular-nums text-gray-500">{g.pctDelTotal.toFixed(1)}%</td>
-                  </tr>
+                  <TableRow key={g.cliente} className="border-b border-gray-100 hover:bg-gray-50">
+                    <TableCell className="py-2 pr-3">{g.cliente}</TableCell>
+                    <TableCell className="py-2 pr-3 text-right tabular-nums">{g.facturas.length}</TableCell>
+                    <TableCell className="py-2 pr-3 text-right tabular-nums">{formatPrecio(g.subtotal, moneda)}</TableCell>
+                    <TableCell className="py-2 pr-3 text-right tabular-nums font-medium">{formatPrecio(g.total, moneda)}</TableCell>
+                    <TableCell className="py-2 text-right tabular-nums text-gray-500">{g.pctDelTotal.toFixed(1)}%</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-gray-900">
-                  <td className="py-2.5 pr-3 text-right text-sm font-bold text-gray-900 uppercase tracking-wide" colSpan={2}>
+              </TableBody>
+              <TableFooter>
+                <TableRow className="border-t-2 border-gray-900">
+                  <TableCell className="py-2.5 pr-3 text-right text-sm font-bold text-gray-900 uppercase tracking-wide" colSpan={2}>
                     Total General
-                  </td>
-                  <td colSpan={2} className="py-2.5 pr-3 text-right tabular-nums text-base font-bold text-gray-900">
+                  </TableCell>
+                  <TableCell colSpan={2} className="py-2.5 pr-3 text-right tabular-nums text-base font-bold text-gray-900">
                     {formatPrecio(totalGeneral, moneda)}
-                  </td>
-                  <td className="py-2.5 text-right text-xs text-gray-500 tabular-nums">{totalFacturas} facturas</td>
-                </tr>
-              </tfoot>
-            </table>
+                  </TableCell>
+                  <TableCell className="py-2.5 text-right text-xs text-gray-500 tabular-nums">{totalFacturas} facturas</TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
           </div>
           </>
         )}
@@ -170,24 +181,15 @@ function FacturacionPorCliente() {
 export default function FacturacionPage() {
   return (
     <AuthGuard>
-      <main className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
-        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-1 space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-bold text-slate-900 tracking-tight">Facturación por cliente</h1>
-                <span className="text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded">
-                  Odoo Mirror
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">Total facturado y % de participación por cliente</p>
-            </div>
-            <FinanzasNav />
-          </div>
-
-          <FacturacionPorCliente />
-        </div>
-      </main>
+      <PageShell>
+        <PageHeader
+          title="Facturación por cliente"
+          badge="Odoo"
+          description="Total facturado y participación por cliente."
+          actions={<FinanzasNav />}
+        />
+        <FacturacionPorCliente />
+      </PageShell>
     </AuthGuard>
   )
 }

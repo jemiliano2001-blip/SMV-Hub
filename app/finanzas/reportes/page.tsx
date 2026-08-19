@@ -1,6 +1,8 @@
 'use client'
 
 import AuthGuard from "@/app/AuthGuard"
+import PageHeader from "@/components/layout/PageHeader"
+import PageShell from "@/components/layout/PageShell"
 import { useMemo, useState } from "react"
 import { Loader2, AlertCircle, Download, Printer } from "lucide-react"
 import { useFinanzasFacturas } from "@/lib/hooks/useFinanzasFacturas"
@@ -15,6 +17,14 @@ import {
 import { formatPrecio, formatFecha } from "@/lib/format"
 import FinanzasNav from "@/app/finanzas/FinanzasNav"
 import BannerSync from "@/app/finanzas/BannerSync"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 type Periodo = "mes" | "anio"
 
@@ -70,7 +80,7 @@ function ReportesFinanzas() {
       <div className="flex flex-col items-center justify-center gap-4 py-24">
         <AlertCircle className="h-8 w-8 text-red-500" />
         <p className="text-sm text-gray-700">{error}</p>
-        <button onClick={recargar} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+        <button onClick={recargar} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
           Reintentar
         </button>
       </div>
@@ -89,7 +99,7 @@ function ReportesFinanzas() {
                   key={m}
                   onClick={() => setMonedaActiva(m)}
                   className={`px-3 py-1 text-xs font-medium rounded-full border ${
-                    m === moneda ? "bg-[#0369A1] text-white border-[#0369A1]" : "bg-white text-gray-600 border-gray-200"
+                    m === moneda ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200"
                   }`}
                 >
                   {m}
@@ -103,7 +113,7 @@ function ReportesFinanzas() {
                 key={p}
                 onClick={() => setPeriodo(p)}
                 className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                  periodo === p ? "bg-white text-[#0369A1] shadow-sm" : "text-gray-500"
+                  periodo === p ? "bg-white text-primary shadow-sm" : "text-gray-500"
                 }`}
               >
                 {p === "mes" ? "Mes actual" : "Acumulado del año"}
@@ -167,30 +177,30 @@ function ReportesFinanzas() {
             ))}
           </div>
           <div className="hidden md:block print:block overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b-2 border-gray-300">
-                  <th className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Cliente</th>
-                  <th className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Factura</th>
-                  <th className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Fecha</th>
-                  <th className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Subtotal</th>
-                  <th className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">IVA</th>
-                  <th className="pb-2 text-right text-xs font-semibold text-gray-600">Total</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="w-full text-sm border-collapse">
+              <TableHeader>
+                <TableRow className="border-b-2 border-gray-300">
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Cliente</TableHead>
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Factura</TableHead>
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Fecha</TableHead>
+                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Subtotal</TableHead>
+                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">IVA</TableHead>
+                  <TableHead className="pb-2 text-right text-xs font-semibold text-gray-600">Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {facturasPeriodo.map((f) => (
-                  <tr key={f.id} className="border-b border-gray-100">
-                    <td className="py-1.5 pr-3">{f.cliente}</td>
-                    <td className="py-1.5 pr-3 font-mono text-xs text-gray-500">{f.numeroFactura}</td>
-                    <td className="py-1.5 pr-3 text-xs">{formatFecha(f.fechaFactura)}</td>
-                    <td className="py-1.5 pr-3 text-right tabular-nums">{formatPrecio(f.subtotal, moneda)}</td>
-                    <td className="py-1.5 pr-3 text-right tabular-nums">{formatPrecio(f.impuestos, moneda)}</td>
-                    <td className="py-1.5 text-right tabular-nums font-medium">{formatPrecio(f.total, moneda)}</td>
-                  </tr>
+                  <TableRow key={f.id} className="border-b border-gray-100">
+                    <TableCell className="py-1.5 pr-3">{f.cliente}</TableCell>
+                    <TableCell className="py-1.5 pr-3 font-mono text-xs text-gray-500">{f.numeroFactura}</TableCell>
+                    <TableCell className="py-1.5 pr-3 text-xs">{formatFecha(f.fechaFactura)}</TableCell>
+                    <TableCell className="py-1.5 pr-3 text-right tabular-nums">{formatPrecio(f.subtotal, moneda)}</TableCell>
+                    <TableCell className="py-1.5 pr-3 text-right tabular-nums">{formatPrecio(f.impuestos, moneda)}</TableCell>
+                    <TableCell className="py-1.5 text-right tabular-nums font-medium">{formatPrecio(f.total, moneda)}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
           </>
         )}
@@ -202,24 +212,16 @@ function ReportesFinanzas() {
 export default function ReportesFinanzasPage() {
   return (
     <AuthGuard>
-      <main className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans print:bg-white">
-        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-1 space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-xl shadow-xs print:hidden">
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-bold text-slate-900 tracking-tight">Reportes de Finanzas</h1>
-                <span className="text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded">
-                  Odoo Mirror
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">Exporta a Excel o imprime el detalle de facturación</p>
-            </div>
-            <FinanzasNav />
-          </div>
-
-          <ReportesFinanzas />
-        </div>
-      </main>
+      <PageShell printClassName="print:bg-white">
+        <PageHeader
+          title="Reportes de finanzas"
+          badge="Odoo"
+          description="Exporta a Excel o imprime el detalle de facturación."
+          className="print:hidden"
+          actions={<FinanzasNav />}
+        />
+        <ReportesFinanzas />
+      </PageShell>
     </AuthGuard>
   )
 }

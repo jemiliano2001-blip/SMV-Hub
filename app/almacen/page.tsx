@@ -1,61 +1,59 @@
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · tone: utilitario · scope: almacen */
 'use client'
 
 import { useState } from 'react'
+import { PackageMinus, PackagePlus, Truck, Warehouse } from 'lucide-react'
+
 import AuthGuard from '../AuthGuard'
 import EntradasList from './EntradasList'
 import SalidasList from './SalidasList'
-import { PackagePlus, PackageMinus } from 'lucide-react'
+import OrdenesPorRecibir from './OrdenesPorRecibir'
+import PageHeader from '@/components/layout/PageHeader'
+import PageShell from '@/components/layout/PageShell'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-type TabAlmacen = 'entradas' | 'salidas'
+type TabAlmacen = 'entradas' | 'salidas' | 'por_recibir'
 
 function AlmacenContent() {
   const [tab, setTab] = useState<TabAlmacen>('entradas')
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
-      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-1 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
-          <div>
-            <h1 className="text-base font-bold text-slate-900 tracking-tight">
-              Control de Almacén
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Gestión de entradas y salidas de materiales y herramientas.
-            </p>
-          </div>
-
-          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 w-fit">
-            <button
-              onClick={() => setTab('entradas')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${
-                tab === 'entradas'
-                  ? 'bg-white text-[#0369A1] shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <PackagePlus className="h-3.5 w-3.5" />
-              Entradas
-            </button>
-            <button
-              onClick={() => setTab('salidas')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${
-                tab === 'salidas'
-                  ? 'bg-white text-emerald-700 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <PackageMinus className="h-3.5 w-3.5" />
-              Salidas
-            </button>
-          </div>
+    <PageShell>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as TabAlmacen)} className="flex flex-col gap-4">
+        <PageHeader
+          title="Control de almacén"
+          badge="Entradas, salidas y recepción"
+          icon={Warehouse}
+          description="Gestión de entradas y salidas de materiales, herramientas y recepción de compras."
+          actions={
+            <TabsList>
+              <TabsTrigger value="entradas" className="gap-2 text-xs">
+                <PackagePlus className="size-3.5" aria-hidden />
+                Entradas
+              </TabsTrigger>
+              <TabsTrigger value="salidas" className="gap-2 text-xs">
+                <PackageMinus className="size-3.5" aria-hidden />
+                Salidas
+              </TabsTrigger>
+              <TabsTrigger value="por_recibir" className="gap-2 text-xs">
+                <Truck className="size-3.5 text-amber-400" aria-hidden />
+                Por recibir
+              </TabsTrigger>
+            </TabsList>
+          }
+        />
+        <div className="rounded-xl border border-border bg-card p-4 shadow-xs sm:p-5">
+          <TabsContent value="entradas">
+            <EntradasList />
+          </TabsContent>
+          <TabsContent value="salidas">
+            <SalidasList />
+          </TabsContent>
+          <TabsContent value="por_recibir">
+            <OrdenesPorRecibir onOrdenRecibida={() => setTab('entradas')} />
+          </TabsContent>
         </div>
-
-        <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5">
-          {tab === 'entradas' ? <EntradasList /> : <SalidasList />}
-        </div>
-      </div>
-    </main>
+      </Tabs>
+    </PageShell>
   )
 }
 

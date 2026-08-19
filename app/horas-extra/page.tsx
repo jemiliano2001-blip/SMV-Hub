@@ -1,21 +1,24 @@
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · tone: utilitario · scope: horas-extra */
 'use client'
 
 import { useState } from 'react'
+import { BarChart3, CalendarDays, ChevronLeft, ChevronRight, Clock, Eye, Grid3X3 } from 'lucide-react'
+
 import AuthGuard from '../AuthGuard'
 import HorasExtraGrid from './HorasExtraGrid'
-import VistaHoy from './VistaHoy'
 import ResumenMensual from './ResumenMensual'
+import VistaHoy from './VistaHoy'
+import PageHeader from '@/components/layout/PageHeader'
+import PageShell from '@/components/layout/PageShell'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
-import { puedeEditarHorasExtra } from '@/lib/roles'
-import type { Departamento } from '@/lib/schemas'
 import {
+  esSemanaActual,
   getSemanaActualISO,
   offsetSemana,
-  esSemanaActual,
 } from '@/lib/horas-extra-parse'
-import { CalendarDays, Grid3X3, BarChart3, ChevronLeft, ChevronRight, Eye } from 'lucide-react'
+import { puedeEditarHorasExtra } from '@/lib/roles'
+import type { Departamento } from '@/lib/schemas'
 
 type Tab = 'semana' | 'hoy' | 'resumen'
 
@@ -35,65 +38,54 @@ export default function HorasExtraPage() {
   const { plantilla, esSuperAdmin, editaHorasExtra, cargando: cargandoPermisos } = usePermisos(
     authBypassActivo() ? null : usuario
   )
-  // Edición restringida: admin/compras (incluye contabilidad), super-admin o el
-  // flag por usuario (automatización). Diseño y el resto: solo lectura.
   const puedeEditar =
     authBypassActivo() || puedeEditarHorasExtra({ plantilla, esSuperAdmin, editaHorasExtra })
   const soloLectura = !cargandoPermisos && !puedeEditar
 
   return (
     <AuthGuard>
-      <main className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
-        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-1 space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-bold text-slate-900 tracking-tight">Control de Horas Extra</h1>
-                <span className="text-[10px] font-mono font-bold bg-indigo-50 text-indigo-800 border border-indigo-200 px-1.5 py-0.5 rounded">
-                  Personal & Nomina
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Registro utilitario de horas extraordinarias por departamento del taller.
-              </p>
-              {soloLectura && (
-                <p className="inline-flex items-center gap-1.5 text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded mt-1.5">
-                  <Eye className="h-3 w-3" />
-                  Solo lectura — la captura la hace compras, contabilidad o automatización
-                </p>
-              )}
-            </div>
+      <PageShell>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)} className="flex flex-col gap-4">
+          <PageHeader
+            title="Control de horas extra"
+            badge="Personal y nómina"
+            icon={Clock}
+            description="Registro de horas extraordinarias por departamento del taller."
+            className="print:hidden"
+            actions={
+              <TabsList className="print:hidden">
+                <TabsTrigger value="hoy" className="gap-1.5 text-xs">
+                  <CalendarDays className="size-3.5" aria-hidden />
+                  Hoy
+                </TabsTrigger>
+                <TabsTrigger value="semana" className="gap-1.5 text-xs">
+                  <Grid3X3 className="size-3.5" aria-hidden />
+                  Semana
+                </TabsTrigger>
+                <TabsTrigger value="resumen" className="gap-1.5 text-xs">
+                  <BarChart3 className="size-3.5" aria-hidden />
+                  Resumen
+                </TabsTrigger>
+              </TabsList>
+            }
+          />
 
-            <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 w-fit print:hidden">
-              <TabButton
-                active={tab === 'hoy'}
-                onClick={() => setTab('hoy')}
-                icon={<CalendarDays className="h-3.5 w-3.5" />}
-                label="Hoy"
-              />
-              <TabButton
-                active={tab === 'semana'}
-                onClick={() => setTab('semana')}
-                icon={<Grid3X3 className="h-3.5 w-3.5" />}
-                label="Semana"
-              />
-              <TabButton
-                active={tab === 'resumen'}
-                onClick={() => setTab('resumen')}
-                icon={<BarChart3 className="h-3.5 w-3.5" />}
-                label="Resumen"
-              />
-            </div>
-          </div>
+          {soloLectura ? (
+            <p className="inline-flex w-fit items-center gap-1.5 rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 print:hidden">
+              <Eye className="size-3" aria-hidden />
+              Solo lectura — la captura la hace compras, contabilidad o automatización
+            </p>
+          ) : null}
 
-          {/* Filtros Utilitarios */}
-          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-wrap gap-4 print:hidden">
+          <div className="flex flex-wrap gap-4 rounded-xl border border-border bg-muted/40 p-3 print:hidden">
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-600">Departamento</label>
+              <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground">
+                Departamento
+              </label>
               <select
                 value={departamento}
                 onChange={(e) => setDepartamento(e.target.value as Departamento)}
-                className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-md bg-white text-slate-900 focus:outline-none focus:border-[#0369A1]"
+                className="rounded-md border border-input bg-card px-2.5 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
               >
                 <option value="diseno">Diseño</option>
                 <option value="automatizacion">Automatización</option>
@@ -102,86 +94,61 @@ export default function HorasExtraPage() {
               </select>
             </div>
 
-            {tab !== 'resumen' && (
+            {tab !== 'resumen' ? (
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-600">
-                  Semana (Miércoles de inicio)
+                <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground">
+                  Semana (miércoles de inicio)
                 </label>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setSemana((s) => offsetSemana(s, -1))}
-                    className="p-1.5 border border-slate-300 rounded-md hover:bg-slate-100 bg-white"
+                    className="rounded-md border border-input bg-card p-1.5 hover:bg-muted"
                     aria-label="Semana anterior"
                   >
-                    <ChevronLeft className="h-3.5 w-3.5 text-slate-600" />
+                    <ChevronLeft className="size-3.5 text-muted-foreground" />
                   </button>
                   <input
                     type="date"
                     value={semana}
                     onChange={(e) => setSemana(e.target.value)}
-                    className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-md font-mono bg-white text-slate-900 focus:outline-none focus:border-[#0369A1]"
+                    className="rounded-md border border-input bg-card px-2.5 py-1.5 font-mono text-xs text-foreground focus:border-primary focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => setSemana((s) => offsetSemana(s, 1))}
-                    className="p-1.5 border border-slate-300 rounded-md hover:bg-slate-100 bg-white"
+                    className="rounded-md border border-input bg-card p-1.5 hover:bg-muted"
                     aria-label="Semana siguiente"
                   >
-                    <ChevronRight className="h-3.5 w-3.5 text-slate-600" />
+                    <ChevronRight className="size-3.5 text-muted-foreground" />
                   </button>
-                  {!esSemanaActual(semana) && (
+                  {!esSemanaActual(semana) ? (
                     <button
                       type="button"
                       onClick={() => setSemana(getSemanaActualISO())}
-                      className="text-xs font-mono font-bold text-[#0369A1] hover:underline whitespace-nowrap"
+                      className="whitespace-nowrap font-mono text-xs font-bold text-primary hover:underline"
                     >
                       Ir a hoy
                     </button>
-                  )}
+                  ) : null}
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
 
-          <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5 overflow-x-auto print:shadow-none print:border-0">
-            {tab === 'semana' && (
+          <div className="overflow-x-auto rounded-xl border border-border bg-card p-4 shadow-xs sm:p-5 print:border-0 print:shadow-none">
+            <TabsContent value="semana">
               <HorasExtraGrid departamento={departamento} semanaInicio={semana} puedeEditar={puedeEditar} />
-            )}
-            {tab === 'hoy' && (
+            </TabsContent>
+            <TabsContent value="hoy">
               <VistaHoy departamento={departamento} semanaInicio={semana} puedeEditar={puedeEditar} />
-            )}
-            {tab === 'resumen' && <ResumenMensual departamento={departamento} />}
+            </TabsContent>
+            <TabsContent value="resumen">
+              <ResumenMensual departamento={departamento} />
+            </TabsContent>
           </div>
-        </div>
-      </main>
+        </Tabs>
+      </PageShell>
     </AuthGuard>
-  )
-}
-
-function TabButton({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean
-  onClick: () => void
-  icon: React.ReactNode
-  label: string
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${
-        active
-          ? 'bg-white text-[#0369A1] shadow-xs'
-          : 'text-slate-600 hover:text-slate-900'
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
   )
 }

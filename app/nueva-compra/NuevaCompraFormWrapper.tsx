@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import NuevaCompraForm from './NuevaCompraForm'
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { subirImagenOrden } from '@/lib/storage'
 import { crearOrden } from '@/lib/ordenes'
 import { marcarPedidoAlmacenComprado } from '@/lib/pedidos-almacen'
@@ -14,9 +16,11 @@ import { copiarCapturaWhatsApp, type ResultadoCopiaImagenWhatsApp } from '@/lib/
 export default function NuevaCompraFormWrapper({
   pedidoId,
   descripcionInicial,
+  requisicionId,
 }: {
   pedidoId?: string
   descripcionInicial?: string
+  requisicionId?: string
 } = {}) {
   const router = useRouter()
   const [errorGuardado, setErrorGuardado] = useState<string | null>(null)
@@ -46,6 +50,7 @@ export default function NuevaCompraFormWrapper({
       const ordenId = await crearOrden(
         sincronizarCamposLegacyOrden({
           ...data,
+          requisicionId: requisicionId ?? null,
           proveedorId: proveedorId ?? null,
           ...(imagenGuardada
             ? { imagenUrl: imagenGuardada.url, imagenPath: imagenGuardada.path }
@@ -60,6 +65,24 @@ export default function NuevaCompraFormWrapper({
           await marcarPedidoAlmacenComprado(pedidoId, ordenId)
         } catch (err) {
           console.error('[nueva-compra] no se pudo vincular el pedido de almacén:', err)
+        }
+      }
+
+      if (requisicionId) {
+        try {
+          const reqRef = doc(db, 'requisiciones', requisicionId)
+          await setDoc(
+            reqRef,
+            {
+              estado: 'comprado',
+              estatusFlujo: 'convertida_a_oc',
+              ordenCompraId: ordenId,
+              actualizadoEn: serverTimestamp(),
+            },
+            { merge: true }
+          )
+        } catch (err) {
+          console.error('[nueva-compra] no se pudo vincular la requisición:', err)
         }
       }
 

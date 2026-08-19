@@ -6,6 +6,15 @@ import { useCajaChica } from '@/lib/hooks/useCajaChica'
 import { filtrarMovimientosCajaChicaReporte, calcularTotalesReporteCaja } from '@/lib/reportes-caja-chica'
 import { formatPrecio } from '@/lib/format'
 import { listarCortesCaja, type CorteCaja, type ModoFiltroCaja } from '@/lib/caja-chica'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableFooter,
+} from '@/components/ui/table'
 
 export default function ReportesCaja() {
   const [modoFiltro, setModoFiltro] = useState<ModoFiltroCaja>('CICLO_ACTIVO')
@@ -113,10 +122,10 @@ export default function ReportesCaja() {
             <select
               value={modoFiltro}
               onChange={(e) => setModoFiltro(e.target.value as ModoFiltroCaja)}
-              className="px-3 py-2 text-xs font-bold border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1] text-gray-800"
+              className="px-3 py-2 text-xs font-bold border border-gray-200 rounded-md focus:outline-none focus:border-primary text-gray-800"
             >
-              <option value="CICLO_ACTIVO">⚡ Ciclo Activo (Sin corte)</option>
-              <option value="TODOS">📋 Todos los Movimientos</option>
+              <option value="CICLO_ACTIVO">Ciclo activo (sin corte)</option>
+              <option value="TODOS">Todos los movimientos</option>
               <option value="PERIODO">📅 Por Mes Calendario</option>
               <option value="CORTE">🔖 Por Corte Realizado</option>
             </select>
@@ -127,7 +136,7 @@ export default function ReportesCaja() {
               type="month"
               value={periodo}
               onChange={(e) => setPeriodo(e.target.value)}
-              className="px-3 py-2 text-xs font-mono border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1]"
+              className="px-3 py-2 text-xs font-mono border border-gray-200 rounded-md focus:outline-none focus:border-primary"
             />
           )}
 
@@ -135,7 +144,7 @@ export default function ReportesCaja() {
             <select
               value={corteIdSel}
               onChange={(e) => setCorteIdSel(e.target.value)}
-              className="px-3 py-2 text-xs font-mono border border-gray-200 rounded-md focus:outline-none focus:border-[#0369A1]"
+              className="px-3 py-2 text-xs font-mono border border-gray-200 rounded-md focus:outline-none focus:border-primary"
             >
               {cortesHistorial.length === 0 ? (
                 <option value="">Sin cortes realizados</option>
@@ -156,7 +165,7 @@ export default function ReportesCaja() {
                 onClick={() => setConFactura(valor)}
                 className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
                   conFactura === valor
-                    ? 'bg-white text-[#0369A1] shadow-xs'
+                    ? 'bg-white text-primary shadow-xs'
                     : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
@@ -205,43 +214,43 @@ export default function ReportesCaja() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto print:border-0 print:overflow-visible print:shadow-none">
-        <table className="w-full text-sm text-left print:text-xs">
-          <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200 print:bg-white print:border-b-2 print:border-gray-900 print:text-gray-900">
-            <tr>
-              <th className="px-4 py-3 print:px-2 print:py-2">Fecha</th>
-              <th className="px-4 py-3 print:px-2 print:py-2">Descripción</th>
-              <th className="px-4 py-3 print:px-2 print:py-2">Proveedor</th>
-              <th className="px-4 py-3 print:px-2 print:py-2">Categoría</th>
-              <th className="px-4 py-3 print:px-2 print:py-2">Comprobante</th>
-              <th className="px-4 py-3 text-right print:px-2 print:py-2">Monto</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 print:divide-gray-300">
+        <Table className="w-full text-sm text-left print:text-xs">
+          <TableHeader className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200 print:bg-white print:border-b-2 print:border-gray-900 print:text-gray-900">
+            <TableRow>
+              <TableHead className="px-4 py-3 print:px-2 print:py-2">Fecha</TableHead>
+              <TableHead className="px-4 py-3 print:px-2 print:py-2">Descripción</TableHead>
+              <TableHead className="px-4 py-3 print:px-2 print:py-2">Proveedor</TableHead>
+              <TableHead className="px-4 py-3 print:px-2 print:py-2">Categoría</TableHead>
+              <TableHead className="px-4 py-3 print:px-2 print:py-2">Comprobante</TableHead>
+              <TableHead className="px-4 py-3 text-right print:px-2 print:py-2">Monto</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="divide-y divide-gray-100 print:divide-gray-300">
             {loading ? (
-              <tr>
-                <td colSpan={columnas} className="px-4 py-8 text-center text-gray-500">
+              <TableRow>
+                <TableCell colSpan={columnas} className="px-4 py-8 text-center text-gray-500">
                   Cargando movimientos...
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : filtrados.length === 0 ? (
-              <tr>
-                <td colSpan={columnas} className="px-4 py-8 text-center text-gray-500">
+              <TableRow>
+                <TableCell colSpan={columnas} className="px-4 py-8 text-center text-gray-500">
                   Sin movimientos {conFactura ? 'con factura' : 'sin factura'} para esta selección.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               filtrados.map((m) => (
-                <tr key={m.id} className="hover:bg-gray-50 print:hover:bg-white">
-                  <td className="px-4 py-3 text-gray-900 print:px-2 print:py-2">{m.fecha}</td>
-                  <td
+                <TableRow key={m.id} className="hover:bg-gray-50 print:hover:bg-white">
+                  <TableCell className="px-4 py-3 text-gray-900 print:px-2 print:py-2">{m.fecha}</TableCell>
+                  <TableCell
                     className="px-4 py-3 text-gray-900 max-w-[220px] truncate print:max-w-none print:whitespace-normal print:px-2 print:py-2"
                     title={m.descripcion}
                   >
                     {m.descripcion}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 print:px-2 print:py-2">{m.proveedor}</td>
-                  <td className="px-4 py-3 text-gray-600 text-xs print:px-2 print:py-2">{m.categoria}</td>
-                  <td className="px-4 py-3 text-gray-600 text-xs print:px-2 print:py-2">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-gray-600 print:px-2 print:py-2">{m.proveedor}</TableCell>
+                  <TableCell className="px-4 py-3 text-gray-600 text-xs print:px-2 print:py-2">{m.categoria}</TableCell>
+                  <TableCell className="px-4 py-3 text-gray-600 text-xs print:px-2 print:py-2">
                     <div className="flex items-center gap-1.5">
                       <span>{m.comprobante}</span>
                       {m.archivoUrl && (
@@ -249,34 +258,34 @@ export default function ReportesCaja() {
                           href={m.archivoUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[#0369A1] hover:text-[#0284C7] hover:underline flex items-center gap-0.5 print:hidden font-normal"
+                          className="text-primary hover:text-primary hover:underline flex items-center gap-0.5 print:hidden font-normal"
                           title="Ver comprobante digital"
                         >
                           <FileText className="h-3.5 w-3.5" />
                         </a>
                       )}
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-right font-medium text-gray-900 tabular-nums print:px-2 print:py-2">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-right font-medium text-gray-900 tabular-nums print:px-2 print:py-2">
                     {formatPrecio(m.monto, 'MXN')}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
+          </TableBody>
           {filtrados.length > 0 && (
-            <tfoot>
-              <tr className="border-t-2 border-gray-300 font-semibold text-gray-900 print:border-gray-900 print:text-sm">
-                <td className="px-4 py-3 print:px-2 print:py-3" colSpan={5}>
+            <TableFooter>
+              <TableRow className="border-t-2 border-gray-300 font-semibold text-gray-900 print:border-gray-900 print:text-sm">
+                <TableCell className="px-4 py-3 print:px-2 print:py-3" colSpan={5}>
                   TOTAL
-                </td>
-                <td className="px-4 py-3 text-right tabular-nums print:px-2 print:py-3">
+                </TableCell>
+                <TableCell className="px-4 py-3 text-right tabular-nums print:px-2 print:py-3">
                   {formatPrecio(total, 'MXN')}
-                </td>
-              </tr>
-            </tfoot>
+                </TableCell>
+              </TableRow>
+            </TableFooter>
           )}
-        </table>
+        </Table>
       </div>
 
       {/* Pie de Firmas (Solo PDF) */}

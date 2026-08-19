@@ -23,7 +23,7 @@ export default function FinanzasNav() {
             href={t.href}
             className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
               activo
-                ? "bg-white text-[#0369A1] shadow-sm"
+                ? "bg-white text-primary shadow-sm"
                 : "text-gray-500 hover:text-gray-900 hover:bg-gray-200/50"
             }`}
           >

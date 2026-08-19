@@ -1,7 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, X } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import type { Requisicion, PrioridadRequisicion } from '@/lib/schemas'
 import { actualizarRequisicion } from '@/lib/requisiciones'
 import { SOLICITANTES, EMPRESAS, PRIORIDADES } from './RequisicionesList'
@@ -13,8 +24,8 @@ interface Props {
   onSaved: (requisicion: Requisicion) => void
 }
 
-const INPUT_CLS =
-  'rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
+const SELECT_CLS =
+  'rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-ring'
 
 export default function RequisicionFormModal({ requisicionBase, onClose, onSaved }: Props) {
   const [loading, setLoading] = useState(false)
@@ -76,41 +87,34 @@ export default function RequisicionFormModal({ requisicionBase, onClose, onSaved
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
-      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col my-8">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 shrink-0">
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">Editar Requisición</h2>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {isAuto ? 'Automatización' : 'Compra general'}
-            </p>
-          </div>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col gap-0 p-0">
+        <DialogHeader className="border-b border-border px-6 py-4">
+          <DialogTitle>Editar requisición</DialogTitle>
+          <DialogDescription>{isAuto ? 'Automatización' : 'Compra general'}</DialogDescription>
+        </DialogHeader>
 
-        <div className="p-6 overflow-y-auto flex-1">
-          {error && (
+        <div className="flex-1 overflow-y-auto p-6">
+          {error ? (
             <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               {error}
             </div>
-          )}
+          ) : null}
 
-          <form id="requisicion-form" onSubmit={handleSubmit} className="space-y-3">
+          <form id="requisicion-form" onSubmit={handleSubmit} className="flex flex-col gap-3">
             <div className="flex gap-3">
-              <input
+              <Input
                 type="text"
                 placeholder="Descripción del artículo *"
                 value={formData.descripcion}
                 onChange={(e) => setFormData((f) => ({ ...f, descripcion: e.target.value }))}
                 required
-                className={`flex-1 ${INPUT_CLS}`}
+                className="flex-1"
               />
               <select
                 value={formData.solicitante}
                 onChange={(e) => setFormData((f) => ({ ...f, solicitante: e.target.value }))}
-                className={INPUT_CLS}
+                className={SELECT_CLS}
               >
                 <option value="">Solicitante</option>
                 {SOLICITANTES.map((s) => (
@@ -118,53 +122,48 @@ export default function RequisicionFormModal({ requisicionBase, onClose, onSaved
                 ))}
               </select>
             </div>
-            <input
+            <Input
               type="url"
               placeholder="Link del producto (opcional)"
               value={formData.link}
               onChange={(e) => setFormData((f) => ({ ...f, link: e.target.value }))}
-              className={`w-full ${INPUT_CLS}`}
             />
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <input
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Input
                 type="text"
                 placeholder="Cantidad"
                 value={formData.cantidad}
                 onChange={(e) => setFormData((f) => ({ ...f, cantidad: e.target.value }))}
-                className={INPUT_CLS}
               />
-              <input
+              <Input
                 type="text"
                 placeholder={isAuto ? 'Proveedor' : 'Tienda / Proveedor'}
                 value={formData.tienda}
                 onChange={(e) => setFormData((f) => ({ ...f, tienda: e.target.value }))}
-                className={INPUT_CLS}
               />
-              {!isAuto && (
+              {!isAuto ? (
                 <select
                   value={formData.prioridad}
                   onChange={(e) => setFormData((f) => ({ ...f, prioridad: e.target.value as PrioridadRequisicion | '' }))}
-                  className={INPUT_CLS}
+                  className={SELECT_CLS}
                 >
                   <option value="">Prioridad</option>
                   {PRIORIDADES.map((p) => (
                     <option key={p} value={p}>{p}</option>
                   ))}
                 </select>
-              )}
-              {isAuto && (
-                <input
+              ) : (
+                <Input
                   type="text"
                   placeholder="No. de parte"
                   value={formData.parteNumero}
                   onChange={(e) => setFormData((f) => ({ ...f, parteNumero: e.target.value }))}
-                  className={INPUT_CLS}
                 />
               )}
               <select
                 value={formData.empresa}
                 onChange={(e) => setFormData((f) => ({ ...f, empresa: e.target.value }))}
-                className={INPUT_CLS}
+                className={SELECT_CLS}
               >
                 <option value="">Empresa</option>
                 {EMPRESAS.map((emp) => (
@@ -172,46 +171,44 @@ export default function RequisicionFormModal({ requisicionBase, onClose, onSaved
                 ))}
               </select>
             </div>
-            <div className="flex flex-wrap gap-3 items-center">
-              <input
+            <div className="flex flex-wrap items-center gap-3">
+              <Input
                 type="text"
                 placeholder="S.O. / Orden de trabajo"
                 value={formData.ordenServicio}
                 onChange={(e) => setFormData((f) => ({ ...f, ordenServicio: e.target.value }))}
-                className={`w-48 ${INPUT_CLS}`}
+                className="w-48"
               />
-              <input
+              <Input
                 type="date"
                 title={isAuto ? 'Fecha de compra' : 'Fecha de pedido'}
                 value={formData.fechaPedido}
                 onChange={(e) => setFormData((f) => ({ ...f, fechaPedido: e.target.value }))}
-                className={INPUT_CLS}
               />
-              {isAuto && (
-                <input
+              {isAuto ? (
+                <Input
                   type="date"
                   title="Fecha de entrega estimada"
                   value={formData.fechaEntregaEst}
                   onChange={(e) => setFormData((f) => ({ ...f, fechaEntregaEst: e.target.value }))}
-                  className={INPUT_CLS}
                 />
-              )}
+              ) : null}
               <select
                 value={formData.estado}
                 onChange={(e) => setFormData((f) => ({ ...f, estado: e.target.value as Requisicion['estado'] }))}
-                className={INPUT_CLS}
+                className={SELECT_CLS}
               >
                 {ESTADOS_REQUISICION.map((e) => (
                   <option key={e} value={e}>{ESTADO_LABEL[e]}</option>
                 ))}
               </select>
             </div>
-            {isAuto && (
+            {isAuto ? (
               <div className="flex flex-wrap gap-3">
                 <select
                   value={formData.recibio}
                   onChange={(e) => setFormData((f) => ({ ...f, recibio: e.target.value }))}
-                  className={INPUT_CLS}
+                  className={SELECT_CLS}
                 >
                   <option value="">Recibió</option>
                   {SOLICITANTES.map((s) => (
@@ -221,34 +218,34 @@ export default function RequisicionFormModal({ requisicionBase, onClose, onSaved
                 <select
                   value={formData.revisionFinanzas}
                   onChange={(e) => setFormData((f) => ({ ...f, revisionFinanzas: e.target.value }))}
-                  className={INPUT_CLS}
+                  className={SELECT_CLS}
                 >
                   {REVISION_FINANZAS_OPCIONES.map((op) => (
                     <option key={op || 'vacio'} value={op}>{op || 'Rev. finanzas'}</option>
                   ))}
                 </select>
-                <input
+                <Input
                   type="text"
                   placeholder="Nota (entregas parciales, seguimiento…)"
                   value={formData.nota}
                   onChange={(e) => setFormData((f) => ({ ...f, nota: e.target.value }))}
-                  className={`min-w-[200px] flex-1 ${INPUT_CLS}`}
+                  className="min-w-[200px] flex-1"
                 />
               </div>
-            )}
+            ) : null}
           </form>
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-gray-200 px-6 py-4 bg-gray-50 rounded-b-xl shrink-0">
-          <button onClick={onClose} type="button" className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+        <DialogFooter className="border-t border-border bg-muted/30 px-6 py-4">
+          <Button variant="outline" onClick={onClose} type="button">
             Cancelar
-          </button>
-          <button type="submit" form="requisicion-form" disabled={loading || !formData.descripcion.trim()} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors">
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            Guardar Cambios
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+          <Button type="submit" form="requisicion-form" disabled={loading || !formData.descripcion.trim()}>
+            {loading ? <Loader2 className="animate-spin" data-icon="inline-start" /> : null}
+            Guardar cambios
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

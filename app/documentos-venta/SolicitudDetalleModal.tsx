@@ -8,6 +8,14 @@ import type {
   VentaOdooSo,
 } from '@/lib/schemas'
 import { ordenCompraSolicitud } from '@/lib/documentos-venta-helpers'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 type Props = {
   solicitud: SolicitudDocumento
@@ -92,30 +100,20 @@ export default function SolicitudDetalleModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
-      <div className="bg-white w-full sm:max-w-lg sm:rounded-xl shadow-xl max-h-[90vh] flex flex-col">
-        <div className="flex items-start justify-between gap-2 border-b border-slate-100 px-4 py-3">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900">
-              {solicitud.tipo === 'factura' ? 'Factura' : 'Remisión'} ·{' '}
-              {solicitud.odooSoName}
-            </h2>
-            <p className="text-xs text-slate-500">
-              {solicitud.partnerName}
-              {ordenCompraSolicitud(solicitud)
-                ? ` · Orden de compra ${ordenCompraSolicitud(solicitud)}`
-                : ''}{' '}
-              · {solicitud.estado.replace('_', ' ')}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-xs font-semibold text-slate-500 hover:text-slate-800"
-          >
-            Cerrar
-          </button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[90vh] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <DialogHeader className="border-b border-border px-4 py-3">
+          <DialogTitle>
+            {solicitud.tipo === 'factura' ? 'Factura' : 'Remisión'} · {solicitud.odooSoName}
+          </DialogTitle>
+          <DialogDescription>
+            {solicitud.partnerName}
+            {ordenCompraSolicitud(solicitud)
+              ? ` · Orden de compra ${ordenCompraSolicitud(solicitud)}`
+              : ''}{' '}
+            · {solicitud.estado.replace('_', ' ')}
+          </DialogDescription>
+        </DialogHeader>
 
         <div className="overflow-y-auto px-4 py-3 space-y-3 flex-1">
           {solicitud.partidas.length > 0 && (
@@ -271,20 +269,20 @@ export default function SolicitudDetalleModal({
                 className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm"
                 placeholder="Escribe un mensaje…"
               />
-              <button
+              <Button
                 type="button"
                 disabled={busy || !texto.trim()}
                 onClick={() => void enviar()}
-                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-900 text-white disabled:opacity-40"
+                size="sm"
               >
                 Enviar
-              </button>
+              </Button>
             </div>
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

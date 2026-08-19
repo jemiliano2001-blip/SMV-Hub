@@ -1,5 +1,13 @@
 import { Fragment } from "react"
 import type { Grupo } from "@/lib/reportes"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 type Props = { grupos: Grupo[]; totalGeneral: number; moneda: string }
 
@@ -29,84 +37,82 @@ export default function TablaReporte({ grupos, totalGeneral, moneda }: Props) {
   const totalSubtotales = grupos.reduce((s, g) => s + g.subtotal, 0)
 
   return (
-    <div className="overflow-x-auto print:overflow-visible">
-      <table className="w-full text-sm border-collapse min-w-[900px] print:min-w-0 print:text-[9px]">
-        <thead>
-          <tr className="border-b-2 border-gray-300 print:border-b-0 print:bg-[#111111]">
+    <Table className="border-collapse text-sm min-w-[900px] print:min-w-0 print:text-[9px]">
+        <TableHeader>
+          <TableRow className="border-b-2 border-gray-300 print:border-b-0 print:bg-[#111111]">
             {["Referencia","Día","Proveedor","Descripción","Cant.","P. Unitario","Subtotal","Total","Requisitor","Cuenta Cargo","Destino"].map((h, i) => (
-              <th
+              <TableHead
                 key={h}
-                className={`pb-2 pr-3 text-xs font-semibold text-gray-600 print:py-1.5 print:px-2 print:text-[7.5px] print:font-medium print:tracking-widest print:uppercase print:text-white ${i >= 4 && i <= 7 ? "text-right" : "text-left"} ${i === 0 ? "print:hidden" : ""}`}
+                className={`h-auto pb-2 pr-3 text-xs font-semibold text-gray-600 print:py-1.5 print:px-2 print:text-[7.5px] print:font-medium print:tracking-widest print:uppercase print:text-white ${i >= 4 && i <= 7 ? "text-right" : "text-left"} ${i === 0 ? "print:hidden" : ""}`}
               >
                 {h}
-              </th>
+              </TableHead>
             ))}
-          </tr>
-        </thead>
-        <tbody>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {grupos.map((grupo) => (
             <Fragment key={grupo.clave}>
-              <tr className="bg-blue-50 print:bg-[#f0f0f0] grupo-header">
-                <td
+              <TableRow className="bg-blue-50 print:bg-[#f0f0f0] grupo-header">
+                <TableCell
                   colSpan={COLS}
                   className="py-2 px-2 text-sm font-semibold text-blue-900 border-t border-blue-200 print:text-black print:font-bold print:text-[9.5px]"
                 >
                   {grupo.clave}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
 
               {grupo.lineas.map((linea, i) => (
-                <tr
+                <TableRow
                   key={`${grupo.clave}-${i}`}
                   className={`border-b border-gray-100 hover:bg-gray-50 grupo-linea print:hover:bg-transparent ${i % 2 === 1 ? "print:bg-[#fafafa]" : ""}`}
                 >
-                  <td className="py-1.5 pr-3 font-mono text-xs text-gray-500 print:hidden">{linea.referencia}</td>
-                  <td className="py-1.5 pr-3 whitespace-nowrap text-xs print:font-mono print:text-gray-600">{fmtFecha(linea.dia)}</td>
-                  <td className="py-1.5 pr-3">{linea.proveedor}</td>
-                  <td className="py-1.5 pr-3 max-w-[200px] truncate print:max-w-[160px] print:text-[8.5px]" title={linea.descripcion}>
+                  <TableCell className="py-1.5 pr-3 font-mono text-xs text-gray-500 print:hidden">{linea.referencia}</TableCell>
+                  <TableCell className="py-1.5 pr-3 whitespace-nowrap text-xs print:font-mono print:text-gray-600">{fmtFecha(linea.dia)}</TableCell>
+                  <TableCell className="py-1.5 pr-3">{linea.proveedor}</TableCell>
+                  <TableCell className="py-1.5 pr-3 max-w-[200px] truncate print:max-w-[160px] print:text-[8.5px]" title={linea.descripcion}>
                     {linea.descripcion}
-                  </td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums print:font-mono">{linea.cantidad ?? "—"}</td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums print:font-mono">
+                  </TableCell>
+                  <TableCell className="py-1.5 pr-3 text-right tabular-nums print:font-mono">{linea.cantidad ?? "—"}</TableCell>
+                  <TableCell className="py-1.5 pr-3 text-right tabular-nums print:font-mono">
                     {linea.precioUnitario != null ? fmt(linea.precioUnitario) : "—"}
-                  </td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums print:font-mono">{fmt(linea.subtotal)}</td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums font-medium print:font-mono">{fmt(linea.total)}</td>
-                  <td className="py-1.5 pr-3 text-xs print:text-gray-600">{linea.requisitor || "—"}</td>
-                  <td className="py-1.5 pr-3 text-xs print:text-gray-600">{linea.cuentaCargo || "—"}</td>
-                  <td className="py-1.5 text-xs print:text-gray-600">{linea.destino || "—"}</td>
-                </tr>
+                  </TableCell>
+                  <TableCell className="py-1.5 pr-3 text-right tabular-nums print:font-mono">{fmt(linea.subtotal)}</TableCell>
+                  <TableCell className="py-1.5 pr-3 text-right tabular-nums font-medium print:font-mono">{fmt(linea.total)}</TableCell>
+                  <TableCell className="py-1.5 pr-3 text-xs print:text-gray-600">{linea.requisitor || "—"}</TableCell>
+                  <TableCell className="py-1.5 pr-3 text-xs print:text-gray-600">{linea.cuentaCargo || "—"}</TableCell>
+                  <TableCell className="py-1.5 text-xs print:text-gray-600">{linea.destino || "—"}</TableCell>
+                </TableRow>
               ))}
 
-              <tr className="border-t border-gray-300 bg-gray-50 grupo-subtotal print:bg-[#f5f5f5]">
-                <td colSpan={6} className="py-1.5 pr-3 text-right text-xs font-semibold text-gray-600 print:text-[8.5px]">
+              <TableRow className="border-t border-gray-300 bg-gray-50 grupo-subtotal print:bg-[#f5f5f5]">
+                <TableCell colSpan={6} className="py-1.5 pr-3 text-right text-xs font-semibold text-gray-600 print:text-[8.5px]">
                   Subtotal {grupo.clave}
-                </td>
-                <td className="py-1.5 pr-3 text-right tabular-nums font-semibold text-gray-800 print:font-mono print:text-[10px]">
+                </TableCell>
+                <TableCell className="py-1.5 pr-3 text-right tabular-nums font-semibold text-gray-800 print:font-mono print:text-[10px]">
                   {fmt(grupo.subtotal)}
-                </td>
-                <td className="py-1.5 pr-3 text-right tabular-nums font-semibold text-gray-800 print:font-mono print:text-[10px]">
+                </TableCell>
+                <TableCell className="py-1.5 pr-3 text-right tabular-nums font-semibold text-gray-800 print:font-mono print:text-[10px]">
                   {fmt(grupo.total)}
-                </td>
-                <td colSpan={3} />
-              </tr>
+                </TableCell>
+                <TableCell colSpan={3} />
+              </TableRow>
             </Fragment>
           ))}
 
-          <tr className="border-t-2 border-gray-900 total-general print:border-t-[3px] print:border-double print:border-black">
-            <td colSpan={6} className="py-2.5 pr-3 text-right text-sm font-bold text-gray-900 uppercase tracking-wide print:text-[10.5px] print:py-2">
+          <TableRow className="border-t-2 border-gray-900 total-general print:border-t-[3px] print:border-double print:border-black">
+            <TableCell colSpan={6} className="py-2.5 pr-3 text-right text-sm font-bold text-gray-900 uppercase tracking-wide print:text-[10.5px] print:py-2">
               Total General
-            </td>
-            <td className="py-2.5 pr-3 text-right tabular-nums text-sm font-bold text-gray-900 print:font-mono print:text-[11.5px] print:py-2">
+            </TableCell>
+            <TableCell className="py-2.5 pr-3 text-right tabular-nums text-sm font-bold text-gray-900 print:font-mono print:text-[11.5px] print:py-2">
               {fmt(totalSubtotales)}
-            </td>
-            <td className="py-2.5 pr-3 text-right tabular-nums text-base font-bold text-gray-900 print:font-mono print:text-[13px] print:py-2">
+            </TableCell>
+            <TableCell className="py-2.5 pr-3 text-right tabular-nums text-base font-bold text-gray-900 print:font-mono print:text-[13px] print:py-2">
               {fmt(totalGeneral)}
-            </td>
-            <td colSpan={3} />
-          </tr>
-        </tbody>
-      </table>
-    </div>
+            </TableCell>
+            <TableCell colSpan={3} />
+          </TableRow>
+        </TableBody>
+      </Table>
   )
 }

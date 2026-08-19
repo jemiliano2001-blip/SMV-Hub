@@ -5,6 +5,16 @@ import { Plus, Trash2, Search } from 'lucide-react'
 import type { SalidaAlmacen } from '@/lib/schemas'
 import { fechaHoyLocal } from '@/lib/format'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
+import { Button } from '@/components/ui/button'
+import ModuleSurface from '@/components/layout/ModuleSurface'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 type SalidaCardProps = {
   s: SalidaAlmacen
@@ -173,60 +183,59 @@ export default function SalidasList() {
             ))}
           </select>
         </div>
-        <button
-          type="submit"
-          disabled={agregando}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
-        >
-          <Plus className="h-4 w-4" />
+        <Button type="submit" disabled={agregando} size="sm">
+          <Plus />
           Registrar Salida
-        </button>
+        </Button>
       </form>
 
-      {/* Table (desktop) */}
-      <div className="hidden md:block overflow-x-auto border border-gray-200 rounded-lg">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
-            <tr>
-              <th className="px-4 py-3 w-28">Fecha</th>
-              <th className="px-4 py-3">Herramienta</th>
-              <th className="px-4 py-3 w-24">Cantidad</th>
-              <th className="px-4 py-3 w-48">Operador</th>
-              <th className="px-4 py-3 w-16"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {filtradas.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
-                  {busqueda ? 'No se encontraron salidas' : 'No hay salidas registradas'}
-                </td>
-              </tr>
-            ) : (
-              filtradas.map((s) => (
-                <tr key={s.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 text-gray-500">{s.fecha}</td>
-                  <td className="px-4 py-2 font-medium text-gray-900">{s.herramienta}</td>
-                  <td className="px-4 py-2 text-gray-700">{s.cantidad}</td>
-                  <td className="px-4 py-2 text-gray-600 flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
-                      {s.operador.charAt(0).toUpperCase()}
-                    </div>
-                    {s.operador}
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <button
-                      onClick={() => handleEliminar(s.id, s.herramienta)}
-                      className="text-gray-400 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="hidden md:block">
+        <ModuleSurface>
+          <Table>
+            <TableHeader className="bg-muted/50 text-muted-foreground">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="px-4 py-3 w-28">Fecha</TableHead>
+                <TableHead className="px-4 py-3">Herramienta</TableHead>
+                <TableHead className="px-4 py-3 w-24">Cantidad</TableHead>
+                <TableHead className="px-4 py-3 w-48">Operador</TableHead>
+                <TableHead className="px-4 py-3 w-16" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtradas.length === 0 ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={5} className="px-4 py-8 text-center text-muted-foreground whitespace-normal">
+                    {busqueda ? 'No se encontraron salidas' : 'No hay salidas registradas'}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filtradas.map((s) => (
+                  <TableRow key={s.id}>
+                    <TableCell className="px-4 py-2 text-muted-foreground">{s.fecha}</TableCell>
+                    <TableCell className="px-4 py-2 font-medium text-foreground whitespace-normal">{s.herramienta}</TableCell>
+                    <TableCell className="px-4 py-2">{s.cantidad}</TableCell>
+                    <TableCell className="px-4 py-2 text-muted-foreground">
+                      <span className="inline-flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
+                          {s.operador.charAt(0).toUpperCase()}
+                        </span>
+                        {s.operador}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-4 py-2 text-right">
+                      <button
+                        onClick={() => handleEliminar(s.id, s.herramienta)}
+                        className="text-muted-foreground hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </ModuleSurface>
       </div>
 
       {/* Cards (mobile) */}

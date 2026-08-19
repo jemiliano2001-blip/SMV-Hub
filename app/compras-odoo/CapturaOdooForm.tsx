@@ -22,10 +22,27 @@ import {
 import { parsearTextoExcel } from '@/lib/odoo-cotizador-parser'
 import type { PartidaCotizacionOdoo, CotizacionOdooPayload, ExtraccionInvoice } from '@/lib/schemas'
 import { getClienteAuth } from '@/lib/firebase'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 interface ProveedorSugerido {
   id: number
   name: string
+}
+
+interface OrdenTrabajoSugerida {
+  id: number
+  name: string
+  clientOrderRef: string | null
+  partnerId: number | null
+  partnerName: string
+  state: string
 }
 
 export default function CapturaOdooForm({
@@ -45,9 +62,17 @@ export default function CapturaOdooForm({
   const [defaultRequisitor, setDefaultRequisitor] = useState('Pablo')
   const [defaultEmpresa, setDefaultEmpresa] = useState('Taller')
   const [defaultUso, setDefaultUso] = useState('General')
+  const [defaultOrdenTrabajo, setDefaultOrdenTrabajo] = useState('')
+  const [defaultOrdenTrabajoId, setDefaultOrdenTrabajoId] = useState<number | null>(null)
   const [defaultUdm, setDefaultUdm] = useState('Pieza')
   const [defaultImpuesto, setDefaultImpuesto] = useState('IVA 16%')
   const [defaultTasaIva, setDefaultTasaIva] = useState(0.16)
+
+  // ── Autocomplete Órdenes de Trabajo Odoo ────────────────────────────────────
+  const [ordenesTrabajo, setOrdenesTrabajo] = useState<OrdenTrabajoSugerida[]>([])
+  const [cargandoOTs, setCargandoOTs] = useState(false)
+  const [busquedaOtCabecera, setBusquedaOtCabecera] = useState('')
+  const [mostrarDropdownOt, setMostrarDropdownOt] = useState(false)
 
   // ── Estado de Partidas ─────────────────────────────────────────────────────
   const [partidas, setPartidas] = useState<PartidaCotizacionOdoo[]>([])
@@ -119,6 +144,83 @@ export default function CapturaOdooForm({
     }
   }, [proveedor])
 
+  // Buscar / Cargar Órdenes de Trabajo de Odoo (debounced)
+  useEffect(() => {
+    let cancelado = false
+    const timer = setTimeout(async () => {
+      try {
+        if (!cancelado) setCargandoOTs(true)
+        const token = await getClienteAuth().currentUser?.getIdToken()
+        if (!token) return
+
+        const q = busquedaOtCabecera.trim()
+        const url =
+          q.length >= 1
+            ? `/api/odoo/ordenes-trabajo?q=${encodeURIComponent(q)}&limit=50`
+            : `/api/odoo/ordenes-trabajo?limit=50`
+
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (res.ok && !cancelado) {
+          const data = await res.json()
+          if (data.ordenes) {
+            setOrdenesTrabajo(data.ordenes)
+          }
+        }
+      } catch {
+        // Silencioso
+      } finally {
+        if (!cancelado) setCargandoOTs(false)
+      }
+    }, busquedaOtCabecera.trim() ? 260 : 0)
+
+    return () => {
+      cancelado = true
+      clearTimeout(timer)
+    }
+  }, [busquedaOtCabecera])
+
+  const seleccionarOtCabecera = (ot: OrdenTrabajoSugerida) => {
+    setDefaultOrdenTrabajo(ot.name)
+    setDefaultOrdenTrabajoId(ot.id)
+    setDefaultUso(ot.name)
+    setBusquedaOtCabecera(ot.name)
+    if (ot.partnerName) {
+      const cliente = ot.partnerName.replace(/\*$/, '').trim()
+      setDefaultEmpresa(cliente)
+    }
+    setMostrarDropdownOt(false)
+  }
+
+  const seleccionarOtFila = (partidaId: string, valor: string) => {
+    const valorTrim = valor.trim()
+    const otEncontrada = ordenesTrabajo.find(
+      (ot) =>
+        ot.name.toLowerCase() === valorTrim.toLowerCase() ||
+        ot.name.endsWith(`/${valorTrim}`) ||
+        (ot.clientOrderRef && ot.clientOrderRef.toLowerCase() === valorTrim.toLowerCase())
+    )
+
+    if (otEncontrada) {
+      actualizarPartida(partidaId, 'ordenTrabajo', otEncontrada.name)
+      actualizarPartida(partidaId, 'ordenTrabajoId', otEncontrada.id)
+      actualizarPartida(partidaId, 'uso', otEncontrada.name)
+      const p = partidas.find((it) => it.id === partidaId)
+      if (p && (!p.empresa || p.empresa === 'Taller')) {
+        actualizarPartida(
+          partidaId,
+          'empresa',
+          otEncontrada.partnerName.replace(/\*$/, '').trim()
+        )
+      }
+    } else {
+      actualizarPartida(partidaId, 'ordenTrabajo', valor)
+      actualizarPartida(partidaId, 'uso', valor)
+      actualizarPartida(partidaId, 'ordenTrabajoId', null)
+    }
+  }
+
   // ── Procesar texto pegado desde Excel / Sheets ─────────────────────────────
   const procesarTextoPegado = useCallback(
     (raw: string) => {
@@ -128,6 +230,8 @@ export default function CapturaOdooForm({
         requisitor: defaultRequisitor,
         empresa: defaultEmpresa,
         uso: defaultUso,
+        ordenTrabajo: defaultOrdenTrabajo || defaultUso,
+        ordenTrabajoId: defaultOrdenTrabajoId,
         udm: defaultUdm,
         impuesto: defaultImpuesto,
         tasaIva: defaultTasaIva,
@@ -144,7 +248,16 @@ export default function CapturaOdooForm({
         setTextoPegado('')
       }
     },
-    [defaultRequisitor, defaultEmpresa, defaultUso, defaultUdm, defaultImpuesto, defaultTasaIva]
+    [
+      defaultRequisitor,
+      defaultEmpresa,
+      defaultUso,
+      defaultOrdenTrabajo,
+      defaultOrdenTrabajoId,
+      defaultUdm,
+      defaultImpuesto,
+      defaultTasaIva,
+    ]
   )
 
   // ── Extracción con IA Gemini (PDF / Imagen / Screenshot) ───────────────────
@@ -232,16 +345,22 @@ export default function CapturaOdooForm({
               requisitor: item.requisitor || defaultRequisitor,
               empresa: item.empresa || defaultEmpresa,
               uso: item.cuentaCargo || defaultUso,
+              ordenTrabajo:
+                item.ordenTrabajo ||
+                defaultOrdenTrabajo ||
+                item.cuentaCargo ||
+                defaultUso,
+              ordenTrabajoId: defaultOrdenTrabajoId,
             }
           })
 
           setPartidas((prev) => [...prev, ...nuevasPartidas])
           setMensajeIa(
-            `✨ IA Gemini extrajo ${nuevasPartidas.length} partidas desde "${file.name}". Revisa los montos y completa los datos necesarios en la tabla.`
+            `IA extrajo ${nuevasPartidas.length} partidas desde "${file.name}". Revisa los montos y completa los datos en la tabla.`
           )
         } else {
           setMensajeIa(
-            `✨ IA Gemini leyó el documento pero no identificó partidas desglosadas. Puedes capturarlas en la tabla o pegar de Excel.`
+            `IA leyó el documento pero no identificó partidas desglosadas. Puedes capturarlas en la tabla o pegar de Excel.`
           )
         }
       } catch (err) {
@@ -267,6 +386,8 @@ export default function CapturaOdooForm({
       defaultRequisitor,
       defaultEmpresa,
       defaultUso,
+      defaultOrdenTrabajo,
+      defaultOrdenTrabajoId,
     ]
   )
 
@@ -332,6 +453,8 @@ export default function CapturaOdooForm({
       requisitor: defaultRequisitor,
       empresa: defaultEmpresa,
       uso: defaultUso,
+      ordenTrabajo: defaultOrdenTrabajo || defaultUso,
+      ordenTrabajoId: defaultOrdenTrabajoId,
     }
     setPartidas((prev) => [...prev, nueva])
   }
@@ -415,6 +538,8 @@ export default function CapturaOdooForm({
         requisitorGeneral: defaultRequisitor,
         empresaGeneral: defaultEmpresa,
         usoGeneral: defaultUso,
+        ordenTrabajoGeneral: defaultOrdenTrabajo || defaultUso,
+        ordenTrabajoGeneralId: defaultOrdenTrabajoId,
         notas,
         partidas,
       }
@@ -572,7 +697,7 @@ export default function CapturaOdooForm({
         {/* Card 1: Datos de la Cotización */}
         <div className="lg:col-span-7 rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3.5">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-            <Building2 className="h-4 w-4 text-blue-600" />
+            <Building2 className="h-4 w-4 text-primary" />
             <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
               1. Datos de la Cotización
             </h2>
@@ -591,7 +716,7 @@ export default function CapturaOdooForm({
                   setProveedor(e.target.value)
                   setProveedorId(null)
                 }}
-                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
+                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-ring/20 focus:outline-none transition-all"
               />
               {cargandoProveedores && (
                 <span className="absolute right-2 top-7 text-[10px] text-slate-400 font-mono">Buscando...</span>
@@ -607,7 +732,7 @@ export default function CapturaOdooForm({
                         setProveedorId(s.id)
                         setSugerenciasProveedores([])
                       }}
-                      className="w-full text-left rounded px-2 py-1 text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 font-medium"
+                      className="w-full text-left rounded px-2 py-1 text-xs text-slate-700 hover:bg-blue-50 hover:text-primary font-medium"
                     >
                       {s.name}
                     </button>
@@ -625,7 +750,7 @@ export default function CapturaOdooForm({
                 placeholder="ej. 251165"
                 value={referenciaProveedor}
                 onChange={(e) => setReferenciaProveedor(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all font-mono"
+                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-ring/20 focus:outline-none transition-all font-mono"
               />
             </div>
 
@@ -646,7 +771,7 @@ export default function CapturaOdooForm({
                     setDefaultImpuesto('IVA 16%')
                   }
                 }}
-                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none bg-white transition-all font-medium"
+                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-ring/20 focus:outline-none bg-white transition-all font-medium"
               >
                 <option value="MXN">MXN (Pesos Mexicanos)</option>
                 <option value="USD">USD (Dólares)</option>
@@ -661,7 +786,7 @@ export default function CapturaOdooForm({
                 type="date"
                 value={fecha}
                 onChange={(e) => setFecha(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all font-mono"
+                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-ring/20 focus:outline-none transition-all font-mono"
               />
             </div>
           </div>
@@ -704,16 +829,106 @@ export default function CapturaOdooForm({
               />
             </div>
 
-            <div>
-              <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">
-                Uso
-              </label>
-              <input
-                type="text"
-                value={defaultUso}
-                onChange={(e) => setDefaultUso(e.target.value)}
-                className="w-full rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 focus:border-blue-500 focus:outline-none"
-              />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-0.5">
+                <label className="block text-[10px] font-semibold text-slate-600">
+                  OT / Uso
+                </label>
+                {defaultOrdenTrabajoId && (
+                  <span className="text-[9px] text-emerald-700 bg-emerald-100/80 px-1 rounded font-mono font-bold">
+                    OT Odoo #{defaultOrdenTrabajoId}
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="ej. 2026/S01641 o Stock"
+                  value={busquedaOtCabecera || defaultUso}
+                  onFocus={() => setMostrarDropdownOt(true)}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setBusquedaOtCabecera(v)
+                    setDefaultUso(v)
+                    setDefaultOrdenTrabajo(v)
+                    setDefaultOrdenTrabajoId(null)
+                    setMostrarDropdownOt(true)
+                  }}
+                  className="w-full rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 focus:border-blue-500 focus:outline-none font-mono"
+                />
+                {cargandoOTs && (
+                  <span className="absolute right-2 top-1 text-[9px] text-slate-400 font-mono">
+                    ...
+                  </span>
+                )}
+              </div>
+
+              {mostrarDropdownOt && (
+                <div
+                  className="absolute z-30 mt-1 max-h-52 w-72 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-xl left-0"
+                  onMouseDown={(e) => e.preventDefault()}
+                >
+                  <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 flex items-center justify-between">
+                    <span>Órdenes de Trabajo Odoo ({ordenesTrabajo.length})</span>
+                    <button
+                      type="button"
+                      onClick={() => setMostrarDropdownOt(false)}
+                      className="text-slate-400 hover:text-slate-700 text-xs font-bold"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  {/* Presets rápidos */}
+                  <div className="py-1 border-b border-slate-100 flex flex-wrap gap-1 px-1">
+                    {['Stock', 'Mantenimiento', 'Taller', 'Herramientas'].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => {
+                          setDefaultUso(opt)
+                          setDefaultOrdenTrabajo('')
+                          setDefaultOrdenTrabajoId(null)
+                          setBusquedaOtCabecera(opt)
+                          if (opt === 'Stock' || opt === 'Taller' || opt === 'Herramientas') {
+                            setDefaultEmpresa('SMV')
+                          }
+                          setMostrarDropdownOt(false)
+                        }}
+                        className="rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold px-1.5 py-0.5"
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+
+                  {ordenesTrabajo.length === 0 ? (
+                    <div className="p-2 text-center text-xs text-slate-400">
+                      {cargandoOTs ? 'Cargando órdenes...' : 'No se encontraron órdenes'}
+                    </div>
+                  ) : (
+                    ordenesTrabajo.map((ot) => (
+                      <button
+                        key={ot.id}
+                        type="button"
+                        onClick={() => seleccionarOtCabecera(ot)}
+                        className="w-full text-left rounded p-1.5 text-xs hover:bg-blue-50 hover:text-primary transition-colors border-b border-slate-50 last:border-0"
+                      >
+                        <div className="flex items-center justify-between font-mono font-bold text-slate-900 text-[11px]">
+                          <span>{ot.name}</span>
+                          {ot.clientOrderRef && (
+                            <span className="text-[10px] font-normal text-slate-500">
+                              PO: {ot.clientOrderRef}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-600 truncate font-sans">
+                          {ot.partnerName}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
 
             <div>
@@ -756,7 +971,7 @@ export default function CapturaOdooForm({
       <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <ClipboardPaste className="h-4 w-4 text-blue-600" />
+            <ClipboardPaste className="h-4 w-4 text-primary" />
             <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
               3. Entrada Rápida de Partidas (Excel, Sheets o IA Gemini)
             </h2>
@@ -825,7 +1040,7 @@ export default function CapturaOdooForm({
             className={`w-full rounded-lg border border-dashed p-3 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:outline-none transition-all font-mono ${
               extrayendoIa
                 ? 'border-purple-300 bg-purple-50/40 opacity-75'
-                : 'border-blue-300 bg-blue-50/30 focus:border-blue-500 focus:ring-blue-500/20'
+                : 'border-blue-300 bg-blue-50/30 focus:border-blue-500 focus:ring-ring/20'
             }`}
           />
 
@@ -843,7 +1058,7 @@ export default function CapturaOdooForm({
               <button
                 type="button"
                 onClick={() => procesarTextoPegado(textoPegado)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-xs hover:bg-primary/90 transition-colors"
               >
                 <Sparkles className="h-3.5 w-3.5" />
                 Procesar Tabla Pegada
@@ -893,81 +1108,82 @@ export default function CapturaOdooForm({
           </div>
         ) : (
           <div className="overflow-x-auto max-h-[500px]">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="sticky top-0 z-10 bg-slate-100/95 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200">
-                <tr>
-                  <th className="py-2.5 px-3 w-10 text-center">#</th>
-                  <th className="py-2.5 px-3 w-28">Clave</th>
-                  <th className="py-2.5 px-3 min-w-[220px]">Descripción *</th>
-                  <th className="py-2.5 px-3 w-24">Requisitor</th>
-                  <th className="py-2.5 px-3 w-20">Empresa</th>
-                  <th className="py-2.5 px-3 w-20">Uso</th>
-                  <th className="py-2.5 px-3 w-20 text-right">Cant.</th>
-                  <th className="py-2.5 px-3 w-16">UdM</th>
-                  <th className="py-2.5 px-3 w-24 text-right">P. Unitario</th>
-                  <th className="py-2.5 px-2 w-20 text-center">IVA</th>
-                  <th className="py-2.5 px-3 w-28 text-right">Subtotal</th>
-                  <th className="py-2.5 px-2 w-10 text-center"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
+            <Table className="w-full text-left text-xs border-collapse">
+              <TableHeader className="sticky top-0 z-10 bg-slate-100/95 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200">
+                <TableRow>
+                  <TableHead className="py-2.5 px-3 w-10 text-center">#</TableHead>
+                  <TableHead className="py-2.5 px-3 w-28">Clave</TableHead>
+                  <TableHead className="py-2.5 px-3 min-w-[220px]">Descripción *</TableHead>
+                  <TableHead className="py-2.5 px-3 w-24">Requisitor</TableHead>
+                  <TableHead className="py-2.5 px-3 w-20">Empresa</TableHead>
+                  <TableHead className="py-2.5 px-3 w-32">OT / Uso</TableHead>
+                  <TableHead className="py-2.5 px-3 w-20 text-right">Cant.</TableHead>
+                  <TableHead className="py-2.5 px-3 w-16">UdM</TableHead>
+                  <TableHead className="py-2.5 px-3 w-24 text-right">P. Unitario</TableHead>
+                  <TableHead className="py-2.5 px-2 w-20 text-center">IVA</TableHead>
+                  <TableHead className="py-2.5 px-3 w-28 text-right">Subtotal</TableHead>
+                  <TableHead className="py-2.5 px-2 w-10 text-center"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-slate-100">
                 {partidas.map((item, idx) => (
-                  <tr key={item.id} className="hover:bg-blue-50/30 transition-colors">
-                    <td className="py-1.5 px-3 text-center text-slate-400 font-mono text-[11px]">
+                  <TableRow key={item.id} className="hover:bg-blue-50/30 transition-colors">
+                    <TableCell className="py-1.5 px-3 text-center text-slate-400 font-mono text-[11px]">
                       {item.partida || idx + 1}
-                    </td>
+                    </TableCell>
 
-                    <td className="py-1.5 px-3">
+                    <TableCell className="py-1.5 px-3">
                       <input
                         type="text"
                         value={item.clave || ''}
                         onChange={(e) => actualizarPartida(item.id, 'clave', e.target.value)}
-                        className="w-full rounded border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500/20 bg-transparent px-1.5 py-0.5 text-xs text-slate-900 font-mono"
+                        className="w-full rounded border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-ring/20 bg-transparent px-1.5 py-0.5 text-xs text-slate-900 font-mono"
                         placeholder="Clave"
                       />
-                    </td>
+                    </TableCell>
 
-                    <td className="py-1.5 px-3">
+                    <TableCell className="py-1.5 px-3">
                       <input
                         type="text"
                         value={item.descripcion}
                         onChange={(e) => actualizarPartida(item.id, 'descripcion', e.target.value)}
-                        className="w-full rounded border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500/20 bg-transparent px-1.5 py-0.5 text-xs text-slate-900 font-medium"
+                        className="w-full rounded border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-ring/20 bg-transparent px-1.5 py-0.5 text-xs text-slate-900 font-medium"
                         placeholder="Descripción de la pieza *"
                       />
-                    </td>
+                    </TableCell>
 
-                    <td className="py-1.5 px-3">
+                    <TableCell className="py-1.5 px-3">
                       <input
                         type="text"
                         value={item.requisitor || ''}
                         onChange={(e) => actualizarPartida(item.id, 'requisitor', e.target.value)}
-                        className="w-full rounded border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500/20 bg-transparent px-1.5 py-0.5 text-xs text-slate-700"
+                        className="w-full rounded border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-ring/20 bg-transparent px-1.5 py-0.5 text-xs text-slate-700"
                         placeholder="Pablo..."
                       />
-                    </td>
+                    </TableCell>
 
-                    <td className="py-1.5 px-3">
+                    <TableCell className="py-1.5 px-3">
                       <input
                         type="text"
                         value={item.empresa || ''}
                         onChange={(e) => actualizarPartida(item.id, 'empresa', e.target.value)}
-                        className="w-full rounded border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500/20 bg-transparent px-1.5 py-0.5 text-xs text-slate-700"
+                        className="w-full rounded border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-ring/20 bg-transparent px-1.5 py-0.5 text-xs text-slate-700"
                         placeholder="Taller"
                       />
-                    </td>
+                    </TableCell>
 
-                    <td className="py-1.5 px-3">
+                    <TableCell className="py-1.5 px-3 min-w-[130px]">
                       <input
                         type="text"
-                        value={item.uso || ''}
-                        onChange={(e) => actualizarPartida(item.id, 'uso', e.target.value)}
-                        className="w-full rounded border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500/20 bg-transparent px-1.5 py-0.5 text-xs text-slate-700"
-                        placeholder="General"
+                        list="lista-ots-odoo"
+                        value={item.ordenTrabajo || item.uso || ''}
+                        onChange={(e) => seleccionarOtFila(item.id, e.target.value)}
+                        className="w-full rounded border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-ring/20 bg-transparent px-1.5 py-0.5 text-xs text-slate-700 font-mono"
+                        placeholder="ej. 2026/S01641"
                       />
-                    </td>
+                    </TableCell>
 
-                    <td className="py-1.5 px-3 text-right">
+                    <TableCell className="py-1.5 px-3 text-right">
                       <input
                         type="number"
                         step="any"
@@ -978,18 +1194,18 @@ export default function CapturaOdooForm({
                         }
                         className="w-full rounded border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white bg-transparent px-1.5 py-0.5 text-xs text-slate-900 font-mono text-right font-semibold tabular-nums"
                       />
-                    </td>
+                    </TableCell>
 
-                    <td className="py-1.5 px-3">
+                    <TableCell className="py-1.5 px-3">
                       <input
                         type="text"
                         value={item.udm || 'Pieza'}
                         onChange={(e) => actualizarPartida(item.id, 'udm', e.target.value)}
                         className="w-full rounded border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white bg-transparent px-1.5 py-0.5 text-xs text-slate-700"
                       />
-                    </td>
+                    </TableCell>
 
-                    <td className="py-1.5 px-3 text-right">
+                    <TableCell className="py-1.5 px-3 text-right">
                       <input
                         type="number"
                         step="any"
@@ -1000,9 +1216,9 @@ export default function CapturaOdooForm({
                         }
                         className="w-full rounded border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white bg-transparent px-1.5 py-0.5 text-xs text-slate-900 font-mono text-right font-semibold tabular-nums"
                       />
-                    </td>
+                    </TableCell>
 
-                    <td className="py-1.5 px-2 text-center">
+                    <TableCell className="py-1.5 px-2 text-center">
                       <select
                         value={item.tasaIva !== undefined ? item.tasaIva : 0.16}
                         onChange={(e) => {
@@ -1020,17 +1236,17 @@ export default function CapturaOdooForm({
                         <option value={0.08}>8%</option>
                         <option value={0}>0%</option>
                       </select>
-                    </td>
+                    </TableCell>
 
-                    <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900 tabular-nums">
+                    <TableCell className="py-1.5 px-3 text-right font-mono font-bold text-slate-900 tabular-nums">
                       $
                       {item.subtotal.toLocaleString('es-MX', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
-                    </td>
+                    </TableCell>
 
-                    <td className="py-1.5 px-2 text-center">
+                    <TableCell className="py-1.5 px-2 text-center">
                       <button
                         type="button"
                         onClick={() => eliminarPartida(item.id)}
@@ -1039,11 +1255,11 @@ export default function CapturaOdooForm({
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
 
@@ -1064,7 +1280,7 @@ export default function CapturaOdooForm({
             </div>
             <div>
               <span className="text-[11px] font-medium text-slate-500 block">Total Cotización</span>
-              <span className="text-base font-extrabold text-blue-900 font-mono tabular-nums">
+              <span className="text-base font-bold text-blue-900 font-mono tabular-nums">
                 ${totales.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {moneda}
               </span>
             </div>
@@ -1074,10 +1290,10 @@ export default function CapturaOdooForm({
             type="button"
             disabled={enviando || partidas.length === 0 || !proveedor.trim()}
             onClick={enviarAOdoo}
-            className={`inline-flex items-center gap-2 rounded-lg px-5 py-2 text-xs font-bold text-white shadow-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+            className={`inline-flex items-center gap-2 rounded-lg px-5 py-2 text-xs font-bold text-primary-foreground shadow-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
               enviando || partidas.length === 0 || !proveedor.trim()
-                ? 'bg-slate-400 cursor-not-allowed opacity-75'
-                : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.99]'
+                ? 'bg-muted cursor-not-allowed opacity-75'
+                : 'bg-primary hover:bg-primary/90 active:scale-[0.99]'
             }`}
           >
             {enviando ? (
@@ -1089,6 +1305,21 @@ export default function CapturaOdooForm({
           </button>
         </div>
       </div>
+
+      {/* ── Datalist Global para Autocomplete de Órdenes de Trabajo en Tabla ─── */}
+      <datalist id="lista-ots-odoo">
+        <option value="Stock" label="Stock SMV" />
+        <option value="Mantenimiento" label="Mantenimiento General" />
+        <option value="Taller" label="Operación Taller" />
+        <option value="Herramientas" label="Herramientas de Taller" />
+        {ordenesTrabajo.map((ot) => (
+          <option
+            key={ot.id}
+            value={ot.name}
+            label={`${ot.partnerName}${ot.clientOrderRef ? ` (PO: ${ot.clientOrderRef})` : ''}`}
+          />
+        ))}
+      </datalist>
     </div>
   )
 }

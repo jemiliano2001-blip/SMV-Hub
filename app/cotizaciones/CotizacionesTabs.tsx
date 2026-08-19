@@ -6,6 +6,8 @@ import CotizacionesList from './CotizacionesList'
 import ImportarCotizaciones from './ImportarCotizaciones'
 import SyncSheetSection from './SyncSheetSection'
 import { useCotizaciones } from '@/lib/hooks/useCotizaciones'
+import ModuleTabs from '@/components/layout/ModuleTabs'
+import ModuleSurface from '@/components/layout/ModuleSurface'
 
 type Modo = 'consultar' | 'importar'
 
@@ -21,70 +23,70 @@ export default function CotizacionesTabs() {
     return { total, usa, mx, cotizados }
   }, [cotizaciones])
 
-  const tab = (valor: Modo, label: string, Icon: typeof Search) => (
-    <button
-      type="button"
-      onClick={() => setModo(valor)}
-      className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
-        modo === valor
-          ? 'bg-blue-600 text-white shadow-xs'
-          : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-      }`}
-    >
-      <Icon className="h-4 w-4" />
-      {label}
-    </button>
-  )
-
   return (
     <div className="space-y-6">
-      {/* ── Metric Summary Bar ────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+        <ModuleSurface className="p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Total Cotizaciones</span>
+            <span className="text-xs font-medium text-muted-foreground">Total Cotizaciones</span>
             <Database className="h-4 w-4 text-sky-600" />
           </div>
-          <p className="text-xl font-bold text-slate-900 mt-1 font-mono">{stats.total}</p>
-        </div>
+          <p className="text-xl font-bold text-foreground mt-1 font-mono">{stats.total}</p>
+        </ModuleSurface>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+        <ModuleSurface className="p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Cotizadas (USA)</span>
+            <span className="text-xs font-medium text-muted-foreground">Cotizadas (USA)</span>
             <DollarSign className="h-4 w-4 text-emerald-600" />
           </div>
-          <p className="text-xl font-bold text-slate-900 mt-1 font-mono">{stats.usa}</p>
-        </div>
+          <p className="text-xl font-bold text-foreground mt-1 font-mono">{stats.usa}</p>
+        </ModuleSurface>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+        <ModuleSurface className="p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Cotizadas (MX)</span>
+            <span className="text-xs font-medium text-muted-foreground">Cotizadas (MX)</span>
             <Globe2 className="h-4 w-4 text-indigo-600" />
           </div>
-          <p className="text-xl font-bold text-slate-900 mt-1 font-mono">{stats.mx}</p>
-        </div>
+          <p className="text-xl font-bold text-foreground mt-1 font-mono">{stats.mx}</p>
+        </ModuleSurface>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+        <ModuleSurface className="p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Estatus &apos;Cotizado&apos;</span>
+            <span className="text-xs font-medium text-muted-foreground">Estatus &apos;Cotizado&apos;</span>
             <FileSpreadsheet className="h-4 w-4 text-amber-600" />
           </div>
-          <p className="text-xl font-bold text-slate-900 mt-1 font-mono">{stats.cotizados}</p>
-        </div>
+          <p className="text-xl font-bold text-foreground mt-1 font-mono">{stats.cotizados}</p>
+        </ModuleSurface>
       </div>
 
-      {/* ── Auto-Sync Control Panel ───────────────────────────────────────── */}
       <SyncSheetSection onSyncCompletada={fetchCotizaciones} />
 
-      {/* ── Navigation Tabs & Main Body ───────────────────────────────────── */}
-      <div className="space-y-4">
-        <div className="flex gap-3 border-b border-slate-200 pb-3">
-          {tab('consultar', 'Consultar Catálogo', Search)}
-          {tab('importar', 'Carga Manual desde CSV', Upload)}
-        </div>
-
-        {modo === 'consultar' ? <CotizacionesList /> : <ImportarCotizaciones />}
-      </div>
+      <ModuleTabs
+        value={modo}
+        onValueChange={(value) => setModo(value as Modo)}
+        items={[
+          {
+            value: 'consultar',
+            label: (
+              <span className="inline-flex items-center gap-2">
+                <Search className="h-4 w-4" />
+                Consultar Catálogo
+              </span>
+            ),
+            content: <CotizacionesList />,
+          },
+          {
+            value: 'importar',
+            label: (
+              <span className="inline-flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                Carga Manual desde CSV
+              </span>
+            ),
+            content: <ImportarCotizaciones />,
+          },
+        ]}
+      />
     </div>
   )
 }

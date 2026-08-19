@@ -1,10 +1,18 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Upload, Camera, FileText, Trash2, Eye } from 'lucide-react'
+import { Upload, Camera, FileText, Trash2, Eye } from 'lucide-react'
 import type { NuevoMovimientoCajaPayload } from '@/lib/caja-chica'
 import type { MovimientoCajaChica, TipoMovimientoCaja, ComprobanteCaja } from '@/lib/schemas'
 import { fechaHoyLocal } from '@/lib/format'
 import { subirComprobanteCajaChica } from '@/lib/storage'
 import { ModalCamara } from '@/components/ModalCamara'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface ModalProps {
   movimiento: MovimientoCajaChica | null
@@ -244,26 +252,21 @@ export default function ModalMovimientoCaja({
 
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-              {isEditing ? 'Editar Movimiento' : 'Nuevo Movimiento'}
-              {comprobante === 'VALE' && tipo === 'SALIDA' && (
-                <span className="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-medium">Vale Pendiente</span>
-              )}
-            </h2>
-          </div>
-          <button 
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col gap-0 p-0">
+        <DialogHeader className="border-b border-border p-6">
+          <DialogTitle className="flex items-center gap-2 text-left">
+            {isEditing ? 'Editar movimiento' : 'Nuevo movimiento'}
+            {comprobante === 'VALE' && tipo === 'SALIDA' ? (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                Vale pendiente
+              </span>
+            ) : null}
+          </DialogTitle>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1 space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-6 overflow-y-auto p-6">
           {error && (
             <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm border border-red-200">
               {error}
@@ -335,7 +338,7 @@ export default function ModalMovimientoCaja({
                 required
                 value={fecha}
                 onChange={e => setFecha(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#0369A1] focus:border-[#0369A1]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ring focus:border-primary"
               />
             </div>
             
@@ -352,7 +355,7 @@ export default function ModalMovimientoCaja({
                   min="0"
                   value={monto}
                   onChange={e => setMonto(e.target.value)}
-                  className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#0369A1] focus:border-[#0369A1]"
+                  className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ring focus:border-primary"
                   placeholder="0.00"
                 />
               </div>
@@ -365,7 +368,7 @@ export default function ModalMovimientoCaja({
                 required
                 value={descripcion}
                 onChange={e => setDescripcion(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#0369A1] focus:border-[#0369A1]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ring focus:border-primary"
                 placeholder="Ej. Recarga Telcel"
               />
             </div>
@@ -380,7 +383,7 @@ export default function ModalMovimientoCaja({
                     required
                     value={proveedor}
                     onChange={e => setProveedor(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#0369A1] focus:border-[#0369A1]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ring focus:border-primary"
                     placeholder="Ej. Oxxo"
                   />
                 </div>
@@ -393,7 +396,7 @@ export default function ModalMovimientoCaja({
                     required
                     value={categoria}
                     onChange={e => setCategoria(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#0369A1] focus:border-[#0369A1]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ring focus:border-primary"
                     placeholder="Selecciona o escribe..."
                   />
                   <datalist id="categorias-caja">
@@ -416,7 +419,7 @@ export default function ModalMovimientoCaja({
                   required
                   value={solicitante}
                   onChange={e => setSolicitante(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#0369A1] focus:border-[#0369A1]"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ring focus:border-primary"
                   placeholder={tipo === 'ENTRADA' ? 'Nombre de quien devuelve...' : '¿Quién pidió el dinero?'}
                 />
               </div>
@@ -429,7 +432,7 @@ export default function ModalMovimientoCaja({
                   <select
                     value={comprobante}
                     onChange={e => setComprobante(e.target.value as ComprobanteCaja)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#0369A1] focus:border-[#0369A1]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ring focus:border-primary"
                   >
                     <option value="NINGUNO">Ninguno</option>
                     <option value="TICKET">Ticket</option>
@@ -444,7 +447,7 @@ export default function ModalMovimientoCaja({
                       type="checkbox"
                       checked={deducible}
                       onChange={e => setDeducible(e.target.checked)}
-                      className="h-4 w-4 text-[#0369A1] focus:ring-[#0369A1] border-gray-300 rounded"
+                      className="h-4 w-4 text-primary focus:ring-ring border-gray-300 rounded"
                     />
                     <span className="text-sm font-medium text-gray-700">Es Deducible</span>
                   </label>
@@ -474,7 +477,7 @@ export default function ModalMovimientoCaja({
                                 className="h-12 w-12 rounded object-cover border border-gray-200 bg-white"
                               />
                             ) : (
-                              <div className="h-12 w-12 rounded bg-sky-50 border border-sky-100 flex items-center justify-center text-[#0369A1]">
+                              <div className="h-12 w-12 rounded bg-sky-50 border border-sky-100 flex items-center justify-center text-primary">
                                 <FileText className="h-6 w-6" />
                               </div>
                             )}
@@ -493,7 +496,7 @@ export default function ModalMovimientoCaja({
                                 href={archivoPreview || archivoUrl!}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-1.5 text-gray-500 hover:text-[#0369A1] hover:bg-gray-100 rounded-md transition-colors"
+                                className="p-1.5 text-gray-500 hover:text-primary hover:bg-gray-100 rounded-md transition-colors"
                                 title="Visualizar comprobante"
                               >
                                 <Eye className="h-4.5 w-4.5" />
@@ -513,9 +516,9 @@ export default function ModalMovimientoCaja({
                         <div className="grid grid-cols-1 gap-4">
                           <div
                             onClick={() => fileInputRef.current?.click()}
-                            className="flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed border-gray-300 hover:border-[#0369A1] hover:bg-sky-50/20 rounded-lg cursor-pointer transition-all group text-center"
+                            className="flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed border-gray-300 hover:border-primary hover:bg-sky-50/20 rounded-lg cursor-pointer transition-all group text-center"
                           >
-                            <Upload className="h-6 w-6 text-gray-400 group-hover:text-[#0369A1] group-hover:scale-110 transition-transform" />
+                            <Upload className="h-6 w-6 text-gray-400 group-hover:text-primary group-hover:scale-110 transition-transform" />
                             <span className="text-xs font-semibold text-gray-700">Subir PDF o Imagen</span>
                             <span className="text-[10px] text-gray-400">Seleccionar desde tu equipo</span>
                             <input
@@ -529,16 +532,16 @@ export default function ModalMovimientoCaja({
 
                           <div
                             onClick={() => setIsCamaraModalOpen(true)}
-                            className="flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed border-gray-300 hover:border-[#0369A1] hover:bg-sky-50/20 rounded-lg cursor-pointer transition-all group text-center"
+                            className="flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed border-gray-300 hover:border-primary hover:bg-sky-50/20 rounded-lg cursor-pointer transition-all group text-center"
                           >
-                            <Camera className="h-6 w-6 text-gray-400 group-hover:text-[#0369A1] group-hover:scale-110 transition-transform" />
+                            <Camera className="h-6 w-6 text-gray-400 group-hover:text-primary group-hover:scale-110 transition-transform" />
                             <span className="text-xs font-semibold text-gray-700">Tomar Foto (Cámara)</span>
                             <span className="text-[10px] text-gray-400">Usar la cámara del dispositivo o celular</span>
                           </div>
                         </div>
                       )}
                     {subiendo && (
-                      <p className="text-xs text-[#0369A1]">Subiendo comprobante…</p>
+                      <p className="text-xs text-primary">Subiendo comprobante…</p>
                     )}
                   </div>
                 )}
@@ -547,32 +550,29 @@ export default function ModalMovimientoCaja({
 
           </div>
 
-          <div className="pt-6 border-t border-gray-100 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0369A1]"
-            >
+          <DialogFooter className="border-t border-border pt-6 sm:justify-end">
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={loading}
-              className={`px-4 py-2 text-sm font-medium text-white border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 ${
-                tipo === 'ENTRADA' ? 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500' : 'bg-[#0369A1] hover:bg-[#0284C7] focus:ring-[#0369A1]'
-              }`}
+              className={tipo === 'ENTRADA' ? 'bg-emerald-600 hover:bg-emerald-700' : undefined}
             >
               {subiendo
                 ? 'Subiendo comprobante…'
                 : loading
                   ? 'Guardando…'
                   : isEditing
-                    ? 'Guardar Cambios'
-                    : tipo === 'ENTRADA' ? 'Guardar Entrada' : 'Registrar Gasto'}
-            </button>
-          </div>
+                    ? 'Guardar cambios'
+                    : tipo === 'ENTRADA'
+                      ? 'Guardar entrada'
+                      : 'Registrar gasto'}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
+      </DialogContent>
+    </Dialog>
 
       <ModalCamara
         isOpen={isCamaraModalOpen}
@@ -580,6 +580,6 @@ export default function ModalMovimientoCaja({
         onCapture={procesarArchivo}
         titulo="Comprobante - Foto de Cámara"
       />
-    </div>
+    </>
   )
 }

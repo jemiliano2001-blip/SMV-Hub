@@ -4,6 +4,8 @@ export interface ValoresPorDefectoPartida {
   requisitor?: string
   empresa?: string
   uso?: string
+  ordenTrabajo?: string
+  ordenTrabajoId?: number | null
   udm?: string
   impuesto?: string
   tasaIva?: number
@@ -90,6 +92,9 @@ const TERMINOS_ENCABEZADO = [
   "uso",
   "cuenta",
   "cargo",
+  "ot",
+  "trabajo",
+  "so",
 ]
 
 /**
@@ -187,7 +192,15 @@ function deducirMapeoPorEncabezados(encabezados: string[]): MapeoColumnas {
       mapeo.idxRequisitor = i
     } else if (h.includes("empresa") || h.includes("destino")) {
       mapeo.idxEmpresa = i
-    } else if (h.includes("uso") || h.includes("cuenta") || h.includes("cargo")) {
+    } else if (
+      h.includes("uso") ||
+      h.includes("cuenta") ||
+      h.includes("cargo") ||
+      h.includes("trabajo") ||
+      h === "ot" ||
+      h === "so" ||
+      h.includes("orden")
+    ) {
       mapeo.idxUso = i
     }
   })
@@ -380,6 +393,9 @@ export function parsearTextoExcel(
     const impuesto = defaults?.impuesto || "IVA 16%"
     const tasaIva = defaults?.tasaIva !== undefined ? defaults.tasaIva : 0.16
 
+    const ordenTrabajo = uso || defaults?.ordenTrabajo || ""
+    const ordenTrabajoId = defaults?.ordenTrabajoId || null
+
     partidas.push({
       id: `item_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 7)}`,
       partida: partidaStr ? Number.parseInt(partidaStr, 10) || partidaStr : i + 1,
@@ -394,6 +410,8 @@ export function parsearTextoExcel(
       requisitor,
       empresa,
       uso,
+      ordenTrabajo,
+      ordenTrabajoId,
     })
   }
 

@@ -1,7 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader2, X } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import type { Cotizacion, EstatusCotizacion, Ubicacion, Proveedor } from '@/lib/schemas'
 import type { NuevaCotizacionPayload } from '@/lib/cotizaciones'
 import { crearCotizacion, actualizarCotizacion, claveDedupCotizacion, clavesExistentes } from '@/lib/cotizaciones'
@@ -97,16 +105,11 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
-      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col my-8">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 shrink-0">
-          <h2 className="text-lg font-bold text-gray-900">
-            {cotizacionBase ? 'Editar Cotización' : 'Añadir Cotización'}
-          </h2>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+        <DialogHeader className="border-b border-border px-6 py-4">
+          <DialogTitle>{cotizacionBase ? 'Editar cotización' : 'Añadir cotización'}</DialogTitle>
+        </DialogHeader>
 
         <div className="p-6 overflow-y-auto flex-1">
           {error && (
@@ -119,15 +122,15 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Solicitante</label>
-                <input value={formData.solicitante} onChange={e => setFormData({ ...formData, solicitante: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                <input value={formData.solicitante} onChange={e => setFormData({ ...formData, solicitante: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Fecha</label>
-                <input type="date" value={formData.fecha} onChange={e => setFormData({ ...formData, fecha: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                <input type="date" value={formData.fecha} onChange={e => setFormData({ ...formData, fecha: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Estatus</label>
-                <select value={formData.estatus} onChange={e => setFormData({ ...formData, estatus: e.target.value as EstatusCotizacion })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none">
+                <select value={formData.estatus} onChange={e => setFormData({ ...formData, estatus: e.target.value as EstatusCotizacion })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none">
                   <option value="cotizado">Cotizado</option>
                   <option value="revisar">Revisar</option>
                   <option value="cancelado">Cancelado</option>
@@ -138,7 +141,7 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Ubicación</label>
-                <select value={formData.ubicacion} onChange={e => setFormData({ ...formData, ubicacion: e.target.value as Ubicacion })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none">
+                <select value={formData.ubicacion} onChange={e => setFormData({ ...formData, ubicacion: e.target.value as Ubicacion })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none">
                   <option value="USA">EUA (USD)</option>
                   <option value="MX">México (MXN)</option>
                 </select>
@@ -150,7 +153,7 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
                   list="catalogo-proveedores-cotizacion"
                   value={formData.proveedor}
                   onChange={e => handleProveedorChange(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+                  className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none"
                   placeholder="Escribe o elige del catálogo"
                 />
                 <datalist id="catalogo-proveedores-cotizacion">
@@ -161,56 +164,56 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">No. de parte</label>
-                <input value={formData.numeroParte} onChange={e => setFormData({ ...formData, numeroParte: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                <input value={formData.numeroParte} onChange={e => setFormData({ ...formData, numeroParte: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">Descripción *</label>
-              <input required value={formData.descripcion} onChange={e => setFormData({ ...formData, descripcion: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+              <input required value={formData.descripcion} onChange={e => setFormData({ ...formData, descripcion: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Cantidad</label>
-                <input type="number" step="any" value={formData.cantidad} onChange={e => setFormData({ ...formData, cantidad: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                <input type="number" step="any" value={formData.cantidad} onChange={e => setFormData({ ...formData, cantidad: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">P. Unitario</label>
-                <input type="number" step="any" value={formData.precioUnitario} onChange={e => setFormData({ ...formData, precioUnitario: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                <input type="number" step="any" value={formData.precioUnitario} onChange={e => setFormData({ ...formData, precioUnitario: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Total</label>
-                <input type="number" step="any" value={formData.total} onChange={e => setFormData({ ...formData, total: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                <input type="number" step="any" value={formData.total} onChange={e => setFormData({ ...formData, total: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Días hábiles</label>
-                <input placeholder="Ej. 3 dias" value={formData.diasHabiles} onChange={e => setFormData({ ...formData, diasHabiles: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                <input placeholder="Ej. 3 dias" value={formData.diasHabiles} onChange={e => setFormData({ ...formData, diasHabiles: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">Link</label>
-              <input type="url" placeholder="https://" value={formData.link} onChange={e => setFormData({ ...formData, link: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+              <input type="url" placeholder="https://" value={formData.link} onChange={e => setFormData({ ...formData, link: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">Notas</label>
-              <textarea rows={3} value={formData.notas} onChange={e => setFormData({ ...formData, notas: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none resize-none" />
+              <textarea rows={3} value={formData.notas} onChange={e => setFormData({ ...formData, notas: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none resize-none" />
             </div>
           </form>
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-gray-200 px-6 py-4 bg-gray-50 rounded-b-xl shrink-0">
-          <button onClick={onClose} type="button" className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+        <DialogFooter className="border-t border-border bg-muted/30 px-6 py-4">
+          <Button variant="outline" onClick={onClose} type="button">
             Cancelar
-          </button>
-          <button type="submit" form="cotizacion-form" disabled={loading} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors">
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {cotizacionBase ? 'Guardar Cambios' : 'Crear Cotización'}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+          <Button type="submit" form="cotizacion-form" disabled={loading}>
+            {loading ? <Loader2 className="animate-spin" data-icon="inline-start" /> : null}
+            {cotizacionBase ? 'Guardar cambios' : 'Crear cotización'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

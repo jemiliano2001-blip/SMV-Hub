@@ -27,6 +27,14 @@ import {
   type CaseCommandInput,
   type IntegrityCaseDTO,
 } from "@/lib/reportes-integridad"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 type CommandDraft = Omit<
   CaseCommandInput,
@@ -76,41 +84,41 @@ function Evidence({
         role="region"
         aria-label="Comparación de evidencia; desplázate horizontalmente si es necesario"
       >
-        <table className="w-full min-w-[520px] text-left text-sm">
-          <thead className="bg-slate-50 text-slate-600">
-            <tr>
-              <th scope="col" className="px-3 py-2 font-medium">Campo</th>
-              <th scope="col" className="px-3 py-2 font-medium">SMV Hub</th>
-              <th scope="col" className="px-3 py-2 font-medium">Odoo</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200">
-            <tr>
-              <th scope="row" className="px-3 py-2 font-medium text-slate-700">Documento</th>
-              <td className="px-3 py-2 font-mono">{local?.invoiceNumber ?? "Sin orden"}</td>
-              <td className="px-3 py-2 font-mono">{odoo?.invoiceNumber ?? "Sin factura"}</td>
-            </tr>
-            <tr>
-              <th scope="row" className="px-3 py-2 font-medium text-slate-700">Proveedor</th>
-              <td className="px-3 py-2">{local?.providerName ?? "—"}</td>
-              <td className="px-3 py-2">{odoo?.providerName ?? "—"}</td>
-            </tr>
-            <tr className={currencyMismatch ? "bg-rose-50" : undefined}>
-              <th scope="row" className="px-3 py-2 font-medium text-slate-700">Moneda</th>
-              <td className="px-3 py-2 font-mono">{local?.currency || "—"}</td>
-              <td className="px-3 py-2 font-mono">{odoo?.currency || "—"}</td>
-            </tr>
-            <tr className={amountMismatch ? "bg-amber-50" : undefined}>
-              <th scope="row" className="px-3 py-2 font-medium text-slate-700">Total</th>
-              <td className="px-3 py-2 font-mono">
+        <Table className="w-full min-w-[520px] text-left text-sm">
+          <TableHeader className="bg-slate-50 text-slate-600">
+            <TableRow>
+              <TableHead scope="col" className="px-3 py-2 font-medium">Campo</TableHead>
+              <TableHead scope="col" className="px-3 py-2 font-medium">SMV Hub</TableHead>
+              <TableHead scope="col" className="px-3 py-2 font-medium">Odoo</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="divide-y divide-slate-200">
+            <TableRow>
+              <TableHead scope="row" className="px-3 py-2 font-medium text-slate-700">Documento</TableHead>
+              <TableCell className="px-3 py-2 font-mono">{local?.invoiceNumber ?? "Sin orden"}</TableCell>
+              <TableCell className="px-3 py-2 font-mono">{odoo?.invoiceNumber ?? "Sin factura"}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableHead scope="row" className="px-3 py-2 font-medium text-slate-700">Proveedor</TableHead>
+              <TableCell className="px-3 py-2">{local?.providerName ?? "—"}</TableCell>
+              <TableCell className="px-3 py-2">{odoo?.providerName ?? "—"}</TableCell>
+            </TableRow>
+            <TableRow className={currencyMismatch ? "bg-rose-50" : undefined}>
+              <TableHead scope="row" className="px-3 py-2 font-medium text-slate-700">Moneda</TableHead>
+              <TableCell className="px-3 py-2 font-mono">{local?.currency || "—"}</TableCell>
+              <TableCell className="px-3 py-2 font-mono">{odoo?.currency || "—"}</TableCell>
+            </TableRow>
+            <TableRow className={amountMismatch ? "bg-amber-50" : undefined}>
+              <TableHead scope="row" className="px-3 py-2 font-medium text-slate-700">Total</TableHead>
+              <TableCell className="px-3 py-2 font-mono">
                 {money(local?.total ?? null, local?.currency ?? detail.currency ?? "")}
-              </td>
-              <td className="px-3 py-2 font-mono">
+              </TableCell>
+              <TableCell className="px-3 py-2 font-mono">
                 {money(odoo?.total ?? null, odoo?.currency ?? detail.currency ?? "")}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
       <p className="mt-2 text-sm text-slate-600">
         Regla: {detail.ruleLabel} · revisión{" "}
@@ -215,7 +223,7 @@ function CaseActions({
             rows={3}
             maxLength={2000}
             placeholder="Describe lo revisado y el siguiente paso."
-            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#0369A1]"
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           <label htmlFor={`evidence-${detail.caseId}`} className="text-sm font-medium text-slate-700">
             URL de evidencia (HTTPS, opcional)
@@ -273,7 +281,7 @@ function CaseActions({
             {detail.candidates.map((candidate, index) => (
               <label
                 key={`${candidate.localOrderId}-${candidate.odooInvoiceId}-${index}`}
-                className="flex cursor-pointer gap-3 border border-slate-200 p-3 text-sm has-[:checked]:border-[#0369A1] has-[:checked]:bg-sky-50"
+                className="flex cursor-pointer gap-3 border border-slate-200 p-3 text-sm has-[:checked]:border-primary has-[:checked]:bg-sky-50"
               >
                 <input
                   type="radio"
@@ -343,7 +351,7 @@ function CaseActions({
             rows={2}
             maxLength={1000}
             placeholder="Explica por qué no debe tratarse como excepción."
-            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#0369A1]"
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           <Button
             type="button"
@@ -462,7 +470,7 @@ export default function IntegrityInspector({
               href={detail.workflow.evidenceUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex min-h-11 items-center gap-1 font-medium text-[#0369A1] underline underline-offset-4"
+              className="inline-flex min-h-11 items-center gap-1 font-medium text-primary underline underline-offset-4"
             >
               Abrir evidencia
               <ExternalLink className="h-4 w-4" aria-hidden="true" />

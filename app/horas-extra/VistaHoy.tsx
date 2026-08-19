@@ -180,7 +180,7 @@ export default function VistaHoy({ departamento, semanaInicio, puedeEditar }: Pr
              type="button"
              onClick={() => void cargarEquipoSeguro()}
              disabled={cargandoEquipo}
-             className="text-sm font-medium text-[#0369A1] hover:underline"
+             className="text-sm font-medium text-primary hover:underline"
            >
              {cargandoEquipo ? 'Cargando equipo…' : 'Cargar equipo del departamento'}
            </button>
@@ -201,7 +201,7 @@ export default function VistaHoy({ departamento, semanaInicio, puedeEditar }: Pr
                type="button"
                onClick={() => void cargarEquipoSeguro()}
                disabled={cargandoEquipo}
-               className="mt-3 text-sm font-medium text-[#0369A1] hover:underline"
+               className="mt-3 text-sm font-medium text-primary hover:underline"
              >
                {cargandoEquipo ? 'Cargando equipo…' : 'Cargar equipo'}
              </button>
@@ -254,7 +254,7 @@ export default function VistaHoy({ departamento, semanaInicio, puedeEditar }: Pr
                       void guardar(fila.id, fila.empleado, e.target.value, fila.reg)
                     }}
                     placeholder={puedeEditar ? 'Horas hoy' : 'Solo lectura'}
-                    className="w-full text-2xl font-bold text-center py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-[#0369A1] focus:ring-2 focus:ring-[#0369A1]/20 disabled:bg-gray-50 disabled:text-gray-500"
+                    className="w-full text-2xl font-bold text-center py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 disabled:bg-gray-50 disabled:text-gray-500"
                   />
                   {isSaving && (
                     <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 animate-spin" />
