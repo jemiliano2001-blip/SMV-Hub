@@ -91,6 +91,7 @@ export default function BuscadorGlobalCommand() {
       const t = setTimeout(() => inputRef.current?.focus(), 0)
       return () => clearTimeout(t)
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setQuery('')
     setResultadosSemanticos([])
     setErrorSemantico(null)
@@ -106,6 +107,7 @@ export default function BuscadorGlobalCommand() {
     const q = query.trim()
     if (q.length < 3) {
       abortControllerRef.current?.abort()
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResultadosSemanticos([])
       setErrorSemantico(null)
       setBuscandoSemantico(false)
