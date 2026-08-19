@@ -7,7 +7,6 @@ import {
 import { getClienteAuth } from "@/lib/firebase"
 import type { RegistroBano, SolicitudBorradoBano } from "@/lib/schemas"
 import { crearRepositorio } from "@/lib/repositorio"
-import { registrarAuditoria } from "@/lib/auditoria"
 
 const repo = crearRepositorio<RegistroBano>({ coleccion: "registros-bano" })
 

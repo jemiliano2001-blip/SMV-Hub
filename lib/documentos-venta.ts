@@ -38,11 +38,9 @@ const solicitudesRef = () =>
 
 const mensajeConverter: FirestoreDataConverter<MensajeSolicitudDocumento> = {
   toFirestore(entity: MensajeSolicitudDocumento) {
-    const { id: _id, creadoEn, ...rest } = entity
-    return {
-      ...rest,
-      creadoEn: Timestamp.fromDate(creadoEn),
-    }
+    const data: Record<string, unknown> = { ...entity, creadoEn: Timestamp.fromDate(entity.creadoEn) }
+    delete data.id
+    return data
   },
   fromFirestore(snap: QueryDocumentSnapshot) {
     const d = snap.data()

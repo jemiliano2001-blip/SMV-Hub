@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   resolverCategoriaProducto,
-  CATEGORIAS_PRODUCTO_REGISTRO,
 } from '@/lib/compras-odoo/categorias-registro'
 import {
   normalizarDescripcionMapeo,

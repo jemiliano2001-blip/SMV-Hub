@@ -13,7 +13,6 @@ import { db } from "@/lib/firebase"
 import type { VentaOdooSo } from "@/lib/schemas"
 
 const COLECCION_SO = "ventas_odoo_so"
-const SYNC_STATE_DOC = "ventas_odoo_sync_state/latest"
 
 export type EstadoSyncVentasOdoo = {
   ultimaSyncEn: Date | null
@@ -23,11 +22,9 @@ export type EstadoSyncVentasOdoo = {
 
 const ventaSoConverter: FirestoreDataConverter<VentaOdooSo> = {
   toFirestore(entity: VentaOdooSo) {
-    const { id: _id, sincronizadoEn, ...rest } = entity
-    return {
-      ...rest,
-      sincronizadoEn: Timestamp.fromDate(sincronizadoEn),
-    }
+    const data: Record<string, unknown> = { ...entity, sincronizadoEn: Timestamp.fromDate(entity.sincronizadoEn) }
+    delete data.id
+    return data
   },
   fromFirestore(snap: QueryDocumentSnapshot) {
     const d = snap.data()

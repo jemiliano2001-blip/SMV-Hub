@@ -2,13 +2,11 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { useCajaChica } from '@/lib/hooks/useCajaChica'
-import { Wallet, TrendingDown, CreditCard, AlertTriangle, Settings, PiggyBank, Save, RefreshCw, Scissors, Filter } from 'lucide-react'
-import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
+import { Wallet, TrendingDown, CreditCard, AlertTriangle, Settings, PiggyBank, Save, Scissors, Filter } from 'lucide-react'
 import { toast } from 'sonner'
 import { obtenerFondoFijoCajaChica, guardarFondoFijoCajaChica, type ModoFiltroCaja, listarCortesCaja, type CorteCaja } from '@/lib/caja-chica'
 
 export default function ResumenCaja() {
-  const confirmar = useConfirmDialog()
   const [modoFiltro, setModoFiltro] = useState<ModoFiltroCaja>('CICLO_ACTIVO')
   const [periodo, setPeriodo] = useState(() => {
     const hoy = new Date()

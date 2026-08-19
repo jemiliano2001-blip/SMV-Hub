@@ -29,12 +29,13 @@ const LIMITE_DEFAULT = 50
 
 const notificacionConverter: FirestoreDataConverter<Notificacion> = {
   toFirestore(entity) {
-    const { id: _id, creadoEn, actualizadoEn, ...rest } = entity as Notificacion
-    return {
-      ...rest,
-      creadoEn: Timestamp.fromDate(creadoEn),
-      actualizadoEn: Timestamp.fromDate(actualizadoEn),
+    const data: Record<string, unknown> = {
+      ...(entity as Notificacion),
+      creadoEn: Timestamp.fromDate((entity as Notificacion).creadoEn),
+      actualizadoEn: Timestamp.fromDate((entity as Notificacion).actualizadoEn),
     }
+    delete data.id
+    return data
   },
   fromFirestore(snap: QueryDocumentSnapshot) {
     const d = snap.data()

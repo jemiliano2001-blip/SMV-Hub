@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from 'react'
 import { fechaHoyLocal } from '@/lib/format'
 import {
   Building2,
-  X,
   Tag,
   Sparkles,
   Truck,
@@ -14,8 +13,6 @@ import {
   History,
   Zap,
   Printer,
-  Brain,
-  RefreshCw,
 } from 'lucide-react'
 import AuthGuard from '@/app/AuthGuard'
 import PageShell from '@/components/layout/PageShell'
@@ -1039,7 +1036,6 @@ function ProveedoresContent() {
 
   useEffect(() => {
     // Badges Primario/Backup del directorio; la pestaña Inteligencia ya no existe.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     obtenerMatrizBackupProveedores()
       .then(setMapeoBackup)
       .catch((err) => console.error('Error cargando matriz de backup de proveedores:', err))
