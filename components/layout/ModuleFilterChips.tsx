@@ -34,8 +34,9 @@ export default function ModuleFilterChips({
       type="single"
       value={value}
       onValueChange={(next) => {
-        if (!next && !allowEmpty) return
-        onValueChange(next)
+        const val = Array.isArray(next) ? next[0] || "" : next
+        if (!val && !allowEmpty) return
+        onValueChange(val)
       }}
       spacing={1}
       size="sm"
@@ -50,7 +51,7 @@ export default function ModuleFilterChips({
           className={cn(
             "h-7 rounded-full px-3 text-xs font-semibold [&_svg]:size-3",
             !option.className &&
-              "data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground",
+              "data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-pressed:border-primary data-pressed:bg-primary data-pressed:text-primary-foreground",
             option.className,
           )}
         >

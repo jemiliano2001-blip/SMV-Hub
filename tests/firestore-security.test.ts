@@ -59,7 +59,7 @@ describe("reglas de firestore para notificaciones leídas", () => {
 })
 
 describe("reglas de firestore para el feed de notificaciones", () => {
-  it("no concede un feed global y exige audiencia/destinatario en cada lectura", () => {
+  it("parte el feed por destinatario/audiencia sin keys().hasAll en lecturas", () => {
     const reglas = readFileSync(resolve(raiz, "firestore.rules"), "utf8")
     const bloque = reglas.match(
       /function puedeVerNotificacion\(d\) \{([\s\S]*?)\n    \}/
@@ -69,6 +69,10 @@ describe("reglas de firestore para el feed de notificaciones", () => {
     expect(bloque).toMatch(/d\.destinatarioUid == request\.auth\.uid/)
     expect(bloque).toMatch(/d\.audiencia == 'documentos-venta'/)
     expect(bloque).toMatch(/d\.audiencia == 'banos'/)
+    expect(bloque).toMatch(/esCorreoBreakGlass\(\)/)
+    expect(bloque).toMatch(/esSuperAdminDoc\(\)/)
+    // keys().hasAll en el read hace fallar las queries del campana (list != get).
+    expect(bloque).not.toMatch(/keys\(\)\.hasAll/)
     expect(reglas).not.toMatch(/function puedeVerNotificaciones\(\)/)
     expect(reglas).toMatch(/allow read: if puedeVerNotificacion\(resource\.data\);/)
   })

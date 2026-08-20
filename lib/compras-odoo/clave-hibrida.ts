@@ -51,6 +51,20 @@ export function llaveRangoHistorico(clave: string, moneda: string): string {
 /**
  * SKU si existe; si no, familia+tipo+medida; si no, descripción.
  */
+export type NivelClaveHibrida = "sku" | "familia" | "descripcion"
+
+export function nivelClaveHibrida(item: ItemParaClaveHibrida): NivelClaveHibrida {
+  const sku = textoClave(item.odooRefInterna)
+  if (sku) return "sku"
+
+  const tipo = textoClave(item.tipoInsumo ?? item.tipoMetal)
+  const medida = textoClave(item.medida)
+  const categoria = item.categoriaId.trim()
+  if (categoria && tipo && medida) return "familia"
+
+  return "descripcion"
+}
+
 export function claveHibridaItem(item: ItemParaClaveHibrida): string {
   const sku = textoClave(item.odooRefInterna)
   if (sku) return `sku:${sku}`

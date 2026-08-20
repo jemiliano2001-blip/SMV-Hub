@@ -10,6 +10,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { Proveedor, CategoriaProveedor } from '@/lib/schemas'
+import { CATEGORIAS_PROVEEDOR } from '@/lib/proveedores/categorias-proveedor'
 import type { ScorecardAutomatica } from '@/lib/proveedores-inteligencia-cruzada'
 import type { MatrizBackupProveedores } from '@/lib/proveedores'
 import {
@@ -50,13 +51,19 @@ export default function PanelInteligencia360({
   mapeoBackup,
   onActualizarMapeoBackup,
 }: PanelInteligencia360Props) {
-  const categoriasLista: { id: CategoriaProveedor; titulo: string; descripcion: string }[] = [
-    { id: 'endmills', titulo: 'Endmills (Cortadores Solidos CNC)', descripcion: 'Carburo sólido, aluminio y aleaciones exóticas' },
-    { id: 'insertos', titulo: 'Insertos de Torneado/Fresado', descripcion: 'PVD, CVD para aceros, inox y hierro gris' },
-    { id: 'tooling', titulo: 'Tooling & Porta-herramientas', descripcion: 'Conos CAT40/BT40, boquillas ER, prensas de precisión' },
-    { id: 'consumibles', titulo: 'Consumibles de Taller CNC', descripcion: 'Refrigerantes, lubricantes, insertos de roscado, brocas' },
-    { id: 'otros', titulo: 'Misceláneo & General', descripcion: 'Accesorios generales de máquina e instrumentos de medición' },
-  ]
+  const descripcionesCategoria: Record<CategoriaProveedor, string> = {
+    endmills: 'Carburo sólido, aluminio y aleaciones exóticas',
+    insertos: 'PVD, CVD para aceros, inox y hierro gris',
+    tooling: 'Conos CAT40/BT40, boquillas ER, prensas de precisión',
+    consumibles: 'Refrigerantes, lubricantes, insertos de roscado, brocas',
+    otros: 'Accesorios generales de máquina e instrumentos de medición',
+  }
+
+  const categoriasLista = CATEGORIAS_PROVEEDOR.map((cat) => ({
+    id: cat.id as CategoriaProveedor,
+    titulo: cat.etiqueta,
+    descripcion: descripcionesCategoria[cat.id as CategoriaProveedor],
+  }))
 
   const getProveedoresPorCategoria = (cat: CategoriaProveedor) => {
     return proveedores.filter((p) => p.categorias.includes(cat) || p.categorias.includes('otros'))

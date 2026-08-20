@@ -51,10 +51,12 @@ export {
   indiceRangosHistoricos,
   llaveRangoHistorico,
   monedaItem,
+  nivelClaveHibrida,
   posicionPrecioEnRango,
   rangoHistoricoPorClave,
   TOLERANCIA_PRECIO_BARATO,
   type ItemParaClaveHibrida,
+  type NivelClaveHibrida,
   type PosicionPrecioRango,
   type RangoHistoricoClave,
 } from "./clave-hibrida"

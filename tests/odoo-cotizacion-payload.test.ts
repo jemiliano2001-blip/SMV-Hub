@@ -110,4 +110,53 @@ describe("odoo-cotizacion schemas y payload", () => {
       expect(res.data.partidas[0].ordenTrabajo).toBe("2026/S01641")
     }
   })
+
+  it("acepta fechaRecepcion YYYY-MM-DD y notas para mapeo Odoo", () => {
+    const payload = {
+      proveedor: "HERRAMETAL DE LA FRONTERA NORTE S.A DE C.V",
+      proveedorId: 1234,
+      moneda: "MXN",
+      fecha: "2026-08-20",
+      fechaRecepcion: "2026-08-25",
+      notas: "Entregar en almacén SMV. Cotización A7713.",
+      partidas: [
+        {
+          id: "p1",
+          descripcion: "Broca HSS 1/4",
+          cantidad: 1,
+          udm: "Pieza",
+          precioUnitario: 369.96,
+          subtotal: 369.96,
+          impuesto: "IVA 8%",
+          tasaIva: 0.08,
+        },
+      ],
+    }
+
+    const res = CotizacionOdooPayloadSchema.safeParse(payload)
+    expect(res.success).toBe(true)
+    if (res.success) {
+      expect(res.data.fechaRecepcion).toBe("2026-08-25")
+      expect(res.data.notas).toBe("Entregar en almacén SMV. Cotización A7713.")
+    }
+  })
+
+  it("rechaza fechaRecepcion con formato inválido", () => {
+    const payload = {
+      proveedor: "PROTOSA",
+      fechaRecepcion: "20/08/2026",
+      partidas: [
+        {
+          id: "p1",
+          descripcion: "Pieza",
+          cantidad: 1,
+          precioUnitario: 10,
+          subtotal: 10,
+        },
+      ],
+    }
+
+    const res = CotizacionOdooPayloadSchema.safeParse(payload)
+    expect(res.success).toBe(false)
+  })
 })

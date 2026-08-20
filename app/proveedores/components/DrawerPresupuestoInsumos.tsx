@@ -13,6 +13,12 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { formatPrecio } from '@/lib/format'
+import {
+  claveHibridaItem,
+  esItemComprable,
+  monedaItem,
+  obtenerCategoriaDef,
+} from '@/lib/compras-odoo'
 import type { PartidaPresupuesto } from '@/lib/hooks/usePresupuestoInsumos'
 import type { CompraOdooItem } from '@/lib/schemas'
 
@@ -47,14 +53,21 @@ export default function DrawerPresupuestoInsumos({
     return null
   }
 
-  // Encontrar proveedores alternativos para un ítem determinado
-  function alternativasParaItem(itemId: string, descripcion: string) {
-    const descNorm = descripcion.toLowerCase().trim()
+  // Alternativas por clave híbrida + moneda (misma lógica que el comparador)
+  function alternativasParaItem(partida: PartidaPresupuesto) {
+    const origen = todosLosItems.find((it) => it.id === partida.itemId)
+    if (!origen) return []
+
+    const clave = claveHibridaItem(origen)
+    const moneda = monedaItem(origen)
+
     const matches = todosLosItems.filter(
-      (it) => it.descripcion.toLowerCase().trim() === descNorm && it.precioUnitario > 0
+      (it) =>
+        esItemComprable(it) &&
+        claveHibridaItem(it) === clave &&
+        monedaItem(it) === moneda,
     )
 
-    // Agrupar por proveedor y tomar la compra más reciente
     const porProv = new Map<string, CompraOdooItem>()
     for (const m of matches) {
       if (!porProv.has(m.proveedorNombre)) {
@@ -115,7 +128,7 @@ export default function DrawerPresupuestoInsumos({
                 </div>
               ) : (
                 partidas.map((p) => {
-                  const alternativas = alternativasParaItem(p.itemId, p.descripcion)
+                  const alternativas = alternativasParaItem(p)
 
                   return (
                     <div
@@ -129,7 +142,7 @@ export default function DrawerPresupuestoInsumos({
                           </p>
                           <div className="flex items-center gap-2 mt-1">
                             <Badge variant="outline" className="text-[9px] font-mono">
-                              {p.categoriaId}
+                              {obtenerCategoriaDef(p.categoriaId)?.etiqueta ?? p.categoriaId}
                             </Badge>
                             {p.medida && (
                               <span className="text-[10px] font-mono text-slate-500">

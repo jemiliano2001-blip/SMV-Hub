@@ -35,6 +35,7 @@ import {
   grupoConMasCompras,
   llaveRangoHistorico,
   monedaItem,
+  nivelClaveHibrida,
   comprasHistoricasDelGrupo,
   type RangoHistoricoClave,
   type PosicionPrecioRango,
@@ -200,7 +201,26 @@ export default function ComparadorPreciosInsumos({
     [comparacionesPorItem]
   )
 
-  const hayCriterio = busqueda.trim().length > 0 || categoriaFiltro !== 'todas' || proveedorFiltro !== 'todos'
+  const contadorPorFamilia = useMemo(() => {
+    const mapa = new Map<string, number>()
+    for (const it of items) {
+      if (!esItemComprable(it)) continue
+      mapa.set(it.categoriaId, (mapa.get(it.categoriaId) ?? 0) + 1)
+    }
+    return mapa
+  }, [items])
+
+  const contadorOtros = contadorPorFamilia.get('otros') ?? 0
+
+  const hayCriterio =
+    busqueda.trim().length > 0 ||
+    categoriaFiltro !== 'todas' ||
+    proveedorFiltro !== 'todos' ||
+    tipoDocFiltro !== 'todos'
+
+  function irAClasificacionIa() {
+    document.getElementById('panel-clasificacion-ia')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   const bandaRango = useMemo(() => {
     if (!hayCriterio) return null
@@ -338,12 +358,17 @@ export default function ComparadorPreciosInsumos({
             onChange={(e) => setCategoriaFiltro(e.target.value)}
             className="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 font-semibold text-slate-700"
           >
-            <option value="todas">Todas las Familias</option>
-            {CATEGORIAS_PRODUCTO_REGISTRO.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.etiqueta}
-              </option>
-            ))}
+            <option value="todas">
+              Todas las Familias ({items.filter(esItemComprable).length})
+            </option>
+            {CATEGORIAS_PRODUCTO_REGISTRO.map((c) => {
+              const n = contadorPorFamilia.get(c.id) ?? 0
+              return (
+                <option key={c.id} value={c.id}>
+                  {c.etiqueta}{n > 0 ? ` (${n})` : ''}
+                </option>
+              )
+            })}
           </select>
         </div>
       </div>
@@ -425,6 +450,22 @@ export default function ComparadorPreciosInsumos({
           {soloComparables ? 'Sólo alternativas comparables' : 'Mostrar todos los resultados'}
         </button>
       </div>
+
+      {(categoriaFiltro === 'otros' || contadorOtros >= 50) && contadorOtros > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+          <p>
+            <span className="font-bold">{contadorOtros} ítems</span> siguen en &quot;Otros&quot; sin familia
+            — clasifica primero para comparaciones más precisas.
+          </p>
+          <button
+            type="button"
+            onClick={irAClasificacionIa}
+            className="rounded-md bg-amber-700 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-amber-800"
+          >
+            Ir a clasificación
+          </button>
+        </div>
+      )}
 
       {hayCriterio && bandaRango && <BandaRangoHistorico rango={bandaRango} />}
 
@@ -565,6 +606,14 @@ export default function ComparadorPreciosInsumos({
                           <span className="text-[10px] text-slate-600 font-mono">
                             {[it.tipoInsumo ?? it.tipoMetal, it.medida].filter(Boolean).join(' · ')}
                           </span>
+                        )}
+                        {nivelClaveHibrida(it) === 'descripcion' && (
+                          <Badge
+                            variant="outline"
+                            className="w-fit text-[9px] border-amber-200 bg-amber-50 text-amber-800"
+                          >
+                            Agrupado por descripción
+                          </Badge>
                         )}
                       </div>
                     </TableCell>

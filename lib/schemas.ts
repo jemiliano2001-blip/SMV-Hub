@@ -1425,7 +1425,16 @@ export const CotizacionOdooPayloadSchema = z.object({
   proveedorId: z.union([z.number().int().positive(), z.string()]).optional().nullable(),
   referenciaProveedor: z.string().optional().default(""),
   moneda: z.enum(["MXN", "USD"]).default("MXN"),
+  /** Fecha de la orden → Odoo `date_order` (YYYY-MM-DD). */
   fecha: z.string().optional().default(""),
+  /** Fecha de recepción esperada → Odoo `date_planned` (YYYY-MM-DD o vacío). */
+  fechaRecepcion: z
+    .union([
+      z.literal(""),
+      z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "fechaRecepcion debe ser YYYY-MM-DD"),
+    ])
+    .optional()
+    .default(""),
   requisitorGeneral: z.string().optional().default(""),
   empresaGeneral: z.string().optional().default(""),
   usoGeneral: z.string().optional().default(""),
@@ -1445,6 +1454,10 @@ export const RegistroCotizacionOdooSchema = z.object({
   proveedorId: z.number().int().positive().nullable().optional(),
   referenciaProveedor: z.string().default(""),
   moneda: z.enum(["MXN", "USD"]).default("MXN"),
+  fecha: z.string().nullable().optional(),
+  fechaRecepcion: z.string().nullable().optional(),
+  /** Ausente en docs legacy de `compras_odoo` escritos antes de 2026-08-20. */
+  notas: z.string().nullable().optional(),
   totalUntaxed: z.number(),
   totalTax: z.number(),
   total: z.number(),

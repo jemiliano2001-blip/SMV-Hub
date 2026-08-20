@@ -11,9 +11,27 @@ import {
   Layers,
   RefreshCw,
   Clock,
+  AlertCircle,
 } from 'lucide-react'
-import type { RegistroCotizacionOdoo } from '@/lib/schemas'
-import { listarCotizacionesOdoo } from '@/lib/compras-odoo-cotizaciones'
+
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -22,20 +40,33 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import type { RegistroCotizacionOdoo } from '@/lib/schemas'
+import { listarCotizacionesOdoo } from '@/lib/compras-odoo-cotizaciones'
+
+function formatMoney(n: number) {
+  return n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
 
 export default function HistorialOdooList() {
   const [registros, setRegistros] = useState<RegistroCotizacionOdoo[]>([])
   const [cargando, setCargando] = useState(true)
+  const [errorCarga, setErrorCarga] = useState<string | null>(null)
   const [busqueda, setBusqueda] = useState('')
   const [expandidoId, setExpandidoId] = useState<string | null>(null)
 
   const cargarHistorial = useCallback(async () => {
     try {
       setCargando(true)
+      setErrorCarga(null)
       const items = await listarCotizacionesOdoo(150)
       setRegistros(items)
     } catch (err) {
       console.error('Error al cargar historial de Odoo:', err)
+      setErrorCarga(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo cargar el historial. Intenta de nuevo.'
+      )
     } finally {
       setCargando(false)
     }
@@ -48,11 +79,19 @@ export default function HistorialOdooList() {
         const items = await listarCotizacionesOdoo(150)
         if (activo) {
           setRegistros(items)
+          setErrorCarga(null)
           setCargando(false)
         }
       } catch (err) {
         console.error('Error al cargar historial de Odoo:', err)
-        if (activo) setCargando(false)
+        if (activo) {
+          setErrorCarga(
+            err instanceof Error
+              ? err.message
+              : 'No se pudo cargar el historial. Intenta de nuevo.'
+          )
+          setCargando(false)
+        }
       }
     }
     void inicializar()
@@ -90,211 +129,240 @@ export default function HistorialOdooList() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* ── Métricas Resumen ──────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Cotizaciones Enviadas</span>
-            <Layers className="h-4 w-4 text-primary" />
-          </div>
-          <p className="text-xl font-bold text-slate-900 mt-1 font-mono tabular-nums">{stats.total}</p>
-        </div>
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <Card className="gap-2 py-4 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between px-4 pb-0">
+            <CardTitle className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
+              Cotizaciones Enviadas
+            </CardTitle>
+            <Layers className="text-primary size-4" aria-hidden />
+          </CardHeader>
+          <CardContent className="px-4">
+            {cargando ? (
+              <Skeleton className="h-7 w-16" />
+            ) : (
+              <p className="font-mono text-xl font-bold tabular-nums">{stats.total}</p>
+            )}
+          </CardContent>
+        </Card>
 
-        <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Monto Total MXN</span>
-            <DollarSign className="h-4 w-4 text-emerald-600" />
-          </div>
-          <p className="text-xl font-bold text-emerald-950 mt-1 font-mono tabular-nums">
-            ${stats.totalMxn.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
-            <span className="text-xs font-normal text-emerald-700">MXN</span>
-          </p>
-        </div>
+        <Card className="gap-2 py-4 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between px-4 pb-0">
+            <CardTitle className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
+              Monto Total MXN
+            </CardTitle>
+            <DollarSign className="text-emerald-600 size-4" aria-hidden />
+          </CardHeader>
+          <CardContent className="px-4">
+            {cargando ? (
+              <Skeleton className="h-7 w-28" />
+            ) : (
+              <p className="font-mono text-xl font-bold tabular-nums text-emerald-950">
+                ${formatMoney(stats.totalMxn)}{' '}
+                <span className="text-xs font-normal text-emerald-700">MXN</span>
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
-        <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Monto Total USD</span>
-            <DollarSign className="h-4 w-4 text-sky-600" />
-          </div>
-          <p className="text-xl font-bold text-sky-950 mt-1 font-mono tabular-nums">
-            ${stats.totalUsd.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
-            <span className="text-xs font-normal text-sky-700">USD</span>
-          </p>
-        </div>
+        <Card className="gap-2 py-4 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between px-4 pb-0">
+            <CardTitle className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
+              Monto Total USD
+            </CardTitle>
+            <DollarSign className="size-4 text-sky-600" aria-hidden />
+          </CardHeader>
+          <CardContent className="px-4">
+            {cargando ? (
+              <Skeleton className="h-7 w-28" />
+            ) : (
+              <p className="font-mono text-xl font-bold tabular-nums text-sky-950">
+                ${formatMoney(stats.totalUsd)}{' '}
+                <span className="text-xs font-normal text-sky-700">USD</span>
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* ── Buscador y Control ────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Buscar por folio (P00XXX), proveedor, ref..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 pl-8 pr-3 py-1.5 text-xs text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-ring/20 focus:outline-none transition-all"
-          />
-        </div>
+      {errorCarga && (
+        <Alert variant="destructive">
+          <AlertCircle />
+          <AlertTitle>No se pudo cargar el historial</AlertTitle>
+          <AlertDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span>{errorCarga}</span>
+            <Button type="button" variant="outline" size="sm" onClick={cargarHistorial}>
+              Reintentar
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
-        <button
-          type="button"
-          onClick={cargarHistorial}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none transition-colors"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${cargando ? 'animate-spin' : ''}`} />
-          Actualizar
-        </button>
-      </div>
+      <Card className="gap-0 py-0 shadow-sm">
+        <CardContent className="flex flex-col items-stretch justify-between gap-3 p-3 sm:flex-row sm:items-center">
+          <div className="relative w-full sm:w-80">
+            <Search className="text-muted-foreground absolute top-2.5 left-2.5 size-4" aria-hidden />
+            <Input
+              type="search"
+              placeholder="Buscar por folio (P00XXX), proveedor, ref..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              className="pl-8 text-xs"
+            />
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={cargarHistorial} disabled={cargando}>
+            <RefreshCw className={cargando ? 'animate-spin' : undefined} data-icon="inline-start" />
+            Actualizar
+          </Button>
+        </CardContent>
+      </Card>
 
-      {/* ── Tabla de Historial ────────────────────────────────────────────── */}
-      <div className="rounded-xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
+      <Card className="gap-0 overflow-hidden py-0 shadow-sm">
         {cargando ? (
-          <div className="py-12 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
-            <RefreshCw className="h-4 w-4 animate-spin text-primary" />
-            Cargando historial de cotizaciones Odoo...
+          <div className="flex flex-col gap-3 p-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-3/4" />
           </div>
         ) : filtrados.length === 0 ? (
-          <div className="py-12 text-center space-y-2">
-            <Clock className="h-8 w-8 text-slate-300 mx-auto" />
-            <p className="text-xs font-semibold text-slate-700">No se encontraron cotizaciones creadas.</p>
-            <p className="text-[11px] text-slate-500">
-              Las cotizaciones que envíes a Odoo desde la pestaña de captura se registrarán aquí automáticamente.
-            </p>
-          </div>
+          <Empty className="border-0 py-12">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Clock aria-hidden />
+              </EmptyMedia>
+              <EmptyTitle className="text-sm">No se encontraron cotizaciones</EmptyTitle>
+              <EmptyDescription>
+                Las cotizaciones que envíes a Odoo desde la pestaña de captura aparecerán aquí.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <div className="overflow-x-auto">
-            <Table className="w-full text-left text-xs border-collapse">
-              <TableHeader className="bg-slate-100/90 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200">
+            <Table className="w-full text-left text-xs">
+              <TableHeader className="bg-muted/80 text-[11px] font-bold tracking-wider uppercase">
                 <TableRow>
-                  <TableHead className="py-2.5 px-3 w-8"></TableHead>
-                  <TableHead className="py-2.5 px-3">Folio Odoo</TableHead>
-                  <TableHead className="py-2.5 px-3">Proveedor</TableHead>
-                  <TableHead className="py-2.5 px-3">Ref. Cotización</TableHead>
-                  <TableHead className="py-2.5 px-3 text-center">Partidas</TableHead>
-                  <TableHead className="py-2.5 px-3 text-right">Total</TableHead>
-                  <TableHead className="py-2.5 px-3">Creado Por</TableHead>
-                  <TableHead className="py-2.5 px-3">Fecha</TableHead>
-                  <TableHead className="py-2.5 px-3 text-center w-28">Acción</TableHead>
+                  <TableHead className="w-8 px-3 py-2.5" />
+                  <TableHead className="px-3 py-2.5">Folio Odoo</TableHead>
+                  <TableHead className="px-3 py-2.5">Proveedor</TableHead>
+                  <TableHead className="px-3 py-2.5">Ref. Cotización</TableHead>
+                  <TableHead className="px-3 py-2.5 text-center">Partidas</TableHead>
+                  <TableHead className="px-3 py-2.5 text-right">Total</TableHead>
+                  <TableHead className="px-3 py-2.5">Creado Por</TableHead>
+                  <TableHead className="w-28 px-3 py-2.5 text-center">Acción</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className="divide-y divide-slate-100">
+              <TableBody>
                 {filtrados.map((r) => {
                   const estaExpandido = expandidoId === r.id
                   return (
-                    <TableRow key={r.id} className="group hover:bg-slate-50/70 transition-colors">
-                      <TableCell colSpan={9} className="p-0">
+                    <TableRow key={r.id} className="hover:bg-muted/40">
+                      <TableCell colSpan={8} className="p-0">
                         <div className="flex flex-col">
-                          {/* Fila Principal */}
-                          <div className="flex items-center w-full py-2.5 px-3 border-b border-slate-100 last:border-0">
+                          <div className="flex w-full items-center px-3 py-2.5">
                             <div className="w-8 shrink-0">
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="size-8 p-0"
                                 onClick={() => toggleExpandir(r.id)}
-                                className="p-1 rounded hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors"
-                                title="Ver partidas"
+                                aria-expanded={estaExpandido}
+                                aria-label={estaExpandido ? 'Ocultar partidas' : 'Ver partidas'}
                               >
-                                {estaExpandido ? (
-                                  <ChevronDown className="h-4 w-4" />
-                                ) : (
-                                  <ChevronRight className="h-4 w-4" />
-                                )}
-                              </button>
+                                {estaExpandido ? <ChevronDown /> : <ChevronRight />}
+                              </Button>
                             </div>
 
-                            <div className="flex-1 grid grid-cols-8 items-center gap-2">
-                              <div className="font-mono font-bold text-blue-900 flex items-center gap-1.5">
-                                <span className="bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded text-[11px]">
+                            <div className="grid flex-1 grid-cols-7 items-center gap-2">
+                              <div>
+                                <Badge variant="secondary" className="font-mono text-[11px]">
                                   {r.odooName}
-                                </span>
+                                </Badge>
                               </div>
-
-                              <div className="font-semibold text-slate-900 col-span-2 truncate">
-                                {r.proveedor}
-                              </div>
-
-                              <div className="font-mono text-slate-600 text-[11px] truncate">
+                              <div className="col-span-2 truncate font-semibold">{r.proveedor}</div>
+                              <div className="text-muted-foreground truncate font-mono text-[11px]">
                                 {r.referenciaProveedor || '—'}
                               </div>
-
-                              <div className="text-center font-mono text-slate-700 font-medium">
-                                <span className="bg-slate-100 px-2 py-0.5 rounded-full text-[11px]">
+                              <div className="text-center">
+                                <Badge variant="outline" className="font-mono text-[11px]">
                                   {r.itemsCount} partidas
+                                </Badge>
+                              </div>
+                              <div className="text-right font-mono font-bold tabular-nums">
+                                ${formatMoney(r.total)}{' '}
+                                <span className="text-muted-foreground text-[10px] font-normal">
+                                  {r.moneda}
                                 </span>
                               </div>
-
-                              <div className="text-right font-mono font-bold text-slate-900 tabular-nums">
-                                ${r.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
-                                <span className="text-[10px] text-slate-500 font-normal">{r.moneda}</span>
-                              </div>
-
-                              <div className="text-[11px] text-slate-500 truncate">
-                                {r.creadoPorEmail?.split('@')[0] || '—'}
-                              </div>
-
-                              <div className="text-center">
-                                <a
-                                  href={`https://system.maquinadosvazquez.com/web#id=${r.odooId}&model=purchase.order&view_type=form`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="inline-flex items-center gap-1 rounded bg-slate-100 border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-blue-50 hover:text-primary hover:border-blue-200 transition-colors"
-                                >
-                                  <ExternalLink className="h-3 w-3" />
-                                  Odoo ERP
-                                </a>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-muted-foreground truncate text-[11px]">
+                                  {r.creadoPorEmail?.split('@')[0] || '—'}
+                                </span>
+                                <Button asChild variant="outline" size="sm" className="shrink-0 text-[11px]">
+                                  <a
+                                    href={`https://system.maquinadosvazquez.com/web#id=${r.odooId}&model=purchase.order&view_type=form`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    <ExternalLink data-icon="inline-start" />
+                                    Odoo
+                                  </a>
+                                </Button>
                               </div>
                             </div>
                           </div>
 
-                          {/* Partidas Desplegadas */}
                           {estaExpandido && (
-                            <div className="bg-slate-50/80 p-3.5 border-b border-slate-200 space-y-2">
-                              <div className="flex items-center justify-between">
-                                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                                  <FileSpreadsheet className="h-3.5 w-3.5 text-slate-500" />
-                                  Desglose de Partidas ({r.partidas.length})
-                                </span>
-                              </div>
-
-                              <div className="rounded-lg border border-slate-200 bg-white overflow-hidden shadow-2xs">
-                                <Table className="w-full text-left text-xs border-collapse">
-                                  <TableHeader className="bg-slate-100/80 text-[10px] font-bold text-slate-600 uppercase border-b border-slate-200">
+                            <div className="bg-muted/40 flex flex-col gap-2 border-t p-3.5">
+                              <span className="flex items-center gap-1.5 text-[11px] font-bold tracking-wider uppercase">
+                                <FileSpreadsheet className="text-muted-foreground size-3.5" aria-hidden />
+                                Desglose de Partidas ({r.partidas.length})
+                              </span>
+                              <div className="bg-card overflow-hidden rounded-lg border shadow-sm">
+                                <Table className="w-full text-left text-xs">
+                                  <TableHeader className="bg-muted/80 text-[10px] font-bold uppercase">
                                     <TableRow>
-                                      <TableHead className="py-1.5 px-2.5 w-8 text-center">#</TableHead>
-                                      <TableHead className="py-1.5 px-2.5 w-24">Clave</TableHead>
-                                      <TableHead className="py-1.5 px-2.5">Descripción</TableHead>
-                                      <TableHead className="py-1.5 px-2.5 w-24">Requisitor</TableHead>
-                                      <TableHead className="py-1.5 px-2.5 w-20">Empresa</TableHead>
-                                      <TableHead className="py-1.5 px-2.5 w-24">OT / Uso</TableHead>
-                                      <TableHead className="py-1.5 px-2.5 w-16 text-right">Cant.</TableHead>
-                                      <TableHead className="py-1.5 px-2.5 w-20 text-right">P. Unit.</TableHead>
-                                      <TableHead className="py-1.5 px-2.5 w-24 text-right">Subtotal</TableHead>
+                                      <TableHead className="w-8 px-2.5 py-1.5 text-center">#</TableHead>
+                                      <TableHead className="w-24 px-2.5 py-1.5">Clave</TableHead>
+                                      <TableHead className="px-2.5 py-1.5">Descripción</TableHead>
+                                      <TableHead className="w-24 px-2.5 py-1.5">Requisitor</TableHead>
+                                      <TableHead className="w-20 px-2.5 py-1.5">Empresa</TableHead>
+                                      <TableHead className="w-24 px-2.5 py-1.5">OT / Uso</TableHead>
+                                      <TableHead className="w-16 px-2.5 py-1.5 text-right">Cant.</TableHead>
+                                      <TableHead className="w-20 px-2.5 py-1.5 text-right">P. Unit.</TableHead>
+                                      <TableHead className="w-24 px-2.5 py-1.5 text-right">Subtotal</TableHead>
                                     </TableRow>
                                   </TableHeader>
-                                  <TableBody className="divide-y divide-slate-100 text-[11px]">
+                                  <TableBody className="text-[11px]">
                                     {r.partidas.map((p, idx) => (
-                                      <TableRow key={p.id || idx} className="hover:bg-slate-50/50">
-                                        <TableCell className="py-1.5 px-2.5 text-center text-slate-400 font-mono">
+                                      <TableRow key={p.id || idx}>
+                                        <TableCell className="text-muted-foreground px-2.5 py-1.5 text-center font-mono">
                                           {p.partida || idx + 1}
                                         </TableCell>
-                                        <TableCell className="py-1.5 px-2.5 font-mono text-slate-600">
+                                        <TableCell className="text-muted-foreground px-2.5 py-1.5 font-mono">
                                           {p.clave || '—'}
                                         </TableCell>
-                                        <TableCell className="py-1.5 px-2.5 font-medium text-slate-900">
+                                        <TableCell className="px-2.5 py-1.5 font-medium">
                                           {p.descripcion}
                                         </TableCell>
-                                        <TableCell className="py-1.5 px-2.5 text-slate-600">{p.requisitor || '—'}</TableCell>
-                                        <TableCell className="py-1.5 px-2.5 text-slate-600">{p.empresa || '—'}</TableCell>
-                                        <TableCell className="py-1.5 px-2.5 text-slate-600 font-mono text-[10px]">
+                                        <TableCell className="text-muted-foreground px-2.5 py-1.5">
+                                          {p.requisitor || '—'}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground px-2.5 py-1.5">
+                                          {p.empresa || '—'}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground px-2.5 py-1.5 font-mono text-[10px]">
                                           {p.ordenTrabajo || p.uso || '—'}
                                         </TableCell>
-                                        <TableCell className="py-1.5 px-2.5 text-right font-mono font-semibold text-slate-800 tabular-nums">
+                                        <TableCell className="px-2.5 py-1.5 text-right font-mono font-semibold tabular-nums">
                                           {p.cantidad} {p.udm}
                                         </TableCell>
-                                        <TableCell className="py-1.5 px-2.5 text-right font-mono text-slate-700 tabular-nums">
+                                        <TableCell className="px-2.5 py-1.5 text-right font-mono tabular-nums">
                                           ${p.precioUnitario.toFixed(2)}
                                         </TableCell>
-                                        <TableCell className="py-1.5 px-2.5 text-right font-mono font-bold text-slate-900 tabular-nums">
+                                        <TableCell className="px-2.5 py-1.5 text-right font-mono font-bold tabular-nums">
                                           ${p.subtotal.toFixed(2)}
                                         </TableCell>
                                       </TableRow>
@@ -313,7 +381,7 @@ export default function HistorialOdooList() {
             </Table>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

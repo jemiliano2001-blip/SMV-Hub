@@ -5,6 +5,7 @@ import {
   grupoConMasCompras,
   indiceRangosHistoricos,
   llaveRangoHistorico,
+  nivelClaveHibrida,
   posicionPrecioEnRango,
   rangoHistoricoPorClave,
   type ItemParaClaveHibrida,
@@ -80,6 +81,22 @@ describe("claveHibridaItem", () => {
     const a = claveHibridaItem(item({ descripcion: "Nylon 6mm" }))
     const b = claveHibridaItem(item({ descripcion: "NYLON  6mm" }))
     expect(a).toBe(b)
+  })
+})
+
+describe("nivelClaveHibrida", () => {
+  it("identifica sku, familia o descripción", () => {
+    expect(
+      nivelClaveHibrida(item({ descripcion: "X", odooRefInterna: "ABC-123" })),
+    ).toBe("sku")
+    expect(
+      nivelClaveHibrida(
+        item({ descripcion: "X", tipoInsumo: "acero_1018", medida: "1/2" }),
+      ),
+    ).toBe("familia")
+    expect(
+      nivelClaveHibrida(item({ descripcion: "Insumo raro", categoriaId: "otros" })),
+    ).toBe("descripcion")
   })
 })
 

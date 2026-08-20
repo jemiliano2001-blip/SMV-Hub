@@ -591,12 +591,17 @@ service cloud.firestore {
 
     // ── Notificaciones in-app (Operación del Taller) ─────────────────────────
 
-    // La consulta del cliente se divide por audiencia y destinatario. Esta
-    // función debe poder evaluar cada documento de esas consultas por separado.
+    // El cliente parte el feed en consultas `where destinatarioUid == uid` y
+    // `where audiencia == X`. Firestore no filtra documento a documento: si la
+    // regla exige campos que la consulta no restringe (p. ej. keys().hasAll),
+    // TODA la query cae con permission-denied. La forma del documento se
+    // valida en create vía notificacionValida(). Super-admin/break-glass leen
+    // el feed completo; el resto solo su uid o las audiencias de su módulo.
     function puedeVerNotificacion(d) {
       return esUsuarioAutorizado() &&
-        d.keys().hasAll(['audiencia', 'destinatarioUid']) &&
         (
+          esCorreoBreakGlass() ||
+          esSuperAdminDoc() ||
           d.destinatarioUid == request.auth.uid ||
           (d.audiencia == 'pedidos-almacen' && tieneModulo('pedidos-almacen')) ||
           (d.audiencia == 'requisiciones' && tieneModulo('requisiciones')) ||

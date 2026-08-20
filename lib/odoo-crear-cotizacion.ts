@@ -550,6 +550,10 @@ export async function crearCotizacionEnOdoo(
     ordenValues.date_order = `${payload.fecha} 12:00:00`
   }
 
+  if (payload.fechaRecepcion) {
+    ordenValues.date_planned = `${payload.fechaRecepcion} 12:00:00`
+  }
+
   if (payload.notas) {
     ordenValues.notes = payload.notas
   }

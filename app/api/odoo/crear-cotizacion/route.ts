@@ -47,6 +47,7 @@ export async function POST(request: Request) {
         referenciaProveedor: resultadoOdoo.referenciaProveedor,
         moneda: resultadoOdoo.moneda,
         fecha: payload.fecha || null,
+        fechaRecepcion: payload.fechaRecepcion || null,
         notas: payload.notas || "",
         requisitorGeneral: payload.requisitorGeneral || "",
         empresaGeneral: payload.empresaGeneral || "",

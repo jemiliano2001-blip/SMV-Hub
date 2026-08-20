@@ -12,6 +12,7 @@ import {
   cargarMapeosClasificacion,
   aplicarMapeosAprobados,
 } from '@/lib/compras-odoo/mapeos-clasificacion'
+import { aplicarReclasificacionHeuristica } from '@/lib/compras-odoo/reclasificar-heuristica'
 import {
   Table,
   TableBody,
@@ -39,10 +40,49 @@ type Props = {
 export default function PanelClasificacionIA({ items, onActualizado }: Props) {
   const [sugerencias, setSugerencias] = useState<ItemSugerido[]>([])
   const [procesando, setProcesando] = useState(false)
+  const [reclasificando, setReclasificando] = useState(false)
   const [mensajeGlobal, setMensajeGlobal] = useState<string | null>(null)
   const [itemsAutoAprobados, setItemsAutoAprobados] = useState(0)
 
   const itemsSinClasificar = items.filter((i) => i.categoriaId === 'otros')
+
+  async function reclasificarHeuristica() {
+    if (
+      itemsSinClasificar.length === 0 ||
+      !window.confirm(
+        `¿Re-clasificar heurísticamente ${itemsSinClasificar.length} ítems en "Otros"? No usa IA; solo keywords y SAT.`,
+      )
+    ) {
+      return
+    }
+
+    setReclasificando(true)
+    setMensajeGlobal(null)
+    try {
+      const resultado = await aplicarReclasificacionHeuristica(
+        itemsSinClasificar.map((i) => ({
+          id: i.id,
+          descripcion: i.descripcion,
+          claveProdServ: i.claveProdServ,
+          odooCategoria: i.odooCategoria ?? null,
+          categoriaId: i.categoriaId,
+          tipoInsumo: i.tipoInsumo ?? i.tipoMetal ?? null,
+          tipoMetal: i.tipoMetal ?? null,
+          medida: i.medida ?? null,
+        })),
+      )
+      setMensajeGlobal(
+        `Re-clasificación heurística: ${resultado.actualizados} ítems movidos de "Otros" (${resultado.sinCambio} siguen sin match).`,
+      )
+      if (resultado.actualizados > 0) {
+        await onActualizado()
+      }
+    } catch (err) {
+      setMensajeGlobal(err instanceof Error ? err.message : 'Error al re-clasificar')
+    } finally {
+      setReclasificando(false)
+    }
+  }
 
   async function clasificarConIa() {
     setProcesando(true)
@@ -198,7 +238,10 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
   }
 
   return (
-    <div className="bg-gradient-to-r from-sky-50 via-slate-50 to-emerald-50 border border-sky-200 rounded-xl p-4 shadow-xs space-y-4">
+    <div
+      id="panel-clasificacion-ia"
+      className="bg-gradient-to-r from-sky-50 via-slate-50 to-emerald-50 border border-sky-200 rounded-xl p-4 shadow-xs space-y-4"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="p-2 bg-sky-600 text-white rounded-lg shadow-xs">
@@ -219,15 +262,26 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => void clasificarConIa()}
-          disabled={procesando}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 disabled:opacity-60 text-white text-xs font-bold rounded-lg shadow-xs transition-all"
-        >
-          <RefreshCw className={`h-4 w-4 ${procesando ? 'animate-spin' : ''}`} />
-          {procesando ? 'Analizando con IA…' : 'Clasificar con IA'}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void reclasificarHeuristica()}
+            disabled={reclasificando || procesando || itemsSinClasificar.length === 0}
+            className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-slate-50 disabled:opacity-60 text-slate-800 text-xs font-bold rounded-lg shadow-xs border border-slate-300 transition-all"
+          >
+            <RefreshCw className={`h-4 w-4 ${reclasificando ? 'animate-spin' : ''}`} />
+            {reclasificando ? 'Re-clasificando…' : 'Re-clasificar heurística'}
+          </button>
+          <button
+            type="button"
+            onClick={() => void clasificarConIa()}
+            disabled={procesando || reclasificando}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 disabled:opacity-60 text-white text-xs font-bold rounded-lg shadow-xs transition-all"
+          >
+            <RefreshCw className={`h-4 w-4 ${procesando ? 'animate-spin' : ''}`} />
+            {procesando ? 'Analizando con IA…' : 'Clasificar con IA'}
+          </button>
+        </div>
       </div>
 
       {mensajeGlobal && (

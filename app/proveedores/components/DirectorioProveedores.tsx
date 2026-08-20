@@ -13,9 +13,11 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
+import ModuleFilterChips from '@/components/layout/ModuleFilterChips'
 import TarjetaProveedor from './TarjetaProveedor'
 import type { Proveedor, CategoriaProveedor } from '@/lib/schemas'
 import type { MercadoProveedor, OrdenamientoProveedor } from '@/lib/proveedores/directorio'
+import { CATEGORIAS_PROVEEDOR_FILTRO } from '@/lib/proveedores/categorias-proveedor'
 import { cn } from '@/lib/utils'
 import {
   Table,
@@ -90,15 +92,6 @@ export default function DirectorioProveedores({
     setVerTodos(false)
   }, [mercado, busqueda, categoriaFiltro, ordenamiento])
 
-  const categoriasNav: { id: CategoriaFiltro; label: string }[] = [
-    { id: 'todas', label: 'Todas las categorías' },
-    { id: 'endmills', label: 'Endmills (Cortadores)' },
-    { id: 'insertos', label: 'Insertos de Torneado/Fresado' },
-    { id: 'tooling', label: 'Tooling & Conos' },
-    { id: 'consumibles', label: 'Consumibles Taller' },
-    { id: 'otros', label: 'Otros / Misceláneo' },
-  ]
-
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3.5 rounded-xl border border-border bg-card p-4 shadow-xs">
@@ -164,23 +157,15 @@ export default function DirectorioProveedores({
         </div>
 
         {/* Chips de Categorías */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
-          {categoriasNav.map((cat) => (
-            <button
-              type="button"
-              key={cat.id}
-              onClick={() => onCategoriaChange(cat.id)}
-              className={cn(
-                'whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-all',
-                categoriaFiltro === cat.id
-                  ? 'bg-primary font-bold text-primary-foreground shadow-xs'
-                  : 'bg-muted text-foreground hover:bg-muted/80'
-              )}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
+        <ModuleFilterChips
+          value={categoriaFiltro}
+          onValueChange={(next) => onCategoriaChange(next as CategoriaFiltro)}
+          ariaLabel="Filtrar proveedores por categoría"
+          options={CATEGORIAS_PROVEEDOR_FILTRO.map((cat) => ({
+            value: cat.id,
+            label: cat.etiqueta,
+          }))}
+        />
       </div>
 
       {/* Estado Carga o Vacío */}

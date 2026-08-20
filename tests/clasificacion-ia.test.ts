@@ -34,6 +34,35 @@ describe('resolverCategoriaProducto con odooCategoria y keywords', () => {
     const cat2 = resolverCategoriaProducto({ descripcion: 'Redondo de aluminio 6061' })
     expect(cat2).toBe('metals')
   })
+
+  it('clasifica familias nuevas por keyword', () => {
+    expect(
+      resolverCategoriaProducto({ descripcion: 'Cable recto M-12 macho 5 metros' }),
+    ).toBe('electronica')
+    expect(
+      resolverCategoriaProducto({ descripcion: 'Tungsteno de carburo para EDM' }),
+    ).toBe('consumibles')
+    expect(
+      resolverCategoriaProducto({ descripcion: 'Cilindro neumático Festo DSBC-32-100' }),
+    ).toBe('neumatica')
+    expect(
+      resolverCategoriaProducto({ descripcion: 'Aceite lubricante soluble 5 gal' }),
+    ).toBe('quimicos')
+    expect(
+      resolverCategoriaProducto({ descripcion: 'Disco flap 4 pulgadas 60 grit' }),
+    ).toBe('abrasivos')
+    expect(
+      resolverCategoriaProducto({ descripcion: 'O-ring viton 2-012' }),
+    ).toBe('empaques')
+    expect(
+      resolverCategoriaProducto({ descripcion: 'Tornillo socket head cap M8 x 25' }),
+    ).toBe('tornilleria')
+  })
+
+  it('mueve tornillería fuera de herramientas', () => {
+    expect(resolverCategoriaProducto({ descripcion: 'Rodamiento 6205-2RS' })).toBe('tornilleria')
+    expect(resolverCategoriaProducto({ descripcion: 'Fresa carburo 4 flutes 1/2' })).toBe('tools')
+  })
 })
 
 describe('mapeos-clasificacion', () => {

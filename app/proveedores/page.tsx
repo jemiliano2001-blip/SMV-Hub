@@ -32,6 +32,7 @@ import type {
   CompraOdooItem,
 } from '@/lib/schemas'
 import type { NuevoProveedorPayload, MatrizBackupProveedores } from '@/lib/proveedores'
+import { CATEGORIAS_PROVEEDOR_FORM } from '@/lib/proveedores/categorias-proveedor'
 import { obtenerMatrizBackupProveedores, guardarMatrizBackupProveedores } from '@/lib/proveedores'
 import type { NuevaCompraPayload } from '@/lib/proveedores-inteligencia'
 import SeccionRecomendacionInteligente from '@/app/requisiciones/SeccionRecomendacionInteligente'
@@ -79,13 +80,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-const CATEGORIAS_OPCIONES: { valor: CategoriaProveedor; etiqueta: string }[] = [
-  { valor: 'endmills', etiqueta: 'Endmills (Cortadores CNC)' },
-  { valor: 'insertos', etiqueta: 'Insertos de Torneado/Fresado' },
-  { valor: 'tooling', etiqueta: 'Tooling & Conos (CAT40/BT40)' },
-  { valor: 'consumibles', etiqueta: 'Consumibles de Taller' },
-  { valor: 'otros', etiqueta: 'Otros / Misceláneo' },
-]
+const CATEGORIAS_OPCIONES = CATEGORIAS_PROVEEDOR_FORM
 
 const METODOS_PAGO_OPCIONES: { valor: MetodoPago; etiqueta: string }[] = [
   { valor: 'tarjeta', etiqueta: 'Tarjeta Crédito/Débito' },

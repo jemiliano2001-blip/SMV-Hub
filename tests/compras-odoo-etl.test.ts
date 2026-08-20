@@ -54,6 +54,13 @@ describe("resolverCategoriaProducto", () => {
     expect(resolverCategoriaProducto({ descripcion: "Ibuprofeno 400mg" })).toBe("medical")
   })
 
+  it("categoriza familias ampliadas (electrónica, neumática, consumibles, etc.)", () => {
+    expect(resolverCategoriaProducto({ claveProdServ: "26111700" })).toBe("electronica")
+    expect(resolverCategoriaProducto({ claveProdServ: "40101600" })).toBe("neumatica")
+    expect(resolverCategoriaProducto({ descripcion: "Sensor inductivo M12 PNP" })).toBe("electronica")
+    expect(resolverCategoriaProducto({ descripcion: "Electrodo de cobre para EDM" })).toBe("consumibles")
+  })
+
   it("permite añadir categoría foam sin cambiar el resolver", () => {
     const registro: CategoriaProductoDef[] = [
       ...CATEGORIAS_PRODUCTO_REGISTRO.filter((c) => c.id !== "otros"),

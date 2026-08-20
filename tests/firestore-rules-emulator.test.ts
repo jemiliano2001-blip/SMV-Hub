@@ -615,6 +615,68 @@ describeWithEmulator("reglas Firestore de Integridad", () => {
     )
   })
 
+  it("permite las consultas reales del feed por destinatario y por audiencia", async () => {
+    const base = {
+      tipo: "endmills_stock_critico",
+      titulo: "Stock crítico: FLAT 4 FILOS 1/8",
+      cuerpo: "Quedan 1 pzas.",
+      origenModulo: "endmills",
+      origenId: "endmill-001",
+      audiencia: "endmills",
+      destinatarioUid: null,
+      href: "/endmills",
+      creadoPorUid: "endmills-user",
+      creadoPorNombre: "Compras",
+      creadoEn: new Date(),
+      actualizadoEn: new Date(),
+    }
+    await assertSucceeds(
+      userDb("endmills-user").doc("notificaciones/endmills-feed-1").set(base)
+    )
+
+    const endmills = userDb("endmills-user")
+    await assertSucceeds(
+      endmills
+        .collection("notificaciones")
+        .where("audiencia", "==", "endmills")
+        .orderBy("creadoEn", "desc")
+        .limit(50)
+        .get()
+    )
+    await assertSucceeds(
+      endmills
+        .collection("notificaciones")
+        .where("destinatarioUid", "==", "endmills-user")
+        .orderBy("creadoEn", "desc")
+        .limit(50)
+        .get()
+    )
+    await assertFails(
+      endmills
+        .collection("notificaciones")
+        .where("audiencia", "==", "requisiciones")
+        .orderBy("creadoEn", "desc")
+        .limit(50)
+        .get()
+    )
+    await assertFails(
+      userDb("report-user")
+        .collection("notificaciones")
+        .where("audiencia", "==", "endmills")
+        .orderBy("creadoEn", "desc")
+        .limit(50)
+        .get()
+    )
+    await assertSucceeds(
+      userDb("super-gafetes")
+        .collection("notificaciones")
+        .where("audiencia", "==", "endmills")
+        .orderBy("creadoEn", "desc")
+        .limit(50)
+        .get()
+    )
+  })
+
   it("el harness realmente ejecutó contra el emulador", () => {
     expect(emulatorHost).toMatch(/:\d+$/)
   })
