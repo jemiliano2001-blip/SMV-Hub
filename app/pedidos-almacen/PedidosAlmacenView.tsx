@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Camera, ExternalLink, Loader2, Send, ShoppingCart, X } from 'lucide-react'
+import { Camera, ExternalLink, Loader2, Send, ShoppingCart, X, MessageSquare, Copy, Trash2, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
@@ -14,6 +14,17 @@ import { formatFechaHoraCorta } from '@/lib/format'
 import type { PedidoAlmacen } from '@/lib/schemas'
 import { ModalCamara } from '@/components/ModalCamara'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 
 const ESTADO_LABEL: Record<PedidoAlmacen['estado'], string> = {
   pendiente: 'Pendiente',
@@ -140,74 +151,184 @@ export default function PedidosAlmacenView() {
   const historial = pedidos.filter((p) => p.estado !== 'pendiente')
 
   function Tarjeta({ pedido }: { pedido: PedidoAlmacen }) {
+    const textoWhatsApp = encodeURIComponent(
+      `Hola ${pedido.solicitadoPorNombre}, sobre tu pedido de almacén "${pedido.descripcion}":\nEstado: ${ESTADO_LABEL[pedido.estado]}`
+    )
+
     return (
-      <div className="flex gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs hover:shadow-xs transition-all">
-        {pedido.imagenUrl && (
-          <a href={pedido.imagenUrl} target="_blank" rel="noreferrer" className="shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={pedido.imagenUrl}
-              alt="Foto del pedido"
-              className="h-16 w-16 rounded-xl border border-slate-200 object-cover"
-            />
-          </a>
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-slate-900 break-words">{pedido.descripcion}</p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            {pedido.urgente && (
-              <Badge variant="outline" className="bg-red-50 text-red-900 border-red-300 font-mono text-[10px] font-bold">
-                🚨 URGENTE
-              </Badge>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <div className="flex gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs hover:shadow-xs transition-all cursor-pointer select-none">
+            {pedido.imagenUrl && (
+              <a
+                href={pedido.imagenUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="shrink-0"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={pedido.imagenUrl}
+                  alt="Foto del pedido"
+                  className="h-16 w-16 rounded-xl border border-slate-200 object-cover"
+                />
+              </a>
             )}
-            <Badge
-              variant="outline"
-              className={[
-                'font-mono text-[10px] font-bold uppercase',
-                pedido.estado === 'pendiente'
-                  ? 'bg-sky-50 text-primary border-sky-200'
-                  : pedido.estado === 'comprado'
-                  ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
-                  : 'bg-slate-100 text-slate-600 border-slate-200',
-              ].join(' ')}
-            >
-              {ESTADO_LABEL[pedido.estado]}
-            </Badge>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-slate-900 break-words">{pedido.descripcion}</p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {pedido.urgente && (
+                  <Badge variant="outline" className="bg-red-50 text-red-900 border-red-300 font-mono text-[10px] font-bold">
+                    🚨 URGENTE
+                  </Badge>
+                )}
+                <Badge
+                  variant="outline"
+                  className={[
+                    'font-mono text-[10px] font-bold uppercase',
+                    pedido.estado === 'pendiente'
+                      ? 'bg-sky-50 text-primary border-sky-200'
+                      : pedido.estado === 'comprado'
+                      ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
+                      : 'bg-slate-100 text-slate-600 border-slate-200',
+                  ].join(' ')}
+                >
+                  {ESTADO_LABEL[pedido.estado]}
+                </Badge>
+              </div>
+              <p className="mt-1 text-xs text-slate-500 font-mono">
+                {pedido.solicitadoPorNombre} · {formatFechaHoraCorta(pedido.creadoEn)}
+              </p>
+              {pedido.ordenIdVinculada && (
+                <div className="mt-2">
+                  <Link
+                    href="/ordenes"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:text-sky-700 hover:underline bg-sky-50 px-2 py-0.5 rounded border border-sky-200"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    Ver Orden de Compra vinculada
+                  </Link>
+                </div>
+              )}
+              {puedeGestionar && pedido.estado === 'pendiente' && (
+                <div className="mt-2.5 flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+                  <Link
+                    href={`/nueva-compra?pedidoId=${pedido.id}&descripcion=${encodeURIComponent(pedido.descripcion)}`}
+                    className="inline-flex items-center gap-1 rounded-xl bg-primary hover:bg-primary/90 active:scale-98 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition-all"
+                  >
+                    <ShoppingCart className="h-3.5 w-3.5" />
+                    Comprar ahora
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => handleCancelar(pedido.id)}
+                    className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-98 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs transition-all cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-          <p className="mt-1 text-xs text-slate-500 font-mono">
-            {pedido.solicitadoPorNombre} · {formatFechaHoraCorta(pedido.creadoEn)}
-          </p>
-          {pedido.ordenIdVinculada && (
-            <div className="mt-2">
-              <Link
-                href="/ordenes"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:text-sky-700 hover:underline bg-sky-50 px-2 py-0.5 rounded border border-sky-200"
-              >
-                <ExternalLink className="h-3 w-3" />
-                Ver Orden de Compra vinculada
-              </Link>
-            </div>
-          )}
+        </ContextMenuTrigger>
+
+        <ContextMenuContent className="w-56">
           {puedeGestionar && pedido.estado === 'pendiente' && (
-            <div className="mt-2.5 flex flex-wrap gap-2">
-              <Link
-                href={`/nueva-compra?pedidoId=${pedido.id}&descripcion=${encodeURIComponent(pedido.descripcion)}`}
-                className="inline-flex items-center gap-1 rounded-xl bg-primary hover:bg-primary/90 active:scale-98 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition-all"
-              >
-                <ShoppingCart className="h-3.5 w-3.5" />
-                Comprar ahora
-              </Link>
-              <button
-                type="button"
-                onClick={() => handleCancelar(pedido.id)}
-                className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-98 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs transition-all cursor-pointer"
-              >
-                Cancelar
-              </button>
-            </div>
+            <ContextMenuItem
+              onClick={() => {
+                window.location.href = `/nueva-compra?pedidoId=${pedido.id}&descripcion=${encodeURIComponent(pedido.descripcion)}`
+              }}
+            >
+              <ShoppingCart className="text-primary" />
+              <span>Comprar ahora (IA)</span>
+              <ContextMenuShortcut>↵</ContextMenuShortcut>
+            </ContextMenuItem>
           )}
-        </div>
-      </div>
+
+          <ContextMenuItem
+            onClick={() => {
+              window.open(`https://wa.me/?text=${textoWhatsApp}`, '_blank', 'noopener,noreferrer')
+            }}
+          >
+            <MessageSquare className="text-emerald-600" />
+            <span>Notificar por WhatsApp</span>
+          </ContextMenuItem>
+
+          <ContextMenuSeparator />
+
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>
+              <Copy className="text-slate-500" />
+              <span>Copiar información</span>
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent className="w-48">
+              <ContextMenuItem
+                onClick={() => {
+                  void navigator.clipboard.writeText(pedido.descripcion)
+                  toast.success('Descripción copiada')
+                }}
+              >
+                <span>Descripción</span>
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={() => {
+                  void navigator.clipboard.writeText(pedido.solicitadoPorNombre)
+                  toast.success('Solicitante copiado')
+                }}
+              >
+                <span>Solicitante ({pedido.solicitadoPorNombre})</span>
+              </ContextMenuItem>
+              {pedido.imagenUrl && (
+                <ContextMenuItem
+                  onClick={() => {
+                    void navigator.clipboard.writeText(pedido.imagenUrl || '')
+                    toast.success('Enlace de imagen copiado')
+                  }}
+                >
+                  <span>Enlace de foto</span>
+                </ContextMenuItem>
+              )}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
+
+          {pedido.imagenUrl && (
+            <ContextMenuItem
+              onClick={() => {
+                if (pedido.imagenUrl) window.open(pedido.imagenUrl, '_blank', 'noopener,noreferrer')
+              }}
+            >
+              <Eye className="text-sky-600" />
+              <span>Ver foto completa</span>
+            </ContextMenuItem>
+          )}
+
+          {pedido.ordenIdVinculada && (
+            <ContextMenuItem
+              onClick={() => {
+                window.location.href = '/ordenes'
+              }}
+            >
+              <ExternalLink className="text-sky-600" />
+              <span>Ver orden vinculada</span>
+            </ContextMenuItem>
+          )}
+
+          {pedido.estado === 'pendiente' && (
+            <>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                variant="destructive"
+                onClick={() => handleCancelar(pedido.id)}
+              >
+                <Trash2 />
+                <span>Cancelar pedido</span>
+              </ContextMenuItem>
+            </>
+          )}
+        </ContextMenuContent>
+      </ContextMenu>
     )
   }
 

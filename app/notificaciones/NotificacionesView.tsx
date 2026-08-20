@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
+import { Copy, ExternalLink, Check } from 'lucide-react'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
 import { useSolicitudesBorradoBanosPendientes } from '@/lib/hooks/useBanosSolicitudesBorrado'
@@ -14,6 +15,17 @@ import {
 } from '@/lib/hooks/useNotificaciones'
 import { hrefSeguroNotificacion } from '@/lib/notificaciones'
 import type { OrigenModuloNotificacion } from '@/lib/schemas'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 
 const FILTROS_ORIGEN: readonly (readonly [FiltroOrigen, string])[] = [
   ['todos', 'Todos'],
@@ -268,80 +280,135 @@ export default function NotificacionesView() {
       <ul className="space-y-2">
         {lista.map((n) => (
           <li key={n.id}>
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => void onClickFila(n.id, n.href, n.leida)}
-              onKeyDown={(e) => {
-                if (e.target !== e.currentTarget) return
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  void onClickFila(n.id, n.href, n.leida)
-                }
-              }}
-              className={`w-full text-left rounded-xl border p-3.5 transition-colors hover:border-primary/40 cursor-pointer ${
-                n.leida
-                  ? 'bg-white border-slate-200'
-                  : 'bg-sky-50/60 border-sky-200'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-slate-900">{n.titulo}</span>
-                    {!n.leida && (
-                      <Badge variant="outline" className="text-[10px] bg-white border-sky-300 text-primary">
-                        Nueva
-                      </Badge>
-                    )}
-                    <Badge variant="outline" className="text-[10px] font-mono">
-                      {ETIQUETAS_ORIGEN[n.origenModulo]}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-slate-600 mt-1">{n.cuerpo}</p>
-                  {n.origenModulo === 'banos' &&
-                    n.tipo === 'banos_solicitud_creada' &&
-                    esSuperAdmin &&
-                    pendientesBanos.has(n.origenId) && (
-                      <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          disabled={resolviendoId === n.origenId}
-                          onClick={() => void onResolverSolicitud(n.origenId, 'aprobar')}
-                          className="text-[11px] font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-2.5 py-1 rounded-md disabled:opacity-50"
-                        >
-                          Aprobar
-                        </button>
-                        <button
-                          type="button"
-                          disabled={resolviendoId === n.origenId}
-                          onClick={() => void onResolverSolicitud(n.origenId, 'rechazar')}
-                          className="text-[11px] font-semibold bg-red-100 text-red-700 hover:bg-red-200 px-2.5 py-1 rounded-md disabled:opacity-50"
-                        >
-                          Rechazar
-                        </button>
+            <ContextMenu>
+              <ContextMenuTrigger asChild>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => void onClickFila(n.id, n.href, n.leida)}
+                  onKeyDown={(e) => {
+                    if (e.target !== e.currentTarget) return
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      void onClickFila(n.id, n.href, n.leida)
+                    }
+                  }}
+                  className={`w-full text-left rounded-xl border p-3.5 transition-colors hover:border-primary/40 cursor-pointer select-none ${
+                    n.leida
+                      ? 'bg-white border-slate-200'
+                      : 'bg-sky-50/60 border-sky-200'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-slate-900">{n.titulo}</span>
+                        {!n.leida && (
+                          <Badge variant="outline" className="text-[10px] bg-white border-sky-300 text-primary">
+                            Nueva
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className="text-[10px] font-mono">
+                          {ETIQUETAS_ORIGEN[n.origenModulo]}
+                        </Badge>
                       </div>
+                      <p className="text-xs text-slate-600 mt-1">{n.cuerpo}</p>
+                      {n.origenModulo === 'banos' &&
+                        n.tipo === 'banos_solicitud_creada' &&
+                        esSuperAdmin &&
+                        pendientesBanos.has(n.origenId) && (
+                          <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              disabled={resolviendoId === n.origenId}
+                              onClick={() => void onResolverSolicitud(n.origenId, 'aprobar')}
+                              className="text-[11px] font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-2.5 py-1 rounded-md disabled:opacity-50 cursor-pointer"
+                            >
+                              Aprobar
+                            </button>
+                            <button
+                              type="button"
+                              disabled={resolviendoId === n.origenId}
+                              onClick={() => void onResolverSolicitud(n.origenId, 'rechazar')}
+                              className="text-[11px] font-semibold bg-red-100 text-red-700 hover:bg-red-200 px-2.5 py-1 rounded-md disabled:opacity-50 cursor-pointer"
+                            >
+                              Rechazar
+                            </button>
+                          </div>
+                        )}
+                      <p className="text-[10px] text-slate-400 font-mono mt-2">
+                        {formatearFecha(n.creadoEn)}
+                        {n.creadoPorNombre ? ` · ${n.creadoPorNombre}` : ''}
+                      </p>
+                    </div>
+                    {!n.leida && (
+                      <button
+                        type="button"
+                        disabled={marcandoId === n.id}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          void onMarcarUna(n.id)
+                        }}
+                        className="shrink-0 rounded-md border border-sky-200 bg-white px-2 py-1 text-[10px] font-bold text-primary hover:bg-sky-50 disabled:opacity-50 cursor-pointer"
+                      >
+                        {marcandoId === n.id ? 'Marcando…' : 'Marcar leída'}
+                      </button>
                     )}
-                  <p className="text-[10px] text-slate-400 font-mono mt-2">
-                    {formatearFecha(n.creadoEn)}
-                    {n.creadoPorNombre ? ` · ${n.creadoPorNombre}` : ''}
-                  </p>
+                  </div>
                 </div>
+              </ContextMenuTrigger>
+
+              <ContextMenuContent className="w-56">
+                <ContextMenuItem onClick={() => void onClickFila(n.id, n.href, n.leida)}>
+                  <ExternalLink className="text-primary" />
+                  <span>Ir al recurso / módulo</span>
+                  <ContextMenuShortcut>↵</ContextMenuShortcut>
+                </ContextMenuItem>
+
                 {!n.leida && (
-                  <button
-                    type="button"
-                    disabled={marcandoId === n.id}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      void onMarcarUna(n.id)
-                    }}
-                    className="shrink-0 rounded-md border border-sky-200 bg-white px-2 py-1 text-[10px] font-bold text-primary hover:bg-sky-50 disabled:opacity-50"
-                  >
-                    {marcandoId === n.id ? 'Marcando…' : 'Marcar leída'}
-                  </button>
+                  <ContextMenuItem onClick={() => void onMarcarUna(n.id)}>
+                    <Check className="text-emerald-600" />
+                    <span>Marcar como leída</span>
+                  </ContextMenuItem>
                 )}
-              </div>
-            </div>
+
+                <ContextMenuSeparator />
+
+                <ContextMenuSub>
+                  <ContextMenuSubTrigger>
+                    <Copy className="text-slate-500" />
+                    <span>Copiar información</span>
+                  </ContextMenuSubTrigger>
+                  <ContextMenuSubContent className="w-48">
+                    <ContextMenuItem
+                      onClick={() => {
+                        void navigator.clipboard.writeText(n.titulo)
+                        toast.success('Título copiado')
+                      }}
+                    >
+                      <span>Título ({n.titulo})</span>
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                      onClick={() => {
+                        void navigator.clipboard.writeText(n.cuerpo)
+                        toast.success('Cuerpo copiado')
+                      }}
+                    >
+                      <span>Mensaje completo</span>
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                      onClick={() => {
+                        const urlCompleta = `${window.location.origin}${hrefSeguroNotificacion(n.href)}`
+                        void navigator.clipboard.writeText(urlCompleta)
+                        toast.success('Enlace copiado', { description: urlCompleta })
+                      }}
+                    >
+                      <span>Enlace directo</span>
+                    </ContextMenuItem>
+                  </ContextMenuSubContent>
+                </ContextMenuSub>
+              </ContextMenuContent>
+            </ContextMenu>
           </li>
         ))}
       </ul>

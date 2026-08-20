@@ -8,11 +8,26 @@ import {
   AlertCircle,
   Truck,
   ExternalLink,
+  Copy,
+  FileText,
+  MessageCircle,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import ModuleSurface from '@/components/layout/ModuleSurface'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Table,
   TableBody,
@@ -154,77 +169,151 @@ export default function OrdenesPorRecibir({
                   const cantItems = orden.items?.length || 0
 
                   return (
-                    <TableRow key={orden.id} className="hover:bg-zinc-900/40 transition-colors">
-                      <TableCell className="font-medium text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-zinc-100">{orden.proveedor}</span>
-                          {orden.numeroFactura && (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-zinc-700 text-zinc-300">
-                              #{orden.numeroFactura}
-                            </Badge>
-                          )}
-                        </div>
-                        {orden.linkProveedor && (
-                          <a
-                            href={orden.linkProveedor}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[11px] text-blue-400 hover:underline inline-flex items-center gap-1 mt-0.5"
-                          >
-                            <ExternalLink className="h-2.5 w-2.5" />
-                            Ver tracking / enlace
-                          </a>
-                        )}
-                      </TableCell>
-
-                      <TableCell className="text-xs text-zinc-300 max-w-xs">
-                        {primerItem ? (
-                          <div>
-                            <span className="font-medium text-zinc-200 line-clamp-1">
-                              {primerItem.cantidad}x {primerItem.descripcion}
-                            </span>
-                            {cantItems > 1 && (
-                              <span className="text-[11px] text-zinc-500">
-                                + {cantItems - 1} {cantItems - 1 === 1 ? 'partida más' : 'partidas más'}
-                              </span>
+                    <ContextMenu key={orden.id}>
+                      <ContextMenuTrigger asChild>
+                        <TableRow className="hover:bg-zinc-900/40 transition-colors cursor-pointer" onDoubleClick={() => setOrdenSeleccionada(orden)}>
+                          <TableCell className="font-medium text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-zinc-100">{orden.proveedor}</span>
+                              {orden.numeroFactura && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-zinc-700 text-zinc-300">
+                                  #{orden.numeroFactura}
+                                </Badge>
+                              )}
+                            </div>
+                            {orden.linkProveedor && (
+                              <a
+                                href={orden.linkProveedor}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-[11px] text-blue-400 hover:underline inline-flex items-center gap-1 mt-0.5"
+                              >
+                                <ExternalLink className="h-2.5 w-2.5" />
+                                Ver tracking / enlace
+                              </a>
                             )}
-                          </div>
-                        ) : (
-                          <span className="text-zinc-500 italic">Sin partidas detalladas</span>
+                          </TableCell>
+
+                          <TableCell className="text-xs text-zinc-300 max-w-xs">
+                            {primerItem ? (
+                              <div>
+                                <span className="font-medium text-zinc-200 line-clamp-1">
+                                  {primerItem.cantidad}x {primerItem.descripcion}
+                                </span>
+                                {cantItems > 1 && (
+                                  <span className="text-[11px] text-zinc-500">
+                                    + {cantItems - 1} {cantItems - 1 === 1 ? 'partida más' : 'partidas más'}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-zinc-500 italic">Sin partidas detalladas</span>
+                            )}
+                          </TableCell>
+
+                          <TableCell className="text-xs">
+                            {orden.requisicionId ? (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-blue-500/10 text-blue-300 border-blue-500/20">
+                                Requisición
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-zinc-800 text-zinc-400">
+                                Compra directa
+                              </Badge>
+                            )}
+                          </TableCell>
+
+                          <TableCell className="text-xs text-zinc-400">
+                            {orden.fechaFactura || 'Sin fecha'}
+                          </TableCell>
+
+                          <TableCell className="text-xs font-mono text-right font-semibold text-zinc-200">
+                            {formatPrecio(orden.total, orden.moneda || 'USD')}
+                          </TableCell>
+
+                          <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              size="sm"
+                              onClick={() => setOrdenSeleccionada(orden)}
+                              className="h-7 text-xs bg-emerald-600 hover:bg-emerald-500 text-white gap-1.5 shadow-sm cursor-pointer"
+                            >
+                              <PackageCheck className="h-3.5 w-3.5" />
+                              Recibir Material
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      </ContextMenuTrigger>
+
+                      <ContextMenuContent className="w-56">
+                        <ContextMenuItem onClick={() => setOrdenSeleccionada(orden)}>
+                          <PackageCheck className="text-emerald-600" />
+                          <span>Recibir material / Conteo</span>
+                          <ContextMenuShortcut>↵</ContextMenuShortcut>
+                        </ContextMenuItem>
+
+                        <ContextMenuSeparator />
+
+                        <ContextMenuSub>
+                          <ContextMenuSubTrigger>
+                            <Copy className="text-slate-500" />
+                            <span>Copiar información</span>
+                          </ContextMenuSubTrigger>
+                          <ContextMenuSubContent className="w-48">
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(orden.proveedor || '')
+                                toast.success('Proveedor copiado')
+                              }}
+                            >
+                              <span>Proveedor ({orden.proveedor})</span>
+                            </ContextMenuItem>
+                            {orden.numeroFactura && (
+                              <ContextMenuItem
+                                onClick={() => {
+                                  void navigator.clipboard.writeText(orden.numeroFactura || '')
+                                  toast.success('Factura copiada')
+                                }}
+                              >
+                                <span>No. Factura ({orden.numeroFactura})</span>
+                              </ContextMenuItem>
+                            )}
+                            {orden.requisicionId && (
+                              <ContextMenuItem
+                                onClick={() => {
+                                  void navigator.clipboard.writeText(orden.requisicionId || '')
+                                  toast.success('ID de requisición copiado')
+                                }}
+                              >
+                                <span>ID Requisición</span>
+                              </ContextMenuItem>
+                            )}
+                          </ContextMenuSubContent>
+                        </ContextMenuSub>
+
+                        {orden.linkProveedor && (
+                          <ContextMenuItem
+                            onClick={() => {
+                              if (orden.linkProveedor) window.open(orden.linkProveedor, '_blank', 'noopener,noreferrer')
+                            }}
+                          >
+                            <ExternalLink className="text-sky-600" />
+                            <span>Abrir tracking / link</span>
+                          </ContextMenuItem>
                         )}
-                      </TableCell>
 
-                      <TableCell className="text-xs">
-                        {orden.requisicionId ? (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-blue-500/10 text-blue-300 border-blue-500/20">
-                            Requisición
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-zinc-800 text-zinc-400">
-                            Compra directa
-                          </Badge>
+                        {orden.imagenUrl && (
+                          <ContextMenuItem
+                            onClick={() => {
+                              if (orden.imagenUrl) window.open(orden.imagenUrl, '_blank', 'noopener,noreferrer')
+                            }}
+                          >
+                            <FileText className="text-amber-600" />
+                            <span>Ver comprobante / factura</span>
+                          </ContextMenuItem>
                         )}
-                      </TableCell>
-
-                      <TableCell className="text-xs text-zinc-400">
-                        {orden.fechaFactura || 'Sin fecha'}
-                      </TableCell>
-
-                      <TableCell className="text-xs font-mono text-right font-semibold text-zinc-200">
-                        {formatPrecio(orden.total, orden.moneda || 'USD')}
-                      </TableCell>
-
-                      <TableCell className="text-center">
-                        <Button
-                          size="sm"
-                          onClick={() => setOrdenSeleccionada(orden)}
-                          className="h-7 text-xs bg-emerald-600 hover:bg-emerald-500 text-white gap-1.5 shadow-sm"
-                        >
-                          <PackageCheck className="h-3.5 w-3.5" />
-                          Recibir Material
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                      </ContextMenuContent>
+                    </ContextMenu>
                   )
                 })}
               </TableBody>

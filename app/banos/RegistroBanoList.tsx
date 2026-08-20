@@ -11,10 +11,22 @@ import {
 } from '@/lib/format'
 import { resolverOperadorActivo } from '@/lib/banos-captura'
 import { MOTIVOS_SOLICITUD_BORRADO_BANO } from '@/lib/banos-solicitudes-borrado'
-import { Plus, Trash2, Check, Search, Pencil, Clock } from 'lucide-react'
+import { Plus, Trash2, Check, Search, Pencil, Clock, Copy, CheckCircle } from 'lucide-react'
+import { toast } from 'sonner'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { Button } from '@/components/ui/button'
 import ModuleSurface from '@/components/layout/ModuleSurface'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Table,
   TableBody,
@@ -418,55 +430,110 @@ export default function RegistroBanoList() {
                   </TableRow>
                 ) : (
                   enCurso.map((r) => (
-                    <TableRow key={r.id} className="hover:bg-amber-50/50">
-                      <TableCell className="px-4 py-2 font-medium text-gray-900">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${AREA_COLORS[operadoresActivos.find(o => o.nombre === r.operador)?.area || 'taller'] || 'bg-gray-100 text-gray-600'}`}>
-                            {getInitials(r.operador)}
-                          </div>
-                          {r.operador}
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-4 py-2 text-gray-600">{r.bano}</TableCell>
-                      <TableCell className="px-4 py-2 text-gray-900">{r.horaEntrada}</TableCell>
-                      <TableCell className="px-4 py-2 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => abrirModalEditar(r)}
-                            title="Editar hora de entrada"
-                            className="text-xs font-semibold text-primary bg-sky-50 hover:bg-sky-100 border border-sky-200/80 px-2 py-0.5 rounded-md inline-flex items-center gap-1 transition-colors"
-                          >
-                            <Pencil className="h-3 w-3" />
-                            Editar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleLlegada(r.id, r.horaEntrada)}
-                            className="text-xs font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-2.5 py-1 rounded-md inline-flex items-center gap-1 transition-colors"
-                          >
-                            <Check className="h-3.5 w-3.5" />
-                            Llegó
-                          </button>
-                          {!puedeEliminar && !!usuario?.uid && r.creadoPorUid === usuario.uid && (
-                            r.solicitudBorradoEstado === 'pendiente' ? (
-                              <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md whitespace-nowrap">
-                                Pendiente
-                              </span>
-                            ) : (
+                    <ContextMenu key={r.id}>
+                      <ContextMenuTrigger asChild>
+                        <TableRow className="hover:bg-amber-50/50 cursor-pointer select-none" onDoubleClick={() => handleLlegada(r.id, r.horaEntrada)}>
+                          <TableCell className="px-4 py-2 font-medium text-gray-900">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${AREA_COLORS[operadoresActivos.find(o => o.nombre === r.operador)?.area || 'taller'] || 'bg-gray-100 text-gray-600'}`}>
+                                {getInitials(r.operador)}
+                              </div>
+                              {r.operador}
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-4 py-2 text-gray-600">{r.bano}</TableCell>
+                          <TableCell className="px-4 py-2 text-gray-900">{r.horaEntrada}</TableCell>
+                          <TableCell className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1">
                               <button
                                 type="button"
-                                onClick={() => abrirModalSolicitud(r)}
-                                title="Solicitar eliminación (un súper admin la revisará)"
-                                className="text-[10px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md transition-colors whitespace-nowrap"
+                                onClick={() => abrirModalEditar(r)}
+                                title="Editar hora de entrada"
+                                className="text-xs font-semibold text-primary bg-sky-50 hover:bg-sky-100 border border-sky-200/80 px-2 py-0.5 rounded-md inline-flex items-center gap-1 transition-colors cursor-pointer"
                               >
-                                Solicitar eliminación
+                                <Pencil className="h-3 w-3" />
+                                Editar
                               </button>
-                            )
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                              <button
+                                type="button"
+                                onClick={() => handleLlegada(r.id, r.horaEntrada)}
+                                className="text-xs font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-2.5 py-1 rounded-md inline-flex items-center gap-1 transition-colors cursor-pointer"
+                              >
+                                <Check className="h-3.5 w-3.5" />
+                                Llegó
+                              </button>
+                              {!puedeEliminar && !!usuario?.uid && r.creadoPorUid === usuario.uid && (
+                                r.solicitudBorradoEstado === 'pendiente' ? (
+                                  <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md whitespace-nowrap">
+                                    Pendiente
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => abrirModalSolicitud(r)}
+                                    title="Solicitar eliminación (un súper admin la revisará)"
+                                    className="text-[10px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md transition-colors whitespace-nowrap cursor-pointer"
+                                  >
+                                    Solicitar eliminación
+                                  </button>
+                                )
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      </ContextMenuTrigger>
+
+                      <ContextMenuContent className="w-56">
+                        <ContextMenuItem onClick={() => handleLlegada(r.id, r.horaEntrada)}>
+                          <CheckCircle className="text-emerald-600" />
+                          <span>Marcar Llegada ahora</span>
+                          <ContextMenuShortcut>↵</ContextMenuShortcut>
+                        </ContextMenuItem>
+
+                        <ContextMenuItem onClick={() => abrirModalEditar(r)}>
+                          <Pencil className="text-sky-600" />
+                          <span>Editar horario</span>
+                        </ContextMenuItem>
+
+                        <ContextMenuSeparator />
+
+                        <ContextMenuItem
+                          onClick={() => {
+                            void navigator.clipboard.writeText(r.operador)
+                            toast.success('Nombre copiado', { description: r.operador })
+                          }}
+                        >
+                          <Copy className="text-slate-500" />
+                          <span>Copiar nombre ({r.operador})</span>
+                        </ContextMenuItem>
+
+                        {puedeEliminar ? (
+                          <>
+                            <ContextMenuSeparator />
+                            <ContextMenuItem
+                              className="text-rose-600"
+                              onClick={() => handleEliminar(r.id, r.operador)}
+                            >
+                              <Trash2 className="text-rose-600" />
+                              <span>Eliminar registro</span>
+                            </ContextMenuItem>
+                          </>
+                        ) : (
+                          !puedeEliminar && !!usuario?.uid && r.creadoPorUid === usuario.uid && r.solicitudBorradoEstado !== 'pendiente' && (
+                            <>
+                              <ContextMenuSeparator />
+                              <ContextMenuItem
+                                className="text-amber-700"
+                                onClick={() => abrirModalSolicitud(r)}
+                              >
+                                <Trash2 className="text-amber-600" />
+                                <span>Solicitar eliminación</span>
+                              </ContextMenuItem>
+                            </>
+                          )
+                        )}
+                      </ContextMenuContent>
+                    </ContextMenu>
                   ))
                 )}
               </TableBody>
@@ -499,66 +566,119 @@ export default function RegistroBanoList() {
                   </TableRow>
                 ) : (
                   terminados.map((r) => (
-                    <TableRow key={r.id} className="hover:bg-gray-50">
-                      <TableCell className="px-4 py-2 font-medium text-gray-900">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold ${AREA_COLORS[operadoresActivos.find(o => o.nombre === r.operador)?.area || 'taller'] || 'bg-gray-100 text-gray-600'}`}>
-                            {getInitials(r.operador)}
-                          </div>
-                          {r.operador}
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-4 py-2 text-gray-500 text-xs">{r.bano}</TableCell>
-                      <TableCell
-                        onClick={() => abrirModalEditar(r)}
-                        className="px-4 py-2 text-gray-600 text-xs tracking-tighter cursor-pointer hover:text-primary hover:underline"
-                        title="Clic para editar horario"
-                      >
-                        {r.horaEntrada} - {r.horaLlegada}
-                      </TableCell>
-                      <TableCell className="px-4 py-2 text-right font-medium text-gray-900">
-                        {r.tiempoMinutos} m
-                      </TableCell>
-                      <TableCell className="px-4 py-2 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => abrirModalEditar(r)}
-                            title="Editar hora que llegó / horario"
-                            className="text-xs font-semibold text-primary bg-sky-50 hover:bg-sky-100 border border-sky-200/80 px-2 py-0.5 rounded-md inline-flex items-center gap-1 transition-colors"
+                    <ContextMenu key={r.id}>
+                      <ContextMenuTrigger asChild>
+                        <TableRow className="hover:bg-gray-50 cursor-pointer select-none" onDoubleClick={() => abrirModalEditar(r)}>
+                          <TableCell className="px-4 py-2 font-medium text-gray-900">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold ${AREA_COLORS[operadoresActivos.find(o => o.nombre === r.operador)?.area || 'taller'] || 'bg-gray-100 text-gray-600'}`}>
+                                {getInitials(r.operador)}
+                              </div>
+                              {r.operador}
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-4 py-2 text-gray-500 text-xs">{r.bano}</TableCell>
+                          <TableCell
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              abrirModalEditar(r)
+                            }}
+                            className="px-4 py-2 text-gray-600 text-xs tracking-tighter cursor-pointer hover:text-primary hover:underline"
+                            title="Clic para editar horario"
                           >
-                            <Pencil className="h-3 w-3" />
-                            Editar
-                          </button>
-                          {puedeEliminar && (
-                            <button
-                              type="button"
-                              onClick={() => handleEliminar(r.id, r.operador)}
-                              title="Eliminar registro (Solo Super Admin)"
-                              className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                          {!puedeEliminar && !!usuario?.uid && r.creadoPorUid === usuario.uid && (
-                            r.solicitudBorradoEstado === 'pendiente' ? (
-                              <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md whitespace-nowrap">
-                                Pendiente de revisión
-                              </span>
-                            ) : (
+                            {r.horaEntrada} - {r.horaLlegada}
+                          </TableCell>
+                          <TableCell className="px-4 py-2 text-right font-medium text-gray-900">
+                            {r.tiempoMinutos} m
+                          </TableCell>
+                          <TableCell className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1.5">
                               <button
                                 type="button"
-                                onClick={() => abrirModalSolicitud(r)}
-                                title="Solicitar eliminación (un súper admin la revisará)"
-                                className="text-[10px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md transition-colors whitespace-nowrap"
+                                onClick={() => abrirModalEditar(r)}
+                                title="Editar hora que llegó / horario"
+                                className="text-xs font-semibold text-primary bg-sky-50 hover:bg-sky-100 border border-sky-200/80 px-2 py-0.5 rounded-md inline-flex items-center gap-1 transition-colors cursor-pointer"
                               >
-                                Solicitar eliminación
+                                <Pencil className="h-3 w-3" />
+                                Editar
                               </button>
-                            )
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                              {puedeEliminar && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleEliminar(r.id, r.operador)}
+                                  title="Eliminar registro (Solo Super Admin)"
+                                  className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                              {!puedeEliminar && !!usuario?.uid && r.creadoPorUid === usuario.uid && (
+                                r.solicitudBorradoEstado === 'pendiente' ? (
+                                  <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md whitespace-nowrap">
+                                    Pendiente de revisión
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => abrirModalSolicitud(r)}
+                                    title="Solicitar eliminación (un súper admin la revisará)"
+                                    className="text-[10px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md transition-colors whitespace-nowrap cursor-pointer"
+                                  >
+                                    Solicitar eliminación
+                                  </button>
+                                )
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      </ContextMenuTrigger>
+
+                      <ContextMenuContent className="w-56">
+                        <ContextMenuItem onClick={() => abrirModalEditar(r)}>
+                          <Pencil className="text-primary" />
+                          <span>Editar horario ({r.horaEntrada} - {r.horaLlegada})</span>
+                          <ContextMenuShortcut>↵</ContextMenuShortcut>
+                        </ContextMenuItem>
+
+                        <ContextMenuSeparator />
+
+                        <ContextMenuItem
+                          onClick={() => {
+                            void navigator.clipboard.writeText(r.operador)
+                            toast.success('Nombre copiado', { description: r.operador })
+                          }}
+                        >
+                          <Copy className="text-slate-500" />
+                          <span>Copiar nombre ({r.operador})</span>
+                        </ContextMenuItem>
+
+                        {puedeEliminar ? (
+                          <>
+                            <ContextMenuSeparator />
+                            <ContextMenuItem
+                              className="text-rose-600"
+                              onClick={() => handleEliminar(r.id, r.operador)}
+                            >
+                              <Trash2 className="text-rose-600" />
+                              <span>Eliminar registro</span>
+                            </ContextMenuItem>
+                          </>
+                        ) : (
+                          !puedeEliminar && !!usuario?.uid && r.creadoPorUid === usuario.uid && r.solicitudBorradoEstado !== 'pendiente' && (
+                            <>
+                              <ContextMenuSeparator />
+                              <ContextMenuItem
+                                className="text-amber-700"
+                                onClick={() => abrirModalSolicitud(r)}
+                              >
+                                <Trash2 className="text-amber-600" />
+                                <span>Solicitar eliminación</span>
+                              </ContextMenuItem>
+                            </>
+                          )
+                        )}
+                      </ContextMenuContent>
+                    </ContextMenu>
                   ))
                 )}
               </TableBody>

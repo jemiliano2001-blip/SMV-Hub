@@ -2,12 +2,32 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Loader2, AlertCircle, ClipboardList, Trash2, Edit2, Sparkles, ShoppingCart, ExternalLink } from 'lucide-react'
+import {
+  Loader2,
+  AlertCircle,
+  ClipboardList,
+  Trash2,
+  Edit2,
+  Sparkles,
+  ShoppingCart,
+  ExternalLink,
+  Zap,
+  Plus,
+  ArrowRight,
+  Eye,
+  Layers,
+  Copy,
+  CheckCircle2,
+  UserCheck,
+  MessageCircle,
+  Share2,
+} from 'lucide-react'
 import type { EstatusRequisicion, PrioridadRequisicion, TipoRequisicion, Requisicion } from '@/lib/schemas'
 import type { NuevaRequisicionPayload } from '@/lib/requisiciones'
 import { useRequisiciones } from '@/lib/hooks/useRequisiciones'
 import { formatFecha, normalizar, fechaHoyLocal } from '@/lib/format'
 import { getClienteAuth } from '@/lib/firebase'
+import { useUsuario } from '@/lib/auth'
 import {
   estadoAtraso,
   estadoAtrasoEntrega,
@@ -29,10 +49,20 @@ import NuevaRequisicionModal from './NuevaRequisicionModal'
 import DetalleRequisicionModal from './DetalleRequisicionModal'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { toast } from 'sonner'
-import { Zap, Plus, ArrowRight, Eye, Layers } from 'lucide-react'
 import ModuleFilterChips from '@/components/layout/ModuleFilterChips'
 import ModuleSurface from '@/components/layout/ModuleSurface'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Table,
   TableBody,
@@ -299,6 +329,7 @@ function RequisicionCard({
 }
 
 export default function RequisicionesList() {
+  const { usuario } = useUsuario()
   const confirmar = useConfirmDialog()
   const {
     requisiciones,
@@ -1053,179 +1084,325 @@ export default function RequisicionesList() {
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-200">
                   {filtradas.map((r) => (
-                    <TableRow
-                      key={r.id}
-                      className={`hover:bg-gray-50 transition-colors ${
-                        r.estado === 'parcial' ? 'bg-pink-50/40' : ''
-                      }`}
-                    >
-                      <TableCell className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(r.id)}
-                          onChange={(e) => toggleSelection(r.id, e as unknown as React.MouseEvent)}
-                          className="rounded border-gray-300 text-primary focus:ring-ring cursor-pointer"
-                        />
-                      </TableCell>
-                      {isAuto ? (
-                        <>
-                          <TableCell className="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
-                            {formatFecha(r.fechaPedido)}
+                    <ContextMenu key={r.id}>
+                      <ContextMenuTrigger asChild>
+                        <TableRow
+                          className={`hover:bg-gray-50 transition-colors cursor-pointer ${
+                            r.estado === 'parcial' ? 'bg-pink-50/40' : ''
+                          }`}
+                          onDoubleClick={() => setReqDetalleModal(r)}
+                        >
+                          <TableCell className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(r.id)}
+                              onChange={(e) => toggleSelection(r.id, e as unknown as React.MouseEvent)}
+                              className="rounded border-gray-300 text-primary focus:ring-ring cursor-pointer"
+                            />
                           </TableCell>
-                          <TableCell className="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
-                            {r.fechaEntregaEst ? formatFecha(r.fechaEntregaEst) : '-'}
-                          </TableCell>
-                          <TableCell className="px-3 py-3 whitespace-nowrap">
-                            <select
-                              value={r.estado}
-                              onChange={(e) => handleCambioEstado(r.id, e.target.value as EstatusRequisicion)}
-                              className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset cursor-pointer border-0 focus:ring-2 focus:ring-ring ${ESTADO_BADGE[r.estado]}`}
-                              title="Cambiar estado"
-                            >
-                              {ESTADOS_REQUISICION.map((e) => (
-                                <option key={e} value={e}>{ESTADO_LABEL[e]}</option>
-                              ))}
-                            </select>
-                          </TableCell>
-                          <TableCell className="px-3 py-3 whitespace-nowrap">
-                            <select
-                              value={r.recibio ?? ''}
-                              onChange={(e) => handleCampoInline(r.id, 'recibio', e.target.value)}
-                              className="rounded border-0 bg-transparent text-xs text-gray-700 focus:ring-1 focus:ring-ring cursor-pointer max-w-[120px]"
-                            >
-                              <option value="">—</option>
-                              {SOLICITANTES.map((s) => (
-                                <option key={s} value={s}>{s}</option>
-                              ))}
-                            </select>
-                          </TableCell>
-                          <TableCell className="px-3 py-3 whitespace-nowrap">
-                            <select
-                              value={r.revisionFinanzas ?? ''}
-                              onChange={(e) => handleCampoInline(r.id, 'revisionFinanzas', e.target.value)}
-                              className={`rounded px-1.5 py-0.5 text-xs font-semibold border-0 cursor-pointer focus:ring-1 focus:ring-ring ${
-                                r.revisionFinanzas === 'Entrega parcial'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-transparent text-gray-700'
-                              }`}
-                            >
-                              {REVISION_FINANZAS_OPCIONES.map((op) => (
-                                <option key={op || 'vacio'} value={op}>{op || '—'}</option>
-                              ))}
-                            </select>
-                          </TableCell>
-                          <TableCell className="px-3 py-3 whitespace-nowrap">{r.tienda || '-'}</TableCell>
-                          <TableCell className="px-3 py-3 text-center whitespace-nowrap">{r.cantidad || '-'}</TableCell>
-                          <TableCell className="px-3 py-3"><CeldaDescripcion r={r} /></TableCell>
-                          <TableCell className="px-3 py-3 whitespace-nowrap font-mono text-xs">{r.parteNumero || '-'}</TableCell>
-                          <TableCell className="px-3 py-3 whitespace-nowrap max-w-[100px]">
-                            {r.link ? (
-                              <a
-                                href={r.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary hover:underline text-xs truncate block max-w-[100px]"
-                                title={r.link}
-                              >
-                                Link
-                              </a>
-                            ) : '-'}
-                          </TableCell>
-                          <TableCell className="px-3 py-3 whitespace-nowrap">
-                            {r.empresa ? (
-                              <span className={`rounded px-2 py-0.5 text-xs font-semibold ${badgeEmpresa(r.empresa)}`}>
-                                {r.empresa}
-                              </span>
-                            ) : '-'}
-                          </TableCell>
-                          <TableCell className="px-3 py-3 whitespace-nowrap font-mono text-xs">
-                            {r.ordenServicio || '-'}
-                          </TableCell>
-                          <TableCell className="px-3 py-3 whitespace-nowrap">
-                            <CeldaAtraso r={r} hoy={hoy} isAuto />
-                          </TableCell>
-                        </>
-                      ) : (
-                        <>
-                          <TableCell className="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
-                            {formatFecha(r.fechaPedido)}
-                          </TableCell>
-                          <TableCell className="px-3 py-3 whitespace-nowrap font-medium text-gray-900">
-                            {r.solicitante || '-'}
-                          </TableCell>
-                          <TableCell className="px-3 py-3"><CeldaDescripcion r={r} /></TableCell>
-                          <TableCell className="px-3 py-3 whitespace-nowrap">{r.tienda || '-'}</TableCell>
-                          <TableCell className="px-3 py-3 text-center whitespace-nowrap">{r.cantidad || '-'}</TableCell>
-                          <TableCell className="px-3 py-3 whitespace-nowrap">
-                            {r.prioridad ? (
-                              <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${PRIORIDAD_BADGE[r.prioridad]}`}>
-                                {r.prioridad}
-                              </span>
-                            ) : '-'}
-                          </TableCell>
-                          <TableCell className="px-3 py-3 whitespace-nowrap">
-                            <CeldaAtraso r={r} hoy={hoy} isAuto={false} />
-                          </TableCell>
-                          <TableCell className="px-3 py-3 whitespace-nowrap">
-                            {r.empresa ? (
-                              <span className={`rounded px-2 py-0.5 text-xs font-semibold ${badgeEmpresa(r.empresa)}`}>
-                                {r.empresa}
-                              </span>
-                            ) : '-'}
-                          </TableCell>
-                          <TableCell className="px-3 py-3 whitespace-nowrap font-mono text-xs">
-                            {r.ordenServicio || '-'}
-                          </TableCell>
-                          <TableCell className="px-3 py-3 whitespace-nowrap">
-                            <select
-                              value={r.estado}
-                              onChange={(e) => handleCambioEstado(r.id, e.target.value as EstatusRequisicion)}
-                              className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset cursor-pointer border-0 focus:ring-2 focus:ring-ring ${ESTADO_BADGE[r.estado]}`}
-                              title="Cambiar estado"
-                            >
-                              {ESTADOS_REQUISICION.map((e) => (
-                                <option key={e} value={e}>{ESTADO_LABEL[e]}</option>
-                              ))}
-                            </select>
-                          </TableCell>
-                        </>
-                      )}
-                      <TableCell className="px-3 py-3">
-                        <div className="flex items-center gap-2">
-                          {r.estado !== 'comprado' && r.estado !== 'recibido' ? (
-                            <Link
-                              href={`/nueva-compra?requisicionId=${r.id}&descripcion=${encodeURIComponent(r.descripcion || r.nota || '')}`}
-                              className="text-gray-400 hover:text-emerald-600 transition-colors"
-                              title="Comprar en SMV Hub"
-                            >
-                              <ShoppingCart className="h-4 w-4" />
-                            </Link>
+                          {isAuto ? (
+                            <>
+                              <TableCell className="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
+                                {formatFecha(r.fechaPedido)}
+                              </TableCell>
+                              <TableCell className="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
+                                {r.fechaEntregaEst ? formatFecha(r.fechaEntregaEst) : '-'}
+                              </TableCell>
+                              <TableCell className="px-3 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                <select
+                                  value={r.estado}
+                                  onChange={(e) => handleCambioEstado(r.id, e.target.value as EstatusRequisicion)}
+                                  className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset cursor-pointer border-0 focus:ring-2 focus:ring-ring ${ESTADO_BADGE[r.estado]}`}
+                                  title="Cambiar estado"
+                                >
+                                  {ESTADOS_REQUISICION.map((e) => (
+                                    <option key={e} value={e}>{ESTADO_LABEL[e]}</option>
+                                  ))}
+                                </select>
+                              </TableCell>
+                              <TableCell className="px-3 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                <select
+                                  value={r.recibio ?? ''}
+                                  onChange={(e) => handleCampoInline(r.id, 'recibio', e.target.value)}
+                                  className="rounded border-0 bg-transparent text-xs text-gray-700 focus:ring-1 focus:ring-ring cursor-pointer max-w-[120px]"
+                                >
+                                  <option value="">—</option>
+                                  {SOLICITANTES.map((s) => (
+                                    <option key={s} value={s}>{s}</option>
+                                  ))}
+                                </select>
+                              </TableCell>
+                              <TableCell className="px-3 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                <select
+                                  value={r.revisionFinanzas ?? ''}
+                                  onChange={(e) => handleCampoInline(r.id, 'revisionFinanzas', e.target.value)}
+                                  className={`rounded px-1.5 py-0.5 text-xs font-semibold border-0 cursor-pointer focus:ring-1 focus:ring-ring ${
+                                    r.revisionFinanzas === 'Entrega parcial'
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-transparent text-gray-700'
+                                  }`}
+                                >
+                                  {REVISION_FINANZAS_OPCIONES.map((op) => (
+                                    <option key={op || 'vacio'} value={op}>{op || '—'}</option>
+                                  ))}
+                                </select>
+                              </TableCell>
+                              <TableCell className="px-3 py-3 whitespace-nowrap">{r.tienda || '-'}</TableCell>
+                              <TableCell className="px-3 py-3 text-center whitespace-nowrap">{r.cantidad || '-'}</TableCell>
+                              <TableCell className="px-3 py-3"><CeldaDescripcion r={r} /></TableCell>
+                              <TableCell className="px-3 py-3 whitespace-nowrap font-mono text-xs">{r.parteNumero || '-'}</TableCell>
+                              <TableCell className="px-3 py-3 whitespace-nowrap max-w-[100px]" onClick={(e) => e.stopPropagation()}>
+                                {r.link ? (
+                                  <a
+                                    href={r.link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline text-xs truncate block max-w-[100px]"
+                                    title={r.link}
+                                  >
+                                    Link
+                                  </a>
+                                ) : '-'}
+                              </TableCell>
+                              <TableCell className="px-3 py-3 whitespace-nowrap">
+                                {r.empresa ? (
+                                  <span className={`rounded px-2 py-0.5 text-xs font-semibold ${badgeEmpresa(r.empresa)}`}>
+                                    {r.empresa}
+                                  </span>
+                                ) : '-'}
+                              </TableCell>
+                              <TableCell className="px-3 py-3 whitespace-nowrap font-mono text-xs">
+                                {r.ordenServicio || '-'}
+                              </TableCell>
+                              <TableCell className="px-3 py-3 whitespace-nowrap">
+                                <CeldaAtraso r={r} hoy={hoy} isAuto />
+                              </TableCell>
+                            </>
                           ) : (
-                            <Link
-                              href="/ordenes"
-                              className="text-emerald-600 hover:text-emerald-700 transition-colors"
-                              title="Ver orden de compra vinculada"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Link>
+                            <>
+                              <TableCell className="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
+                                {formatFecha(r.fechaPedido)}
+                              </TableCell>
+                              <TableCell className="px-3 py-3 whitespace-nowrap font-medium text-gray-900">
+                                {r.solicitante || '-'}
+                              </TableCell>
+                              <TableCell className="px-3 py-3"><CeldaDescripcion r={r} /></TableCell>
+                              <TableCell className="px-3 py-3 whitespace-nowrap">{r.tienda || '-'}</TableCell>
+                              <TableCell className="px-3 py-3 text-center whitespace-nowrap">{r.cantidad || '-'}</TableCell>
+                              <TableCell className="px-3 py-3 whitespace-nowrap">
+                                {r.prioridad ? (
+                                  <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${PRIORIDAD_BADGE[r.prioridad]}`}>
+                                    {r.prioridad}
+                                  </span>
+                                ) : '-'}
+                              </TableCell>
+                              <TableCell className="px-3 py-3 whitespace-nowrap">
+                                <CeldaAtraso r={r} hoy={hoy} isAuto={false} />
+                              </TableCell>
+                              <TableCell className="px-3 py-3 whitespace-nowrap">
+                                {r.empresa ? (
+                                  <span className={`rounded px-2 py-0.5 text-xs font-semibold ${badgeEmpresa(r.empresa)}`}>
+                                    {r.empresa}
+                                  </span>
+                                ) : '-'}
+                              </TableCell>
+                              <TableCell className="px-3 py-3 whitespace-nowrap font-mono text-xs">
+                                {r.ordenServicio || '-'}
+                              </TableCell>
+                              <TableCell className="px-3 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                <select
+                                  value={r.estado}
+                                  onChange={(e) => handleCambioEstado(r.id, e.target.value as EstatusRequisicion)}
+                                  className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset cursor-pointer border-0 focus:ring-2 focus:ring-ring ${ESTADO_BADGE[r.estado]}`}
+                                  title="Cambiar estado"
+                                >
+                                  {ESTADOS_REQUISICION.map((e) => (
+                                    <option key={e} value={e}>{ESTADO_LABEL[e]}</option>
+                                  ))}
+                                </select>
+                              </TableCell>
+                            </>
                           )}
-                          <button
-                            onClick={() => setRequisicionToEdit(r)}
-                            className="text-gray-400 hover:text-primary transition-colors"
-                            title="Editar"
+                          <TableCell className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-2">
+                              {r.estado !== 'comprado' && r.estado !== 'recibido' ? (
+                                <Link
+                                  href={`/nueva-compra?requisicionId=${r.id}&descripcion=${encodeURIComponent(r.descripcion || r.nota || '')}`}
+                                  className="text-gray-400 hover:text-emerald-600 transition-colors"
+                                  title="Comprar en SMV Hub"
+                                >
+                                  <ShoppingCart className="h-4 w-4" />
+                                </Link>
+                              ) : (
+                                <Link
+                                  href="/ordenes"
+                                  className="text-emerald-600 hover:text-emerald-700 transition-colors"
+                                  title="Ver orden de compra vinculada"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </Link>
+                              )}
+                              <button
+                                onClick={() => setRequisicionToEdit(r)}
+                                className="text-gray-400 hover:text-primary transition-colors"
+                                title="Editar"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleEliminar(r.id, r.descripcion)}
+                                className="text-gray-400 hover:text-red-600 transition-colors"
+                                title="Eliminar"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      </ContextMenuTrigger>
+
+                      <ContextMenuContent className="w-56">
+                        <ContextMenuItem onClick={() => setReqDetalleModal(r)}>
+                          <Eye className="text-primary" />
+                          <span>Ver detalle / Cotizaciones</span>
+                          <ContextMenuShortcut>↵</ContextMenuShortcut>
+                        </ContextMenuItem>
+
+                        <ContextMenuItem onClick={() => setRequisicionToEdit(r)}>
+                          <Edit2 className="text-slate-600" />
+                          <span>Editar requisición</span>
+                        </ContextMenuItem>
+
+                        {isAuto && (
+                          <ContextMenuItem
+                            onClick={() => {
+                              const nombreRecibio = usuario?.displayName?.split(' ')[0] || usuario?.email?.split('@')[0] || 'Taller'
+                              void handleCampoInline(r.id, 'recibio', nombreRecibio)
+                              toast.success(`Marcado como recibido por ${nombreRecibio}`)
+                            }}
                           >
-                            <Edit2 className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleEliminar(r.id, r.descripcion)}
-                            className="text-gray-400 hover:text-red-600 transition-colors"
-                            title="Eliminar"
+                            <UserCheck className="text-emerald-600" />
+                            <span>Recibí yo ({usuario?.displayName?.split(' ')[0] || 'Mi usuario'})</span>
+                          </ContextMenuItem>
+                        )}
+
+                        <ContextMenuSeparator />
+
+                        <ContextMenuSub>
+                          <ContextMenuSubTrigger>
+                            <CheckCircle2 className="text-slate-500" />
+                            <span>Cambiar estado ({ESTADO_LABEL[r.estado]})</span>
+                          </ContextMenuSubTrigger>
+                          <ContextMenuSubContent className="w-44">
+                            {ESTADOS_REQUISICION.map((st) => (
+                              <ContextMenuItem
+                                key={st}
+                                onClick={() => void handleCambioEstado(r.id, st)}
+                              >
+                                <span className={st === r.estado ? 'font-bold text-primary' : ''}>
+                                  {ESTADO_LABEL[st]}
+                                </span>
+                              </ContextMenuItem>
+                            ))}
+                          </ContextMenuSubContent>
+                        </ContextMenuSub>
+
+                        <ContextMenuSub>
+                          <ContextMenuSubTrigger>
+                            <ShoppingCart className="text-slate-500" />
+                            <span>Convertir / Comprar</span>
+                          </ContextMenuSubTrigger>
+                          <ContextMenuSubContent className="w-52">
+                            <ContextMenuItem
+                              onClick={() => {
+                                window.location.href = `/nueva-compra?requisicionId=${r.id}&descripcion=${encodeURIComponent(r.descripcion || r.nota || '')}`
+                              }}
+                            >
+                              <ShoppingCart className="text-emerald-600" />
+                              <span>Nueva Compra (IA)</span>
+                            </ContextMenuItem>
+                            <ContextMenuItem
+                              onClick={() => {
+                                window.location.href = `/cotizaciones`
+                              }}
+                            >
+                              <Layers className="text-sky-600" />
+                              <span>Ir a Cotizaciones</span>
+                            </ContextMenuItem>
+                          </ContextMenuSubContent>
+                        </ContextMenuSub>
+
+                        <ContextMenuSeparator />
+
+                        <ContextMenuSub>
+                          <ContextMenuSubTrigger>
+                            <Copy className="text-slate-500" />
+                            <span>Copiar datos</span>
+                          </ContextMenuSubTrigger>
+                          <ContextMenuSubContent className="w-48">
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(r.descripcion)
+                                toast.success('Descripción copiada')
+                              }}
+                            >
+                              <span>Descripción</span>
+                            </ContextMenuItem>
+                            {r.link && (
+                              <ContextMenuItem
+                                onClick={() => {
+                                  void navigator.clipboard.writeText(r.link || '')
+                                  toast.success('Enlace copiado')
+                                }}
+                              >
+                                <span>Enlace de compra</span>
+                              </ContextMenuItem>
+                            )}
+                            {r.parteNumero && (
+                              <ContextMenuItem
+                                onClick={() => {
+                                  void navigator.clipboard.writeText(r.parteNumero || '')
+                                  toast.success('No. parte copiado')
+                                }}
+                              >
+                                <span>Parte # ({r.parteNumero})</span>
+                              </ContextMenuItem>
+                            )}
+                            {r.nota && (
+                              <ContextMenuItem
+                                onClick={() => {
+                                  void navigator.clipboard.writeText(r.nota || '')
+                                  toast.success('Nota copiada')
+                                }}
+                              >
+                                <span>Nota</span>
+                              </ContextMenuItem>
+                            )}
+                          </ContextMenuSubContent>
+                        </ContextMenuSub>
+
+                        {r.link && (
+                          <ContextMenuItem
+                            onClick={() => {
+                              if (r.link) window.open(r.link, '_blank', 'noopener,noreferrer')
+                            }}
                           >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                            <ExternalLink className="text-sky-600" />
+                            <span>Abrir link de compra</span>
+                          </ContextMenuItem>
+                        )}
+
+                        <ContextMenuSeparator />
+
+                        <ContextMenuItem
+                          className="text-rose-600"
+                          onClick={() => handleEliminar(r.id, r.descripcion)}
+                        >
+                          <Trash2 className="text-rose-600" />
+                          <span>Eliminar requisición</span>
+                        </ContextMenuItem>
+                      </ContextMenuContent>
+                    </ContextMenu>
                   ))}
                 </TableBody>
               </Table>

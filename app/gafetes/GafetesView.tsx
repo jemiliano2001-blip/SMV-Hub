@@ -11,7 +11,11 @@ import {
   Save,
   Search,
   Users,
+  Copy,
+  CheckSquare,
+  Square,
 } from "lucide-react"
+import { toast } from "sonner"
 import { authBypassActivo, useUsuario } from "@/lib/auth"
 import { usePermisos } from "@/lib/hooks/useRol"
 import { useOperadores } from "@/lib/hooks/useOperadores"
@@ -32,6 +36,17 @@ import type { Area, GafeteAjusteFoto, GafetePerfil, Operador } from "@/lib/schem
 import PageHeader from "@/components/layout/PageHeader"
 import PageShell from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Dialog,
   DialogContent,
@@ -400,20 +415,120 @@ export default function GafetesView() {
                 const perfil = perfilesPorOperador.get(operador.id)
                 const completo = estaListoParaImprimir(perfil)
                 const seleccionado = seleccionados.includes(operador.id)
+                const cargoOArea = perfil?.cargo || areaTexto(operador.area)
+
                 return (
-                  <article key={operador.id} className={`flex gap-3 items-center p-3 sm:px-4 ${!operador.activo ? "opacity-55" : ""}`}>
-                    <input aria-label={`Seleccionar ${operador.nombre} para imprimir`} type="checkbox" checked={seleccionado} onChange={() => alternarSeleccion(operador.id)} className="h-4 w-4 shrink-0 accent-primary" />
-                    <FotoGafete url={perfil?.fotoUrl ?? ""} ajuste={perfil?.fotoAjuste ?? AJUSTE_FOTO_INICIAL} nombre={operador.nombre} className="h-11 w-9 rounded-md shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm text-slate-900 truncate">{operador.nombre}</p>
-                      <p className="text-xs text-slate-500 truncate">{perfil?.cargo || areaTexto(operador.area)} · {operador.activo ? "Activo" : "Inactivo"}</p>
-                    </div>
-                    <span className={`hidden sm:inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold border ${completo ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200"}`}>
-                      {completo ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-                      {completo ? "Listo" : "Borrador"}
-                    </span>
-                    <button onClick={() => abrirEdicion(operador)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"><Pencil className="h-3.5 w-3.5" /> Editar</button>
-                  </article>
+                  <ContextMenu key={operador.id}>
+                    <ContextMenuTrigger asChild>
+                      <article className={`flex gap-3 items-center p-3 sm:px-4 hover:bg-slate-50/80 transition-colors cursor-pointer select-none ${!operador.activo ? "opacity-55" : ""}`}>
+                        <input
+                          aria-label={`Seleccionar ${operador.nombre} para imprimir`}
+                          type="checkbox"
+                          checked={seleccionado}
+                          onChange={() => alternarSeleccion(operador.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-4 w-4 shrink-0 accent-primary cursor-pointer"
+                        />
+                        <FotoGafete url={perfil?.fotoUrl ?? ""} ajuste={perfil?.fotoAjuste ?? AJUSTE_FOTO_INICIAL} nombre={operador.nombre} className="h-11 w-9 rounded-md shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-sm text-slate-900 truncate">{operador.nombre}</p>
+                          <p className="text-xs text-slate-500 truncate">{cargoOArea} · {operador.activo ? "Activo" : "Inactivo"}</p>
+                        </div>
+                        <span className={`hidden sm:inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold border ${completo ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200"}`}>
+                          {completo ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                          {completo ? "Listo" : "Borrador"}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            abrirEdicion(operador)
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                        >
+                          <Pencil className="h-3.5 w-3.5" /> Editar
+                        </button>
+                      </article>
+                    </ContextMenuTrigger>
+
+                    <ContextMenuContent className="w-56">
+                      <ContextMenuItem onClick={() => abrirEdicion(operador)}>
+                        <Pencil className="text-primary" />
+                        <span>Editar gafete y foto</span>
+                        <ContextMenuShortcut>↵</ContextMenuShortcut>
+                      </ContextMenuItem>
+
+                      <ContextMenuItem onClick={() => alternarSeleccion(operador.id)}>
+                        {seleccionado ? (
+                          <>
+                            <Square className="text-amber-600" />
+                            <span>Desmarcar para impresión</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckSquare className="text-emerald-600" />
+                            <span>Marcar para impresión</span>
+                          </>
+                        )}
+                      </ContextMenuItem>
+
+                      <ContextMenuSeparator />
+
+                      <ContextMenuSub>
+                        <ContextMenuSubTrigger>
+                          <Copy className="text-slate-500" />
+                          <span>Copiar información</span>
+                        </ContextMenuSubTrigger>
+                        <ContextMenuSubContent className="w-48">
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(operador.nombre)
+                              toast.success('Nombre copiado')
+                            }}
+                          >
+                            <span>Nombre ({operador.nombre})</span>
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(areaTexto(operador.area))
+                              toast.success('Área copiada')
+                            }}
+                          >
+                            <span>Área ({areaTexto(operador.area)})</span>
+                          </ContextMenuItem>
+                          {perfil?.cargo && (
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(perfil.cargo)
+                                toast.success('Cargo copiado')
+                              }}
+                            >
+                              <span>Cargo ({perfil.cargo})</span>
+                            </ContextMenuItem>
+                          )}
+                          {perfil?.rfc && (
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(perfil.rfc)
+                                toast.success('RFC copiado')
+                              }}
+                            >
+                              <span>RFC ({perfil.rfc})</span>
+                            </ContextMenuItem>
+                          )}
+                          {perfil?.nss && (
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(perfil.nss)
+                                toast.success('NSS copiado')
+                              }}
+                            >
+                              <span>NSS ({perfil.nss})</span>
+                            </ContextMenuItem>
+                          )}
+                        </ContextMenuSubContent>
+                      </ContextMenuSub>
+                    </ContextMenuContent>
+                  </ContextMenu>
                 )
               })}
               {trabajadores.length === 0 && <div className="p-8 text-center text-sm text-slate-500"><Users className="h-5 w-5 mx-auto mb-2" />No hay trabajadores que coincidan con la búsqueda.</div>}

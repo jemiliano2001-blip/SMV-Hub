@@ -8,6 +8,17 @@ import PageHeader from '@/components/layout/PageHeader'
 import PageShell from '@/components/layout/PageShell'
 import { Button } from '@/components/ui/button'
 import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
+import {
   Table,
   TableBody,
   TableCell,
@@ -15,7 +26,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, Filter, RefreshCw, UserCheck, Layers, Tag } from 'lucide-react'
+import { Search, Filter, RefreshCw, UserCheck, Layers, Tag, Copy, User, Folder } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function AuditoriaPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -293,26 +305,101 @@ export default function AuditoriaPage() {
                       <TableCell colSpan={6} className="px-4 py-6 text-center text-xs font-mono text-slate-500">No hay registros que coincidan con los filtros.</TableCell>
                     </TableRow>
                   ) : (
-                    logsFiltrados.map(log => (
-                      <TableRow key={log.id} className="hover:bg-slate-50 font-sans">
-                        <TableCell className="px-3.5 py-2 text-slate-600 font-mono text-[11px]">
-                          {log.fechaHora?.toDate ? log.fechaHora.toDate().toLocaleString('es-MX') : ''}
-                        </TableCell>
-                        <TableCell className="px-3.5 py-2 font-semibold text-slate-900">{log.emailUsuario}</TableCell>
-                        <TableCell className="px-3.5 py-2">
-                          <span className={`px-1.5 py-0.5 text-[9px] font-mono font-bold uppercase rounded border ${
-                            log.accion === 'CREAR' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
-                            log.accion === 'EDITAR' ? 'bg-sky-50 text-sky-800 border-sky-200' :
-                            log.accion === 'BORRAR' ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-slate-100 text-slate-700 border-slate-200'
-                          }`}>
-                            {log.accion}
-                          </span>
-                        </TableCell>
-                        <TableCell className="px-3.5 py-2 text-slate-600 font-mono text-[11px]">{log.coleccion}</TableCell>
-                        <TableCell className="px-3.5 py-2 text-slate-500 font-mono text-[11px]">{log.idDoc}</TableCell>
-                        <TableCell className="px-3.5 py-2 text-slate-700 max-w-md truncate" title={log.resumen}>{log.resumen}</TableCell>
-                      </TableRow>
-                    ))
+                    logsFiltrados.map(log => {
+                      const fechaTexto = log.fechaHora?.toDate ? log.fechaHora.toDate().toLocaleString('es-MX') : ''
+                      return (
+                        <ContextMenu key={log.id}>
+                          <ContextMenuTrigger asChild>
+                            <TableRow className="hover:bg-slate-50 font-sans cursor-pointer select-none">
+                              <TableCell className="px-3.5 py-2 text-slate-600 font-mono text-[11px]">
+                                {fechaTexto}
+                              </TableCell>
+                              <TableCell className="px-3.5 py-2 font-semibold text-slate-900">{log.emailUsuario}</TableCell>
+                              <TableCell className="px-3.5 py-2">
+                                <span className={`px-1.5 py-0.5 text-[9px] font-mono font-bold uppercase rounded border ${
+                                  log.accion === 'CREAR' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                                  log.accion === 'EDITAR' ? 'bg-sky-50 text-sky-800 border-sky-200' :
+                                  log.accion === 'BORRAR' ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-slate-100 text-slate-700 border-slate-200'
+                                }`}>
+                                  {log.accion}
+                                </span>
+                              </TableCell>
+                              <TableCell className="px-3.5 py-2 text-slate-600 font-mono text-[11px]">{log.coleccion}</TableCell>
+                              <TableCell className="px-3.5 py-2 text-slate-500 font-mono text-[11px]">{log.idDoc}</TableCell>
+                              <TableCell className="px-3.5 py-2 text-slate-700 max-w-md truncate" title={log.resumen}>{log.resumen}</TableCell>
+                            </TableRow>
+                          </ContextMenuTrigger>
+
+                          <ContextMenuContent className="w-56">
+                            {log.emailUsuario && (
+                              <ContextMenuItem onClick={() => setFiltroUsuario(log.emailUsuario)}>
+                                <User className="text-primary" />
+                                <span>Filtrar por este usuario</span>
+                                <ContextMenuShortcut>↵</ContextMenuShortcut>
+                              </ContextMenuItem>
+                            )}
+
+                            {log.coleccion && (
+                              <ContextMenuItem onClick={() => setFiltroColeccion(log.coleccion)}>
+                                <Folder className="text-amber-600" />
+                                <span>Filtrar por colección ({log.coleccion})</span>
+                              </ContextMenuItem>
+                            )}
+
+                            <ContextMenuSeparator />
+
+                            <ContextMenuSub>
+                              <ContextMenuSubTrigger>
+                                <Copy className="text-slate-500" />
+                                <span>Copiar información</span>
+                              </ContextMenuSubTrigger>
+                              <ContextMenuSubContent className="w-48">
+                                {log.idDoc && (
+                                  <ContextMenuItem
+                                    onClick={() => {
+                                      void navigator.clipboard.writeText(log.idDoc)
+                                      toast.success('ID de documento copiado')
+                                    }}
+                                  >
+                                    <span>ID Doc ({log.idDoc})</span>
+                                  </ContextMenuItem>
+                                )}
+                                {log.resumen && (
+                                  <ContextMenuItem
+                                    onClick={() => {
+                                      void navigator.clipboard.writeText(log.resumen)
+                                      toast.success('Resumen copiado')
+                                    }}
+                                  >
+                                    <span>Resumen</span>
+                                  </ContextMenuItem>
+                                )}
+                                {log.emailUsuario && (
+                                  <ContextMenuItem
+                                    onClick={() => {
+                                      void navigator.clipboard.writeText(log.emailUsuario)
+                                      toast.success('Usuario copiado')
+                                    }}
+                                  >
+                                    <span>Usuario ({log.emailUsuario})</span>
+                                  </ContextMenuItem>
+                                )}
+                                {fechaTexto && (
+                                  <ContextMenuItem
+                                    onClick={() => {
+                                      void navigator.clipboard.writeText(fechaTexto)
+                                      toast.success('Fecha y hora copiada')
+                                    }}
+                                  >
+                                    <span>Fecha y hora</span>
+                                  </ContextMenuItem>
+                                )}
+                              </ContextMenuSubContent>
+                            </ContextMenuSub>
+                          </ContextMenuContent>
+                        </ContextMenu>
+                      )
+                    })
                   )}
                 </TableBody>
               </Table>

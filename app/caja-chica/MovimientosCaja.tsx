@@ -14,6 +14,8 @@ import {
   UserCheck,
   Scissors,
   RefreshCw,
+  Copy,
+  CheckCircle2,
 } from 'lucide-react'
 import ModalMovimientoCaja from './ModalMovimientoCaja'
 import type { MovimientoCajaChica } from '@/lib/schemas'
@@ -21,6 +23,17 @@ import { listarCortesCaja, type CorteCaja, type ModoFiltroCaja } from '@/lib/caj
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import ModuleSurface from '@/components/layout/ModuleSurface'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Table,
   TableBody,
@@ -57,90 +70,178 @@ function MovimientoRow({ m, onVerificar, onEditar, onBorrar }: AccionesMovimient
   const isCortado = m.estadoCorte === 'CORTADO'
 
   return (
-    <TableRow className={`hover:bg-slate-50/80 transition-colors text-xs ${isVale ? 'bg-amber-50/30' : ''}`}>
-      <TableCell className="px-3 py-2.5 font-mono text-slate-700">
-        <div className="flex items-center gap-1.5">
-          <span>{m.fecha}</span>
-          {isCortado && (
-            <span
-              className="bg-slate-100 text-slate-600 border border-slate-200 px-1 py-0.2 rounded text-[9px] font-mono"
-              title="Este movimiento pertenece a un corte ya realizado"
-            >
-              CORTADO
-            </span>
-          )}
-        </div>
-      </TableCell>
-      <TableCell className="px-3 py-2.5 font-medium text-slate-900 max-w-[220px] truncate" title={m.descripcion}>
-        <span>{m.descripcion}</span>
-        {isVale && (
-          <span className="ml-2 bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold">
-            VALE PENDIENTE
-          </span>
-        )}
-      </TableCell>
-      <TableCell className="px-3 py-2.5 text-slate-600">{m.proveedor}</TableCell>
-      <TableCell className="px-3 py-2.5 text-slate-600">
-        <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200 text-[11px] font-medium">
-          {m.categoria}
-        </span>
-      </TableCell>
-      <TableCell className="px-3 py-2.5 text-slate-600">{m.solicitante}</TableCell>
-      <TableCell className="px-3 py-2.5 text-slate-600 font-mono text-[11px]">
-        <div className="flex items-center gap-1.5">
-          <span className={isVale ? 'text-amber-700 font-bold' : ''}>{m.comprobante}</span>
-          {m.archivoUrl && (
-            <a
-              href={m.archivoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:text-sky-800 flex items-center gap-0.5 shrink-0"
-              title="Ver comprobante digital"
-            >
-              <FileText className="h-3.5 w-3.5" />
-            </a>
-          )}
-          {m.deducible && (
-            <span className="text-[9px] font-bold text-sky-700 bg-sky-50 px-1 py-0.2 rounded border border-sky-200">
-              DED
-            </span>
-          )}
-        </div>
-      </TableCell>
-      <TableCell className="px-3 py-2.5 text-right text-emerald-700 font-mono font-semibold tabular-nums">
-        {m.tipo === 'ENTRADA' ? formatearDinero(m.monto) : '—'}
-      </TableCell>
-      <TableCell className="px-3 py-2.5 text-right text-rose-700 font-mono font-semibold tabular-nums">
-        {m.tipo === 'SALIDA' ? formatearDinero(m.monto) : '—'}
-      </TableCell>
-      <TableCell className="px-3 py-2.5 text-center">
-        <button
-          onClick={() => onVerificar(m)}
-          className={`transition-transform active:scale-90 ${m.verificado ? 'text-emerald-600' : 'text-slate-300 hover:text-slate-400'}`}
-          title={m.verificado ? 'Verificado' : 'Marcar como verificado'}
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <TableRow
+          className={`hover:bg-slate-50/80 transition-colors text-xs cursor-pointer ${isVale ? 'bg-amber-50/30' : ''}`}
+          onDoubleClick={() => onEditar(m)}
         >
-          <CheckCircle className="h-4.5 w-4.5 mx-auto" />
-        </button>
-      </TableCell>
-      <TableCell className="px-3 py-2.5 text-right">
-        <div className="flex justify-end gap-1">
-          <button
-            onClick={() => onEditar(m)}
-            className="p-1 text-slate-400 hover:text-primary hover:bg-sky-50 rounded transition-colors"
-            title="Editar"
+          <TableCell className="px-3 py-2.5 font-mono text-slate-700">
+            <div className="flex items-center gap-1.5">
+              <span>{m.fecha}</span>
+              {isCortado && (
+                <span
+                  className="bg-slate-100 text-slate-600 border border-slate-200 px-1 py-0.2 rounded text-[9px] font-mono"
+                  title="Este movimiento pertenece a un corte ya realizado"
+                >
+                  CORTADO
+                </span>
+              )}
+            </div>
+          </TableCell>
+          <TableCell className="px-3 py-2.5 font-medium text-slate-900 max-w-[220px] truncate" title={m.descripcion}>
+            <span>{m.descripcion}</span>
+            {isVale && (
+              <span className="ml-2 bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold">
+                VALE PENDIENTE
+              </span>
+            )}
+          </TableCell>
+          <TableCell className="px-3 py-2.5 text-slate-600">{m.proveedor}</TableCell>
+          <TableCell className="px-3 py-2.5 text-slate-600">
+            <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200 text-[11px] font-medium">
+              {m.categoria}
+            </span>
+          </TableCell>
+          <TableCell className="px-3 py-2.5 text-slate-600">{m.solicitante}</TableCell>
+          <TableCell className="px-3 py-2.5 text-slate-600 font-mono text-[11px]">
+            <div className="flex items-center gap-1.5">
+              <span className={isVale ? 'text-amber-700 font-bold' : ''}>{m.comprobante}</span>
+              {m.archivoUrl && (
+                <a
+                  href={m.archivoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-primary hover:text-sky-800 flex items-center gap-0.5 shrink-0"
+                  title="Ver comprobante digital"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                </a>
+              )}
+              {m.deducible && (
+                <span className="text-[9px] font-bold text-sky-700 bg-sky-50 px-1 py-0.2 rounded border border-sky-200">
+                  DED
+                </span>
+              )}
+            </div>
+          </TableCell>
+          <TableCell className="px-3 py-2.5 text-right text-emerald-700 font-mono font-semibold tabular-nums">
+            {m.tipo === 'ENTRADA' ? formatearDinero(m.monto) : '—'}
+          </TableCell>
+          <TableCell className="px-3 py-2.5 text-right text-rose-700 font-mono font-semibold tabular-nums">
+            {m.tipo === 'SALIDA' ? formatearDinero(m.monto) : '—'}
+          </TableCell>
+          <TableCell className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => onVerificar(m)}
+              className={`transition-transform active:scale-90 ${m.verificado ? 'text-emerald-600' : 'text-slate-300 hover:text-slate-400'}`}
+              title={m.verificado ? 'Verificado' : 'Marcar como verificado'}
+            >
+              <CheckCircle className="h-4.5 w-4.5 mx-auto" />
+            </button>
+          </TableCell>
+          <TableCell className="px-3 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-end gap-1">
+              <button
+                onClick={() => onEditar(m)}
+                className="p-1 text-slate-400 hover:text-primary hover:bg-sky-50 rounded transition-colors"
+                title="Editar"
+              >
+                <Edit2 className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => onBorrar(m)}
+                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                title="Eliminar"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </TableCell>
+        </TableRow>
+      </ContextMenuTrigger>
+
+      <ContextMenuContent className="w-56">
+        <ContextMenuItem onClick={() => onEditar(m)}>
+          <Edit2 className="text-primary" />
+          <span>Editar movimiento</span>
+          <ContextMenuShortcut>↵</ContextMenuShortcut>
+        </ContextMenuItem>
+
+        <ContextMenuItem onClick={() => onVerificar(m)}>
+          <CheckCircle2 className={m.verificado ? 'text-slate-400' : 'text-emerald-600'} />
+          <span>{m.verificado ? 'Desmarcar verificación' : 'Marcar como verificado'}</span>
+        </ContextMenuItem>
+
+        <ContextMenuSeparator />
+
+        <ContextMenuSub>
+          <ContextMenuSubTrigger>
+            <Copy className="text-slate-500" />
+            <span>Copiar datos</span>
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-48">
+            <ContextMenuItem
+              onClick={() => {
+                void navigator.clipboard.writeText(m.descripcion)
+                toast.success('Descripción copiada')
+              }}
+            >
+              <span>Descripción</span>
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => {
+                const montoTxt = formatearDinero(m.monto)
+                void navigator.clipboard.writeText(montoTxt)
+                toast.success('Monto copiado', { description: montoTxt })
+              }}
+            >
+              <span>Monto ({formatearDinero(m.monto)})</span>
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => {
+                void navigator.clipboard.writeText(m.solicitante)
+                toast.success('Solicitante copiado')
+              }}
+            >
+              <span>Solicitante ({m.solicitante})</span>
+            </ContextMenuItem>
+            {m.proveedor && (
+              <ContextMenuItem
+                onClick={() => {
+                  void navigator.clipboard.writeText(m.proveedor || '')
+                  toast.success('Proveedor copiado')
+                }}
+              >
+                <span>Proveedor ({m.proveedor})</span>
+              </ContextMenuItem>
+            )}
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+
+        {m.archivoUrl && (
+          <ContextMenuItem
+            onClick={() => {
+              if (m.archivoUrl) window.open(m.archivoUrl, '_blank', 'noopener,noreferrer')
+            }}
           >
-            <Edit2 className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={() => onBorrar(m)}
-            className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
-            title="Eliminar"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </TableCell>
-    </TableRow>
+            <FileText className="text-amber-600" />
+            <span>Ver comprobante digital</span>
+          </ContextMenuItem>
+        )}
+
+        <ContextMenuSeparator />
+
+        <ContextMenuItem
+          className="text-rose-600"
+          onClick={() => onBorrar(m)}
+        >
+          <Trash2 className="text-rose-600" />
+          <span>Eliminar movimiento</span>
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }
 

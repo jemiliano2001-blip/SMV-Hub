@@ -1,11 +1,40 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { AlertTriangle, ArrowDown, ArrowUp, Edit3, GripVertical, Pencil, Plus, RefreshCw, Save, Search, X } from "lucide-react"
+import {
+  AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  Edit3,
+  GripVertical,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Save,
+  Search,
+  X,
+  Copy,
+  Eye,
+  PlusCircle,
+  MinusCircle,
+  Package,
+} from "lucide-react"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 import {
   Table,
   TableBody,
@@ -392,105 +421,203 @@ export default function InventarioEndmills({
               const sugerido = calcularCantidadSugerida(medida.objetivoPar, stockMostrar)
               const esArrastrado = arrastrandoIndex === index
               return (
-                <TableRow
-                  key={medida.id}
-                  draggable={reordenHabilitado}
-                  onDragStart={() => setArrastrandoIndex(index)}
-                  onDragOver={(e) => {
-                    if (!reordenHabilitado) return
-                    e.preventDefault()
-                  }}
-                  onDrop={() => {
-                    if (!reordenHabilitado || arrastrandoIndex === null || arrastrandoIndex === index) return
-                    moverPosicion(arrastrandoIndex, index)
-                    setArrastrandoIndex(null)
-                  }}
-                  className={`${medida.requiereConfirmacion ? "bg-amber-50/70" : ""} ${
-                    esArrastrado ? "opacity-40 bg-sky-100" : ""
-                  }`}
-                >
-                  {reordenHabilitado && (
-                    <TableCell className="w-16 py-1 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <GripVertical
-                          className="h-4 w-4 cursor-grab text-slate-400 hover:text-slate-700 active:cursor-grabbing"
-                          aria-label="Arrastra para mover de posición (Grab & Place)"
-                        />
-                        <div className="flex flex-col">
-                          <button
-                            type="button"
-                            disabled={index === 0}
-                            onClick={() => moverPosicion(index, index - 1)}
-                            className="text-slate-400 hover:text-slate-800 disabled:opacity-20"
-                            title="Mover arriba"
-                          >
-                            <ArrowUp className="h-3 w-3" />
-                          </button>
-                          <button
-                            type="button"
-                            disabled={index === listaAMostrar.length - 1}
-                            onClick={() => moverPosicion(index, index + 1)}
-                            className="text-slate-400 hover:text-slate-800 disabled:opacity-20"
-                            title="Mover abajo"
-                          >
-                            <ArrowDown className="h-3 w-3" />
-                          </button>
-                        </div>
-                      </div>
-                    </TableCell>
-                  )}
-                  <TableCell className="font-mono font-bold text-slate-900">
-                    {medida.medidaPulgadas}&quot;
-                  </TableCell>
-                  <TableCell className="max-w-md whitespace-normal">
-                    <div className="flex items-center gap-1.5 font-semibold text-slate-800">
-                      {medida.requiereConfirmacion && <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />}
-                      {medida.descripcion}
-                    </div>
-                    <div className="mt-0.5 truncate font-mono text-[10px] text-slate-500">
-                      {medida.specPropuesta}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right text-base font-black tabular-nums">
-                    {modoConteo ? (
-                      <Input
-                        type="number"
-                        min={0}
-                        step={1}
-                        value={stocksInline[medida.id] ?? medida.stockActual}
-                        onChange={(e) => {
-                          const v = Math.max(0, Math.trunc(Number(e.target.value) || 0))
-                          capturarStockInline(medida.id, v)
-                        }}
-                        aria-label={`Conteo de ${medida.descripcion}`}
-                        className={`ml-auto w-20 text-right font-bold ${
-                          tocados.includes(medida.id) ? "border-sky-500 bg-sky-50" : ""
-                        }`}
-                      />
-                    ) : (
-                      medida.stockActual
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <EstadoBadge estado={estado} />
-                  </TableCell>
-                  <TableCell className="text-right font-semibold text-emerald-700">
-                    {formatPrecio(medida.precioActualUSD, "USD")}
-                  </TableCell>
-                  <TableCell className="text-right font-bold tabular-nums">
-                    {sugerido === null ? "—" : sugerido}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setMedidaSeleccionada(medida)}
-                      aria-label={`Editar ${medida.descripcion}`}
+                <ContextMenu key={medida.id}>
+                  <ContextMenuTrigger asChild>
+                    <TableRow
+                      draggable={reordenHabilitado}
+                      onDragStart={() => setArrastrandoIndex(index)}
+                      onDragOver={(e) => {
+                        if (!reordenHabilitado) return
+                        e.preventDefault()
+                      }}
+                      onDrop={() => {
+                        if (!reordenHabilitado || arrastrandoIndex === null || arrastrandoIndex === index) return
+                        moverPosicion(arrastrandoIndex, index)
+                        setArrastrandoIndex(null)
+                      }}
+                      onDoubleClick={() => setMedidaSeleccionada(medida)}
+                      className={`cursor-pointer select-none ${medida.requiereConfirmacion ? "bg-amber-50/70" : ""} ${
+                        esArrastrado ? "opacity-40 bg-sky-100" : ""
+                      }`}
                     >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                      {reordenHabilitado && (
+                        <TableCell className="w-16 py-1 text-center" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-center gap-1">
+                            <GripVertical
+                              className="h-4 w-4 cursor-grab text-slate-400 hover:text-slate-700 active:cursor-grabbing"
+                              aria-label="Arrastra para mover de posición (Grab & Place)"
+                            />
+                            <div className="flex flex-col">
+                              <button
+                                type="button"
+                                disabled={index === 0}
+                                onClick={() => moverPosicion(index, index - 1)}
+                                className="text-slate-400 hover:text-slate-800 disabled:opacity-20 cursor-pointer"
+                                title="Mover arriba"
+                              >
+                                <ArrowUp className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={index === listaAMostrar.length - 1}
+                                onClick={() => moverPosicion(index, index + 1)}
+                                className="text-slate-400 hover:text-slate-800 disabled:opacity-20 cursor-pointer"
+                                title="Mover abajo"
+                              >
+                                <ArrowDown className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </div>
+                        </TableCell>
+                      )}
+                      <TableCell className="font-mono font-bold text-slate-900">
+                        {medida.medidaPulgadas}&quot;
+                      </TableCell>
+                      <TableCell className="max-w-md whitespace-normal">
+                        <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+                          {medida.requiereConfirmacion && <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />}
+                          {medida.descripcion}
+                        </div>
+                        <div className="mt-0.5 truncate font-mono text-[10px] text-slate-500">
+                          {medida.specPropuesta}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right text-base font-black tabular-nums" onClick={(e) => e.stopPropagation()}>
+                        {modoConteo ? (
+                          <Input
+                            type="number"
+                            min={0}
+                            step={1}
+                            value={stocksInline[medida.id] ?? medida.stockActual}
+                            onChange={(e) => {
+                              const v = Math.max(0, Math.trunc(Number(e.target.value) || 0))
+                              capturarStockInline(medida.id, v)
+                            }}
+                            aria-label={`Conteo de ${medida.descripcion}`}
+                            className={`ml-auto w-20 text-right font-bold ${
+                              tocados.includes(medida.id) ? "border-sky-500 bg-sky-50" : ""
+                            }`}
+                          />
+                        ) : (
+                          medida.stockActual
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <EstadoBadge estado={estado} />
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-emerald-700">
+                        {formatPrecio(medida.precioActualUSD, "USD")}
+                      </TableCell>
+                      <TableCell className="text-right font-bold tabular-nums">
+                        {sugerido === null ? "—" : sugerido}
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setMedidaSeleccionada(medida)}
+                          aria-label={`Editar ${medida.descripcion}`}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  </ContextMenuTrigger>
+
+                  <ContextMenuContent className="w-56">
+                    <ContextMenuItem onClick={() => setMedidaSeleccionada(medida)}>
+                      <Eye className="text-primary" />
+                      <span>Ver detalle / Ajustar stock</span>
+                      <ContextMenuShortcut>↵</ContextMenuShortcut>
+                    </ContextMenuItem>
+
+                    <ContextMenuSeparator />
+
+                    <ContextMenuSub>
+                      <ContextMenuSubTrigger>
+                        <Package className="text-emerald-600" />
+                        <span>Ajuste rápido de stock</span>
+                      </ContextMenuSubTrigger>
+                      <ContextMenuSubContent className="w-44">
+                        <ContextMenuItem
+                          onClick={async () => {
+                            await onActualizarStock(medida.id, medida.stockActual + 1)
+                            toast.success(`Stock de ${medida.medidaPulgadas}" aumentado a ${medida.stockActual + 1}`)
+                          }}
+                        >
+                          <PlusCircle className="text-emerald-600" />
+                          <span>+1 pieza ({medida.stockActual + 1})</span>
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                          onClick={async () => {
+                            await onActualizarStock(medida.id, medida.stockActual + 5)
+                            toast.success(`Stock de ${medida.medidaPulgadas}" aumentado a ${medida.stockActual + 5}`)
+                          }}
+                        >
+                          <PlusCircle className="text-emerald-600" />
+                          <span>+5 piezas ({medida.stockActual + 5})</span>
+                        </ContextMenuItem>
+                        {medida.stockActual > 0 && (
+                          <ContextMenuItem
+                            onClick={async () => {
+                              await onActualizarStock(medida.id, Math.max(0, medida.stockActual - 1))
+                              toast.success(`Stock de ${medida.medidaPulgadas}" reducido a ${Math.max(0, medida.stockActual - 1)}`)
+                            }}
+                          >
+                            <MinusCircle className="text-amber-600" />
+                            <span>-1 pieza ({Math.max(0, medida.stockActual - 1)})</span>
+                          </ContextMenuItem>
+                        )}
+                        <ContextMenuSeparator />
+                        <ContextMenuItem
+                          className="text-rose-600"
+                          onClick={async () => {
+                            await onActualizarStock(medida.id, 0)
+                            toast.success(`Stock de ${medida.medidaPulgadas}" marcado en 0 (Agotado)`)
+                          }}
+                        >
+                          <AlertTriangle className="text-rose-600" />
+                          <span>Marcar agotado (0)</span>
+                        </ContextMenuItem>
+                      </ContextMenuSubContent>
+                    </ContextMenuSub>
+
+                    <ContextMenuSeparator />
+
+                    <ContextMenuSub>
+                      <ContextMenuSubTrigger>
+                        <Copy className="text-slate-500" />
+                        <span>Copiar información</span>
+                      </ContextMenuSubTrigger>
+                      <ContextMenuSubContent className="w-48">
+                        <ContextMenuItem
+                          onClick={() => {
+                            void navigator.clipboard.writeText(`${medida.medidaPulgadas}"`)
+                            toast.success('Medida copiada')
+                          }}
+                        >
+                          <span>Medida ({medida.medidaPulgadas}&quot;)</span>
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                          onClick={() => {
+                            void navigator.clipboard.writeText(medida.descripcion)
+                            toast.success('Descripción copiada')
+                          }}
+                        >
+                          <span>Descripción</span>
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                          onClick={() => {
+                            void navigator.clipboard.writeText(medida.specPropuesta)
+                            toast.success('Spec propuesta copiada')
+                          }}
+                        >
+                          <span>Especificación</span>
+                        </ContextMenuItem>
+                      </ContextMenuSubContent>
+                    </ContextMenuSub>
+                  </ContextMenuContent>
+                </ContextMenu>
               )
             })}
           </TableBody>

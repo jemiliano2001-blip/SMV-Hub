@@ -10,7 +10,12 @@ import {
   ChevronUp,
   Flag,
   Loader2,
+  Copy,
+  Mail,
+  FileText,
+  Edit3,
 } from "lucide-react"
+import { toast } from "sonner"
 import { useUsuario } from "@/lib/auth"
 import { useFinanzasFacturas } from "@/lib/hooks/useFinanzasFacturas"
 import { useSeguimientoCobranza } from "@/lib/hooks/useSeguimientoCobranza"
@@ -40,6 +45,17 @@ import FinanzasNav from "@/app/finanzas/FinanzasNav"
 import BannerSync from "@/app/finanzas/BannerSync"
 import SelectorMes from "@/app/finanzas/SelectorMes"
 import SeguimientoCobranzaEditor from "@/app/finanzas/cobranza/SeguimientoCobranzaEditor"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 import {
   Table,
   TableBody,
@@ -518,74 +534,153 @@ function Cobranza() {
                   const prioritaria = idsPrioritarias.has(factura.id)
                   return (
                     <Fragment key={factura.id}>
-                      <TableRow
-                        className={`border-b border-gray-100 hover:bg-gray-50 ${
-                          prioritaria ? "bg-amber-50/70" : ""
-                        }`}
-                      >
-                        <TableCell className="py-2 pr-3">{factura.cliente}</TableCell>
-                        <TableCell className="py-2 pr-3 font-mono text-xs text-gray-500">{factura.numeroFactura}</TableCell>
-                        <TableCell className="py-2 pr-3">{formatFecha(factura.fechaVencimiento)}</TableCell>
-                        <TableCell className="py-2 pr-3 text-right tabular-nums">{formatPrecio(factura.total, moneda)}</TableCell>
-                        <TableCell className="py-2 pr-3 text-right tabular-nums font-medium">
-                          {formatPrecio(factura.saldoPendiente, moneda)}
-                          {prioritaria && (
-                            <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
-                              Prioridad
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-2 pr-3 text-right tabular-nums text-gray-500">{atraso > 0 ? atraso : "—"}</TableCell>
-                        <TableCell className="py-2 pr-3">
-                          {factura.saldoPendiente > 0 && atraso > 0 ? (
-                            <span
-                              className="inline-flex items-center gap-1 text-xs font-medium"
-                              style={{ color: INFO_BUCKET[bucket].color }}
-                              title={INFO_BUCKET[bucket].accion}
-                            >
-                              <span
-                                className="h-2 w-2 rounded-full"
-                                style={{ backgroundColor: INFO_BUCKET[bucket].color }}
-                              />
-                              {INFO_BUCKET[bucket].label}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-gray-400">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-2 pr-3">
-                          {seguimiento?.enDisputa ? (
-                            <span className="rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">
-                              En disputa
-                            </span>
-                          ) : (
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ETIQUETA_ESTADO[estado].clase}`}>
-                              {ETIQUETA_ESTADO[estado].label}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-2 text-right">
-                          <button
-                            type="button"
+                      <ContextMenu>
+                        <ContextMenuTrigger asChild>
+                          <TableRow
+                            className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
+                              prioritaria ? "bg-amber-50/70" : ""
+                            }`}
+                            onDoubleClick={() =>
+                              setFacturaExpandida((actual) =>
+                                actual === factura.id ? null : factura.id
+                              )
+                            }
+                          >
+                            <TableCell className="py-2 pr-3">{factura.cliente}</TableCell>
+                            <TableCell className="py-2 pr-3 font-mono text-xs text-gray-500">{factura.numeroFactura}</TableCell>
+                            <TableCell className="py-2 pr-3">{formatFecha(factura.fechaVencimiento)}</TableCell>
+                            <TableCell className="py-2 pr-3 text-right tabular-nums">{formatPrecio(factura.total, moneda)}</TableCell>
+                            <TableCell className="py-2 pr-3 text-right tabular-nums font-medium">
+                              {formatPrecio(factura.saldoPendiente, moneda)}
+                              {prioritaria && (
+                                <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                                  Prioridad
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="py-2 pr-3 text-right tabular-nums text-gray-500">{atraso > 0 ? atraso : "—"}</TableCell>
+                            <TableCell className="py-2 pr-3">
+                              {factura.saldoPendiente > 0 && atraso > 0 ? (
+                                <span
+                                  className="inline-flex items-center gap-1 text-xs font-medium"
+                                  style={{ color: INFO_BUCKET[bucket].color }}
+                                  title={INFO_BUCKET[bucket].accion}
+                                >
+                                  <span
+                                    className="h-2 w-2 rounded-full"
+                                    style={{ backgroundColor: INFO_BUCKET[bucket].color }}
+                                  />
+                                  {INFO_BUCKET[bucket].label}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-400">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="py-2 pr-3">
+                              {seguimiento?.enDisputa ? (
+                                <span className="rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">
+                                  En disputa
+                                </span>
+                              ) : (
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ETIQUETA_ESTADO[estado].clase}`}>
+                                  {ETIQUETA_ESTADO[estado].label}
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setFacturaExpandida((actual) =>
+                                    actual === factura.id ? null : factura.id
+                                  )
+                                }
+                                disabled={loadingSeguimiento}
+                                aria-expanded={expandida}
+                                aria-controls={`seguimiento-${factura.id}`}
+                                className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                              >
+                                {seguimiento ? "Editar" : "Agregar"}
+                                {expandida ? (
+                                  <ChevronUp className="h-3.5 w-3.5" />
+                                ) : (
+                                  <ChevronDown className="h-3.5 w-3.5" />
+                                )}
+                              </button>
+                            </TableCell>
+                          </TableRow>
+                        </ContextMenuTrigger>
+
+                        <ContextMenuContent className="w-60">
+                          <ContextMenuItem
                             onClick={() =>
                               setFacturaExpandida((actual) =>
                                 actual === factura.id ? null : factura.id
                               )
                             }
-                            disabled={loadingSeguimiento}
-                            aria-expanded={expandida}
-                            aria-controls={`seguimiento-${factura.id}`}
-                            className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
                           >
-                            {seguimiento ? "Editar" : "Agregar"}
-                            {expandida ? (
-                              <ChevronUp className="h-3.5 w-3.5" />
-                            ) : (
-                              <ChevronDown className="h-3.5 w-3.5" />
-                            )}
-                          </button>
-                        </TableCell>
-                      </TableRow>
+                            <Edit3 className="text-primary" />
+                            <span>{seguimiento ? "Editar seguimiento" : "Agregar seguimiento"}</span>
+                            <ContextMenuShortcut>↵</ContextMenuShortcut>
+                          </ContextMenuItem>
+
+                          <ContextMenuSeparator />
+
+                          <ContextMenuSub>
+                            <ContextMenuSubTrigger>
+                              <Copy className="text-slate-500" />
+                              <span>Copiar información</span>
+                            </ContextMenuSubTrigger>
+                            <ContextMenuSubContent className="w-52">
+                              <ContextMenuItem
+                                onClick={() => {
+                                  void navigator.clipboard.writeText(factura.cliente)
+                                  toast.success('Cliente copiado')
+                                }}
+                              >
+                                <span>Cliente ({factura.cliente})</span>
+                              </ContextMenuItem>
+                              <ContextMenuItem
+                                onClick={() => {
+                                  void navigator.clipboard.writeText(factura.numeroFactura)
+                                  toast.success('Factura copiada')
+                                }}
+                              >
+                                <span>No. Factura ({factura.numeroFactura})</span>
+                              </ContextMenuItem>
+                              <ContextMenuItem
+                                onClick={() => {
+                                  const saldoTxt = formatPrecio(factura.saldoPendiente, moneda)
+                                  void navigator.clipboard.writeText(saldoTxt)
+                                  toast.success('Saldo pendiente copiado', { description: saldoTxt })
+                                }}
+                              >
+                                <span>Saldo ({formatPrecio(factura.saldoPendiente, moneda)})</span>
+                              </ContextMenuItem>
+                              <ContextMenuItem
+                                onClick={() => {
+                                  const totalTxt = formatPrecio(factura.total, moneda)
+                                  void navigator.clipboard.writeText(totalTxt)
+                                  toast.success('Total copiado', { description: totalTxt })
+                                }}
+                              >
+                                <span>Total ({formatPrecio(factura.total, moneda)})</span>
+                              </ContextMenuItem>
+                            </ContextMenuSubContent>
+                          </ContextMenuSub>
+
+                          <ContextMenuItem
+                            onClick={() => {
+                              const plantilla = `Estimado cliente ${factura.cliente},\n\nLe enviamos un cordial recordatorio sobre el saldo pendiente de ${formatPrecio(factura.saldoPendiente, moneda)} correspondiente a la factura ${factura.numeroFactura} con fecha de vencimiento ${formatFecha(factura.fechaVencimiento)}.\n\nAgradecemos su apoyo con el comprobante de pago o fecha estimada de liquidación.\n\nSaludos cordiales,\nDepartamento de Cobranza - SMV`
+                              void navigator.clipboard.writeText(plantilla)
+                              toast.success('Plantilla de cobranza copiada al portapapeles')
+                            }}
+                          >
+                            <Mail className="text-sky-600" />
+                            <span>Copiar texto de recordatorio</span>
+                          </ContextMenuItem>
+                        </ContextMenuContent>
+                      </ContextMenu>
                       {expandida && (
                         <TableRow
                           id={`seguimiento-${factura.id}`}

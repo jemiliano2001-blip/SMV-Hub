@@ -8,7 +8,12 @@ import {
   ArrowUpDown,
   Building2,
   Star,
+  Copy,
+  ExternalLink,
+  Eye,
+  Edit2,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +24,17 @@ import type { Proveedor, CategoriaProveedor } from '@/lib/schemas'
 import type { MercadoProveedor, OrdenamientoProveedor } from '@/lib/proveedores/directorio'
 import { CATEGORIAS_PROVEEDOR_FILTRO } from '@/lib/proveedores/categorias-proveedor'
 import { cn } from '@/lib/utils'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Table,
   TableBody,
@@ -219,97 +235,168 @@ export default function DirectorioProveedores({
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-slate-100 font-medium text-slate-700">
-              {proveedoresVisibles.map((prov) => (
-                <TableRow
-                  key={prov.id}
-                  className="hover:bg-slate-50 transition-colors"
-                >
-                  <TableCell className="p-3.5 font-bold text-slate-900">
-                    <button
-                      type="button"
-                      onClick={() => onSelectProveedor(prov)}
-                      className="text-left transition-colors hover:text-primary"
-                    >
-                      {prov.nombre}
-                    </button>
-                    {typeof prov.ordenesOdoo === 'number' && prov.ordenesOdoo >= 1 && (
-                      <p className="mt-0.5 text-[10px] font-bold text-sky-800">
-                        {prov.ordenesOdoo} compras Odoo
-                      </p>
-                    )}
-                  </TableCell>
+              {proveedoresVisibles.map((prov) => {
+                const sitioWeb = prov.web
 
-                  <TableCell className="p-3.5">
-                    <Badge
-                      variant="outline"
-                      className={`text-[9px] uppercase font-bold ${
-                        prov.tipoProveedor === 'premium'
-                          ? 'border-purple-300 text-purple-800 bg-purple-50'
-                          : prov.tipoProveedor === 'barato'
-                          ? 'border-amber-300 text-amber-800 bg-amber-50'
-                          : 'border-sky-300 text-primary bg-sky-50'
-                      }`}
-                    >
-                      {prov.tipoProveedor}
-                    </Badge>
-                  </TableCell>
-
-                  <TableCell className="p-3.5 text-muted-foreground">
-                    {prov.pais === 'Estados Unidos' ? 'USA' : 'MX'}
-                  </TableCell>
-
-                  <TableCell className="p-3.5 max-w-xs">
-                    <div className="flex flex-wrap gap-1">
-                      {prov.marcas && prov.marcas.length > 0 ? (
-                        prov.marcas.slice(0, 2).map((m, idx) => (
-                          <span
-                            key={idx}
-                            className="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] text-slate-600 font-semibold"
+                return (
+                  <ContextMenu key={prov.id}>
+                    <ContextMenuTrigger asChild>
+                      <TableRow
+                        className="hover:bg-slate-50 transition-colors cursor-pointer select-none"
+                        onDoubleClick={() => onSelectProveedor(prov)}
+                      >
+                        <TableCell className="p-3.5 font-bold text-slate-900">
+                          <button
+                            type="button"
+                            onClick={() => onSelectProveedor(prov)}
+                            className="text-left transition-colors hover:text-primary cursor-pointer"
                           >
-                            {m}
+                            {prov.nombre}
+                          </button>
+                          {typeof prov.ordenesOdoo === 'number' && prov.ordenesOdoo >= 1 && (
+                            <p className="mt-0.5 text-[10px] font-bold text-sky-800">
+                              {prov.ordenesOdoo} compras Odoo
+                            </p>
+                          )}
+                        </TableCell>
+
+                        <TableCell className="p-3.5">
+                          <Badge
+                            variant="outline"
+                            className={`text-[9px] uppercase font-bold ${
+                              prov.tipoProveedor === 'premium'
+                                ? 'border-purple-300 text-purple-800 bg-purple-50'
+                                : prov.tipoProveedor === 'barato'
+                                ? 'border-amber-300 text-amber-800 bg-amber-50'
+                                : 'border-sky-300 text-primary bg-sky-50'
+                            }`}
+                          >
+                            {prov.tipoProveedor}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell className="p-3.5 text-muted-foreground">
+                          {prov.pais === 'Estados Unidos' ? 'USA' : 'MX'}
+                        </TableCell>
+
+                        <TableCell className="p-3.5 max-w-xs">
+                          <div className="flex flex-wrap gap-1">
+                            {prov.marcas && prov.marcas.length > 0 ? (
+                              prov.marcas.slice(0, 2).map((m, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] text-slate-600 font-semibold"
+                                >
+                                  {m}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-slate-400 italic text-[10px]">—</span>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="p-3.5 text-slate-700">
+                          {prov.leadTimeDias || '3-5'}d
+                        </TableCell>
+
+                        <TableCell className="p-3.5 font-bold text-amber-500">
+                          <span className="inline-flex items-center gap-1">
+                            <Star className="size-3.5 fill-amber-400 text-amber-400" aria-hidden />
+                            {prov.calificacion || 5}.0
                           </span>
-                        ))
-                      ) : (
-                        <span className="text-slate-400 italic text-[10px]">—</span>
+                        </TableCell>
+
+                        <TableCell className="p-3.5 text-slate-600">
+                          {prov.email || prov.telefono || prov.contacto || '—'}
+                        </TableCell>
+
+                        <TableCell className="p-3.5 text-right space-x-1" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onSelectProveedor(prov)}
+                            className="h-7 text-xs font-bold text-primary"
+                          >
+                            Ver
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onEditProveedor(prov)}
+                            className="h-7 text-xs text-slate-500 hover:text-slate-800"
+                          >
+                            Editar
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    </ContextMenuTrigger>
+
+                    <ContextMenuContent className="w-56">
+                      <ContextMenuItem onClick={() => onSelectProveedor(prov)}>
+                        <Eye className="text-primary" />
+                        <span>Ver ficha de detalle</span>
+                        <ContextMenuShortcut>↵</ContextMenuShortcut>
+                      </ContextMenuItem>
+
+                      <ContextMenuItem onClick={() => onEditProveedor(prov)}>
+                        <Edit2 className="text-slate-600" />
+                        <span>Editar proveedor</span>
+                      </ContextMenuItem>
+
+                      <ContextMenuSeparator />
+
+                      <ContextMenuSub>
+                        <ContextMenuSubTrigger>
+                          <Copy className="text-slate-500" />
+                          <span>Copiar información</span>
+                        </ContextMenuSubTrigger>
+                        <ContextMenuSubContent className="w-48">
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(prov.nombre)
+                              toast.success('Nombre copiado')
+                            }}
+                          >
+                            <span>Nombre ({prov.nombre})</span>
+                          </ContextMenuItem>
+                          {prov.email && (
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(prov.email || '')
+                                toast.success('Email copiado')
+                              }}
+                            >
+                              <span>Email ({prov.email})</span>
+                            </ContextMenuItem>
+                          )}
+                          {prov.telefono && (
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(prov.telefono || '')
+                                toast.success('Teléfono copiado')
+                              }}
+                            >
+                              <span>Teléfono ({prov.telefono})</span>
+                            </ContextMenuItem>
+                          )}
+                        </ContextMenuSubContent>
+                      </ContextMenuSub>
+
+                      {sitioWeb && (
+                        <ContextMenuItem
+                          onClick={() => {
+                            if (sitioWeb) window.open(sitioWeb, '_blank', 'noopener,noreferrer')
+                          }}
+                        >
+                          <ExternalLink className="text-sky-600" />
+                          <span>Abrir sitio web oficial</span>
+                        </ContextMenuItem>
                       )}
-                    </div>
-                  </TableCell>
-
-                  <TableCell className="p-3.5 text-slate-700">
-                    {prov.leadTimeDias || '3-5'}d
-                  </TableCell>
-
-                  <TableCell className="p-3.5 font-bold text-amber-500">
-                    <span className="inline-flex items-center gap-1">
-                      <Star className="size-3.5 fill-amber-400 text-amber-400" aria-hidden />
-                      {prov.calificacion || 5}.0
-                    </span>
-                  </TableCell>
-
-                  <TableCell className="p-3.5 text-slate-600">
-                    {prov.email || prov.telefono || prov.contacto || '—'}
-                  </TableCell>
-
-                  <TableCell className="p-3.5 text-right space-x-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onSelectProveedor(prov)}
-                      className="h-7 text-xs font-bold text-primary"
-                    >
-                      Ver
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onEditProveedor(prov)}
-                      className="h-7 text-xs text-slate-500 hover:text-slate-800"
-                    >
-                      Editar
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </ContextMenuContent>
+                  </ContextMenu>
+                )
+              })}
             </TableBody>
           </Table>
         </div>

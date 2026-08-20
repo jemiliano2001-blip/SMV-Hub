@@ -4,7 +4,8 @@ import AuthGuard from "@/app/AuthGuard"
 import PageHeader from "@/components/layout/PageHeader"
 import PageShell from "@/components/layout/PageShell"
 import { useMemo, useState } from "react"
-import { Loader2, AlertCircle } from "lucide-react"
+import { Loader2, AlertCircle, Copy, ExternalLink } from "lucide-react"
+import { toast } from "sonner"
 import { useFinanzasFacturas } from "@/lib/hooks/useFinanzasFacturas"
 import {
   monedasPresentes,
@@ -19,6 +20,17 @@ import { formatPrecio } from "@/lib/format"
 import FinanzasNav from "@/app/finanzas/FinanzasNav"
 import BannerSync from "@/app/finanzas/BannerSync"
 import SelectorMes from "@/app/finanzas/SelectorMes"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Table,
   TableBody,
@@ -148,15 +160,88 @@ function FacturacionPorCliente() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {grupos.map((g) => (
-                  <TableRow key={g.cliente} className="border-b border-gray-100 hover:bg-gray-50">
-                    <TableCell className="py-2 pr-3">{g.cliente}</TableCell>
-                    <TableCell className="py-2 pr-3 text-right tabular-nums">{g.facturas.length}</TableCell>
-                    <TableCell className="py-2 pr-3 text-right tabular-nums">{formatPrecio(g.subtotal, moneda)}</TableCell>
-                    <TableCell className="py-2 pr-3 text-right tabular-nums font-medium">{formatPrecio(g.total, moneda)}</TableCell>
-                    <TableCell className="py-2 text-right tabular-nums text-gray-500">{g.pctDelTotal.toFixed(1)}%</TableCell>
-                  </TableRow>
-                ))}
+                {grupos.map((g) => {
+                  const totalStr = formatPrecio(g.total, moneda)
+                  const subtotalStr = formatPrecio(g.subtotal, moneda)
+                  const pctStr = `${g.pctDelTotal.toFixed(1)}%`
+
+                  return (
+                    <ContextMenu key={g.cliente}>
+                      <ContextMenuTrigger asChild>
+                        <TableRow className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer select-none">
+                          <TableCell className="py-2 pr-3 font-medium text-gray-900">{g.cliente}</TableCell>
+                          <TableCell className="py-2 pr-3 text-right tabular-nums">{g.facturas.length}</TableCell>
+                          <TableCell className="py-2 pr-3 text-right tabular-nums">{subtotalStr}</TableCell>
+                          <TableCell className="py-2 pr-3 text-right tabular-nums font-semibold text-gray-900">{totalStr}</TableCell>
+                          <TableCell className="py-2 text-right tabular-nums text-gray-500">{pctStr}</TableCell>
+                        </TableRow>
+                      </ContextMenuTrigger>
+
+                      <ContextMenuContent className="w-56">
+                        <ContextMenuItem
+                          onClick={() => {
+                            window.location.href = `/finanzas/cobranza`
+                          }}
+                        >
+                          <ExternalLink className="text-primary" />
+                          <span>Ver seguimiento en Cobranza</span>
+                          <ContextMenuShortcut>↵</ContextMenuShortcut>
+                        </ContextMenuItem>
+
+                        <ContextMenuSeparator />
+
+                        <ContextMenuSub>
+                          <ContextMenuSubTrigger>
+                            <Copy className="text-slate-500" />
+                            <span>Copiar información</span>
+                          </ContextMenuSubTrigger>
+                          <ContextMenuSubContent className="w-48">
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(g.cliente)
+                                toast.success('Cliente copiado')
+                              }}
+                            >
+                              <span>Cliente ({g.cliente})</span>
+                            </ContextMenuItem>
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(totalStr)
+                                toast.success('Total facturado copiado', { description: totalStr })
+                              }}
+                            >
+                              <span>Total ({totalStr})</span>
+                            </ContextMenuItem>
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(subtotalStr)
+                                toast.success('Subtotal copiado')
+                              }}
+                            >
+                              <span>Subtotal ({subtotalStr})</span>
+                            </ContextMenuItem>
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(`${g.facturas.length} facturas`)
+                                toast.success('Cantidad de facturas copiada')
+                              }}
+                            >
+                              <span>No. Facturas ({g.facturas.length})</span>
+                            </ContextMenuItem>
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(pctStr)
+                                toast.success('Porcentaje copiado')
+                              }}
+                            >
+                              <span>Porcentaje ({pctStr})</span>
+                            </ContextMenuItem>
+                          </ContextMenuSubContent>
+                        </ContextMenuSub>
+                      </ContextMenuContent>
+                    </ContextMenu>
+                  )
+                })}
               </TableBody>
               <TableFooter>
                 <TableRow className="border-t-2 border-gray-900">

@@ -1,8 +1,20 @@
 'use client'
 
 import { useEffect, useState } from "react"
-import { AlertCircle, Check, Copy, Loader2, Search } from "lucide-react"
+import { AlertCircle, Check, Copy, Loader2, Search, ExternalLink, ShoppingCart } from "lucide-react"
+import { toast } from "sonner"
 import { getClienteAuth } from "@/lib/firebase"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 
 type SatSearchResponse = {
   query: string
@@ -157,44 +169,86 @@ export default function BuscadorClavesSat() {
         ) : (
           <div className="divide-y divide-gray-200">
             {data?.results.map(({ entry, reasons, score }) => (
-              <article key={entry.clave} className="px-6 py-4">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded bg-blue-100 px-2 py-0.5 font-mono text-sm font-semibold text-blue-800">
-                        {entry.clave}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => copiarClave(entry.clave)}
-                        className="inline-flex items-center gap-1 rounded border border-gray-300 px-2 py-0.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
-                      >
-                        {claveCopiada === entry.clave ? (
-                          <>
-                            <Check className="h-3 w-3 text-emerald-600" /> Copiada
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-3 w-3" /> Copiar
-                          </>
-                        )}
-                      </button>
-                      <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                        score {score}
-                      </span>
+              <ContextMenu key={entry.clave}>
+                <ContextMenuTrigger asChild>
+                  <article className="px-6 py-4 hover:bg-gray-50/80 transition-colors cursor-pointer select-none">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded bg-blue-100 px-2 py-0.5 font-mono text-sm font-semibold text-blue-800">
+                            {entry.clave}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => void copiarClave(entry.clave)}
+                            className="inline-flex items-center gap-1 rounded border border-gray-300 px-2 py-0.5 text-xs font-medium text-gray-600 hover:bg-gray-100 cursor-pointer"
+                          >
+                            {claveCopiada === entry.clave ? (
+                              <>
+                                <Check className="h-3 w-3 text-emerald-600" /> Copiada
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="h-3 w-3" /> Copiar
+                              </>
+                            )}
+                          </button>
+                          <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                            score {score}
+                          </span>
+                        </div>
+                        <h4 className="mt-2 text-sm font-semibold text-gray-900">{entry.descripcion}</h4>
+                        <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
+                          {entry.division && <span>División: {entry.division}</span>}
+                          {entry.grupo && <span>Grupo: {entry.grupo}</span>}
+                          {entry.clase && <span>Clase: {entry.clase}</span>}
+                        </div>
+                      </div>
+                      <div className="max-w-md rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                        {reasons.join(" · ")}
+                      </div>
                     </div>
-                    <h4 className="mt-2 text-sm font-semibold text-gray-900">{entry.descripcion}</h4>
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
-                      {entry.division && <span>División: {entry.division}</span>}
-                      {entry.grupo && <span>Grupo: {entry.grupo}</span>}
-                      {entry.clase && <span>Clase: {entry.clase}</span>}
-                    </div>
-                  </div>
-                  <div className="max-w-md rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
-                    {reasons.join(" · ")}
-                  </div>
-                </div>
-              </article>
+                  </article>
+                </ContextMenuTrigger>
+
+                <ContextMenuContent className="w-56">
+                  <ContextMenuItem onClick={() => void copiarClave(entry.clave)}>
+                    <Copy className="text-primary" />
+                    <span>Copiar clave ({entry.clave})</span>
+                    <ContextMenuShortcut>↵</ContextMenuShortcut>
+                  </ContextMenuItem>
+
+                  <ContextMenuItem
+                    onClick={() => {
+                      void navigator.clipboard.writeText(entry.descripcion)
+                      toast.success('Descripción SAT copiada')
+                    }}
+                  >
+                    <Copy className="text-slate-500" />
+                    <span>Copiar descripción</span>
+                  </ContextMenuItem>
+
+                  <ContextMenuSeparator />
+
+                  <ContextMenuItem
+                    onClick={() => {
+                      window.location.href = `/ordenes?q=${encodeURIComponent(entry.clave)}`
+                    }}
+                  >
+                    <ExternalLink className="text-sky-600" />
+                    <span>Buscar compras con esta clave</span>
+                  </ContextMenuItem>
+
+                  <ContextMenuItem
+                    onClick={() => {
+                      window.location.href = `/nueva-compra?claveSat=${encodeURIComponent(entry.clave)}`
+                    }}
+                  >
+                    <ShoppingCart className="text-emerald-600" />
+                    <span>Usar en Nueva Compra</span>
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             ))}
           </div>
         )}

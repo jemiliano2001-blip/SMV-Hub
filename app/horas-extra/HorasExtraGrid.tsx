@@ -23,9 +23,26 @@ import {
   Copy,
   Check,
   Loader2,
+  Clock,
+  Sparkles,
+  Zap,
+  ArrowRight,
+  ClipboardCheck,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import ModuleSurface from '@/components/layout/ModuleSurface'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Table,
   TableBody,
@@ -77,9 +94,55 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  const [celdaCopiada, setCeldaCopiada] = useState<string | null>(null)
+
   const operadoresDept = operadores.filter(
     (op) => op.activo && areaCorrespondeDepartamento(op.area, departamento)
   )
+
+  const aplicarValorACelda = async (rowId: string, dia: DiaSemana, val: string | null) => {
+    if (!puedeEditar) return
+    await editarDias(rowId, { [dia]: val })
+    toast.success(`Asignado "${val ?? '0'}" para ${etiquetaDia(dia)}`)
+  }
+
+  const replicarALaSemana = async (rowId: string, val: string | null) => {
+    if (!puedeEditar) return
+    await editarDias(rowId, {
+      lunes: val,
+      martes: val,
+      miercoles: val,
+      jueves: val,
+      viernes: val,
+    })
+    toast.success(`Valor "${val ?? '0'}" replicado a Lun-Vie`)
+  }
+
+  const llenarSemanaEstandar = async (rowId: string, nombre: string) => {
+    if (!puedeEditar) return
+    await editarDias(rowId, {
+      lunes: '2',
+      martes: '2',
+      miercoles: '2',
+      jueves: '2',
+      viernes: '2',
+    })
+    toast.success(`Semana estándar (2h L-V) asignada a ${nombre}`)
+  }
+
+  const limpiarSemanaOperador = async (rowId: string, nombre: string) => {
+    if (!puedeEditar) return
+    await editarDias(rowId, {
+      lunes: null,
+      martes: null,
+      miercoles: null,
+      jueves: null,
+      viernes: null,
+      sabado: null,
+      domingo: null,
+    })
+    toast.success(`Semana limpiada para ${nombre}`)
+  }
 
   const { conHoras, total } = progresoSemana(registros)
 
@@ -413,16 +476,59 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
 
                 return (
                   <TableRow key={r.id} className="hover:bg-gray-50/80">
-                    <TableCell className="px-4 py-2 font-medium text-gray-900 text-left sticky left-0 bg-white border-r border-gray-200 z-10">
-                      <div className="flex items-center gap-2">
-                        {r.empleado}
-                        {status === 'saving' && (
-                          <Loader2 className="h-3 w-3 text-gray-400 animate-spin" />
-                        )}
-                        {status === 'saved' && (
-                          <Check className="h-3 w-3 text-emerald-500" />
-                        )}
-                      </div>
+                    <TableCell className="p-0 font-medium text-gray-900 text-left sticky left-0 bg-white border-r border-gray-200 z-10">
+                      <ContextMenu>
+                        <ContextMenuTrigger asChild>
+                          <div className="px-4 py-2 flex items-center justify-between gap-2 cursor-context-menu w-full h-full select-none">
+                            <span className="truncate">{r.empleado}</span>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {status === 'saving' && (
+                                <Loader2 className="h-3 w-3 text-gray-400 animate-spin" />
+                              )}
+                              {status === 'saved' && (
+                                <Check className="h-3 w-3 text-emerald-500" />
+                              )}
+                            </div>
+                          </div>
+                        </ContextMenuTrigger>
+                        <ContextMenuContent className="w-56">
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(r.empleado)
+                              toast.success('Nombre copiado', { description: r.empleado })
+                            }}
+                          >
+                            <Copy className="text-slate-500" />
+                            <span>Copiar nombre ({r.empleado})</span>
+                          </ContextMenuItem>
+
+                          {puedeEditar && (
+                            <>
+                              <ContextMenuSeparator />
+                              <ContextMenuItem
+                                onClick={() => void llenarSemanaEstandar(r.id, r.empleado)}
+                              >
+                                <Zap className="text-amber-600" />
+                                <span>Semana estándar (2h L-V)</span>
+                              </ContextMenuItem>
+                              <ContextMenuItem
+                                onClick={() => void limpiarSemanaOperador(r.id, r.empleado)}
+                              >
+                                <Clock className="text-slate-400" />
+                                <span>Limpiar toda la semana</span>
+                              </ContextMenuItem>
+                              <ContextMenuSeparator />
+                              <ContextMenuItem
+                                className="text-rose-600"
+                                onClick={() => handleEliminar(r.id, r.empleado)}
+                              >
+                                <Trash2 className="text-rose-600" />
+                                <span>Remover de la cuadrícula</span>
+                              </ContextMenuItem>
+                            </>
+                          )}
+                        </ContextMenuContent>
+                      </ContextMenu>
                     </TableCell>
 
                     {DIAS_SEMANA.map((dia) => {
@@ -452,31 +558,118 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                               placeholder="-"
                             />
                           ) : (
-                            <div
-                              {...(puedeEditar
-                                ? {
-                                    role: 'button' as const,
-                                    tabIndex: 0,
-                                    onClick: () => iniciarEdicion(r, dia),
-                                    onKeyDown: (e: React.KeyboardEvent) => {
-                                      if (e.key === 'Enter' || e.key === ' ') iniciarEdicion(r, dia)
-                                    },
+                            <ContextMenu>
+                              <ContextMenuTrigger asChild>
+                                <div
+                                  {...(puedeEditar
+                                    ? {
+                                        role: 'button' as const,
+                                        tabIndex: 0,
+                                        onClick: () => iniciarEdicion(r, dia),
+                                        onKeyDown: (e: React.KeyboardEvent) => {
+                                          if (e.key === 'Enter' || e.key === ' ') iniciarEdicion(r, dia)
+                                        },
+                                      }
+                                    : {})}
+                                  title={
+                                    advertencia
+                                      ? 'Formato no reconocido — usa 2, 2.5 o 2 30'
+                                      : undefined
                                   }
-                                : {})}
-                              title={
-                                advertencia
-                                  ? 'Formato no reconocido — usa 2, 2.5 o 2 30'
-                                  : undefined
-                              }
-                              className={`w-full h-8 flex items-center justify-center gap-0.5 rounded text-gray-700 ${
-                                puedeEditar ? 'cursor-text hover:ring-1 hover:ring-gray-200' : ''
-                              } ${intensidadHeatmap(valor)}`}
-                            >
-                              {advertencia && (
-                                <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0" />
+                                  className={`w-full h-8 flex items-center justify-center gap-0.5 rounded text-gray-700 select-none ${
+                                    puedeEditar ? 'cursor-text hover:ring-1 hover:ring-gray-200' : ''
+                                  } ${intensidadHeatmap(valor)}`}
+                                >
+                                  {advertencia && (
+                                    <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0" />
+                                  )}
+                                  {valorCelda || '-'}
+                                </div>
+                              </ContextMenuTrigger>
+
+                              {puedeEditar && (
+                                <ContextMenuContent className="w-52">
+                                  <ContextMenuSub>
+                                    <ContextMenuSubTrigger>
+                                      <Clock className="text-sky-600" />
+                                      <span>Horas rápidas</span>
+                                    </ContextMenuSubTrigger>
+                                    <ContextMenuSubContent className="w-36">
+                                      {['2', '2.5', '3', '4', '5', '8'].map((hrs) => (
+                                        <ContextMenuItem
+                                          key={hrs}
+                                          onClick={() => void aplicarValorACelda(r.id, dia, hrs)}
+                                        >
+                                          <span>+{hrs} horas</span>
+                                        </ContextMenuItem>
+                                      ))}
+                                      <ContextMenuSeparator />
+                                      <ContextMenuItem
+                                        onClick={() => void aplicarValorACelda(r.id, dia, null)}
+                                      >
+                                        <span className="text-slate-400">0 hrs (Limpiar)</span>
+                                      </ContextMenuItem>
+                                    </ContextMenuSubContent>
+                                  </ContextMenuSub>
+
+                                  <ContextMenuSub>
+                                    <ContextMenuSubTrigger>
+                                      <ClipboardCheck className="text-amber-600" />
+                                      <span>Códigos especiales</span>
+                                    </ContextMenuSubTrigger>
+                                    <ContextMenuSubContent className="w-44">
+                                      {[
+                                        { code: 'F', label: 'F (Falta)' },
+                                        { code: 'I', label: 'I (Incapacidad)' },
+                                        { code: 'V', label: 'V (Vacaciones)' },
+                                        { code: 'P', label: 'P (Permiso)' },
+                                      ].map(({ code, label }) => (
+                                        <ContextMenuItem
+                                          key={code}
+                                          onClick={() => void aplicarValorACelda(r.id, dia, code)}
+                                        >
+                                          <span>{label}</span>
+                                        </ContextMenuItem>
+                                      ))}
+                                    </ContextMenuSubContent>
+                                  </ContextMenuSub>
+
+                                  {valorCelda && (
+                                    <>
+                                      <ContextMenuSeparator />
+                                      <ContextMenuItem
+                                        onClick={() => void replicarALaSemana(r.id, valorCelda)}
+                                      >
+                                        <ArrowRight className="text-emerald-600" />
+                                        <span>Replicar a Lun-Vie</span>
+                                      </ContextMenuItem>
+                                    </>
+                                  )}
+
+                                  <ContextMenuSeparator />
+
+                                  <ContextMenuItem
+                                    onClick={() => {
+                                      setCeldaCopiada(valorCelda ?? '')
+                                      void navigator.clipboard.writeText(valorCelda ?? '')
+                                      toast.success('Valor de celda copiado')
+                                    }}
+                                  >
+                                    <Copy className="text-slate-500" />
+                                    <span>Copiar celda</span>
+                                  </ContextMenuItem>
+
+                                  {celdaCopiada != null && (
+                                    <ContextMenuItem
+                                      onClick={() => void aplicarValorACelda(r.id, dia, celdaCopiada || null)}
+                                    >
+                                      <Check className="text-emerald-600" />
+                                      <span>Pegar ({celdaCopiada || 'vacío'})</span>
+                                    </ContextMenuItem>
+                                  )}
+                                </ContextMenuContent>
                               )}
-                              {valorCelda || '-'}
-                            </div>
+                            </ContextMenu>
                           )}
                         </TableCell>
                       )

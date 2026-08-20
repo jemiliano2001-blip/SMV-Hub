@@ -1,5 +1,18 @@
 import { Fragment } from "react"
 import type { Grupo } from "@/lib/reportes"
+import { Copy, ExternalLink } from "lucide-react"
+import { toast } from "sonner"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Table,
   TableBody,
@@ -62,28 +75,122 @@ export default function TablaReporte({ grupos, totalGeneral, moneda }: Props) {
                 </TableCell>
               </TableRow>
 
-              {grupo.lineas.map((linea, i) => (
-                <TableRow
-                  key={`${grupo.clave}-${i}`}
-                  className={`border-b border-gray-100 hover:bg-gray-50 grupo-linea print:hover:bg-transparent ${i % 2 === 1 ? "print:bg-[#fafafa]" : ""}`}
-                >
-                  <TableCell className="py-1.5 pr-3 font-mono text-xs text-gray-500 print:hidden">{linea.referencia}</TableCell>
-                  <TableCell className="py-1.5 pr-3 whitespace-nowrap text-xs print:font-mono print:text-gray-600">{fmtFecha(linea.dia)}</TableCell>
-                  <TableCell className="py-1.5 pr-3">{linea.proveedor}</TableCell>
-                  <TableCell className="py-1.5 pr-3 max-w-[200px] truncate print:max-w-[160px] print:text-[8.5px]" title={linea.descripcion}>
-                    {linea.descripcion}
-                  </TableCell>
-                  <TableCell className="py-1.5 pr-3 text-right tabular-nums print:font-mono">{linea.cantidad ?? "—"}</TableCell>
-                  <TableCell className="py-1.5 pr-3 text-right tabular-nums print:font-mono">
-                    {linea.precioUnitario != null ? fmt(linea.precioUnitario) : "—"}
-                  </TableCell>
-                  <TableCell className="py-1.5 pr-3 text-right tabular-nums print:font-mono">{fmt(linea.subtotal)}</TableCell>
-                  <TableCell className="py-1.5 pr-3 text-right tabular-nums font-medium print:font-mono">{fmt(linea.total)}</TableCell>
-                  <TableCell className="py-1.5 pr-3 text-xs print:text-gray-600">{linea.requisitor || "—"}</TableCell>
-                  <TableCell className="py-1.5 pr-3 text-xs print:text-gray-600">{linea.cuentaCargo || "—"}</TableCell>
-                  <TableCell className="py-1.5 text-xs print:text-gray-600">{linea.destino || "—"}</TableCell>
-                </TableRow>
-              ))}
+              {grupo.lineas.map((linea, i) => {
+                const subtotalStr = fmt(linea.subtotal)
+                const totalStr = fmt(linea.total)
+
+                return (
+                  <ContextMenu key={`${grupo.clave}-${i}`}>
+                    <ContextMenuTrigger asChild>
+                      <TableRow
+                        className={`border-b border-gray-100 hover:bg-gray-50 grupo-linea print:hover:bg-transparent cursor-pointer select-none ${i % 2 === 1 ? "print:bg-[#fafafa]" : ""}`}
+                      >
+                        <TableCell className="py-1.5 pr-3 font-mono text-xs text-gray-500 print:hidden">{linea.referencia}</TableCell>
+                        <TableCell className="py-1.5 pr-3 whitespace-nowrap text-xs print:font-mono print:text-gray-600">{fmtFecha(linea.dia)}</TableCell>
+                        <TableCell className="py-1.5 pr-3">{linea.proveedor}</TableCell>
+                        <TableCell className="py-1.5 pr-3 max-w-[200px] truncate print:max-w-[160px] print:text-[8.5px]" title={linea.descripcion}>
+                          {linea.descripcion}
+                        </TableCell>
+                        <TableCell className="py-1.5 pr-3 text-right tabular-nums print:font-mono">{linea.cantidad ?? "—"}</TableCell>
+                        <TableCell className="py-1.5 pr-3 text-right tabular-nums print:font-mono">
+                          {linea.precioUnitario != null ? fmt(linea.precioUnitario) : "—"}
+                        </TableCell>
+                        <TableCell className="py-1.5 pr-3 text-right tabular-nums print:font-mono">{subtotalStr}</TableCell>
+                        <TableCell className="py-1.5 pr-3 text-right tabular-nums font-medium print:font-mono">{totalStr}</TableCell>
+                        <TableCell className="py-1.5 pr-3 text-xs print:text-gray-600">{linea.requisitor || "—"}</TableCell>
+                        <TableCell className="py-1.5 pr-3 text-xs print:text-gray-600">{linea.cuentaCargo || "—"}</TableCell>
+                        <TableCell className="py-1.5 text-xs print:text-gray-600">{linea.destino || "—"}</TableCell>
+                      </TableRow>
+                    </ContextMenuTrigger>
+
+                    <ContextMenuContent className="w-56">
+                      <ContextMenuItem
+                        onClick={() => {
+                          window.location.href = `/ordenes`
+                        }}
+                      >
+                        <ExternalLink className="text-primary" />
+                        <span>Ver en Órdenes de Compra</span>
+                        <ContextMenuShortcut>↵</ContextMenuShortcut>
+                      </ContextMenuItem>
+
+                      <ContextMenuSeparator />
+
+                      <ContextMenuSub>
+                        <ContextMenuSubTrigger>
+                          <Copy className="text-slate-500" />
+                          <span>Copiar información</span>
+                        </ContextMenuSubTrigger>
+                        <ContextMenuSubContent className="w-48">
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(linea.descripcion)
+                              toast.success('Descripción copiada')
+                            }}
+                          >
+                            <span>Descripción</span>
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(linea.proveedor)
+                              toast.success('Proveedor copiado')
+                            }}
+                          >
+                            <span>Proveedor ({linea.proveedor})</span>
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(totalStr)
+                              toast.success('Total copiado', { description: totalStr })
+                            }}
+                          >
+                            <span>Total ({totalStr})</span>
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(subtotalStr)
+                              toast.success('Subtotal copiado')
+                            }}
+                          >
+                            <span>Subtotal ({subtotalStr})</span>
+                          </ContextMenuItem>
+                          {linea.referencia && (
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(linea.referencia)
+                                toast.success('Referencia copiada')
+                              }}
+                            >
+                              <span>Referencia ({linea.referencia})</span>
+                            </ContextMenuItem>
+                          )}
+                          {linea.requisitor && (
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(linea.requisitor)
+                                toast.success('Requisitor copiado')
+                              }}
+                            >
+                              <span>Requisitor ({linea.requisitor})</span>
+                            </ContextMenuItem>
+                          )}
+                          {(linea.cuentaCargo || linea.destino) && (
+                            <ContextMenuItem
+                              onClick={() => {
+                                const ccDest = [linea.cuentaCargo, linea.destino].filter(Boolean).join(' / ')
+                                void navigator.clipboard.writeText(ccDest)
+                                toast.success('Cuenta / Destino copiado')
+                              }}
+                            >
+                              <span>Cuenta / Destino</span>
+                            </ContextMenuItem>
+                          )}
+                        </ContextMenuSubContent>
+                      </ContextMenuSub>
+                    </ContextMenuContent>
+                  </ContextMenu>
+                )
+              })}
 
               <TableRow className="border-t border-gray-300 bg-gray-50 grupo-subtotal print:bg-[#f5f5f5]">
                 <TableCell colSpan={6} className="py-1.5 pr-3 text-right text-xs font-semibold text-gray-600 print:text-[8.5px]">

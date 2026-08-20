@@ -3,10 +3,22 @@ import { useEntradas } from '@/lib/hooks/useAlmacen'
 import { useOperadores } from '@/lib/hooks/useOperadores'
 import type { EntradaAlmacen } from '@/lib/schemas'
 import { fechaHoyLocal } from '@/lib/format'
-import { Plus, Trash2, Search } from 'lucide-react'
+import { Plus, Trash2, Search, Copy, CheckCircle2, Clock, RotateCcw } from 'lucide-react'
+import { toast } from 'sonner'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { Button } from '@/components/ui/button'
 import ModuleSurface from '@/components/layout/ModuleSurface'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Table,
   TableBody,
@@ -279,34 +291,109 @@ export default function EntradasList() {
                 </TableRow>
               ) : (
                 filtradas.map((e) => (
-                  <TableRow key={e.id}>
-                    <TableCell className="px-4 py-2 text-muted-foreground">{e.fecha}</TableCell>
-                    <TableCell className="px-4 py-2 font-medium text-foreground whitespace-normal">{e.descripcion}</TableCell>
-                    <TableCell className="px-4 py-2">{e.cantidad}</TableCell>
-                    <TableCell className="px-4 py-2">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${e.cargoA.toLowerCase() === 'stock' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-                        {e.cargoA}
-                      </span>
-                    </TableCell>
-                    <TableCell className="px-4 py-2 text-muted-foreground">{e.recibio}</TableCell>
-                    <TableCell className="px-4 py-2 text-center">
-                      <button
-                        onClick={() => handleCycleEstatus(e.id, e.estatus)}
-                        title="Click para cambiar estatus"
-                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ring-1 ring-inset cursor-pointer hover:opacity-75 transition-opacity ${ESTATUS_BADGE[e.estatus]}`}
+                  <ContextMenu key={e.id}>
+                    <ContextMenuTrigger asChild>
+                      <TableRow className="hover:bg-muted/40 cursor-pointer select-none">
+                        <TableCell className="px-4 py-2 text-muted-foreground">{e.fecha}</TableCell>
+                        <TableCell className="px-4 py-2 font-medium text-foreground whitespace-normal">{e.descripcion}</TableCell>
+                        <TableCell className="px-4 py-2">{e.cantidad}</TableCell>
+                        <TableCell className="px-4 py-2">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${e.cargoA.toLowerCase() === 'stock' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+                            {e.cargoA}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-4 py-2 text-muted-foreground">{e.recibio}</TableCell>
+                        <TableCell className="px-4 py-2 text-center" onClick={(ev) => ev.stopPropagation()}>
+                          <button
+                            onClick={() => handleCycleEstatus(e.id, e.estatus)}
+                            title="Click para cambiar estatus"
+                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ring-1 ring-inset cursor-pointer hover:opacity-75 transition-opacity ${ESTATUS_BADGE[e.estatus]}`}
+                          >
+                            {e.estatus}
+                          </button>
+                        </TableCell>
+                        <TableCell className="px-4 py-2 text-right" onClick={(ev) => ev.stopPropagation()}>
+                          <button
+                            onClick={() => handleEliminar(e.id, e.descripcion)}
+                            className="text-muted-foreground hover:text-red-500 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    </ContextMenuTrigger>
+
+                    <ContextMenuContent className="w-56">
+                      <ContextMenuItem onClick={() => void editarEntrada(e.id, { estatus: 'entregado' })}>
+                        <CheckCircle2 className="text-emerald-600" />
+                        <span>Marcar como Entregado</span>
+                        <ContextMenuShortcut>↵</ContextMenuShortcut>
+                      </ContextMenuItem>
+
+                      <ContextMenuItem onClick={() => void editarEntrada(e.id, { estatus: 'pendiente' })}>
+                        <Clock className="text-amber-600" />
+                        <span>Marcar como Pendiente</span>
+                      </ContextMenuItem>
+
+                      <ContextMenuItem onClick={() => void editarEntrada(e.id, { estatus: 'devuelto' })}>
+                        <RotateCcw className="text-rose-600" />
+                        <span>Marcar como Devuelto</span>
+                      </ContextMenuItem>
+
+                      <ContextMenuSeparator />
+
+                      <ContextMenuSub>
+                        <ContextMenuSubTrigger>
+                          <Copy className="text-slate-500" />
+                          <span>Copiar información</span>
+                        </ContextMenuSubTrigger>
+                        <ContextMenuSubContent className="w-48">
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(e.descripcion)
+                              toast.success('Descripción copiada')
+                            }}
+                          >
+                            <span>Descripción</span>
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(e.cantidad)
+                              toast.success('Cantidad copiada')
+                            }}
+                          >
+                            <span>Cantidad ({e.cantidad})</span>
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(e.cargoA)
+                              toast.success('Cargo / Stock copiado')
+                            }}
+                          >
+                            <span>Cargo a ({e.cargoA})</span>
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(e.recibio)
+                              toast.success('Recibió copiado')
+                            }}
+                          >
+                            <span>Recibió ({e.recibio})</span>
+                          </ContextMenuItem>
+                        </ContextMenuSubContent>
+                      </ContextMenuSub>
+
+                      <ContextMenuSeparator />
+
+                      <ContextMenuItem
+                        variant="destructive"
+                        onClick={() => void handleEliminar(e.id, e.descripcion)}
                       >
-                        {e.estatus}
-                      </button>
-                    </TableCell>
-                    <TableCell className="px-4 py-2 text-right">
-                      <button
-                        onClick={() => handleEliminar(e.id, e.descripcion)}
-                        className="text-muted-foreground hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </TableCell>
-                  </TableRow>
+                        <Trash2 />
+                        <span>Eliminar entrada</span>
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
                 ))
               )}
             </TableBody>

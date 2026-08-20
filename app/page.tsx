@@ -41,9 +41,22 @@ import {
   UserCog,
   Users,
   Wallet,
-  X
+  X,
+  Copy,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { toast } from 'sonner'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 
 type GrupoId = 'compras' | 'finanzas' | 'operacion' | 'personal' | 'administracion'
 
@@ -375,24 +388,76 @@ function TarjetaAcceso({
   )
 
   const claseTarjeta = cn(
-    'group relative flex items-start gap-3.5 rounded-lg border border-border bg-card p-3.5 text-left transition-all duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+    'group relative flex items-start gap-3.5 rounded-lg border border-border bg-card p-3.5 text-left transition-all duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring select-none',
     principal
       ? 'border-primary/25 shadow-xs hover:border-primary/50 hover:bg-sky-50/40'
       : 'hover:border-primary/40 hover:bg-sky-50/20 hover:shadow-xs',
   )
 
-  if (esExterna) {
-    return (
-      <a href={href} target="_blank" rel="noopener noreferrer" className={claseTarjeta}>
-        {contenidoInner}
-      </a>
-    )
-  }
-
-  return (
+  const cardElement = esExterna ? (
+    <a href={href} target="_blank" rel="noopener noreferrer" className={claseTarjeta}>
+      {contenidoInner}
+    </a>
+  ) : (
     <Link href={href} className={claseTarjeta}>
       {contenidoInner}
     </Link>
+  )
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        {cardElement}
+      </ContextMenuTrigger>
+
+      <ContextMenuContent className="w-56">
+        <ContextMenuItem
+          onClick={() => {
+            if (esExterna) {
+              window.open(href, '_blank', 'noopener,noreferrer')
+            } else {
+              window.location.href = href
+            }
+          }}
+        >
+          <ArrowRight className="text-primary" />
+          <span>Abrir módulo</span>
+          <ContextMenuShortcut>↵</ContextMenuShortcut>
+        </ContextMenuItem>
+
+        <ContextMenuItem
+          onClick={() => {
+            window.open(href, '_blank', 'noopener,noreferrer')
+          }}
+        >
+          <ExternalLink className="text-sky-600" />
+          <span>Abrir en nueva pestaña</span>
+        </ContextMenuItem>
+
+        <ContextMenuSeparator />
+
+        <ContextMenuItem
+          onClick={() => {
+            const urlCompleta = esExterna ? href : `${window.location.origin}${href}`
+            void navigator.clipboard.writeText(urlCompleta)
+            toast.success('Enlace directo copiado', { description: urlCompleta })
+          }}
+        >
+          <Copy className="text-slate-500" />
+          <span>Copiar enlace directo</span>
+        </ContextMenuItem>
+
+        <ContextMenuItem
+          onClick={() => {
+            void navigator.clipboard.writeText(label)
+            toast.success('Nombre del módulo copiado', { description: label })
+          }}
+        >
+          <Copy className="text-slate-400" />
+          <span>Copiar nombre ({label})</span>
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }
 

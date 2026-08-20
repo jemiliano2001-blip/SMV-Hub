@@ -5,8 +5,20 @@ import { useOperadores } from '@/lib/hooks/useOperadores'
 import { useUsuarios } from '@/lib/hooks/useUsuarios'
 import { departamentoDesdeArea } from '@/lib/operadores-departamento'
 import type { Area, Operador } from '@/lib/schemas'
-import { Plus, Search, UserCheck, UserX, Download, Check, X, Mail } from 'lucide-react'
+import { Plus, Search, UserCheck, UserX, Download, Check, X, Mail, Copy, Edit2, Layers } from 'lucide-react'
+import { toast } from 'sonner'
 import ModuleSurface from '@/components/layout/ModuleSurface'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Table,
   TableBody,
@@ -440,88 +452,178 @@ export default function OperadoresList() {
               filtrados.map((op) => {
                 const correo = obtenerCorreoVinculado(op.id, op.nombre)
                 return (
-                  <TableRow
-                    key={op.id}
-                    className={`hover:bg-gray-50 transition-colors ${!op.activo ? 'opacity-50' : ''}`}
-                  >
-                    <TableCell className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${AREA_COLORS[op.area]}`}>
-                          {getInitials(op.nombre)}
-                        </div>
-                        {editandoId === op.id ? (
-                          <div className="flex items-center gap-1.5 flex-1 max-w-[200px]">
-                            <input
-                              type="text"
-                              value={nombreEditado}
-                              onChange={(e) => setNombreEditado(e.target.value)}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-primary"
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') guardarEdicion(op.id)
-                                if (e.key === 'Escape') setEditandoId(null)
-                              }}
-                            />
-                            <button onClick={() => guardarEdicion(op.id)} className="text-emerald-600 bg-emerald-50 rounded p-1 hover:bg-emerald-100"><Check className="w-4 h-4" /></button>
-                            <button onClick={() => setEditandoId(null)} className="text-red-600 bg-red-50 rounded p-1 hover:bg-red-100"><X className="w-4 h-4" /></button>
+                  <ContextMenu key={op.id}>
+                    <ContextMenuTrigger asChild>
+                      <TableRow
+                        className={`hover:bg-gray-50 transition-colors cursor-pointer select-none ${!op.activo ? 'opacity-50' : ''}`}
+                        onDoubleClick={() => {
+                          setEditandoId(op.id)
+                          setNombreEditado(op.nombre)
+                        }}
+                      >
+                        <TableCell className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${AREA_COLORS[op.area]}`}>
+                              {getInitials(op.nombre)}
+                            </div>
+                            {editandoId === op.id ? (
+                              <div className="flex items-center gap-1.5 flex-1 max-w-[200px]" onClick={(e) => e.stopPropagation()}>
+                                <input
+                                  type="text"
+                                  value={nombreEditado}
+                                  onChange={(e) => setNombreEditado(e.target.value)}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-primary"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') guardarEdicion(op.id)
+                                    if (e.key === 'Escape') setEditandoId(null)
+                                  }}
+                                />
+                                <button onClick={() => guardarEdicion(op.id)} className="text-emerald-600 bg-emerald-50 rounded p-1 hover:bg-emerald-100 cursor-pointer"><Check className="w-4 h-4" /></button>
+                                <button onClick={() => setEditandoId(null)} className="text-red-600 bg-red-50 rounded p-1 hover:bg-red-100 cursor-pointer"><X className="w-4 h-4" /></button>
+                              </div>
+                            ) : (
+                              <span 
+                                className="font-medium text-gray-900 cursor-pointer hover:text-primary hover:underline"
+                                onClick={() => { setEditandoId(op.id); setNombreEditado(op.nombre); }}
+                                title="Clic para editar"
+                              >
+                                {op.nombre}
+                              </span>
+                            )}
                           </div>
-                        ) : (
-                          <span 
-                            className="font-medium text-gray-900 cursor-pointer hover:text-primary hover:underline"
-                            onClick={() => { setEditandoId(op.id); setNombreEditado(op.nombre); }}
-                            title="Clic para editar"
+                        </TableCell>
+                        <TableCell className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <select
+                            value={op.area}
+                            onChange={(e) => handleCambiarArea(op.id, e.target.value as Area)}
+                            className={`text-xs font-medium px-2.5 py-1 rounded-full border cursor-pointer ${AREA_COLORS[op.area]}`}
                           >
-                            {op.nombre}
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-4 py-3">
-                      <select
-                        value={op.area}
-                        onChange={(e) => handleCambiarArea(op.id, e.target.value as Area)}
-                        className={`text-xs font-medium px-2.5 py-1 rounded-full border cursor-pointer ${AREA_COLORS[op.area]}`}
+                            {AREAS.map((a) => (
+                              <option key={a.value} value={a.value}>{a.label}</option>
+                            ))}
+                          </select>
+                          {!departamentoDesdeArea(op.area) && (
+                            <p className="mt-0.5 text-[10px] text-gray-400" title={SIN_HORAS_EXTRA_TITULO}>
+                              No aplica a horas extra
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
+                          {correo ? (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-mono text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                              <Mail className="w-3.5 h-3.5 text-emerald-600" />
+                              {correo}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs font-mono text-slate-400 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
+                              Sin correo
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => handleToggle(op.id, op.activo)}
+                            className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full transition-colors cursor-pointer ${
+                              op.activo
+                                ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                            }`}
+                            title={op.activo ? 'Clic para desactivar' : 'Clic para activar'}
+                          >
+                            {op.activo ? (
+                              <><UserCheck className="h-3.5 w-3.5" /> Activo</>
+                            ) : (
+                              <><UserX className="h-3.5 w-3.5" /> Inactivo</>
+                            )}
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    </ContextMenuTrigger>
+
+                    <ContextMenuContent className="w-56">
+                      <ContextMenuItem
+                        onClick={() => {
+                          setEditandoId(op.id)
+                          setNombreEditado(op.nombre)
+                        }}
                       >
-                        {AREAS.map((a) => (
-                          <option key={a.value} value={a.value}>{a.label}</option>
-                        ))}
-                      </select>
-                      {!departamentoDesdeArea(op.area) && (
-                        <p className="mt-0.5 text-[10px] text-gray-400" title={SIN_HORAS_EXTRA_TITULO}>
-                          No aplica a horas extra
-                        </p>
-                      )}
-                    </TableCell>
-                    <TableCell className="px-4 py-3">
-                      {correo ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-mono text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
-                          <Mail className="w-3.5 h-3.5 text-emerald-600" />
-                          {correo}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-xs font-mono text-slate-400 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
-                          Sin correo
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => handleToggle(op.id, op.activo)}
-                        className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${
-                          op.activo
-                            ? 'bg-green-50 text-green-700 hover:bg-green-100'
-                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                        }`}
-                        title={op.activo ? 'Clic para desactivar' : 'Clic para activar'}
-                      >
+                        <Edit2 className="text-primary" />
+                        <span>Editar nombre ({op.nombre})</span>
+                        <ContextMenuShortcut>↵</ContextMenuShortcut>
+                      </ContextMenuItem>
+
+                      <ContextMenuItem onClick={() => handleToggle(op.id, op.activo)}>
                         {op.activo ? (
-                          <><UserCheck className="h-3.5 w-3.5" /> Activo</>
+                          <>
+                            <UserX className="text-amber-600" />
+                            <span>Desactivar operador</span>
+                          </>
                         ) : (
-                          <><UserX className="h-3.5 w-3.5" /> Inactivo</>
+                          <>
+                            <UserCheck className="text-emerald-600" />
+                            <span>Activar operador</span>
+                          </>
                         )}
-                      </button>
-                    </TableCell>
-                  </TableRow>
+                      </ContextMenuItem>
+
+                      <ContextMenuSeparator />
+
+                      <ContextMenuSub>
+                        <ContextMenuSubTrigger>
+                          <Layers className="text-sky-600" />
+                          <span>Cambiar área ({op.area})</span>
+                        </ContextMenuSubTrigger>
+                        <ContextMenuSubContent className="w-44">
+                          {AREAS.map((a) => (
+                            <ContextMenuItem
+                              key={a.value}
+                              onClick={() => handleCambiarArea(op.id, a.value)}
+                            >
+                              <span>{a.label}</span>
+                            </ContextMenuItem>
+                          ))}
+                        </ContextMenuSubContent>
+                      </ContextMenuSub>
+
+                      <ContextMenuSeparator />
+
+                      <ContextMenuSub>
+                        <ContextMenuSubTrigger>
+                          <Copy className="text-slate-500" />
+                          <span>Copiar información</span>
+                        </ContextMenuSubTrigger>
+                        <ContextMenuSubContent className="w-48">
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(op.nombre)
+                              toast.success('Nombre copiado')
+                            }}
+                          >
+                            <span>Nombre ({op.nombre})</span>
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(op.area)
+                              toast.success('Área copiada')
+                            }}
+                          >
+                            <span>Área ({op.area})</span>
+                          </ContextMenuItem>
+                          {correo && (
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(correo)
+                                toast.success('Correo copiado')
+                              }}
+                            >
+                              <span>Correo ({correo})</span>
+                            </ContextMenuItem>
+                          )}
+                        </ContextMenuSubContent>
+                      </ContextMenuSub>
+                    </ContextMenuContent>
+                  </ContextMenu>
                 )
               })
             )}

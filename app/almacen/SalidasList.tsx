@@ -1,12 +1,24 @@
 import { useState } from 'react'
 import { useSalidas } from '@/lib/hooks/useAlmacen'
 import { useOperadores } from '@/lib/hooks/useOperadores'
-import { Plus, Trash2, Search } from 'lucide-react'
+import { Plus, Trash2, Search, Copy, ExternalLink } from 'lucide-react'
+import { toast } from 'sonner'
 import type { SalidaAlmacen } from '@/lib/schemas'
 import { fechaHoyLocal } from '@/lib/format'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { Button } from '@/components/ui/button'
 import ModuleSurface from '@/components/layout/ModuleSurface'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Table,
   TableBody,
@@ -210,27 +222,96 @@ export default function SalidasList() {
                 </TableRow>
               ) : (
                 filtradas.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell className="px-4 py-2 text-muted-foreground">{s.fecha}</TableCell>
-                    <TableCell className="px-4 py-2 font-medium text-foreground whitespace-normal">{s.herramienta}</TableCell>
-                    <TableCell className="px-4 py-2">{s.cantidad}</TableCell>
-                    <TableCell className="px-4 py-2 text-muted-foreground">
-                      <span className="inline-flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
-                          {s.operador.charAt(0).toUpperCase()}
-                        </span>
-                        {s.operador}
-                      </span>
-                    </TableCell>
-                    <TableCell className="px-4 py-2 text-right">
-                      <button
-                        onClick={() => handleEliminar(s.id, s.herramienta)}
-                        className="text-muted-foreground hover:text-red-500 transition-colors"
+                  <ContextMenu key={s.id}>
+                    <ContextMenuTrigger asChild>
+                      <TableRow className="hover:bg-muted/40 cursor-pointer select-none">
+                        <TableCell className="px-4 py-2 text-muted-foreground">{s.fecha}</TableCell>
+                        <TableCell className="px-4 py-2 font-medium text-foreground whitespace-normal">{s.herramienta}</TableCell>
+                        <TableCell className="px-4 py-2">{s.cantidad}</TableCell>
+                        <TableCell className="px-4 py-2 text-muted-foreground">
+                          <span className="inline-flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
+                              {s.operador.charAt(0).toUpperCase()}
+                            </span>
+                            {s.operador}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-4 py-2 text-right" onClick={(ev) => ev.stopPropagation()}>
+                          <button
+                            onClick={() => handleEliminar(s.id, s.herramienta)}
+                            className="text-muted-foreground hover:text-red-500 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    </ContextMenuTrigger>
+
+                    <ContextMenuContent className="w-56">
+                      <ContextMenuItem
+                        onClick={() => {
+                          window.location.href = `/endmills?q=${encodeURIComponent(s.herramienta)}`
+                        }}
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </TableCell>
-                  </TableRow>
+                        <ExternalLink className="text-primary" />
+                        <span>Buscar en Endmills</span>
+                        <ContextMenuShortcut>↵</ContextMenuShortcut>
+                      </ContextMenuItem>
+
+                      <ContextMenuSeparator />
+
+                      <ContextMenuSub>
+                        <ContextMenuSubTrigger>
+                          <Copy className="text-slate-500" />
+                          <span>Copiar información</span>
+                        </ContextMenuSubTrigger>
+                        <ContextMenuSubContent className="w-48">
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(s.herramienta)
+                              toast.success('Herramienta copiada')
+                            }}
+                          >
+                            <span>Herramienta</span>
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(String(s.cantidad))
+                              toast.success('Cantidad copiada')
+                            }}
+                          >
+                            <span>Cantidad ({s.cantidad})</span>
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(s.operador)
+                              toast.success('Operador copiado')
+                            }}
+                          >
+                            <span>Operador ({s.operador})</span>
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(s.fecha)
+                              toast.success('Fecha copiada')
+                            }}
+                          >
+                            <span>Fecha ({s.fecha})</span>
+                          </ContextMenuItem>
+                        </ContextMenuSubContent>
+                      </ContextMenuSub>
+
+                      <ContextMenuSeparator />
+
+                      <ContextMenuItem
+                        variant="destructive"
+                        onClick={() => void handleEliminar(s.id, s.herramienta)}
+                      >
+                        <Trash2 />
+                        <span>Eliminar salida</span>
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
                 ))
               )}
             </TableBody>

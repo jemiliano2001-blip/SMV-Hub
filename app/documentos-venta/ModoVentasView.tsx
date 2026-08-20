@@ -1,7 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, MessageSquare, CheckCircle, Copy, Play, XCircle } from 'lucide-react'
+import { toast } from 'sonner'
 import type {
   EstadoSolicitudDocumento,
   MensajeSolicitudDocumento,
@@ -14,6 +15,17 @@ import {
   ordenCompraSolicitud,
   particionarSolicitudesVentas,
 } from '@/lib/documentos-venta-helpers'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import DetalleVentasSimple from './DetalleVentasSimple'
 import NuevaSolicitudPanel from './NuevaSolicitudPanel'
 
@@ -190,33 +202,152 @@ export default function ModoVentasView({
                 const oc = ordenCompraSolicitud(s)
                 return (
                   <li key={s.id}>
-                    <button
-                      type="button"
-                      onClick={() => onAbrir(s.id)}
-                      className="w-full text-left bg-white border-2 border-slate-200 rounded-2xl px-4 py-4 hover:border-sky-400 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-base font-bold text-slate-900">
-                          {s.tipo === 'factura' ? 'Factura' : 'Remisión'} ·{' '}
-                          {s.partnerName}
-                        </p>
-                        <span className="text-xs font-bold uppercase tracking-wide text-slate-500 shrink-0">
-                          {etiquetaEstadoSolicitudDocumento(s.estado)}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-600 mt-1">
-                        {oc ? `Orden de compra ${oc}` : 'Sin orden de compra'} · SO{' '}
-                        {s.odooSoName}
-                      </p>
-                      <p className="text-sm text-slate-400 mt-0.5">
-                        Pidió {s.solicitadoPorNombre}
-                      </p>
-                      {s.atendidoPorNombre && (
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          Atiende {s.atendidoPorNombre}
-                        </p>
-                      )}
-                    </button>
+                    <ContextMenu>
+                      <ContextMenuTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => onAbrir(s.id)}
+                          className="w-full text-left bg-white border-2 border-slate-200 rounded-2xl px-4 py-4 hover:border-sky-400 transition-colors cursor-pointer select-none"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-base font-bold text-slate-900">
+                              {s.tipo === 'factura' ? 'Factura' : 'Remisión'} ·{' '}
+                              {s.partnerName}
+                            </p>
+                            <span className="text-xs font-bold uppercase tracking-wide text-slate-500 shrink-0">
+                              {etiquetaEstadoSolicitudDocumento(s.estado)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-slate-600 mt-1">
+                            {oc ? `Orden de compra ${oc}` : 'Sin orden de compra'} · SO{' '}
+                            {s.odooSoName}
+                          </p>
+                          <p className="text-sm text-slate-400 mt-0.5">
+                            Pidió {s.solicitadoPorNombre}
+                          </p>
+                          {s.atendidoPorNombre && (
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              Atiende {s.atendidoPorNombre}
+                            </p>
+                          )}
+                        </button>
+                      </ContextMenuTrigger>
+
+                      <ContextMenuContent className="w-56">
+                        <ContextMenuItem onClick={() => onAbrir(s.id)}>
+                          <MessageSquare className="text-primary" />
+                          <span>Abrir solicitud y chat</span>
+                          <ContextMenuShortcut>↵</ContextMenuShortcut>
+                        </ContextMenuItem>
+
+                        {s.estado === 'pendiente' && (
+                          <ContextMenuItem
+                            onClick={() => {
+                              void onActualizarEstado({
+                                id: s.id,
+                                desde: s.estado,
+                                hacia: 'en_proceso',
+                                esAtendedor: true,
+                                esSolicitante: s.solicitadoPorUid === uid,
+                                uid,
+                                nombre,
+                              })
+                            }}
+                          >
+                            <Play className="text-sky-600" />
+                            <span>Atender solicitud</span>
+                          </ContextMenuItem>
+                        )}
+
+                        {s.estado === 'en_proceso' && (
+                          <ContextMenuItem
+                            onClick={() => {
+                              void onActualizarEstado({
+                                id: s.id,
+                                desde: s.estado,
+                                hacia: 'completada',
+                                esAtendedor: true,
+                                esSolicitante: s.solicitadoPorUid === uid,
+                                uid,
+                                nombre,
+                              })
+                            }}
+                          >
+                            <CheckCircle className="text-emerald-600" />
+                            <span>Marcar como lista / completada</span>
+                          </ContextMenuItem>
+                        )}
+
+                        <ContextMenuSeparator />
+
+                        <ContextMenuSub>
+                          <ContextMenuSubTrigger>
+                            <Copy className="text-slate-500" />
+                            <span>Copiar información</span>
+                          </ContextMenuSubTrigger>
+                          <ContextMenuSubContent className="w-48">
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(s.partnerName)
+                                toast.success('Cliente copiado')
+                              }}
+                            >
+                              <span>Cliente ({s.partnerName})</span>
+                            </ContextMenuItem>
+                            {oc && (
+                              <ContextMenuItem
+                                onClick={() => {
+                                  void navigator.clipboard.writeText(oc)
+                                  toast.success('Orden de compra copiada')
+                                }}
+                              >
+                                <span>Orden Compra ({oc})</span>
+                              </ContextMenuItem>
+                            )}
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(s.odooSoName)
+                                toast.success('Folio SO copiado')
+                              }}
+                            >
+                              <span>Folio SO ({s.odooSoName})</span>
+                            </ContextMenuItem>
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(s.solicitadoPorNombre)
+                                toast.success('Solicitante copiado')
+                              }}
+                            >
+                              <span>Solicitante ({s.solicitadoPorNombre})</span>
+                            </ContextMenuItem>
+                          </ContextMenuSubContent>
+                        </ContextMenuSub>
+
+                        {s.estado !== 'rechazada' && s.estado !== 'completada' && (
+                          <>
+                            <ContextMenuSeparator />
+                            <ContextMenuItem
+                              variant="destructive"
+                              onClick={() => {
+                                void onActualizarEstado({
+                                  id: s.id,
+                                  desde: s.estado,
+                                  hacia: 'rechazada',
+                                  esAtendedor: true,
+                                  esSolicitante: s.solicitadoPorUid === uid,
+                                  uid,
+                                  nombre,
+                                  motivoRechazo: 'Cancelado desde menú contextual',
+                                })
+                              }}
+                            >
+                              <XCircle />
+                              <span>Rechazar / Cancelar solicitud</span>
+                            </ContextMenuItem>
+                          </>
+                        )}
+                      </ContextMenuContent>
+                    </ContextMenu>
                   </li>
                 )
               })}

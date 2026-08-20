@@ -1,5 +1,16 @@
 import { useState, type Dispatch, type SetStateAction } from 'react'
-import { CheckCircle2, ExternalLink, Eye, Tags, Trash2, XCircle } from 'lucide-react'
+import {
+  CheckCircle2,
+  Copy,
+  ExternalLink,
+  Eye,
+  FileText,
+  MessageCircle,
+  Sparkles,
+  Tags,
+  Trash2,
+  XCircle,
+} from 'lucide-react'
 import type { OrdenCompra } from '@/lib/schemas'
 import { formatPrecio } from '@/lib/format'
 import { sanitizarUrl } from '@/lib/importar'
@@ -13,6 +24,18 @@ import { notificarOrdenPorWhatsApp } from '@/lib/notificar-orden-whatsapp'
 import OrdenBadgeEstado from './OrdenBadgeEstado'
 import WhatsAppIcon from '@/components/WhatsAppIcon'
 import ModuleSurface from '@/components/layout/ModuleSurface'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
+import { toast } from 'sonner'
 import {
   Table,
   TableBody,
@@ -185,116 +208,228 @@ export default function OrdenesTabla({
             const fechas = formatFechaOrden(orden)
             const linkNorm = orden.linkProveedor ? sanitizarUrl(orden.linkProveedor) : null
             return (
-            <TableRow
-              key={orden.id}
-              onClick={() => onSelectOrden(orden)}
-              className="cursor-pointer"
-            >
-              <TableCell className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
-                <input
-                  type="checkbox"
-                  checked={selectedIds.has(orden.id)}
-                  onChange={(e) => toggleSelection(orden.id, e as unknown as React.MouseEvent)}
-                  className="rounded border-slate-300 text-primary focus:ring-ring cursor-pointer"
-                />
-              </TableCell>
-              <TableCell className="px-3 py-2.5 font-semibold text-slate-900 truncate max-w-[140px]" title={orden.proveedor}>
-                <span className="inline-flex items-center gap-1.5 w-full">
-                  <span className="truncate">{orden.proveedor}</span>
-                  {linkNorm && (
-                    <a
-                      href={linkNorm}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-primary hover:text-sky-700 p-0.5 rounded transition-colors shrink-0"
-                      title="Abrir enlace de compra / proveedor"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  )}
-                  {ordenTieneSatPendiente(orden) && (
-                    <span title="Falta clave SAT en algún ítem" aria-label="SAT pendiente">
-                      <Tags className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                    </span>
-                  )}
-                </span>
-              </TableCell>
-              <TableCell className="px-3 py-2.5 truncate max-w-[100px]" title={orden.requisitor || ''}>
-                {displayOGuion(orden.requisitor)}
-              </TableCell>
-              <TableCell className="px-3 py-2.5 font-mono text-slate-900 truncate max-w-[120px]" title={orden.numeroFactura || ''}>
-                {displayOGuion(orden.numeroFactura)}
-              </TableCell>
-              <TableCell className="px-3 py-2.5 truncate max-w-[100px]" title={orden.empresa || ''}>
-                {displayOGuion(orden.empresa)}
-              </TableCell>
-              <TableCell className="px-3 py-2.5 truncate max-w-[140px]" title={cuentaCargoEfectiva(orden) || ''}>
-                {displayOGuion(cuentaCargoEfectiva(orden))}
-              </TableCell>
-              <TableCell className="px-3 py-2.5 font-mono font-bold text-slate-900 text-right tabular-nums">
-                {formatPrecio(orden.total, orden.moneda)}
-              </TableCell>
-              <TableCell className="px-3 py-2.5 font-mono">
-                <div className="text-slate-900">{fechas.principal}</div>
-                {fechas.secundaria && (
-                  <div className="text-[10px] text-slate-400">{fechas.secundaria}</div>
-                )}
-              </TableCell>
-              <TableCell className="px-3 py-2.5">
-                <OrdenBadgeEstado estado={orden.estado} estadoRecepcion={orden.estadoRecepcion} />
-              </TableCell>
-              <TableCell className="px-3 py-2.5 text-center">
-                <div className="flex items-center justify-center gap-1">
+              <ContextMenu key={orden.id}>
+                <ContextMenuTrigger asChild>
+                  <TableRow
+                    onClick={() => onSelectOrden(orden)}
+                    className="cursor-pointer"
+                  >
+                    <TableCell className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(orden.id)}
+                        onChange={(e) => toggleSelection(orden.id, e as unknown as React.MouseEvent)}
+                        className="rounded border-slate-300 text-primary focus:ring-ring cursor-pointer"
+                      />
+                    </TableCell>
+                    <TableCell className="px-3 py-2.5 font-semibold text-slate-900 truncate max-w-[140px]" title={orden.proveedor}>
+                      <span className="inline-flex items-center gap-1.5 w-full">
+                        <span className="truncate">{orden.proveedor}</span>
+                        {linkNorm && (
+                          <a
+                            href={linkNorm}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-primary hover:text-sky-700 p-0.5 rounded transition-colors shrink-0"
+                            title="Abrir enlace de compra / proveedor"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                        {ordenTieneSatPendiente(orden) && (
+                          <span title="Falta clave SAT en algún ítem" aria-label="SAT pendiente">
+                            <Tags className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                          </span>
+                        )}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-3 py-2.5 truncate max-w-[100px]" title={orden.requisitor || ''}>
+                      {displayOGuion(orden.requisitor)}
+                    </TableCell>
+                    <TableCell className="px-3 py-2.5 font-mono text-slate-900 truncate max-w-[120px]" title={orden.numeroFactura || ''}>
+                      {displayOGuion(orden.numeroFactura)}
+                    </TableCell>
+                    <TableCell className="px-3 py-2.5 truncate max-w-[100px]" title={orden.empresa || ''}>
+                      {displayOGuion(orden.empresa)}
+                    </TableCell>
+                    <TableCell className="px-3 py-2.5 truncate max-w-[140px]" title={cuentaCargoEfectiva(orden) || ''}>
+                      {displayOGuion(cuentaCargoEfectiva(orden))}
+                    </TableCell>
+                    <TableCell className="px-3 py-2.5 font-mono font-bold text-slate-900 text-right tabular-nums">
+                      {formatPrecio(orden.total, orden.moneda)}
+                    </TableCell>
+                    <TableCell className="px-3 py-2.5 font-mono">
+                      <div className="text-slate-900">{fechas.principal}</div>
+                      {fechas.secundaria && (
+                        <div className="text-[10px] text-slate-400">{fechas.secundaria}</div>
+                      )}
+                    </TableCell>
+                    <TableCell className="px-3 py-2.5">
+                      <OrdenBadgeEstado estado={orden.estado} estadoRecepcion={orden.estadoRecepcion} />
+                    </TableCell>
+                    <TableCell className="px-3 py-2.5 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        {orden.estado === 'pendiente' && (
+                          <>
+                            <button
+                              onClick={(e) => onApproveClick(orden.id, e)}
+                              className="p-1 text-slate-400 hover:text-emerald-600 rounded hover:bg-emerald-50 transition-colors"
+                              title="Aprobar"
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={(e) => onRejectClick(orden.id, e)}
+                              className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
+                              title="Rechazar"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            void notificar(orden)
+                          }}
+                          className="p-1 text-primary hover:text-emerald-600 rounded hover:bg-emerald-50 transition-colors"
+                          title="Notificar por WhatsApp (abre el mensaje y deja la captura lista para pegar)"
+                        >
+                          <WhatsAppIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onSelectOrden(orden)
+                          }}
+                          className="p-1 text-slate-400 hover:text-primary hover:bg-sky-50 rounded transition-colors"
+                          title="Ver detalles"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={(e) => onDeleteClick(orden.id, e)}
+                          className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                </ContextMenuTrigger>
+
+                <ContextMenuContent className="w-56">
+                  <ContextMenuItem onClick={() => onSelectOrden(orden)}>
+                    <Eye className="h-4 w-4 mr-2 text-primary" />
+                    <span>Ver detalle / Editar</span>
+                    <ContextMenuShortcut>↵</ContextMenuShortcut>
+                  </ContextMenuItem>
+
+                  <ContextMenuSeparator />
+
+                  <ContextMenuSub>
+                    <ContextMenuSubTrigger>
+                      <Copy className="h-4 w-4 mr-2 text-slate-500" />
+                      <span>Copiar datos</span>
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="w-48">
+                      {orden.numeroFactura && (
+                        <ContextMenuItem
+                          onClick={() => {
+                            void navigator.clipboard.writeText(orden.numeroFactura || '')
+                            toast.success('Factura copiada', { description: orden.numeroFactura })
+                          }}
+                        >
+                          <span>No. Factura ({orden.numeroFactura})</span>
+                        </ContextMenuItem>
+                      )}
+                      <ContextMenuItem
+                        onClick={() => {
+                          void navigator.clipboard.writeText(orden.proveedor || '')
+                          toast.success('Proveedor copiado', { description: orden.proveedor })
+                        }}
+                      >
+                        <span>Proveedor ({orden.proveedor})</span>
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        onClick={() => {
+                          const totalTxt = formatPrecio(orden.total, orden.moneda)
+                          void navigator.clipboard.writeText(totalTxt)
+                          toast.success('Total copiado', { description: totalTxt })
+                        }}
+                      >
+                        <span>Total ({formatPrecio(orden.total, orden.moneda)})</span>
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        onClick={() => {
+                          void navigator.clipboard.writeText(orden.id)
+                          toast.success('ID de orden copiado', { description: orden.id })
+                        }}
+                      >
+                        <span>ID interno</span>
+                      </ContextMenuItem>
+                    </ContextMenuSubContent>
+                  </ContextMenuSub>
+
                   {orden.estado === 'pendiente' && (
                     <>
-                      <button
-                        onClick={(e) => onApproveClick(orden.id, e)}
-                        className="p-1 text-slate-400 hover:text-emerald-600 rounded hover:bg-emerald-50 transition-colors"
-                        title="Aprobar"
+                      <ContextMenuSeparator />
+                      <ContextMenuItem
+                        onClick={(e) => onApproveClick(orden.id, e as unknown as React.MouseEvent)}
                       >
-                        <CheckCircle2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={(e) => onRejectClick(orden.id, e)}
-                        className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
-                        title="Rechazar"
+                        <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-600" />
+                        <span>Aprobar orden</span>
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        onClick={(e) => onRejectClick(orden.id, e as unknown as React.MouseEvent)}
+                        className="text-rose-600"
                       >
-                        <XCircle className="h-4 w-4" />
-                      </button>
+                        <XCircle className="h-4 w-4 mr-2 text-rose-600" />
+                        <span>Rechazar orden</span>
+                      </ContextMenuItem>
                     </>
                   )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      void notificar(orden)
-                    }}
-                    className="p-1 text-primary hover:text-emerald-600 rounded hover:bg-emerald-50 transition-colors"
-                    title="Notificar por WhatsApp (abre el mensaje y deja la captura lista para pegar)"
+
+                  <ContextMenuSeparator />
+
+                  <ContextMenuItem onClick={() => void notificar(orden)}>
+                    <MessageCircle className="h-4 w-4 mr-2 text-emerald-600" />
+                    <span>Notificar por WhatsApp</span>
+                  </ContextMenuItem>
+
+                  {linkNorm && (
+                    <ContextMenuItem
+                      onClick={() => window.open(linkNorm, '_blank', 'noopener,noreferrer')}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2 text-sky-600" />
+                      <span>Abrir enlace de compra</span>
+                    </ContextMenuItem>
+                  )}
+
+                  {orden.imagenUrl && (
+                    <ContextMenuItem
+                      onClick={() => window.open(orden.imagenUrl, '_blank', 'noopener,noreferrer')}
+                    >
+                      <FileText className="h-4 w-4 mr-2 text-amber-600" />
+                      <span>Ver comprobante / factura</span>
+                    </ContextMenuItem>
+                  )}
+
+                  <ContextMenuSeparator />
+
+                  <ContextMenuItem
+                    className="text-rose-600"
+                    onClick={(e) => onDeleteClick(orden.id, e as unknown as React.MouseEvent)}
                   >
-                    <WhatsAppIcon className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onSelectOrden(orden)
-                    }}
-                    className="p-1 text-slate-400 hover:text-primary hover:bg-sky-50 rounded transition-colors"
-                    title="Ver detalles"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={(e) => onDeleteClick(orden.id, e)}
-                    className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
-                    title="Eliminar"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </TableCell>
-            </TableRow>
-          )})}
+                    <Trash2 className="h-4 w-4 mr-2 text-rose-600" />
+                    <span>Eliminar orden</span>
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
+            )
+          })}
         </TableBody>
       </Table>
     </ModuleSurface>

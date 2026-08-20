@@ -11,6 +11,9 @@ import {
   Trash2,
   ChevronUp,
   ChevronDown,
+  Copy,
+  ShoppingCart,
+  Edit2,
 } from 'lucide-react'
 import type { Cotizacion, EstatusCotizacion } from '@/lib/schemas'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
@@ -35,6 +38,17 @@ import ModuleFilterChips from '@/components/layout/ModuleFilterChips'
 import ModuleSurface from '@/components/layout/ModuleSurface'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Table,
   TableBody,
@@ -448,47 +462,124 @@ export default function CotizacionesList() {
             </TableHeader>
             <TableBody>
               {filasPagina.map((c) => (
-                <TableRow
-                  key={c.id}
-                  onClick={() => setCotizacionToEdit(c)}
-                  className="cursor-pointer"
-                >
-                  <TableCell className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(c.id)}
-                      onChange={(e) => toggleSelection(c.id, e as unknown as React.MouseEvent)}
-                      className="rounded border-gray-300 text-primary focus:ring-ring cursor-pointer"
-                    />
-                  </TableCell>
-                  <TableCell className="px-4 py-3">{formatFecha(c.fecha)}</TableCell>
-                  <TableCell className="px-4 py-3">{c.solicitante || '-'}</TableCell>
-                  <TableCell className="px-4 py-3 font-medium text-foreground">{c.proveedor}</TableCell>
-                  <TableCell className="px-4 py-3 whitespace-normal text-foreground min-w-[220px]">{c.descripcion}</TableCell>
-                  <TableCell className="px-4 py-3 font-mono text-xs">{c.numeroParte || '-'}</TableCell>
-                  <TableCell className="px-4 py-3 text-center">
-                    <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${c.ubicacion === 'USA' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-                      {c.ubicacion === 'USA' ? 'EUA' : 'MX'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-center">{c.cantidad ?? '-'}</TableCell>
-                  <TableCell className="px-4 py-3 text-right">{formatPrecio(c.precioUnitario, c.moneda)}</TableCell>
-                  <TableCell className="px-4 py-3 text-right font-semibold text-foreground">{formatPrecio(c.total, c.moneda)}</TableCell>
-                  <TableCell className="px-4 py-3">
-                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold capitalize ring-1 ring-inset ${ESTATUS_BADGE[c.estatus]}`}>
-                      {c.estatus}
-                    </span>
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                    {c.link && /^https?:\/\//i.test(c.link) ? (
-                      <a href={c.link} target="_blank" rel="noopener noreferrer" className="inline-flex text-muted-foreground hover:text-primary" title="Abrir enlace">
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                    ) : (
-                      <span className="text-muted-foreground/40">-</span>
+                <ContextMenu key={c.id}>
+                  <ContextMenuTrigger asChild>
+                    <TableRow
+                      onClick={() => setCotizacionToEdit(c)}
+                      className="cursor-pointer select-none"
+                    >
+                      <TableCell className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(c.id)}
+                          onChange={(e) => toggleSelection(c.id, e as unknown as React.MouseEvent)}
+                          className="rounded border-gray-300 text-primary focus:ring-ring cursor-pointer"
+                        />
+                      </TableCell>
+                      <TableCell className="px-4 py-3">{formatFecha(c.fecha)}</TableCell>
+                      <TableCell className="px-4 py-3">{c.solicitante || '-'}</TableCell>
+                      <TableCell className="px-4 py-3 font-medium text-foreground">{c.proveedor}</TableCell>
+                      <TableCell className="px-4 py-3 whitespace-normal text-foreground min-w-[220px]">{c.descripcion}</TableCell>
+                      <TableCell className="px-4 py-3 font-mono text-xs">{c.numeroParte || '-'}</TableCell>
+                      <TableCell className="px-4 py-3 text-center">
+                        <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${c.ubicacion === 'USA' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+                          {c.ubicacion === 'USA' ? 'EUA' : 'MX'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-center">{c.cantidad ?? '-'}</TableCell>
+                      <TableCell className="px-4 py-3 text-right">{formatPrecio(c.precioUnitario, c.moneda)}</TableCell>
+                      <TableCell className="px-4 py-3 text-right font-semibold text-foreground">{formatPrecio(c.total, c.moneda)}</TableCell>
+                      <TableCell className="px-4 py-3">
+                        <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold capitalize ring-1 ring-inset ${ESTATUS_BADGE[c.estatus]}`}>
+                          {c.estatus}
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        {c.link && /^https?:\/\//i.test(c.link) ? (
+                          <a href={c.link} target="_blank" rel="noopener noreferrer" className="inline-flex text-muted-foreground hover:text-primary" title="Abrir enlace">
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground/40">-</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  </ContextMenuTrigger>
+
+                  <ContextMenuContent className="w-56">
+                    <ContextMenuItem onClick={() => setCotizacionToEdit(c)}>
+                      <Edit2 className="text-primary" />
+                      <span>Ver detalle / Editar</span>
+                      <ContextMenuShortcut>↵</ContextMenuShortcut>
+                    </ContextMenuItem>
+
+                    <ContextMenuItem
+                      onClick={() => {
+                        window.location.href = `/nueva-compra?proveedor=${encodeURIComponent(c.proveedor)}&descripcion=${encodeURIComponent(c.descripcion)}&precio=${c.precioUnitario}`
+                      }}
+                    >
+                      <ShoppingCart className="text-emerald-600" />
+                      <span>Convertir a Nueva Compra</span>
+                    </ContextMenuItem>
+
+                    <ContextMenuSeparator />
+
+                    <ContextMenuSub>
+                      <ContextMenuSubTrigger>
+                        <Copy className="text-slate-500" />
+                        <span>Copiar información</span>
+                      </ContextMenuSubTrigger>
+                      <ContextMenuSubContent className="w-48">
+                        <ContextMenuItem
+                          onClick={() => {
+                            void navigator.clipboard.writeText(c.proveedor)
+                            toast.success('Proveedor copiado')
+                          }}
+                        >
+                          <span>Proveedor ({c.proveedor})</span>
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                          onClick={() => {
+                            void navigator.clipboard.writeText(c.descripcion)
+                            toast.success('Descripción copiada')
+                          }}
+                        >
+                          <span>Descripción</span>
+                        </ContextMenuItem>
+                        {c.numeroParte && (
+                          <ContextMenuItem
+                            onClick={() => {
+                              void navigator.clipboard.writeText(c.numeroParte || '')
+                              toast.success('No. de parte copiado')
+                            }}
+                          >
+                            <span>No. Parte ({c.numeroParte})</span>
+                          </ContextMenuItem>
+                        )}
+                        <ContextMenuItem
+                          onClick={() => {
+                            const totTxt = formatPrecio(c.total, c.moneda)
+                            void navigator.clipboard.writeText(totTxt)
+                            toast.success('Total copiado', { description: totTxt })
+                          }}
+                        >
+                          <span>Total ({formatPrecio(c.total, c.moneda)})</span>
+                        </ContextMenuItem>
+                      </ContextMenuSubContent>
+                    </ContextMenuSub>
+
+                    {c.link && /^https?:\/\//i.test(c.link) && (
+                      <ContextMenuItem
+                        onClick={() => {
+                          if (c.link) window.open(c.link, '_blank', 'noopener,noreferrer')
+                        }}
+                      >
+                        <ExternalLink className="text-sky-600" />
+                        <span>Abrir enlace de cotización</span>
+                      </ContextMenuItem>
                     )}
-                  </TableCell>
-                </TableRow>
+                  </ContextMenuContent>
+                </ContextMenu>
               ))}
             </TableBody>
           </Table>

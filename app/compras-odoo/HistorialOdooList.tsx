@@ -12,7 +12,10 @@ import {
   RefreshCw,
   Clock,
   AlertCircle,
+  Copy,
+  ShoppingCart,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +35,17 @@ import {
 } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Table,
   TableBody,
@@ -256,125 +270,203 @@ export default function HistorialOdooList() {
               <TableBody>
                 {filtrados.map((r) => {
                   const estaExpandido = expandidoId === r.id
+                  const urlOdoo = `https://system.maquinadosvazquez.com/web#id=${r.odooId}&model=purchase.order&view_type=form`
+
                   return (
-                    <TableRow key={r.id} className="hover:bg-muted/40">
-                      <TableCell colSpan={8} className="p-0">
-                        <div className="flex flex-col">
-                          <div className="flex w-full items-center px-3 py-2.5">
-                            <div className="w-8 shrink-0">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="size-8 p-0"
-                                onClick={() => toggleExpandir(r.id)}
-                                aria-expanded={estaExpandido}
-                                aria-label={estaExpandido ? 'Ocultar partidas' : 'Ver partidas'}
-                              >
-                                {estaExpandido ? <ChevronDown /> : <ChevronRight />}
-                              </Button>
-                            </div>
-
-                            <div className="grid flex-1 grid-cols-7 items-center gap-2">
-                              <div>
-                                <Badge variant="secondary" className="font-mono text-[11px]">
-                                  {r.odooName}
-                                </Badge>
-                              </div>
-                              <div className="col-span-2 truncate font-semibold">{r.proveedor}</div>
-                              <div className="text-muted-foreground truncate font-mono text-[11px]">
-                                {r.referenciaProveedor || '—'}
-                              </div>
-                              <div className="text-center">
-                                <Badge variant="outline" className="font-mono text-[11px]">
-                                  {r.itemsCount} partidas
-                                </Badge>
-                              </div>
-                              <div className="text-right font-mono font-bold tabular-nums">
-                                ${formatMoney(r.total)}{' '}
-                                <span className="text-muted-foreground text-[10px] font-normal">
-                                  {r.moneda}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-muted-foreground truncate text-[11px]">
-                                  {r.creadoPorEmail?.split('@')[0] || '—'}
-                                </span>
-                                <Button asChild variant="outline" size="sm" className="shrink-0 text-[11px]">
-                                  <a
-                                    href={`https://system.maquinadosvazquez.com/web#id=${r.odooId}&model=purchase.order&view_type=form`}
-                                    target="_blank"
-                                    rel="noreferrer"
+                    <ContextMenu key={r.id}>
+                      <ContextMenuTrigger asChild>
+                        <TableRow className="hover:bg-muted/40 cursor-pointer select-none">
+                          <TableCell colSpan={8} className="p-0">
+                            <div className="flex flex-col">
+                              <div className="flex w-full items-center px-3 py-2.5">
+                                <div className="w-8 shrink-0">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="size-8 p-0 cursor-pointer"
+                                    onClick={() => toggleExpandir(r.id)}
+                                    aria-expanded={estaExpandido}
+                                    aria-label={estaExpandido ? 'Ocultar partidas' : 'Ver partidas'}
                                   >
-                                    <ExternalLink data-icon="inline-start" />
-                                    Odoo
-                                  </a>
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
+                                    {estaExpandido ? <ChevronDown /> : <ChevronRight />}
+                                  </Button>
+                                </div>
 
-                          {estaExpandido && (
-                            <div className="bg-muted/40 flex flex-col gap-2 border-t p-3.5">
-                              <span className="flex items-center gap-1.5 text-[11px] font-bold tracking-wider uppercase">
-                                <FileSpreadsheet className="text-muted-foreground size-3.5" aria-hidden />
-                                Desglose de Partidas ({r.partidas.length})
-                              </span>
-                              <div className="bg-card overflow-hidden rounded-lg border shadow-sm">
-                                <Table className="w-full text-left text-xs">
-                                  <TableHeader className="bg-muted/80 text-[10px] font-bold uppercase">
-                                    <TableRow>
-                                      <TableHead className="w-8 px-2.5 py-1.5 text-center">#</TableHead>
-                                      <TableHead className="w-24 px-2.5 py-1.5">Clave</TableHead>
-                                      <TableHead className="px-2.5 py-1.5">Descripción</TableHead>
-                                      <TableHead className="w-24 px-2.5 py-1.5">Requisitor</TableHead>
-                                      <TableHead className="w-20 px-2.5 py-1.5">Empresa</TableHead>
-                                      <TableHead className="w-24 px-2.5 py-1.5">OT / Uso</TableHead>
-                                      <TableHead className="w-16 px-2.5 py-1.5 text-right">Cant.</TableHead>
-                                      <TableHead className="w-20 px-2.5 py-1.5 text-right">P. Unit.</TableHead>
-                                      <TableHead className="w-24 px-2.5 py-1.5 text-right">Subtotal</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody className="text-[11px]">
-                                    {r.partidas.map((p, idx) => (
-                                      <TableRow key={p.id || idx}>
-                                        <TableCell className="text-muted-foreground px-2.5 py-1.5 text-center font-mono">
-                                          {p.partida || idx + 1}
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground px-2.5 py-1.5 font-mono">
-                                          {p.clave || '—'}
-                                        </TableCell>
-                                        <TableCell className="px-2.5 py-1.5 font-medium">
-                                          {p.descripcion}
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground px-2.5 py-1.5">
-                                          {p.requisitor || '—'}
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground px-2.5 py-1.5">
-                                          {p.empresa || '—'}
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground px-2.5 py-1.5 font-mono text-[10px]">
-                                          {p.ordenTrabajo || p.uso || '—'}
-                                        </TableCell>
-                                        <TableCell className="px-2.5 py-1.5 text-right font-mono font-semibold tabular-nums">
-                                          {p.cantidad} {p.udm}
-                                        </TableCell>
-                                        <TableCell className="px-2.5 py-1.5 text-right font-mono tabular-nums">
-                                          ${p.precioUnitario.toFixed(2)}
-                                        </TableCell>
-                                        <TableCell className="px-2.5 py-1.5 text-right font-mono font-bold tabular-nums">
-                                          ${p.subtotal.toFixed(2)}
-                                        </TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
+                                <div className="grid flex-1 grid-cols-7 items-center gap-2" onClick={() => toggleExpandir(r.id)}>
+                                  <div>
+                                    <Badge variant="secondary" className="font-mono text-[11px]">
+                                      {r.odooName}
+                                    </Badge>
+                                  </div>
+                                  <div className="col-span-2 truncate font-semibold">{r.proveedor}</div>
+                                  <div className="text-muted-foreground truncate font-mono text-[11px]">
+                                    {r.referenciaProveedor || '—'}
+                                  </div>
+                                  <div className="text-center">
+                                    <Badge variant="outline" className="font-mono text-[11px]">
+                                      {r.itemsCount} partidas
+                                    </Badge>
+                                  </div>
+                                  <div className="text-right font-mono font-bold tabular-nums">
+                                    ${formatMoney(r.total)}{' '}
+                                    <span className="text-muted-foreground text-[10px] font-normal">
+                                      {r.moneda}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
+                                    <span className="text-muted-foreground truncate text-[11px]">
+                                      {r.creadoPorEmail?.split('@')[0] || '—'}
+                                    </span>
+                                    <Button asChild variant="outline" size="sm" className="shrink-0 text-[11px]">
+                                      <a
+                                        href={urlOdoo}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                      >
+                                        <ExternalLink data-icon="inline-start" />
+                                        Odoo
+                                      </a>
+                                    </Button>
+                                  </div>
+                                </div>
                               </div>
+
+                              {estaExpandido && (
+                                <div className="bg-muted/40 flex flex-col gap-2 border-t p-3.5" onClick={(e) => e.stopPropagation()}>
+                                  <span className="flex items-center gap-1.5 text-[11px] font-bold tracking-wider uppercase">
+                                    <FileSpreadsheet className="text-muted-foreground size-3.5" aria-hidden />
+                                    Desglose de Partidas ({r.partidas.length})
+                                  </span>
+                                  <div className="bg-card overflow-hidden rounded-lg border shadow-sm">
+                                    <Table className="w-full text-left text-xs">
+                                      <TableHeader className="bg-muted/80 text-[10px] font-bold uppercase">
+                                        <TableRow>
+                                          <TableHead className="w-8 px-2.5 py-1.5 text-center">#</TableHead>
+                                          <TableHead className="w-24 px-2.5 py-1.5">Clave</TableHead>
+                                          <TableHead className="px-2.5 py-1.5">Descripción</TableHead>
+                                          <TableHead className="w-24 px-2.5 py-1.5">Requisitor</TableHead>
+                                          <TableHead className="w-20 px-2.5 py-1.5">Empresa</TableHead>
+                                          <TableHead className="w-24 px-2.5 py-1.5">OT / Uso</TableHead>
+                                          <TableHead className="w-16 px-2.5 py-1.5 text-right">Cant.</TableHead>
+                                          <TableHead className="w-20 px-2.5 py-1.5 text-right">P. Unit.</TableHead>
+                                          <TableHead className="w-24 px-2.5 py-1.5 text-right">Subtotal</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody className="text-[11px]">
+                                        {r.partidas.map((p, idx) => (
+                                          <TableRow key={p.id || idx}>
+                                            <TableCell className="text-muted-foreground px-2.5 py-1.5 text-center font-mono">
+                                              {p.partida || idx + 1}
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground px-2.5 py-1.5 font-mono">
+                                              {p.clave || '—'}
+                                            </TableCell>
+                                            <TableCell className="px-2.5 py-1.5 font-medium">
+                                              {p.descripcion}
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground px-2.5 py-1.5">
+                                              {p.requisitor || '—'}
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground px-2.5 py-1.5">
+                                              {p.empresa || '—'}
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground px-2.5 py-1.5 font-mono text-[10px]">
+                                              {p.ordenTrabajo || p.uso || '—'}
+                                            </TableCell>
+                                            <TableCell className="px-2.5 py-1.5 text-right font-mono font-semibold tabular-nums">
+                                              {p.cantidad} {p.udm}
+                                            </TableCell>
+                                            <TableCell className="px-2.5 py-1.5 text-right font-mono tabular-nums">
+                                              ${p.precioUnitario.toFixed(2)}
+                                            </TableCell>
+                                            <TableCell className="px-2.5 py-1.5 text-right font-mono font-bold tabular-nums">
+                                              ${p.subtotal.toFixed(2)}
+                                            </TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                          </TableCell>
+                        </TableRow>
+                      </ContextMenuTrigger>
+
+                      <ContextMenuContent className="w-56">
+                        <ContextMenuItem onClick={() => toggleExpandir(r.id)}>
+                          <FileSpreadsheet className="text-primary" />
+                          <span>{estaExpandido ? 'Ocultar partidas' : 'Ver partidas'}</span>
+                          <ContextMenuShortcut>↵</ContextMenuShortcut>
+                        </ContextMenuItem>
+
+                        <ContextMenuItem
+                          onClick={() => {
+                            window.open(urlOdoo, '_blank', 'noopener,noreferrer')
+                          }}
+                        >
+                          <ExternalLink className="text-sky-600" />
+                          <span>Abrir en Odoo ERP</span>
+                        </ContextMenuItem>
+
+                        <ContextMenuItem
+                          onClick={() => {
+                            window.location.href = `/nueva-compra?proveedor=${encodeURIComponent(r.proveedor)}`
+                          }}
+                        >
+                          <ShoppingCart className="text-emerald-600" />
+                          <span>Re-cotizar en Nueva Compra</span>
+                        </ContextMenuItem>
+
+                        <ContextMenuSeparator />
+
+                        <ContextMenuSub>
+                          <ContextMenuSubTrigger>
+                            <Copy className="text-slate-500" />
+                            <span>Copiar información</span>
+                          </ContextMenuSubTrigger>
+                          <ContextMenuSubContent className="w-48">
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(r.odooName)
+                                toast.success('Folio Odoo copiado')
+                              }}
+                            >
+                              <span>Folio ({r.odooName})</span>
+                            </ContextMenuItem>
+                            <ContextMenuItem
+                              onClick={() => {
+                                void navigator.clipboard.writeText(r.proveedor)
+                                toast.success('Proveedor copiado')
+                              }}
+                            >
+                              <span>Proveedor ({r.proveedor})</span>
+                            </ContextMenuItem>
+                            {r.referenciaProveedor && (
+                              <ContextMenuItem
+                                onClick={() => {
+                                  void navigator.clipboard.writeText(r.referenciaProveedor || '')
+                                  toast.success('Referencia copiada')
+                                }}
+                              >
+                                <span>Ref. Proveedor</span>
+                              </ContextMenuItem>
+                            )}
+                            <ContextMenuItem
+                              onClick={() => {
+                                const totTxt = `$${formatMoney(r.total)} ${r.moneda}`
+                                void navigator.clipboard.writeText(totTxt)
+                                toast.success('Total copiado', { description: totTxt })
+                              }}
+                            >
+                              <span>Total ({`$${formatMoney(r.total)} ${r.moneda}`})</span>
+                            </ContextMenuItem>
+                          </ContextMenuSubContent>
+                        </ContextMenuSub>
+                      </ContextMenuContent>
+                    </ContextMenu>
                   )
                 })}
               </TableBody>

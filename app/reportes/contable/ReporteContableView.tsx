@@ -18,10 +18,21 @@ import {
   type ResumenProcesamientoContableIa,
 } from "@/lib/reportes-contables-ia"
 import { extraerEntradasHistorialSat } from "@/lib/sat/extraer-historial-ordenes"
-import { Loader2, AlertCircle, FileSpreadsheet, Printer, Sparkles, CheckCircle2, History, RefreshCw } from "lucide-react"
+import { Loader2, AlertCircle, FileSpreadsheet, Printer, Sparkles, CheckCircle2, History, RefreshCw, Copy, ExternalLink } from "lucide-react"
 import { listarLotesContables, crearLoteContable, type ReporteContableLote } from "@/lib/reportes-contables"
 import { useConfirmDialog } from "@/components/ConfirmDialogProvider"
 import { toast } from "sonner"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Table,
   TableBody,
@@ -603,80 +614,166 @@ export default function ReporteContableView() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      lineas.map((l, i) => (
-                        <TableRow key={`${l.ordenId}-${i}`} className="hover:bg-gray-50 print:hover:bg-transparent">
-                          <TableCell className="px-4 py-3 whitespace-nowrap">
-                            {l.dia ? l.dia.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" }) : "-"}
-                          </TableCell>
-                          <TableCell className="px-4 py-3">
-                            <div className="font-medium text-gray-900">{l.proveedor}</div>
-                            <div className="text-xs text-gray-400">Ref: {l.referencia}</div>
-                          </TableCell>
-                          <TableCell className="px-4 py-3 max-w-xs">
-                            {l.descripcionSimplificada ? (
-                              <span className="font-medium text-gray-900">{l.descripcionSimplificada}</span>
-                            ) : (
-                              <span className="text-gray-400 italic" title={l.descripcion}>
-                                {l.descripcion.length > 50 ? l.descripcion.substring(0, 50) + "..." : l.descripcion}
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="px-4 py-3 max-w-xs">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-medium text-gray-900">{l.claveProdServ || "—"}</span>
+                      lineas.map((l, i) => {
+                        const totalFormateado = new Intl.NumberFormat("es-MX", { style: "currency", currency: monedaActiva }).format(l.total)
+                        const descFinal = l.descripcionSimplificada || l.descripcion
+
+                        return (
+                          <ContextMenu key={`${l.ordenId}-${i}`}>
+                            <ContextMenuTrigger asChild>
+                              <TableRow className="hover:bg-gray-50 print:hover:bg-transparent cursor-pointer select-none">
+                                <TableCell className="px-4 py-3 whitespace-nowrap">
+                                  {l.dia ? l.dia.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" }) : "-"}
+                                </TableCell>
+                                <TableCell className="px-4 py-3">
+                                  <div className="font-medium text-gray-900">{l.proveedor}</div>
+                                  <div className="text-xs text-gray-400">Ref: {l.referencia}</div>
+                                </TableCell>
+                                <TableCell className="px-4 py-3 max-w-xs">
+                                  {l.descripcionSimplificada ? (
+                                    <span className="font-medium text-gray-900">{l.descripcionSimplificada}</span>
+                                  ) : (
+                                    <span className="text-gray-400 italic" title={l.descripcion}>
+                                      {l.descripcion.length > 50 ? l.descripcion.substring(0, 50) + "..." : l.descripcion}
+                                    </span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="px-4 py-3 max-w-xs">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-medium text-gray-900">{l.claveProdServ || "—"}</span>
+                                    {l.itemIndex >= 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleResugerir(l)}
+                                        disabled={resugieriendo.has(`${l.ordenId}-${l.itemIndex}`)}
+                                        title="Volver a sugerir la clave SAT para esta línea"
+                                        className="text-gray-400 hover:text-primary disabled:opacity-50 no-print cursor-pointer"
+                                      >
+                                        <RefreshCw
+                                          className={`h-3.5 w-3.5 ${resugieriendo.has(`${l.ordenId}-${l.itemIndex}`) ? "animate-spin" : ""}`}
+                                        />
+                                      </button>
+                                    )}
+                                  </div>
+                                  {!l.claveProdServ && (
+                                    <span className="mt-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 print:hidden">
+                                      Revisar
+                                    </span>
+                                  )}
+                                  <div className="text-xs text-gray-500 truncate" title={satDict[l.claveProdServ || ""]}>
+                                    {cargandoSat && l.claveProdServ && !satDict[l.claveProdServ]
+                                      ? "Cargando..."
+                                      : satDict[l.claveProdServ || ""] || ""}
+                                  </div>
+                                  {(altsPorLinea[`${l.ordenId}-${l.itemIndex}`]?.length ?? 0) > 0 && (
+                                    <div className="mt-1.5 flex flex-wrap gap-1 no-print">
+                                      {altsPorLinea[`${l.ordenId}-${l.itemIndex}`].map((alt) => (
+                                        <button
+                                          key={alt.clave}
+                                          type="button"
+                                          title={alt.descripcionSat}
+                                          onClick={() => void aplicarClaveLinea(l, alt.clave, altsPorLinea[`${l.ordenId}-${l.itemIndex}`])}
+                                          className="rounded border border-blue-200 bg-white px-1.5 py-0.5 text-[10px] font-mono text-blue-800 hover:bg-blue-50 cursor-pointer"
+                                        >
+                                          {alt.clave}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </TableCell>
+                                <TableCell className="px-4 py-3 text-right font-medium">
+                                  {l.cantidad !== null ? l.cantidad : "—"}
+                                </TableCell>
+                                <TableCell className="px-4 py-3 text-right">
+                                  {l.precioUnitario !== null 
+                                    ? new Intl.NumberFormat("es-MX", { style: "currency", currency: monedaActiva }).format(l.precioUnitario) 
+                                    : "—"}
+                                </TableCell>
+                                <TableCell className="px-4 py-3 text-right font-semibold text-gray-900">
+                                  {totalFormateado}
+                                </TableCell>
+                              </TableRow>
+                            </ContextMenuTrigger>
+
+                            <ContextMenuContent className="w-56">
                               {l.itemIndex >= 0 && (
-                                <button
-                                  type="button"
+                                <ContextMenuItem
                                   onClick={() => handleResugerir(l)}
                                   disabled={resugieriendo.has(`${l.ordenId}-${l.itemIndex}`)}
-                                  title="Volver a sugerir la clave SAT para esta línea"
-                                  className="text-gray-400 hover:text-primary disabled:opacity-50 no-print"
                                 >
-                                  <RefreshCw
-                                    className={`h-3.5 w-3.5 ${resugieriendo.has(`${l.ordenId}-${l.itemIndex}`) ? "animate-spin" : ""}`}
-                                  />
-                                </button>
+                                  <Sparkles className="text-amber-500" />
+                                  <span>Re-sugerir Clave SAT (IA)</span>
+                                  <ContextMenuShortcut>↵</ContextMenuShortcut>
+                                </ContextMenuItem>
                               )}
-                            </div>
-                            {!l.claveProdServ && (
-                              <span className="mt-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 print:hidden">
-                                Revisar
-                              </span>
-                            )}
-                            <div className="text-xs text-gray-500 truncate" title={satDict[l.claveProdServ || ""]}>
-                              {cargandoSat && l.claveProdServ && !satDict[l.claveProdServ]
-                                ? "Cargando..."
-                                : satDict[l.claveProdServ || ""] || ""}
-                            </div>
-                            {(altsPorLinea[`${l.ordenId}-${l.itemIndex}`]?.length ?? 0) > 0 && (
-                              <div className="mt-1.5 flex flex-wrap gap-1 no-print">
-                                {altsPorLinea[`${l.ordenId}-${l.itemIndex}`].map((alt) => (
-                                  <button
-                                    key={alt.clave}
-                                    type="button"
-                                    title={alt.descripcionSat}
-                                    onClick={() => void aplicarClaveLinea(l, alt.clave, altsPorLinea[`${l.ordenId}-${l.itemIndex}`])}
-                                    className="rounded border border-blue-200 bg-white px-1.5 py-0.5 text-[10px] font-mono text-blue-800 hover:bg-blue-50"
+
+                              <ContextMenuItem
+                                onClick={() => {
+                                  window.location.href = `/ordenes`
+                                }}
+                              >
+                                <ExternalLink className="text-sky-600" />
+                                <span>Ver orden en Compras</span>
+                              </ContextMenuItem>
+
+                              <ContextMenuSeparator />
+
+                              <ContextMenuSub>
+                                <ContextMenuSubTrigger>
+                                  <Copy className="text-slate-500" />
+                                  <span>Copiar información</span>
+                                </ContextMenuSubTrigger>
+                                <ContextMenuSubContent className="w-48">
+                                  {l.claveProdServ && (
+                                    <ContextMenuItem
+                                      onClick={() => {
+                                        void navigator.clipboard.writeText(l.claveProdServ || '')
+                                        toast.success('Clave SAT copiada')
+                                      }}
+                                    >
+                                      <span>Clave SAT ({l.claveProdServ})</span>
+                                    </ContextMenuItem>
+                                  )}
+                                  <ContextMenuItem
+                                    onClick={() => {
+                                      void navigator.clipboard.writeText(l.proveedor)
+                                      toast.success('Proveedor copiado')
+                                    }}
                                   >
-                                    {alt.clave}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-right font-medium">
-                            {l.cantidad !== null ? l.cantidad : "—"}
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-right">
-                            {l.precioUnitario !== null 
-                              ? new Intl.NumberFormat("es-MX", { style: "currency", currency: monedaActiva }).format(l.precioUnitario) 
-                              : "—"}
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-right font-semibold text-gray-900">
-                            {new Intl.NumberFormat("es-MX", { style: "currency", currency: monedaActiva }).format(l.total)}
-                          </TableCell>
-                        </TableRow>
-                      ))
+                                    <span>Proveedor ({l.proveedor})</span>
+                                  </ContextMenuItem>
+                                  <ContextMenuItem
+                                    onClick={() => {
+                                      void navigator.clipboard.writeText(descFinal)
+                                      toast.success('Descripción copiada')
+                                    }}
+                                  >
+                                    <span>Descripción</span>
+                                  </ContextMenuItem>
+                                  {l.referencia && (
+                                    <ContextMenuItem
+                                      onClick={() => {
+                                        void navigator.clipboard.writeText(l.referencia)
+                                        toast.success('Referencia / Factura copiada')
+                                      }}
+                                    >
+                                      <span>Ref. Factura ({l.referencia})</span>
+                                    </ContextMenuItem>
+                                  )}
+                                  <ContextMenuItem
+                                    onClick={() => {
+                                      void navigator.clipboard.writeText(totalFormateado)
+                                      toast.success('Total copiado', { description: totalFormateado })
+                                    }}
+                                  >
+                                    <span>Total ({totalFormateado})</span>
+                                  </ContextMenuItem>
+                                </ContextMenuSubContent>
+                              </ContextMenuSub>
+                            </ContextMenuContent>
+                          </ContextMenu>
+                        )
+                      })
                     )}
                   </TableBody>
                   {lineas.length > 0 && (

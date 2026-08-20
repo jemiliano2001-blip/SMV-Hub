@@ -11,6 +11,7 @@ import {
   Shield,
   Pencil,
   UserCheck,
+  UserX,
   Search,
   User,
   ChevronDown,
@@ -18,10 +19,22 @@ import {
   Sparkles,
   Filter,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import AuthGuard from '../AuthGuard'
 import PageHeader from '@/components/layout/PageHeader'
 import PageShell from '@/components/layout/PageShell'
 import { Button } from '@/components/ui/button'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Table,
   TableBody,
@@ -1082,52 +1095,138 @@ function UsuariosContent() {
                   usuariosFiltrados.map((u) => {
                     const opVinculado = u.operadorId ? operadores.find((o) => o.id === u.operadorId) : null
                     return (
-                      <TableRow key={u.id} className="border-b border-slate-100 hover:bg-slate-50 text-xs">
-                        <TableCell className="px-3.5 py-2.5 font-semibold text-slate-900">
-                          <div className="flex items-center gap-1.5">
-                            {u.email}
-                            {u.esSuperAdmin && (
-                              <span className="text-[9px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200 px-1 py-0.5 rounded">
-                                SA
-                              </span>
-                            )}
-                            {esMatrizPersonalizada(u.plantilla, u.modulos) && (
-                              <span className="text-[9px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1 py-0.5 rounded">
-                                CUSTOM
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-3.5 py-2.5">
-                          {u.operadorNombre ? (
-                            <span className="inline-flex items-center gap-1 text-slate-800 font-medium bg-slate-100 px-2 py-0.5 rounded-full text-xs">
-                              <User className="h-3 w-3 text-slate-500" />
-                              {u.operadorNombre}
-                              {opVinculado && (
-                                <span className="font-mono text-[10px] text-slate-500 uppercase">
-                                  ({opVinculado.area})
+                      <ContextMenu key={u.id}>
+                        <ContextMenuTrigger asChild>
+                          <TableRow className="border-b border-slate-100 hover:bg-slate-50 text-xs cursor-pointer select-none">
+                            <TableCell className="px-3.5 py-2.5 font-semibold text-slate-900">
+                              <div className="flex items-center gap-1.5">
+                                {u.email}
+                                {u.esSuperAdmin && (
+                                  <span className="text-[9px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200 px-1 py-0.5 rounded">
+                                    SA
+                                  </span>
+                                )}
+                                {esMatrizPersonalizada(u.plantilla, u.modulos) && (
+                                  <span className="text-[9px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1 py-0.5 rounded">
+                                    CUSTOM
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="px-3.5 py-2.5">
+                              {u.operadorNombre ? (
+                                <span className="inline-flex items-center gap-1 text-slate-800 font-medium bg-slate-100 px-2 py-0.5 rounded-full text-xs">
+                                  <User className="h-3 w-3 text-slate-500" />
+                                  {u.operadorNombre}
+                                  {opVinculado && (
+                                    <span className="font-mono text-[10px] text-slate-500 uppercase">
+                                      ({opVinculado.area})
+                                    </span>
+                                  )}
                                 </span>
+                              ) : (
+                                <span className="text-[11px] text-slate-400 font-mono italic">Sin operador</span>
                               )}
-                            </span>
-                          ) : (
-                            <span className="text-[11px] text-slate-400 font-mono italic">Sin operador</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="px-3.5 py-2.5 font-mono">{u.plantilla}</TableCell>
-                        <TableCell className="px-3.5 py-2.5 text-slate-500 font-mono">{u.modulos.length}</TableCell>
-                        <TableCell className="px-3.5 py-2.5 text-slate-500 font-mono text-[11px]">{u.proveedor}</TableCell>
-                        <TableCell className="px-3.5 py-2.5">
-                          <div className="flex justify-end">
-                            <AccionesUsuario
-                              usuario={u}
-                              onEditar={() => setEditando(u)}
-                              onCambiarActivo={handleCambiarActivo}
-                              onResetearPassword={handleResetPassword}
-                              onEliminar={handleEliminar}
-                            />
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                            </TableCell>
+                            <TableCell className="px-3.5 py-2.5 font-mono">{u.plantilla}</TableCell>
+                            <TableCell className="px-3.5 py-2.5 text-slate-500 font-mono">{u.modulos.length}</TableCell>
+                            <TableCell className="px-3.5 py-2.5 text-slate-500 font-mono text-[11px]">{u.proveedor}</TableCell>
+                            <TableCell className="px-3.5 py-2.5" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex justify-end">
+                                <AccionesUsuario
+                                  usuario={u}
+                                  onEditar={() => setEditando(u)}
+                                  onCambiarActivo={handleCambiarActivo}
+                                  onResetearPassword={handleResetPassword}
+                                  onEliminar={handleEliminar}
+                                />
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        </ContextMenuTrigger>
+
+                        <ContextMenuContent className="w-56">
+                          <ContextMenuItem onClick={() => setEditando(u)}>
+                            <Pencil className="text-primary" />
+                            <span>Editar permisos</span>
+                            <ContextMenuShortcut>↵</ContextMenuShortcut>
+                          </ContextMenuItem>
+
+                          <ContextMenuItem onClick={() => void handleCambiarActivo(u.id, !u.activo)}>
+                            {u.activo ? (
+                              <>
+                                <UserX className="text-amber-600" />
+                                <span>Desactivar cuenta</span>
+                              </>
+                            ) : (
+                              <>
+                                <UserCheck className="text-emerald-600" />
+                                <span>Activar cuenta</span>
+                              </>
+                            )}
+                          </ContextMenuItem>
+
+                          <ContextMenuItem onClick={() => void handleResetPassword(u.id)}>
+                            <KeyRound className="text-sky-600" />
+                            <span>Generar contraseña temporal</span>
+                          </ContextMenuItem>
+
+                          <ContextMenuSeparator />
+
+                          <ContextMenuSub>
+                            <ContextMenuSubTrigger>
+                              <Copy className="text-slate-500" />
+                              <span>Copiar información</span>
+                            </ContextMenuSubTrigger>
+                            <ContextMenuSubContent className="w-48">
+                              <ContextMenuItem
+                                onClick={() => {
+                                  void navigator.clipboard.writeText(u.email)
+                                  toast.success('Correo copiado')
+                                }}
+                              >
+                                <span>Correo ({u.email})</span>
+                              </ContextMenuItem>
+                              <ContextMenuItem
+                                onClick={() => {
+                                  void navigator.clipboard.writeText(u.id)
+                                  toast.success('UID copiado')
+                                }}
+                              >
+                                <span>UID ({u.id})</span>
+                              </ContextMenuItem>
+                              <ContextMenuItem
+                                onClick={() => {
+                                  void navigator.clipboard.writeText(u.plantilla)
+                                  toast.success('Plantilla copiada')
+                                }}
+                              >
+                                <span>Plantilla ({u.plantilla})</span>
+                              </ContextMenuItem>
+                              {u.operadorNombre && (
+                                <ContextMenuItem
+                                  onClick={() => {
+                                    void navigator.clipboard.writeText(u.operadorNombre || '')
+                                    toast.success('Operador copiado')
+                                  }}
+                                >
+                                  <span>Operador ({u.operadorNombre})</span>
+                                </ContextMenuItem>
+                              )}
+                            </ContextMenuSubContent>
+                          </ContextMenuSub>
+
+                          <ContextMenuSeparator />
+
+                          <ContextMenuItem
+                            variant="destructive"
+                            onClick={() => void handleEliminar(u.id)}
+                          >
+                            <Trash2 />
+                            <span>Eliminar usuario</span>
+                          </ContextMenuItem>
+                        </ContextMenuContent>
+                      </ContextMenu>
                     )
                   })
                 )}
