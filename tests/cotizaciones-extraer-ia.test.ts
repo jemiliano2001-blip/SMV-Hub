@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest"
-import { normalizarCotizacionExtraida, type CotizacionExtraida } from "@/lib/cotizaciones-extraer-ia"
+import {
+  normalizarCotizacionExtraida,
+  normalizarCotizacionMulti,
+  type CotizacionExtraida,
+} from "@/lib/cotizaciones-extraer-ia"
+
 
 describe("normalizarCotizacionExtraida", () => {
   it("normaliza datos completos de un producto en USD", () => {
@@ -59,3 +64,51 @@ describe("normalizarCotizacionExtraida", () => {
     expect(res.numeroParte).toBeNull()
   })
 })
+
+describe("normalizarCotizacionMulti", () => {
+  it("normaliza múltiples partidas y metadatos generales", () => {
+    const raw = {
+      proveedor: " McMaster-Carr ",
+      moneda: "USD" as const,
+      ubicacion: "USA" as const,
+      fechaCotizacion: "2026-08-20",
+      solicitante: "Edgar",
+      notasGenerales: "Envío UPS Ground",
+      items: [
+        {
+          numeroParte: "91290A115",
+          descripcion: "Tornillo Socket M6x20mm",
+          precioUnitario: 12.5,
+          cantidad: 5,
+        },
+        {
+          numeroParte: "8975K11",
+          descripcion: "Placa Aluminio 6061 1/2in",
+          precioUnitario: 45.0,
+          cantidad: 2,
+        },
+      ],
+    }
+
+    const multi = normalizarCotizacionMulti(raw)
+    expect(multi.proveedor).toBe("McMaster-Carr")
+    expect(multi.moneda).toBe("USD")
+    expect(multi.ubicacion).toBe("USA")
+    expect(multi.fechaCotizacion).toBe("2026-08-20")
+    expect(multi.solicitante).toBe("Edgar")
+    expect(multi.notasGenerales).toBe("Envío UPS Ground")
+    expect(multi.items).toHaveLength(2)
+    expect(multi.items[0].numeroParte).toBe("91290A115")
+    expect(multi.items[0].total).toBe(62.5)
+    expect(multi.items[1].numeroParte).toBe("8975K11")
+    expect(multi.items[1].total).toBe(90.0)
+  })
+
+  it("crea un ítem default si el array de items viene vacío", () => {
+    const multi = normalizarCotizacionMulti({ proveedor: "Grainger" })
+    expect(multi.items).toHaveLength(1)
+    expect(multi.items[0].descripcion).toBe("Producto cotizado")
+    expect(multi.proveedor).toBe("Grainger")
+  })
+})
+

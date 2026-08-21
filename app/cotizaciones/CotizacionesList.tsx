@@ -1,6 +1,5 @@
-'use client'
-
 import { useMemo, useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Loader2,
   AlertCircle,
@@ -14,7 +13,11 @@ import {
   Edit2,
   Sparkles,
   Upload,
+  ShoppingCart,
+  Copy,
+  PlusCircle,
 } from 'lucide-react'
+
 import type { Cotizacion, EstatusCotizacion } from '@/lib/schemas'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { toast } from 'sonner'
@@ -66,9 +69,20 @@ type CotizacionCardProps = {
   selected: boolean
   onToggleSelect: (id: string, e: React.MouseEvent) => void
   onEditar: (c: Cotizacion) => void
+  onComprarUsa: (c: Cotizacion) => void
+  onCrearOdoo: (c: Cotizacion) => void
+  onCopiarWhatsApp: (c: Cotizacion) => void
 }
 
-function CotizacionCard({ c, selected, onToggleSelect, onEditar }: CotizacionCardProps) {
+function CotizacionCard({
+  c,
+  selected,
+  onToggleSelect,
+  onEditar,
+  onComprarUsa,
+  onCrearOdoo,
+  onCopiarWhatsApp,
+}: CotizacionCardProps) {
   return (
     <div onClick={() => onEditar(c)} className="p-4 space-y-2.5 active:bg-gray-50 cursor-pointer">
       <div className="flex justify-between items-start gap-3">
@@ -128,15 +142,53 @@ function CotizacionCard({ c, selected, onToggleSelect, onEditar }: CotizacionCar
           )}
         </div>
       </div>
+
+      {/* Botones de acción rápida en móvil */}
+      <div className="flex items-center gap-2 pt-2 border-t border-border/40 pl-[26px]" onClick={(e) => e.stopPropagation()}>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-7 text-[11px] gap-1 px-2 flex-1"
+          onClick={() => onComprarUsa(c)}
+          title="Comprar en USA (/nueva-compra)"
+        >
+          <ShoppingCart className="h-3 w-3 text-emerald-600" />
+          Comprar
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-7 text-[11px] gap-1 px-2 flex-1"
+          onClick={() => onCrearOdoo(c)}
+          title="Crear RFQ en Odoo (/compras-odoo)"
+        >
+          <PlusCircle className="h-3 w-3 text-indigo-600" />
+          Odoo
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="h-7 px-2 text-muted-foreground hover:text-foreground"
+          onClick={() => onCopiarWhatsApp(c)}
+          title="Copiar formato WhatsApp"
+        >
+          <Copy className="h-3.5 w-3.5" />
+        </Button>
+      </div>
     </div>
   )
 }
+
 
 interface CotizacionesListProps {
   onIrAImportar?: () => void
 }
 
 export default function CotizacionesList({ onIrAImportar }: CotizacionesListProps) {
+  const router = useRouter()
   const confirmar = useConfirmDialog()
   const {
     cotizaciones,
@@ -168,6 +220,58 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
   const [isIaModalOpen, setIsIaModalOpen] = useState(false)
   const [initialPasteFile, setInitialPasteFile] = useState<File | null>(null)
   const [cotizacionToEdit, setCotizacionToEdit] = useState<Cotizacion | null>(null)
+
+  // Acciones de conversión
+  const handleComprarUsa = (c: Cotizacion) => {
+    const params = new URLSearchParams()
+    if (c.proveedor) params.set('proveedor', c.proveedor)
+    if (c.numeroParte) params.set('numeroParte', c.numeroParte)
+    if (c.descripcion) params.set('descripcion', c.descripcion)
+    if (c.precioUnitario !== null) params.set('precioUnitario', String(c.precioUnitario))
+    if (c.cantidad !== null) params.set('cantidad', String(c.cantidad))
+    if (c.total !== null) params.set('total', String(c.total))
+    if (c.link) params.set('linkProveedor', c.link)
+    if (c.solicitante) params.set('requisitor', c.solicitante)
+    params.set('moneda', c.moneda || 'USD')
+    params.set('cotizacionId', c.id)
+
+    router.push(`/nueva-compra?${params.toString()}`)
+  }
+
+  const handleCrearOdoo = (c: Cotizacion) => {
+    const params = new URLSearchParams()
+    if (c.proveedor) params.set('proveedor', c.proveedor)
+    if (c.numeroParte) params.set('numeroParte', c.numeroParte)
+    if (c.descripcion) params.set('descripcion', c.descripcion)
+    if (c.precioUnitario !== null) params.set('precioUnitario', String(c.precioUnitario))
+    if (c.cantidad !== null) params.set('cantidad', String(c.cantidad))
+    params.set('moneda', c.moneda || (c.ubicacion === 'USA' ? 'USD' : 'MXN'))
+    if (c.numeroParte) params.set('referencia', c.numeroParte)
+
+    router.push(`/compras-odoo?${params.toString()}`)
+  }
+
+  const handleCopiarWhatsApp = (c: Cotizacion) => {
+    const lineas = [
+      `📋 *COTIZACIÓN SMV*`,
+      c.numeroParte ? `*No. Parte:* ${c.numeroParte}` : null,
+      `*Descripción:* ${c.descripcion}`,
+      `*Proveedor:* ${c.proveedor} (${c.ubicacion})`,
+      c.cantidad ? `*Cantidad:* ${c.cantidad}` : null,
+      c.precioUnitario !== null ? `*P. Unitario:* ${formatPrecio(c.precioUnitario, c.moneda)}` : null,
+      c.total !== null ? `*Total:* ${formatPrecio(c.total, c.moneda)}` : null,
+      c.diasHabiles ? `*Entrega:* ${c.diasHabiles}` : null,
+      c.link ? `*Link:* ${c.link}` : null,
+      c.notas ? `*Notas:* ${c.notas}` : null,
+    ]
+    const texto = lineas.filter(Boolean).join('\n')
+
+    navigator.clipboard
+      .writeText(texto)
+      .then(() => toast.success('Cotización copiada al portapapeles en formato WhatsApp'))
+      .catch(() => toast.error('No se pudo copiar al portapapeles'))
+  }
+
 
   // Listener global para Ctrl+V en la página de cotizaciones
   const handleGlobalPaste = useCallback((e: ClipboardEvent) => {
@@ -640,17 +744,65 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
                             )}
                           </TableCell>
                           <TableCell className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                            <button
-                              onClick={() => setCotizacionToEdit(c)}
-                              className="text-muted-foreground hover:text-foreground p-1 rounded hover:bg-muted"
-                              title="Editar cotización"
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </button>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                                onClick={() => handleComprarUsa(c)}
+                                title="Comprar en USA (/nueva-compra)"
+                              >
+                                <ShoppingCart className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
+                                onClick={() => handleCrearOdoo(c)}
+                                title="Crear RFQ en Odoo (/compras-odoo)"
+                              >
+                                <PlusCircle className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                                onClick={() => handleCopiarWhatsApp(c)}
+                                title="Copiar formato WhatsApp"
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                                onClick={() => setCotizacionToEdit(c)}
+                                title="Editar cotización"
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       </ContextMenuTrigger>
                       <ContextMenuContent>
+                        <ContextMenuItem onClick={() => handleComprarUsa(c)}>
+                          <ShoppingCart className="mr-2 h-4 w-4 text-emerald-600" />
+                          Comprar en USA (/nueva-compra)
+                        </ContextMenuItem>
+                        <ContextMenuItem onClick={() => handleCrearOdoo(c)}>
+                          <PlusCircle className="mr-2 h-4 w-4 text-indigo-600" />
+                          Crear RFQ en Odoo (/compras-odoo)
+                        </ContextMenuItem>
+                        <ContextMenuItem onClick={() => handleCopiarWhatsApp(c)}>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copiar para WhatsApp
+                        </ContextMenuItem>
+                        <ContextMenuSeparator />
                         <ContextMenuItem onClick={() => setCotizacionToEdit(c)}>
                           <Edit2 className="mr-2 h-4 w-4" />
                           Editar cotización
@@ -695,10 +847,14 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
                 selected={selectedIds.has(c.id)}
                 onToggleSelect={toggleSelection}
                 onEditar={(cot) => setCotizacionToEdit(cot)}
+                onComprarUsa={handleComprarUsa}
+                onCrearOdoo={handleCrearOdoo}
+                onCopiarWhatsApp={handleCopiarWhatsApp}
               />
             ))
           )}
         </div>
+
 
         {/* Paginador */}
         {paginacion.totalPaginas > 1 && (

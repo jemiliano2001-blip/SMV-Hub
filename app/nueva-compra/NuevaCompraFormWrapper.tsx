@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import NuevaCompraForm from './NuevaCompraForm'
+import NuevaCompraForm, { type InitialDataCompra } from './NuevaCompraForm'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { subirImagenOrden } from '@/lib/storage'
@@ -17,10 +17,12 @@ export default function NuevaCompraFormWrapper({
   pedidoId,
   descripcionInicial,
   requisicionId,
+  initialData,
 }: {
   pedidoId?: string
   descripcionInicial?: string
   requisicionId?: string
+  initialData?: InitialDataCompra
 } = {}) {
   const router = useRouter()
   const [errorGuardado, setErrorGuardado] = useState<string | null>(null)
@@ -28,6 +30,7 @@ export default function NuevaCompraFormWrapper({
     mensaje: string
     comprobanteUrl?: string
     whatsappUrl: string
+
   } | null>(null)
 
   async function handleSubmit(
@@ -166,8 +169,13 @@ export default function NuevaCompraFormWrapper({
         </div>
       )}
       {!fallbackWhatsApp && (
-        <NuevaCompraForm onSubmit={handleSubmit} initialDescripcion={descripcionInicial} />
+        <NuevaCompraForm
+          onSubmit={handleSubmit}
+          initialDescripcion={descripcionInicial}
+          initialData={initialData}
+        />
       )}
     </>
   )
+
 }

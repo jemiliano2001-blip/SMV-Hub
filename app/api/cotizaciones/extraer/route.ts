@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { verificarUsuarioAutorizado } from "@/lib/api-auth"
-import { extraerCotizacionScreenshotIA } from "@/lib/cotizaciones-extraer-ia"
+import { extraerCotizacionesMultiplesIA } from "@/lib/cotizaciones-extraer-ia"
 import { ErrorIA, esMediaTypeValido, type MediaTypeFactura } from "@/lib/extraer-ia"
 
 export const runtime = "nodejs"
@@ -42,14 +42,25 @@ export async function POST(req: NextRequest) {
   const { base64, mimeType, link } = parsed.data
 
   try {
-    const datos = await extraerCotizacionScreenshotIA(
+    const multi = await extraerCotizacionesMultiplesIA(
       base64,
       mimeType as MediaTypeFactura,
       link
     )
+    const primerItem = multi.items[0] || null
+    const datosCompat = primerItem
+      ? {
+          ...primerItem,
+          proveedor: multi.proveedor,
+          moneda: multi.moneda,
+          ubicacion: multi.ubicacion,
+        }
+      : null
+
     return NextResponse.json({
       ok: true,
-      datos,
+      datos: datosCompat,
+      multi,
     })
   } catch (error) {
     if (error instanceof ErrorIA) {
@@ -62,3 +73,4 @@ export async function POST(req: NextRequest) {
     )
   }
 }
+

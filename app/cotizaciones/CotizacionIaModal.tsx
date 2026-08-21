@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import {
   Sparkles,
   UploadCloud,
@@ -8,7 +8,10 @@ import {
   AlertCircle,
   Link as LinkIcon,
   RefreshCw,
-  ExternalLink,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  FileText,
 } from 'lucide-react'
 import {
   Dialog,
@@ -20,22 +23,39 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { toast } from 'sonner'
 import { getClienteAuth } from '@/lib/firebase'
 import { obtenerProveedores } from '@/lib/proveedores'
 import {
-  crearCotizacion,
+  crearCotizacionesLote,
   claveDedupCotizacion,
   clavesExistentes,
+  type NuevaCotizacionPayload,
 } from '@/lib/cotizaciones'
 import type { Cotizacion, EstatusCotizacion, Proveedor, Ubicacion } from '@/lib/schemas'
-import type { CotizacionExtraida } from '@/lib/cotizaciones-extraer-ia'
+import type { CotizacionExtraidaItem, ExtraccionCotizacionMulti } from '@/lib/cotizaciones-extraer-ia'
+import { formatPrecio } from '@/lib/format'
 
 interface CotizacionIaModalProps {
   open: boolean
   onClose: () => void
   onSaved: (cotizacion: Cotizacion) => void
+  onSavedLote?: (cotizaciones: Cotizacion[]) => void
   initialFile?: File | null
+}
+
+export interface FilaPartidaIa extends CotizacionExtraidaItem {
+  idTemp: string
+  seleccionada: boolean
 }
 
 function obtenerSolicitanteInicial(): string {
@@ -56,6 +76,7 @@ export default function CotizacionIaModal({
   open,
   onClose,
   onSaved,
+  onSavedLote,
   initialFile = null,
 }: CotizacionIaModalProps) {
   const [dragActive, setDragActive] = useState(false)
@@ -68,7 +89,8 @@ export default function CotizacionIaModal({
   const [linkInput, setLinkInput] = useState('')
   const [extraidoExitoso, setExtraidoExitoso] = useState(false)
 
-  const [formData, setFormData] = useState(() => ({
+  // Metadatos generales
+  const [generalData, setGeneralData] = useState(() => ({
     solicitante: obtenerSolicitanteInicial(),
     fecha: new Date().toISOString().slice(0, 10),
     estatus: 'cotizado' as EstatusCotizacion,
@@ -76,15 +98,11 @@ export default function CotizacionIaModal({
     moneda: 'USD' as 'USD' | 'MXN',
     proveedor: '',
     proveedorId: null as string | null,
-    numeroParte: '',
-    descripcion: '',
-    cantidad: '1',
-    precioUnitario: '',
-    total: '',
-    diasHabiles: '',
-    link: '',
-    notas: '',
+    notasGenerales: '',
   }))
+
+  // Partidas detectadas
+  const [partidas, setPartidas] = useState<FilaPartidaIa[]>([])
 
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const dropzoneRef = useRef<HTMLDivElement | null>(null)
@@ -101,40 +119,56 @@ export default function CotizacionIaModal({
     }
   }, [])
 
-  const aplicarDatosExtraidos = useCallback((datos: CotizacionExtraida, fallbackLink?: string) => {
-    setFormData((prev) => {
-      const cant = datos.cantidad ?? 1
-      const pUnit = datos.precioUnitario !== null ? String(datos.precioUnitario) : ''
-      const tot =
-        datos.total !== null
-          ? String(datos.total)
-          : datos.precioUnitario !== null
-          ? String(datos.precioUnitario * cant)
-          : ''
+  const aplicarDatosExtraidos = useCallback(
+    (multi: ExtraccionCotizacionMulti, fallbackLink?: string) => {
+      // 1. Aplicar metadatos generales
+      setGeneralData((prev) => {
+        const prov = multi.proveedor || prev.proveedor
+        const match = catalogoProveedores.find(
+          (p) => p.nombre.toLowerCase() === prov.trim().toLowerCase()
+        )
+        return {
+          ...prev,
+          proveedor: prov,
+          proveedorId: match?.id ?? prev.proveedorId,
+          moneda: multi.moneda,
+          ubicacion: multi.ubicacion,
+          fecha: multi.fechaCotizacion || prev.fecha,
+          solicitante: multi.solicitante || prev.solicitante,
+          notasGenerales: multi.notasGenerales || prev.notasGenerales,
+        }
+      })
 
-      return {
-        ...prev,
-        numeroParte: datos.numeroParte || '',
-        descripcion: datos.descripcion || '',
-        proveedor: datos.proveedor || '',
-        precioUnitario: pUnit,
-        cantidad: String(cant),
-        total: tot,
-        moneda: datos.moneda,
-        ubicacion: datos.ubicacion,
-        diasHabiles: datos.diasHabiles || '',
-        link: datos.link || fallbackLink || prev.link,
-        notas: datos.notas
-          ? datos.marca
-            ? `Marca: ${datos.marca} | ${datos.notas}`
-            : datos.notas
-          : datos.marca
-          ? `Marca: ${datos.marca}`
+      // 2. Aplicar partidas
+      const nuevasPartidas: FilaPartidaIa[] = multi.items.map((item, idx) => ({
+        idTemp: `ia-item-${Date.now()}-${idx}`,
+        seleccionada: true,
+        numeroParte: item.numeroParte || '',
+        descripcion: item.descripcion || '',
+        marca: item.marca || null,
+        cantidad: item.cantidad ?? 1,
+        precioUnitario: item.precioUnitario ?? null,
+        total:
+          item.total ??
+          (item.precioUnitario !== null && item.cantidad !== null
+            ? item.precioUnitario * item.cantidad
+            : null),
+        diasHabiles: item.diasHabiles || '',
+        link: item.link || fallbackLink || '',
+        notas: item.notas
+          ? item.marca
+            ? `Marca: ${item.marca} | ${item.notas}`
+            : item.notas
+          : item.marca
+          ? `Marca: ${item.marca}`
           : '',
-      }
-    })
-    setExtraidoExitoso(true)
-  }, [])
+      }))
+
+      setPartidas(nuevasPartidas)
+      setExtraidoExitoso(true)
+    },
+    [catalogoProveedores]
+  )
 
   const procesarArchivo = useCallback(
     async (file: File, urlReferencia?: string) => {
@@ -154,7 +188,7 @@ export default function CotizacionIaModal({
       }
 
       if (file.size > 10 * 1024 * 1024) {
-        toast.error('La imagen no puede exceder los 10 MB.')
+        toast.error('El archivo no puede exceder los 10 MB.')
         return
       }
 
@@ -205,8 +239,23 @@ export default function CotizacionIaModal({
           throw new Error(data.error || 'Error al procesar la captura con Gemini')
         }
 
-        aplicarDatosExtraidos(data.datos, urlReferencia || linkInput)
-        toast.success('¡Información del producto extraída exitosamente!')
+        const resultadoMulti: ExtraccionCotizacionMulti = data.multi || {
+          proveedor: data.datos?.proveedor || '',
+          moneda: data.datos?.moneda || 'USD',
+          ubicacion: data.datos?.ubicacion || 'USA',
+          fechaCotizacion: null,
+          solicitante: null,
+          notasGenerales: null,
+          items: data.datos ? [data.datos] : [],
+        }
+
+        aplicarDatosExtraidos(resultadoMulti, urlReferencia || linkInput)
+        const count = resultadoMulti.items.length
+        toast.success(
+          count > 1
+            ? `¡${count} partidas extraídas exitosamente con IA!`
+            : '¡Información del producto extraída exitosamente!'
+        )
       } catch (err) {
         console.error('Error extrayendo cotización:', err)
         const msg = err instanceof Error ? err.message : 'Error al extraer información de la captura'
@@ -256,33 +305,64 @@ export default function CotizacionIaModal({
     }
   }, [open, procesarArchivo])
 
-  // Recalcular total cuando cambia cantidad o precio
-  const handleCantidadChange = (val: string) => {
-    const cantNum = parseFloat(val)
-    const pUnitNum = parseFloat(formData.precioUnitario)
-    const nuevoTotal =
-      !isNaN(cantNum) && !isNaN(pUnitNum) ? String((cantNum * pUnitNum).toFixed(2)) : formData.total
-    setFormData((prev) => ({ ...prev, cantidad: val, total: nuevoTotal }))
-  }
-
-  const handlePrecioUnitarioChange = (val: string) => {
-    const cantNum = parseFloat(formData.cantidad)
-    const pUnitNum = parseFloat(val)
-    const nuevoTotal =
-      !isNaN(cantNum) && !isNaN(pUnitNum) ? String((cantNum * pUnitNum).toFixed(2)) : formData.total
-    setFormData((prev) => ({ ...prev, precioUnitario: val, total: nuevoTotal }))
-  }
-
   const handleProveedorChange = (nombre: string) => {
     const match = catalogoProveedores.find(
       (p) => p.nombre.toLowerCase() === nombre.trim().toLowerCase()
     )
-    setFormData((prev) => ({
+    setGeneralData((prev) => ({
       ...prev,
       proveedor: nombre,
       proveedorId: match?.id ?? null,
       ubicacion: match?.ubicacion ? (match.ubicacion as Ubicacion) : prev.ubicacion,
     }))
+  }
+
+  // Manipulación de partidas
+  const handleToggleSeleccionarTodas = (checked: boolean) => {
+    setPartidas((prev) => prev.map((p) => ({ ...p, seleccionada: checked })))
+  }
+
+  const handleToggleItem = (idTemp: string) => {
+    setPartidas((prev) =>
+      prev.map((p) => (p.idTemp === idTemp ? { ...p, seleccionada: !p.seleccionada } : p))
+    )
+  }
+
+  const handleUpdateItem = (idTemp: string, fields: Partial<FilaPartidaIa>) => {
+    setPartidas((prev) =>
+      prev.map((p) => {
+        if (p.idTemp !== idTemp) return p
+        const updated = { ...p, ...fields }
+        // Auto recalcular total si cambia precio o cantidad
+        if ('cantidad' in fields || 'precioUnitario' in fields) {
+          const cant = typeof updated.cantidad === 'number' ? updated.cantidad : 1
+          const pUnit = updated.precioUnitario
+          updated.total = pUnit !== null ? Number((pUnit * cant).toFixed(2)) : null
+        }
+        return updated
+      })
+    )
+  }
+
+  const handleEliminarItem = (idTemp: string) => {
+    setPartidas((prev) => prev.filter((p) => p.idTemp !== idTemp))
+  }
+
+  const handleAgregarPartidaManual = () => {
+    const nueva: FilaPartidaIa = {
+      idTemp: `manual-${Date.now()}`,
+      seleccionada: true,
+      numeroParte: '',
+      descripcion: '',
+      marca: null,
+      cantidad: 1,
+      precioUnitario: null,
+      total: null,
+      diasHabiles: '',
+      link: linkInput.trim() || '',
+      notas: '',
+    }
+    setPartidas((prev) => [...prev, nueva])
   }
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -305,14 +385,30 @@ export default function CotizacionIaModal({
     if (file) void procesarArchivo(file)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formData.descripcion.trim()) {
-      setError('La descripción del producto es requerida.')
+  const partidasSeleccionadas = useMemo(
+    () => partidas.filter((p) => p.seleccionada),
+    [partidas]
+  )
+
+  const totalEstimadoLote = useMemo(() => {
+    return partidasSeleccionadas.reduce((sum, p) => sum + (p.total ?? 0), 0)
+  }, [partidasSeleccionadas])
+
+  const handleGuardarLote = async () => {
+    if (!generalData.proveedor.trim()) {
+      setError('El proveedor es requerido.')
       return
     }
-    if (!formData.proveedor.trim()) {
-      setError('El proveedor es requerido.')
+
+    if (partidasSeleccionadas.length === 0) {
+      setError('Selecciona al menos una partida para guardar.')
+      return
+    }
+
+    // Validar que todas tengan descripción
+    const invalidas = partidasSeleccionadas.filter((p) => !p.descripcion.trim())
+    if (invalidas.length > 0) {
+      setError('Todas las partidas seleccionadas deben tener una descripción.')
       return
     }
 
@@ -320,49 +416,69 @@ export default function CotizacionIaModal({
     setError(null)
 
     try {
-      const cantNum = parseFloat(formData.cantidad)
-      const pUnitNum = parseFloat(formData.precioUnitario)
-      const totNum = parseFloat(formData.total)
-
-      const payload = {
-        solicitante: formData.solicitante.trim() || 'General',
-        fecha: formData.fecha || new Date().toISOString().slice(0, 10),
-        estatus: formData.estatus,
-        ubicacion: formData.ubicacion,
-        moneda: formData.moneda,
-        proveedor: formData.proveedor.trim(),
-        proveedorId: formData.proveedorId,
-        numeroParte: formData.numeroParte.trim() || null,
-        descripcion: formData.descripcion.trim(),
-        cantidad: !isNaN(cantNum) ? cantNum : null,
-        precioUnitario: !isNaN(pUnitNum) ? pUnitNum : null,
-        total: !isNaN(totNum) ? totNum : !isNaN(cantNum) && !isNaN(pUnitNum) ? cantNum * pUnitNum : null,
-        diasHabiles: formData.diasHabiles.trim() || null,
-        link: formData.link.trim() || null,
-        notas: formData.notas.trim() || null,
-      }
-
-      const claveNueva = claveDedupCotizacion(payload)
       const existentes = await clavesExistentes()
-      if (existentes.has(claveNueva)) {
-        setError('Ya existe una cotización idéntica con el mismo proveedor, descripción, no. de parte y fecha.')
+
+      const payloads: NuevaCotizacionPayload[] = partidasSeleccionadas.map((p) => {
+        return {
+          solicitante: generalData.solicitante.trim() || 'General',
+          fecha: generalData.fecha || new Date().toISOString().slice(0, 10),
+          estatus: generalData.estatus,
+          ubicacion: generalData.ubicacion,
+          moneda: generalData.moneda,
+          proveedor: generalData.proveedor.trim(),
+          proveedorId: generalData.proveedorId,
+          numeroParte: p.numeroParte?.trim() || null,
+          descripcion: p.descripcion.trim(),
+          cantidad: p.cantidad ?? 1,
+          precioUnitario: p.precioUnitario ?? null,
+          total: p.total ?? null,
+          diasHabiles: p.diasHabiles?.trim() || null,
+          link: p.link?.trim() || null,
+          notas: p.notas?.trim() || generalData.notasGenerales.trim() || null,
+        }
+      })
+
+      // Verificar duplicados
+      const duplicados = payloads.filter((pay) => existentes.has(claveDedupCotizacion(pay)))
+      if (duplicados.length === payloads.length && payloads.length === 1) {
+        setError('Ya existe una cotización idéntica con el mismo proveedor, descripción y fecha.')
         setGuardando(false)
         return
       }
 
-      const id = await crearCotizacion(payload)
-      toast.success('Cotización guardada exitosamente')
-      onSaved({
-        ...payload,
-        id,
+      await crearCotizacionesLote(payloads)
+      toast.success(
+        payloads.length === 1
+          ? 'Cotización guardada exitosamente'
+          : `¡${payloads.length} cotizaciones guardadas exitosamente!`
+      )
+
+      // Emitir evento con el primer item creado para refrescar vistas
+      const cotizacionRetorno: Cotizacion = {
+        ...payloads[0],
+        id: `gen-${Date.now()}`,
         llavePieza: null,
         creadoEn: new Date(),
         actualizadoEn: new Date(),
-      } as Cotizacion)
+      }
+      onSaved(cotizacionRetorno)
+
+      if (onSavedLote) {
+        onSavedLote(
+          payloads.map((p, idx) => ({
+            ...p,
+            id: `gen-${Date.now()}-${idx}`,
+            llavePieza: null,
+            creadoEn: new Date(),
+            actualizadoEn: new Date(),
+          }))
+        )
+      }
+
       onClose()
     } catch (err) {
       console.error(err)
-      setError('Ocurrió un error al guardar la cotización. Revisa los datos.')
+      setError('Ocurrió un error al guardar las cotizaciones. Revisa los datos e intenta de nuevo.')
     } finally {
       setGuardando(false)
     }
@@ -370,7 +486,7 @@ export default function CotizacionIaModal({
 
   return (
     <Dialog open={open} onOpenChange={(abierto) => !abierto && onClose()}>
-      <DialogContent className="flex max-h-[92vh] max-w-4xl flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl">
+      <DialogContent className="flex max-h-[94vh] max-w-6xl flex-col gap-0 overflow-hidden p-0 sm:max-w-6xl">
         <DialogHeader className="border-b border-border bg-muted/20 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -378,9 +494,11 @@ export default function CotizacionIaModal({
                 <Sparkles className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <DialogTitle className="text-lg font-bold">Extraer Cotización con IA</DialogTitle>
+                <DialogTitle className="text-lg font-bold">
+                  Extraer Cotización con IA (Multi-Partida)
+                </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground">
-                  Pega un screenshot con <kbd className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-foreground">Ctrl + V</kbd> o arrastra la imagen de la tienda o catálogo.
+                  Pega un screenshot con <kbd className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-foreground">Ctrl + V</kbd> o arrastra un PDF o imagen de catálogo/tienda.
                 </DialogDescription>
               </div>
             </div>
@@ -391,12 +509,12 @@ export default function CotizacionIaModal({
           </div>
         </DialogHeader>
 
-        <div className="grid flex-1 grid-cols-1 overflow-y-auto md:grid-cols-12">
-          {/* Columna Izquierda: Dropzone y Captura */}
-          <div className="flex flex-col gap-4 border-b border-border p-5 md:col-span-5 md:border-b-0 md:border-r bg-muted/10">
+        <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-12">
+          {/* Panel Izquierdo: Dropzone, Enlace y Datos del Proveedor */}
+          <div className="flex flex-col gap-4 border-b border-border p-5 lg:col-span-4 lg:border-b-0 lg:border-r bg-muted/10">
             <div>
               <label className="block text-xs font-semibold text-foreground mb-1.5">
-                Screenshot / Captura de producto
+                Screenshot / Documento PDF
               </label>
 
               <input
@@ -416,7 +534,7 @@ export default function CotizacionIaModal({
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`relative flex min-h-[190px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 text-center transition-all ${
+                className={`relative flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 text-center transition-all ${
                   dragActive
                     ? 'border-primary bg-primary/10 scale-[1.01]'
                     : procesando
@@ -425,10 +543,14 @@ export default function CotizacionIaModal({
                 }`}
               >
                 {procesando ? (
-                  <div className="flex flex-col items-center gap-2.5 p-4 text-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-xs font-semibold text-foreground">Analizando captura con Gemini...</p>
-                    <p className="text-[11px] text-muted-foreground">Extrayendo SKU, descripción, precio y moneda</p>
+                  <div className="flex flex-col items-center gap-2 p-3 text-center">
+                    <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                    <p className="text-xs font-semibold text-foreground">
+                      Analizando cotización con Gemini...
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Detectando múltiples partidas, SKUs, precios y entregas
+                    </p>
                   </div>
                 ) : imagePreview ? (
                   <div className="group relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-lg">
@@ -436,26 +558,26 @@ export default function CotizacionIaModal({
                     <img
                       src={imagePreview}
                       alt="Screenshot de cotización"
-                      className="max-h-[180px] w-auto rounded object-contain shadow-sm transition-transform group-hover:scale-105"
+                      className="max-h-[140px] w-auto rounded object-contain shadow-sm transition-transform group-hover:scale-105"
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 rounded-lg">
                       <p className="text-xs font-semibold text-white flex items-center gap-1.5">
                         <RefreshCw className="h-3.5 w-3.5" />
-                        Cambiar o pegar otra imagen
+                        Cambiar o pegar otra captura
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center gap-2 p-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <UploadCloud className="h-5 w-5" />
+                  <div className="flex flex-col items-center gap-2 p-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <UploadCloud className="h-4 w-4" />
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-foreground">
-                        Haz clic o arrastra un screenshot aquí
+                        Haz clic o arrastra un screenshot o PDF
                       </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        O presiona <kbd className="rounded bg-muted px-1 py-0.5 font-mono text-[10px] font-bold">Ctrl + V</kbd>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        O presiona <kbd className="rounded bg-muted px-1 py-0.5 font-mono text-[9px] font-bold">Ctrl + V</kbd>
                       </p>
                     </div>
                   </div>
@@ -464,84 +586,54 @@ export default function CotizacionIaModal({
             </div>
 
             {/* Input para URL de referencia complementaria */}
-            <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                <LinkIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                Enlace / URL de la tienda (opcional)
+            <div className="space-y-1">
+              <label className="flex items-center gap-1 text-xs font-semibold text-foreground">
+                <LinkIcon className="h-3 w-3 text-muted-foreground" />
+                Enlace / Tienda web (opcional)
               </label>
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  placeholder="https://proveedor.com/producto..."
-                  value={linkInput}
-                  onChange={(e) => {
-                    setLinkInput(e.target.value)
-                    setFormData((prev) => ({ ...prev, link: e.target.value }))
-                  }}
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs focus:border-primary focus:outline-none"
-                />
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                Ayuda a la IA a verificar el origen y guarda el enlace directo en la cotización.
-              </p>
+              <input
+                type="url"
+                placeholder="https://mcmaster.com/... o https://misumi.com/..."
+                value={linkInput}
+                onChange={(e) => setLinkInput(e.target.value)}
+                className="w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs focus:border-primary focus:outline-none"
+              />
             </div>
 
-            {extraidoExitoso && (
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-3 text-xs text-emerald-800 flex items-start gap-2">
-                <Sparkles className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold">Datos detectados por IA</p>
-                  <p className="text-[11px] text-emerald-700 mt-0.5">
-                    Revisa los campos a la derecha antes de guardar. Puedes ajustar cualquier valor.
-                  </p>
-                </div>
+            {/* Configuración de Proveedor y Mercado */}
+            <div className="space-y-3 pt-2 border-t border-border">
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Proveedor / Tienda *
+                </label>
+                <input
+                  required
+                  list="catalogo-proveedores-ia-multi"
+                  value={generalData.proveedor}
+                  onChange={(e) => handleProveedorChange(e.target.value)}
+                  placeholder="Ej. McMaster-Carr, Misumi, Rockwell..."
+                  className="w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs focus:border-primary focus:outline-none"
+                />
+                <datalist id="catalogo-proveedores-ia-multi">
+                  {catalogoProveedores.map((p) => (
+                    <option key={p.id} value={p.nombre} />
+                  ))}
+                </datalist>
               </div>
-            )}
-          </div>
 
-          {/* Columna Derecha: Formulario de revisión y edición */}
-          <div className="p-6 md:col-span-7">
-            {error && (
-              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700 flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <form id="cotizacion-ia-form" onSubmit={handleSubmit} className="space-y-4">
-              {/* Proveedor y Moneda */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-foreground mb-1">
-                    Proveedor / Tienda *
-                  </label>
-                  <input
-                    required
-                    list="catalogo-proveedores-ia"
-                    value={formData.proveedor}
-                    onChange={(e) => handleProveedorChange(e.target.value)}
-                    placeholder="Ej. Rockwell, McMaster-Carr, Grainger..."
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs focus:border-primary focus:outline-none"
-                  />
-                  <datalist id="catalogo-proveedores-ia">
-                    {catalogoProveedores.map((p) => (
-                      <option key={p.id} value={p.nombre} />
-                    ))}
-                  </datalist>
-                </div>
-
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-semibold text-foreground mb-1">
-                    Moneda / País
+                  <label className="block text-[11px] font-semibold text-foreground mb-1">
+                    Moneda / Mercado
                   </label>
                   <div className="flex rounded-lg border border-input bg-muted/40 p-0.5 text-xs">
                     <button
                       type="button"
                       onClick={() =>
-                        setFormData((prev) => ({ ...prev, moneda: 'USD', ubicacion: 'USA' }))
+                        setGeneralData((prev) => ({ ...prev, moneda: 'USD', ubicacion: 'USA' }))
                       }
-                      className={`flex-1 rounded-md py-1.5 font-semibold transition-colors ${
-                        formData.moneda === 'USD'
+                      className={`flex-1 rounded-md py-1 font-semibold text-[11px] transition-colors ${
+                        generalData.moneda === 'USD'
                           ? 'bg-background text-foreground shadow-sm'
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
@@ -551,10 +643,10 @@ export default function CotizacionIaModal({
                     <button
                       type="button"
                       onClick={() =>
-                        setFormData((prev) => ({ ...prev, moneda: 'MXN', ubicacion: 'MX' }))
+                        setGeneralData((prev) => ({ ...prev, moneda: 'MXN', ubicacion: 'MX' }))
                       }
-                      className={`flex-1 rounded-md py-1.5 font-semibold transition-colors ${
-                        formData.moneda === 'MXN'
+                      className={`flex-1 rounded-md py-1 font-semibold text-[11px] transition-colors ${
+                        generalData.moneda === 'MXN'
                           ? 'bg-background text-foreground shadow-sm'
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
@@ -563,119 +655,47 @@ export default function CotizacionIaModal({
                     </button>
                   </div>
                 </div>
-              </div>
 
-              {/* No de Parte y Descripción */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div>
-                  <label className="block text-xs font-semibold text-foreground mb-1">
-                    No. de Parte / SKU
+                  <label className="block text-[11px] font-semibold text-foreground mb-1">
+                    Fecha de Cotización
                   </label>
-                  <input
-                    value={formData.numeroParte}
-                    onChange={(e) => setFormData({ ...formData, numeroParte: e.target.value })}
-                    placeholder="Ej. 140M-C2E-C16"
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs font-mono focus:border-primary focus:outline-none"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-foreground mb-1">
-                    Descripción / Producto *
-                  </label>
-                  <input
-                    required
-                    value={formData.descripcion}
-                    onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                    placeholder="Descripción clara del producto..."
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs focus:border-primary focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Precios y Cantidad */}
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div>
-                  <label className="block text-xs font-semibold text-foreground mb-1">Cantidad</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={formData.cantidad}
-                    onChange={(e) => handleCantidadChange(e.target.value)}
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs focus:border-primary focus:outline-none font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-foreground mb-1">
-                    P. Unitario ({formData.moneda})
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={formData.precioUnitario}
-                    onChange={(e) => handlePrecioUnitarioChange(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs focus:border-primary focus:outline-none font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-foreground mb-1">
-                    Total ({formData.moneda})
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={formData.total}
-                    onChange={(e) => setFormData({ ...formData, total: e.target.value })}
-                    placeholder="0.00"
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs focus:border-primary focus:outline-none font-mono font-bold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-foreground mb-1">
-                    Tiempo entrega
-                  </label>
-                  <input
-                    placeholder="Ej. En stock (2-3 días)"
-                    value={formData.diasHabiles}
-                    onChange={(e) => setFormData({ ...formData, diasHabiles: e.target.value })}
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs focus:border-primary focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Solicitante y Fecha */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div>
-                  <label className="block text-xs font-semibold text-foreground mb-1">Solicitante</label>
-                  <input
-                    value={formData.solicitante}
-                    onChange={(e) => setFormData({ ...formData, solicitante: e.target.value })}
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs focus:border-primary focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-foreground mb-1">Fecha</label>
                   <input
                     type="date"
-                    value={formData.fecha}
-                    onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs focus:border-primary focus:outline-none"
+                    value={generalData.fecha}
+                    onChange={(e) => setGeneralData({ ...generalData, fecha: e.target.value })}
+                    className="w-full rounded-lg border border-input bg-background px-2 py-1 text-xs focus:border-primary focus:outline-none"
                   />
                 </div>
+              </div>
 
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-semibold text-foreground mb-1">Estatus</label>
-                  <select
-                    value={formData.estatus}
+                  <label className="block text-[11px] font-semibold text-foreground mb-1">
+                    Solicitante
+                  </label>
+                  <input
+                    value={generalData.solicitante}
                     onChange={(e) =>
-                      setFormData({ ...formData, estatus: e.target.value as EstatusCotizacion })
+                      setGeneralData({ ...generalData, solicitante: e.target.value })
                     }
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs focus:border-primary focus:outline-none"
+                    placeholder="Edgar, Pablo..."
+                    className="w-full rounded-lg border border-input bg-background px-2.5 py-1 text-xs focus:border-primary focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-foreground mb-1">
+                    Estatus
+                  </label>
+                  <select
+                    value={generalData.estatus}
+                    onChange={(e) =>
+                      setGeneralData({
+                        ...generalData,
+                        estatus: e.target.value as EstatusCotizacion,
+                      })
+                    }
+                    className="w-full rounded-lg border border-input bg-background px-2 py-1 text-xs focus:border-primary focus:outline-none"
                   >
                     <option value="cotizado">Cotizado</option>
                     <option value="revisar">Revisar</option>
@@ -683,62 +703,245 @@ export default function CotizacionIaModal({
                   </select>
                 </div>
               </div>
+            </div>
 
-              {/* Link directo */}
-              <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">
-                  Enlace / Link del producto
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    placeholder="https://"
-                    value={formData.link}
-                    onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs focus:border-primary focus:outline-none font-mono"
-                  />
-                  {formData.link && /^https?:\/\//i.test(formData.link) && (
-                    <a
-                      href={formData.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center rounded-lg border border-border bg-muted/30 px-3 hover:bg-muted text-foreground"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  )}
+            {extraidoExitoso && (
+              <div className="mt-auto rounded-lg border border-emerald-200 bg-emerald-50/80 p-2.5 text-xs text-emerald-800 flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold">{partidas.length} partida(s) listas</p>
+                  <p className="text-[11px] text-emerald-700 mt-0.5">
+                    Revisa las partidas en la tabla de la derecha antes de guardar.
+                  </p>
                 </div>
               </div>
+            )}
+          </div>
 
-              {/* Notas y Especificaciones */}
-              <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">
-                  Notas / Especificaciones técnicas
-                </label>
-                <textarea
-                  rows={2}
-                  value={formData.notas}
-                  onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
-                  placeholder="Detalles técnicos, voltaje, dimensiones, marca detectada..."
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs focus:border-primary focus:outline-none resize-none"
-                />
+          {/* Panel Derecho: Tabla de Partidas Detectadas */}
+          <div className="flex flex-col p-5 lg:col-span-8 overflow-hidden">
+            {error && (
+              <div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700 flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+                <span>{error}</span>
               </div>
-            </form>
+            )}
+
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">
+                  Partidas Detectadas ({partidasSeleccionadas.length} de {partidas.length}{' '}
+                  seleccionadas)
+                </h3>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleAgregarPartidaManual}
+                className="gap-1.5 text-xs h-7"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Añadir fila
+              </Button>
+            </div>
+
+            {partidas.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl p-8 text-center text-muted-foreground">
+                <Sparkles className="h-8 w-8 text-muted-foreground/40 mb-2" />
+                <p className="text-xs font-semibold">No hay partidas cargadas</p>
+                <p className="text-[11px] mt-1 max-w-xs">
+                  Pega un screenshot o sube un documento PDF para que Gemini detecte los productos automáticamente.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleAgregarPartidaManual}
+                  className="mt-4 gap-1.5 text-xs"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Agregar manualmente
+                </Button>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-x-auto overflow-y-auto rounded-lg border border-border">
+                <Table className="text-xs">
+                  <TableHeader className="bg-muted/60">
+                    <TableRow>
+                      <TableHead className="w-8 px-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={
+                            partidas.length > 0 && partidas.every((p) => p.seleccionada)
+                          }
+                          onChange={(e) => handleToggleSeleccionarTodas(e.target.checked)}
+                          className="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-ring"
+                          aria-label="Seleccionar todas las partidas"
+                        />
+                      </TableHead>
+                      <TableHead className="w-28 px-2 font-semibold">No. Parte / SKU</TableHead>
+                      <TableHead className="min-w-[200px] px-2 font-semibold">
+                        Descripción del Producto *
+                      </TableHead>
+                      <TableHead className="w-16 px-2 text-right font-semibold">Cant.</TableHead>
+                      <TableHead className="w-24 px-2 text-right font-semibold">
+                        P. Unit ({generalData.moneda})
+                      </TableHead>
+                      <TableHead className="w-24 px-2 text-right font-semibold">
+                        Total ({generalData.moneda})
+                      </TableHead>
+                      <TableHead className="w-28 px-2 font-semibold">Entrega</TableHead>
+                      <TableHead className="w-8 px-2 text-center" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody className="divide-y divide-border">
+                    {partidas.map((item) => (
+                      <TableRow
+                        key={item.idTemp}
+                        className={`transition-colors ${
+                          !item.seleccionada ? 'opacity-50 bg-muted/20' : 'hover:bg-muted/40'
+                        }`}
+                      >
+                        <TableCell className="px-2 py-1 text-center">
+                          <input
+                            type="checkbox"
+                            checked={item.seleccionada}
+                            onChange={() => handleToggleItem(item.idTemp)}
+                            className="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-ring"
+                          />
+                        </TableCell>
+                        <TableCell className="px-2 py-1">
+                          <Input
+                            value={item.numeroParte || ''}
+                            onChange={(e) =>
+                              handleUpdateItem(item.idTemp, { numeroParte: e.target.value })
+                            }
+                            placeholder="SKU / No. Parte"
+                            className="h-7 text-xs font-mono px-2"
+                          />
+                        </TableCell>
+                        <TableCell className="px-2 py-1">
+                          <Input
+                            required
+                            value={item.descripcion}
+                            onChange={(e) =>
+                              handleUpdateItem(item.idTemp, { descripcion: e.target.value })
+                            }
+                            placeholder="Descripción clara..."
+                            className="h-7 text-xs px-2"
+                          />
+                        </TableCell>
+                        <TableCell className="px-2 py-1">
+                          <Input
+                            type="number"
+                            step="any"
+                            value={item.cantidad ?? ''}
+                            onChange={(e) =>
+                              handleUpdateItem(item.idTemp, {
+                                cantidad: e.target.value ? parseFloat(e.target.value) : null,
+                              })
+                            }
+                            className="h-7 text-xs px-2 text-right font-mono"
+                          />
+                        </TableCell>
+                        <TableCell className="px-2 py-1">
+                          <Input
+                            type="number"
+                            step="any"
+                            value={item.precioUnitario ?? ''}
+                            onChange={(e) =>
+                              handleUpdateItem(item.idTemp, {
+                                precioUnitario: e.target.value ? parseFloat(e.target.value) : null,
+                              })
+                            }
+                            placeholder="0.00"
+                            className="h-7 text-xs px-2 text-right font-mono"
+                          />
+                        </TableCell>
+                        <TableCell className="px-2 py-1">
+                          <Input
+                            type="number"
+                            step="any"
+                            value={item.total ?? ''}
+                            onChange={(e) =>
+                              handleUpdateItem(item.idTemp, {
+                                total: e.target.value ? parseFloat(e.target.value) : null,
+                              })
+                            }
+                            placeholder="0.00"
+                            className="h-7 text-xs px-2 text-right font-mono font-semibold"
+                          />
+                        </TableCell>
+                        <TableCell className="px-2 py-1">
+                          <Input
+                            value={item.diasHabiles || ''}
+                            onChange={(e) =>
+                              handleUpdateItem(item.idTemp, { diasHabiles: e.target.value })
+                            }
+                            placeholder="2-3 días"
+                            className="h-7 text-xs px-2"
+                          />
+                        </TableCell>
+                        <TableCell className="px-2 py-1 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleEliminarItem(item.idTemp)}
+                            className="text-muted-foreground hover:text-red-600 p-1 rounded transition-colors"
+                            title="Eliminar partida"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </div>
         </div>
 
-        <DialogFooter className="border-t border-border bg-muted/20 px-6 py-4 flex items-center justify-between">
-          <Button variant="outline" size="sm" onClick={onClose} type="button">
-            Cancelar
-          </Button>
-          <Button type="submit" size="sm" form="cotizacion-ia-form" disabled={guardando || procesando}>
-            {guardando ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-            ) : (
-              <Sparkles className="h-4 w-4 mr-1.5 text-amber-300" />
+        <DialogFooter className="border-t border-border bg-muted/20 px-6 py-4 flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-4 text-xs">
+            <span className="text-muted-foreground">
+              Partidas a guardar:{' '}
+              <strong className="text-foreground">{partidasSeleccionadas.length}</strong>
+            </span>
+            {totalEstimadoLote > 0 && (
+              <span className="text-muted-foreground">
+                Importe estimado:{' '}
+                <strong className="text-foreground font-mono font-bold">
+                  {formatPrecio(totalEstimadoLote, generalData.moneda)}
+                </strong>
+              </span>
             )}
-            {guardando ? 'Guardando...' : 'Guardar Cotización'}
-          </Button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={onClose} type="button">
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleGuardarLote}
+              disabled={guardando || procesando || partidasSeleccionadas.length === 0}
+              className="gap-1.5"
+            >
+              {guardando ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 text-amber-300" />
+              )}
+              {guardando
+                ? 'Guardando...'
+                : partidasSeleccionadas.length > 1
+                ? `Guardar ${partidasSeleccionadas.length} Cotizaciones`
+                : 'Guardar Cotización'}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

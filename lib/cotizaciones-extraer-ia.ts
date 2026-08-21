@@ -2,14 +2,11 @@ import { configGeneracionJson } from "@/lib/gemini-generation-config"
 import { GEMINI_MODELO_WORKHORSE } from "@/lib/gemini-modelos"
 import { ErrorIA, resolverModeloExtraccion, type MediaTypeFactura } from "@/lib/extraer-ia"
 
-export interface CotizacionExtraida {
+export interface CotizacionExtraidaItem {
   numeroParte: string | null
   descripcion: string
-  proveedor: string
   marca: string | null
   precioUnitario: number | null
-  moneda: "USD" | "MXN"
-  ubicacion: "USA" | "MX"
   cantidad: number | null
   total: number | null
   diasHabiles: string | null
@@ -17,44 +14,76 @@ export interface CotizacionExtraida {
   notas: string | null
 }
 
-const COTIZACION_PRODUCTO_SCHEMA = {
-  type: "object",
-  properties: {
-    numeroParte: { type: "string", nullable: true },
-    descripcion: { type: "string" },
-    proveedor: { type: "string" },
-    marca: { type: "string", nullable: true },
-    precioUnitario: { type: "number", nullable: true },
-    moneda: { type: "string", enum: ["USD", "MXN"] },
-    ubicacion: { type: "string", enum: ["USA", "MX"] },
-    cantidad: { type: "number", nullable: true },
-    diasHabiles: { type: "string", nullable: true },
-    link: { type: "string", nullable: true },
-    notas: { type: "string", nullable: true },
-  },
-  required: [
-    "descripcion",
-    "proveedor",
-    "moneda",
-    "ubicacion",
-  ],
+export interface ExtraccionCotizacionMulti {
+  proveedor: string
+  moneda: "USD" | "MXN"
+  ubicacion: "USA" | "MX"
+  fechaCotizacion: string | null
+  solicitante: string | null
+  notasGenerales: string | null
+  items: CotizacionExtraidaItem[]
 }
 
-const PROMPT_PRODUCTO = `Analiza esta captura de pantalla de un producto, cotización, catálogo o tienda en línea industrial (ej. McMaster-Carr, Allen-Bradley, Rockwell, Radwell, Grainger, Misumi, Digikey, Mouser, Amazon, etc.) y extrae la información para una cotización de compra:
+// Compatibilidad con interfaz anterior
+export interface CotizacionExtraida extends CotizacionExtraidaItem {
+  proveedor: string
+  moneda: "USD" | "MXN"
+  ubicacion: "USA" | "MX"
+}
 
-- numeroParte: Código de parte / SKU / Modelo del producto (ej. "140M-C2E-C16", "91290A115"). Si no aparece, usa null.
-- descripcion: Nombre claro y descriptivo del producto en español o bilingüe técnico (ej. "Guardamotor 10-16A", "Tornillo Socket M6x20mm acero inoxidable").
-- proveedor: Nombre de la tienda, distribuidor o sitio web donde se cotiza (ej. "Rockwell Automation", "Radwell", "McMaster-Carr", "Grainger", "Misumi", "Amazon México", "DigiKey").
-- marca: Fabricante o marca original (ej. "Allen-Bradley", "Siemens", "SMC", "Festo", "Mitutoyo"). Si coincide con el proveedor o no aparece, puede ser null.
-- precioUnitario: Precio unitario numérico sin comas ni símbolos. Si hay un precio por paquete, coloca el precio del paquete o unitario claro.
-- moneda: "USD" si la tienda es en dólares / USA, o "MXN" si los precios están en pesos mexicanos (revisa símbolos como $, USD, MXN, IVA incluido, .com.mx, etc.).
-- ubicacion: "USA" si el proveedor o moneda es de Estados Unidos, o "MX" si es de México.
-- cantidad: Cantidad sugerida o vista en la captura (default 1).
-- diasHabiles: Tiempo de entrega o disponibilidad detectada (ej. "En stock (2-3 días)", "Envío mismo día", "1-2 semanas"). Si no aparece, usa null.
-- link: Enlace URL del producto si aparece en la captura o barra de direcciones, o null.
-- notas: Especificaciones técnicas clave detectadas (voltaje, corriente, material, medidas, condición como nuevo/reacondicionado) o null.
+const COTIZACIONES_MULTI_SCHEMA = {
+  type: "object",
+  properties: {
+    proveedor: { type: "string" },
+    moneda: { type: "string", enum: ["USD", "MXN"] },
+    ubicacion: { type: "string", enum: ["USA", "MX"] },
+    fechaCotizacion: { type: "string", nullable: true },
+    solicitante: { type: "string", nullable: true },
+    notasGenerales: { type: "string", nullable: true },
+    items: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          numeroParte: { type: "string", nullable: true },
+          descripcion: { type: "string" },
+          marca: { type: "string", nullable: true },
+          cantidad: { type: "number", nullable: true },
+          precioUnitario: { type: "number", nullable: true },
+          total: { type: "number", nullable: true },
+          diasHabiles: { type: "string", nullable: true },
+          link: { type: "string", nullable: true },
+          notas: { type: "string", nullable: true },
+        },
+        required: ["descripcion"],
+      },
+    },
+  },
+  required: ["proveedor", "moneda", "ubicacion", "items"],
+}
 
-Usa null en campos numéricos y textos cuando no haya certeza.`
+const PROMPT_MULTI_COTIZACION = `Analiza esta captura de pantalla o documento PDF de una cotización formal, catálogo, carrito de compras o tienda en línea industrial (ej. McMaster-Carr, Misumi, Rockwell Automation, Grainger, Festo, Radwell, Digikey, Mouser, Amazon, etc.) y extrae TODOS los productos o partidas detectadas:
+
+Metadatos Generales:
+- proveedor: Nombre del proveedor, distribuidor o tienda (ej. "McMaster-Carr", "Misumi", "Grainger", "Rockwell Automation", "Radwell").
+- moneda: "USD" si los precios son en dólares estadounidenses, o "MXN" si están en pesos mexicanos.
+- ubicacion: "USA" si el proveedor es estadounidense/dólares, o "MX" si es mexicano/pesos.
+- fechaCotizacion: Fecha del documento o cotización en formato "YYYY-MM-DD" si aparece, o null.
+- solicitante: Nombre del solicitante o contacto interno si aparece (ej. "Edgar", "Pablo", "Francisco") o null.
+- notasGenerales: Condiciones comerciales, vigencia de la cotización, número de cotización/RFQ o términos de envío.
+
+Partidas (items): Extrae cada producto como un objeto en la lista:
+- numeroParte: SKU, código de parte, modelo o número de catálogo (ej. "140M-C2E-C16", "91290A115", "E5CN-R2MT").
+- descripcion: Descripción clara y técnica del producto en español o bilingüe técnico.
+- marca: Fabricante o marca original (ej. "Allen-Bradley", "SMC", "Festo", "Mitutoyo", etc.) o null.
+- cantidad: Cantidad cotizada (default 1).
+- precioUnitario: Precio unitario numérico sin comas ni símbolos. Si hay precio por paquete o lote, divide o indica el unitario.
+- total: Importe total de la partida (cantidad * precioUnitario) si aparece, o null.
+- diasHabiles: Tiempo de entrega o disponibilidad (ej. "En stock (2-3 días)", "Envío inmediato", "2-3 semanas") o null.
+- link: Enlace o URL específico del producto si aparece en la captura o texto, o null.
+- notas: Especificaciones técnicas clave de la partida (voltaje, medidas, rosca, material, acabado).
+
+Si la cotización contiene múltiples páginas o varias filas en una tabla, incluye TODAS las partidas en el array de "items". Si solo hay un producto, devuelve un array con 1 solo ítem. Usa null en campos numéricos o textos no disponibles.`
 
 function obtenerApiKey(): string {
   const key = process.env.GEMINI_API_KEY?.trim()
@@ -66,26 +95,29 @@ function obtenerApiKey(): string {
   return key
 }
 
-export function normalizarCotizacionExtraida(
-  raw: Partial<CotizacionExtraida>,
+export function normalizarItemExtraido(
+  raw: Partial<CotizacionExtraidaItem>,
   linkFallback?: string | null
-): CotizacionExtraida {
-  const moneda: "USD" | "MXN" = raw.moneda === "MXN" ? "MXN" : "USD"
-  const ubicacion: "USA" | "MX" = raw.ubicacion === "MX" || (moneda === "MXN" && raw.ubicacion !== "USA") ? "MX" : "USA"
-  
-  const cantidadNum = typeof raw.cantidad === "number" && raw.cantidad > 0 ? raw.cantidad : 1
-  const precioNum = typeof raw.precioUnitario === "number" && Number.isFinite(raw.precioUnitario) ? raw.precioUnitario : null
-  const total = precioNum !== null ? Number((precioNum * cantidadNum).toFixed(2)) : null
+): CotizacionExtraidaItem {
+  const cantidadNum =
+    typeof raw.cantidad === "number" && raw.cantidad > 0 ? raw.cantidad : 1
+  const precioNum =
+    typeof raw.precioUnitario === "number" && Number.isFinite(raw.precioUnitario)
+      ? raw.precioUnitario
+      : null
+  const total =
+    typeof raw.total === "number" && Number.isFinite(raw.total)
+      ? raw.total
+      : precioNum !== null
+      ? Number((precioNum * cantidadNum).toFixed(2))
+      : null
 
   return {
     numeroParte: raw.numeroParte?.trim() || null,
     descripcion: raw.descripcion?.trim() || "Producto cotizado",
-    proveedor: raw.proveedor?.trim() || "Proveedor",
     marca: raw.marca?.trim() || null,
-    precioUnitario: precioNum,
-    moneda,
-    ubicacion,
     cantidad: cantidadNum,
+    precioUnitario: precioNum,
     total,
     diasHabiles: raw.diasHabiles?.trim() || null,
     link: raw.link?.trim() || linkFallback?.trim() || null,
@@ -93,19 +125,60 @@ export function normalizarCotizacionExtraida(
   }
 }
 
-export async function extraerCotizacionScreenshotIA(
+export interface RawExtraccionCotizacionMulti {
+  proveedor?: string
+  moneda?: "USD" | "MXN"
+  ubicacion?: "USA" | "MX"
+  fechaCotizacion?: string | null
+
+  solicitante?: string | null
+  notasGenerales?: string | null
+  items?: Partial<CotizacionExtraidaItem>[]
+}
+
+export function normalizarCotizacionMulti(
+  raw: RawExtraccionCotizacionMulti,
+  linkFallback?: string | null
+): ExtraccionCotizacionMulti {
+
+  const moneda: "USD" | "MXN" = raw.moneda === "MXN" ? "MXN" : "USD"
+  const ubicacion: "USA" | "MX" =
+    raw.ubicacion === "MX" || (moneda === "MXN" && raw.ubicacion !== "USA")
+      ? "MX"
+      : "USA"
+
+  const itemsRaw = Array.isArray(raw.items) && raw.items.length > 0 ? raw.items : []
+  const items = itemsRaw.map((it) => normalizarItemExtraido(it, linkFallback))
+
+  // Si no se detectó ningún ítem, crear uno con valores por defecto
+  if (items.length === 0) {
+    items.push(normalizarItemExtraido({}, linkFallback))
+  }
+
+  return {
+    proveedor: raw.proveedor?.trim() || "Proveedor",
+    moneda,
+    ubicacion,
+    fechaCotizacion: raw.fechaCotizacion?.trim() || null,
+    solicitante: raw.solicitante?.trim() || null,
+    notasGenerales: raw.notasGenerales?.trim() || null,
+    items,
+  }
+}
+
+export async function extraerCotizacionesMultiplesIA(
   base64: string,
   mimeType: MediaTypeFactura = "image/png",
   linkOpcional?: string | null,
   modeloOpcional?: string
-): Promise<CotizacionExtraida> {
+): Promise<ExtraccionCotizacionMulti> {
   const modelo = resolverModeloExtraccion(modeloOpcional || GEMINI_MODELO_WORKHORSE)
   const apiKey = obtenerApiKey()
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`
 
   const promptFinal = linkOpcional
-    ? `${PROMPT_PRODUCTO}\n\nNota: El usuario proporcionó este enlace de referencia: ${linkOpcional}`
-    : PROMPT_PRODUCTO
+    ? `${PROMPT_MULTI_COTIZACION}\n\nNota: El usuario proporcionó este enlace o referencia de origen: ${linkOpcional}`
+    : PROMPT_MULTI_COTIZACION
 
   const body = {
     contents: [
@@ -117,7 +190,7 @@ export async function extraerCotizacionScreenshotIA(
         ],
       },
     ],
-    generationConfig: configGeneracionJson({ responseSchema: COTIZACION_PRODUCTO_SCHEMA }),
+    generationConfig: configGeneracionJson({ responseSchema: COTIZACIONES_MULTI_SCHEMA }),
   }
 
   const timeoutMs = 60_000
@@ -133,7 +206,9 @@ export async function extraerCotizacionScreenshotIA(
 
     if (res.status === 429 || res.status >= 500) {
       if (intento < maxReintentos) {
-        await new Promise((resolve) => setTimeout(resolve, Math.min(30000, 2000 * 2 ** (intento - 1))))
+        await new Promise((resolve) =>
+          setTimeout(resolve, Math.min(30000, 2000 * 2 ** (intento - 1)))
+        )
         continue
       }
     }
@@ -156,8 +231,8 @@ export async function extraerCotizacionScreenshotIA(
     }
 
     try {
-      const rawParsed = JSON.parse(texto) as Partial<CotizacionExtraida>
-      return normalizarCotizacionExtraida(rawParsed, linkOpcional)
+      const rawParsed = JSON.parse(texto) as Partial<ExtraccionCotizacionMulti>
+      return normalizarCotizacionMulti(rawParsed, linkOpcional)
     } catch (err) {
       throw new ErrorIA(`Error al interpretar respuesta estructurada de Gemini: ${String(err)}`)
     }
@@ -165,3 +240,46 @@ export async function extraerCotizacionScreenshotIA(
 
   throw new ErrorIA("No se pudo completar la extracción tras varios intentos")
 }
+
+export function normalizarCotizacionExtraida(
+  raw: Partial<CotizacionExtraida>,
+  linkFallback?: string | null
+): CotizacionExtraida {
+  const item = normalizarItemExtraido(raw, linkFallback)
+  const moneda: "USD" | "MXN" = raw.moneda === "MXN" ? "MXN" : "USD"
+  const ubicacion: "USA" | "MX" =
+    raw.ubicacion === "MX" || (moneda === "MXN" && raw.ubicacion !== "USA")
+      ? "MX"
+      : "USA"
+
+  return {
+    ...item,
+    proveedor: raw.proveedor?.trim() || "Proveedor",
+    moneda,
+    ubicacion,
+  }
+}
+
+// Retrocompatibilidad con función y tipos existentes
+export async function extraerCotizacionScreenshotIA(
+  base64: string,
+  mimeType: MediaTypeFactura = "image/png",
+  linkOpcional?: string | null,
+  modeloOpcional?: string
+): Promise<CotizacionExtraida> {
+  const multi = await extraerCotizacionesMultiplesIA(
+    base64,
+    mimeType,
+    linkOpcional,
+    modeloOpcional
+  )
+  const primerItem = multi.items[0] || normalizarItemExtraido({}, linkOpcional)
+  return {
+    ...primerItem,
+    proveedor: multi.proveedor,
+    moneda: multi.moneda,
+    ubicacion: multi.ubicacion,
+  }
+}
+
+

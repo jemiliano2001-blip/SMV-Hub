@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   CheckCircle2,
   ExternalLink,
@@ -31,11 +32,15 @@ export default function CapturaOdooForm({
 }: {
   onCotizacionCreada?: () => void
 }) {
+  const searchParams = useSearchParams()
   const confirmar = useConfirmDialog()
-  const [proveedor, setProveedor] = useState('')
+  const [proveedor, setProveedor] = useState(() => searchParams?.get('proveedor') || '')
   const [proveedorId, setProveedorId] = useState<number | null>(null)
-  const [referenciaProveedor, setReferenciaProveedor] = useState('')
-  const [moneda, setMoneda] = useState<'MXN' | 'USD'>('MXN')
+  const [referenciaProveedor, setReferenciaProveedor] = useState(() => searchParams?.get('referencia') || '')
+  const [moneda, setMoneda] = useState<'MXN' | 'USD'>(() => {
+    const m = searchParams?.get('moneda')
+    return m === 'USD' ? 'USD' : 'MXN'
+  })
   const [fecha, setFecha] = useState(() => fechaHoyLocal())
   const [fechaRecepcion, setFechaRecepcion] = useState(() => fechaHoyLocal())
   const [notas, setNotas] = useState('')
@@ -56,7 +61,40 @@ export default function CapturaOdooForm({
   const [busquedaOtCabecera, setBusquedaOtCabecera] = useState('')
   const [mostrarDropdownOt, setMostrarDropdownOt] = useState(false)
 
-  const [partidas, setPartidas] = useState<PartidaCotizacionOdoo[]>([])
+  const [partidas, setPartidas] = useState<PartidaCotizacionOdoo[]>(() => {
+    if (!searchParams) return []
+    const paramDesc = searchParams.get('descripcion')
+    const paramSku = searchParams.get('numeroParte')
+    const paramPrecio = searchParams.get('precioUnitario')
+    const paramCant = searchParams.get('cantidad')
+
+    if (paramDesc || paramSku || paramPrecio) {
+      const descFinal = paramSku ? `[${paramSku}] ${paramDesc || ''}`.trim() : paramDesc || ''
+      const cantNum = paramCant ? parseFloat(paramCant) : 1
+      const precioNum = paramPrecio ? parseFloat(paramPrecio) : 0
+      const c = !isNaN(cantNum) ? cantNum : 1
+      const p = !isNaN(precioNum) ? precioNum : 0
+      return [
+        {
+          id: `init-${Date.now()}`,
+          clave: paramSku || '',
+          descripcion: descFinal,
+          cantidad: c,
+          precioUnitario: p,
+          udm: 'Pieza',
+          requisitor: 'Pablo',
+          empresa: 'Taller',
+          uso: 'General',
+          ordenTrabajo: '',
+          ordenTrabajoId: null,
+          impuesto: 'IVA 16%',
+          tasaIva: 0.16,
+          subtotal: Number((c * p).toFixed(2)),
+        },
+      ]
+    }
+    return []
+  })
   const [textoPegado, setTextoPegado] = useState('')
   const [advertenciasParser, setAdvertenciasParser] = useState<string[]>([])
 
@@ -82,6 +120,8 @@ export default function CapturaOdooForm({
 
   const proveedorInvalido =
     intentoCrearSinProveedor || (proveedor.trim().length > 0 && proveedorId == null)
+
+
 
   useEffect(() => {
     let cancelado = false

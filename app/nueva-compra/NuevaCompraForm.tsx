@@ -64,9 +64,23 @@ function esArchivoFacturaValido(file: File): boolean {
   )
 }
 
+export interface InitialDataCompra {
+  proveedor?: string
+  descripcion?: string
+  numeroParte?: string
+  cantidad?: number | null
+  precioUnitario?: number | null
+  total?: number | null
+  linkProveedor?: string
+  requisitor?: string
+  moneda?: 'USD' | 'MXN'
+  cotizacionId?: string
+}
+
 export default function NuevaCompraForm({
   onSubmit: onExternalSubmit,
   initialDescripcion,
+  initialData,
 }: {
   onSubmit?: (
     data: NuevaCompraForm,
@@ -75,6 +89,7 @@ export default function NuevaCompraForm({
     proveedorId?: string | null
   ) => Promise<void>
   initialDescripcion?: string
+  initialData?: InitialDataCompra
 }) {
   const [imagen, setImagen] = useState<File | null>(null)
   const [catalogoProveedores, setCatalogoProveedores] = useState<Proveedor[]>([])
@@ -95,6 +110,17 @@ export default function NuevaCompraForm({
   const [sugiriendoSat, setSugiriendoSat] = useState<Set<string>>(new Set())
   const [errorSat, setErrorSat] = useState<string | null>(null)
 
+  const initialItemDesc =
+    initialData?.descripcion ||
+    (initialData?.numeroParte
+      ? `${initialData.numeroParte} - ${initialData.descripcion || ''}`.trim()
+      : initialDescripcion ?? ITEM_VACIO.descripcion)
+  const initialCant = initialData?.cantidad ?? ITEM_VACIO.cantidad
+  const initialPrecioUnit = initialData?.precioUnitario ?? ITEM_VACIO.precioUnitario
+  const initialTot =
+    initialData?.total ??
+    (initialCant && initialPrecioUnit ? Number((initialCant * initialPrecioUnit).toFixed(2)) : ITEM_VACIO.total)
+
   const {
     register,
     control,
@@ -106,18 +132,30 @@ export default function NuevaCompraForm({
   } = useForm<FormInput, unknown, NuevaCompraForm>({
     resolver: zodResolver(NuevaCompraFormSchema),
     defaultValues: {
-      moneda: 'USD',
+      proveedor: initialData?.proveedor ?? '',
+      moneda: initialData?.moneda ?? 'USD',
       envio: null,
-      items: [{ ...ITEM_VACIO, descripcion: initialDescripcion ?? ITEM_VACIO.descripcion }],
-      requisitor: '',
+      subtotal: initialTot,
+      total: initialTot,
+      items: [
+        {
+          ...ITEM_VACIO,
+          descripcion: initialItemDesc,
+          cantidad: initialCant,
+          precioUnitario: initialPrecioUnit,
+          total: initialTot,
+        },
+      ],
+      requisitor: initialData?.requisitor ?? '',
       ordenTrabajo: '',
       empresa: '',
       cuentaCargo: '',
       destino: '',
-      linkProveedor: '',
+      linkProveedor: initialData?.linkProveedor ?? '',
       fechaEntrega: '',
     },
   })
+
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
 
