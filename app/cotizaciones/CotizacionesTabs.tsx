@@ -4,7 +4,6 @@ import { useState, useMemo } from 'react'
 import { Search, Upload, Database, DollarSign, Globe2, FileSpreadsheet } from 'lucide-react'
 import CotizacionesList from './CotizacionesList'
 import ImportarCotizaciones from './ImportarCotizaciones'
-import SyncSheetSection from './SyncSheetSection'
 import { useCotizaciones } from '@/lib/hooks/useCotizaciones'
 import ModuleTabs from '@/components/layout/ModuleTabs'
 import ModuleSurface from '@/components/layout/ModuleSurface'
@@ -13,7 +12,7 @@ type Modo = 'consultar' | 'importar'
 
 export default function CotizacionesTabs() {
   const [modo, setModo] = useState<Modo>('consultar')
-  const { cotizaciones, fetchCotizaciones } = useCotizaciones()
+  const { cotizaciones } = useCotizaciones()
 
   const stats = useMemo(() => {
     const total = cotizaciones.length
@@ -59,8 +58,6 @@ export default function CotizacionesTabs() {
         </ModuleSurface>
       </div>
 
-      <SyncSheetSection onSyncCompletada={fetchCotizaciones} />
-
       <ModuleTabs
         value={modo}
         onValueChange={(value) => setModo(value as Modo)}
@@ -73,7 +70,7 @@ export default function CotizacionesTabs() {
                 Consultar Catálogo
               </span>
             ),
-            content: <CotizacionesList />,
+            content: <CotizacionesList onIrAImportar={() => setModo('importar')} />,
           },
           {
             value: 'importar',
