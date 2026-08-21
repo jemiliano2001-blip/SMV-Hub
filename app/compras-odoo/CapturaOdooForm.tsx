@@ -24,12 +24,14 @@ import SeccionDatosCotizacion from './components/SeccionDatosCotizacion'
 import SeccionEntradaRapida from './components/SeccionEntradaRapida'
 import TablaPartidasCotizacion from './components/TablaPartidasCotizacion'
 import type { OrdenTrabajoSugerida, ProveedorSugerido } from './components/tipos-captura'
+import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 
 export default function CapturaOdooForm({
   onCotizacionCreada,
 }: {
   onCotizacionCreada?: () => void
 }) {
+  const confirmar = useConfirmDialog()
   const [proveedor, setProveedor] = useState('')
   const [proveedorId, setProveedorId] = useState<number | null>(null)
   const [referenciaProveedor, setReferenciaProveedor] = useState('')
@@ -450,14 +452,21 @@ export default function CapturaOdooForm({
     setPartidas((prev) => prev.filter((p) => p.id !== id))
   }
 
-  const limpiarTodo = () => {
-    if (partidas.length === 0 || window.confirm('¿Deseas limpiar todas las partidas capturadas?')) {
-      setPartidas([])
-      setResultadoExitoso(null)
-      setErrorEnvio(null)
-      setMensajeIa(null)
-      setAdvertenciasParser([])
+  const limpiarTodo = async () => {
+    if (partidas.length > 0) {
+      const aceptado = await confirmar({
+        title: 'Limpiar la captura',
+        description: `Se descartarán las ${partidas.length} partidas capturadas. No se puede deshacer.`,
+        confirmLabel: 'Limpiar todo',
+        variant: 'destructive',
+      })
+      if (!aceptado) return
     }
+    setPartidas([])
+    setResultadoExitoso(null)
+    setErrorEnvio(null)
+    setMensajeIa(null)
+    setAdvertenciasParser([])
   }
 
   const totales = useMemo(() => {

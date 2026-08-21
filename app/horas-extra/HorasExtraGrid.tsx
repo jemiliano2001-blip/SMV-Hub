@@ -24,7 +24,6 @@ import {
   Check,
   Loader2,
   Clock,
-  Sparkles,
   Zap,
   ArrowRight,
   ClipboardCheck,
@@ -37,7 +36,6 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
-  ContextMenuShortcut,
   ContextMenuSub,
   ContextMenuSubContent,
   ContextMenuSubTrigger,
@@ -106,8 +104,25 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
     toast.success(`Asignado "${val ?? '0'}" para ${etiquetaDia(dia)}`)
   }
 
+  /** Pide confirmación solo cuando la acción masiva pisa horas ya capturadas. */
+  const confirmarSobrescritura = async (
+    rowId: string,
+    title: string,
+    description: string
+  ): Promise<boolean> => {
+    const registro = registros.find((r) => r.id === rowId)
+    if (!registro || calcularTotalHoras(registro) === 0) return true
+    return confirmar({ title, description, confirmLabel: 'Aplicar', variant: 'destructive' })
+  }
+
   const replicarALaSemana = async (rowId: string, val: string | null) => {
     if (!puedeEditar) return
+    const ok = await confirmarSobrescritura(
+      rowId,
+      'Replicar valor a toda la semana',
+      `Se reemplazarán las horas de lunes a viernes con "${val ?? '0'}".`
+    )
+    if (!ok) return
     await editarDias(rowId, {
       lunes: val,
       martes: val,
@@ -120,6 +135,12 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
 
   const llenarSemanaEstandar = async (rowId: string, nombre: string) => {
     if (!puedeEditar) return
+    const ok = await confirmarSobrescritura(
+      rowId,
+      'Asignar semana estándar',
+      `Se reemplazarán las horas ya capturadas de ${nombre} con 2 h de lunes a viernes.`
+    )
+    if (!ok) return
     await editarDias(rowId, {
       lunes: '2',
       martes: '2',
@@ -132,6 +153,13 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
 
   const limpiarSemanaOperador = async (rowId: string, nombre: string) => {
     if (!puedeEditar) return
+    const aceptado = await confirmar({
+      title: 'Limpiar la semana completa',
+      description: `Se borrarán las horas de los siete días de ${nombre}. No se puede deshacer.`,
+      confirmLabel: 'Limpiar semana',
+      variant: 'destructive',
+    })
+    if (!aceptado) return
     await editarDias(rowId, {
       lunes: null,
       martes: null,
@@ -559,7 +587,9 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                             />
                           ) : (
                             <ContextMenu>
-                              <ContextMenuTrigger asChild>
+                              {/* Sin permiso de edición no hay menú que mostrar: dejamos
+                                  el clic derecho al navegador en vez de tragárnoslo. */}
+                              <ContextMenuTrigger asChild disabled={!puedeEditar}>
                                 <div
                                   {...(puedeEditar
                                     ? {

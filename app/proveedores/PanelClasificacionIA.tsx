@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Sparkles, Check, CheckCheck, X, RefreshCw, AlertCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { getClienteAuth } from '@/lib/firebase'
 import type { CompraOdooItem } from '@/lib/schemas'
 import { CATEGORIAS_PRODUCTO_REGISTRO } from '@/lib/compras-odoo'
@@ -38,6 +39,7 @@ type Props = {
 }
 
 export default function PanelClasificacionIA({ items, onActualizado }: Props) {
+  const confirmar = useConfirmDialog()
   const [sugerencias, setSugerencias] = useState<ItemSugerido[]>([])
   const [procesando, setProcesando] = useState(false)
   const [reclasificando, setReclasificando] = useState(false)
@@ -47,14 +49,13 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
   const itemsSinClasificar = items.filter((i) => i.categoriaId === 'otros')
 
   async function reclasificarHeuristica() {
-    if (
-      itemsSinClasificar.length === 0 ||
-      !window.confirm(
-        `¿Re-clasificar heurísticamente ${itemsSinClasificar.length} ítems en "Otros"? No usa IA; solo keywords y SAT.`,
-      )
-    ) {
-      return
-    }
+    if (itemsSinClasificar.length === 0) return
+    const aceptado = await confirmar({
+      title: 'Re-clasificar por heurística',
+      description: `Se revisarán ${itemsSinClasificar.length} ítems en "Otros" usando solo keywords y clave SAT, sin IA.`,
+      confirmLabel: 'Re-clasificar',
+    })
+    if (!aceptado) return
 
     setReclasificando(true)
     setMensajeGlobal(null)

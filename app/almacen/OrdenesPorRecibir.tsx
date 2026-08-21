@@ -10,7 +10,6 @@ import {
   ExternalLink,
   Copy,
   FileText,
-  MessageCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -36,6 +35,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { authBypassActivo, useUsuario } from '@/lib/auth'
+import { usePermisos } from '@/lib/hooks/useRol'
+import { tieneModulo } from '@/lib/roles'
 import { listarOrdenesRecientes } from '@/lib/ordenes'
 import type { OrdenCompra } from '@/lib/schemas'
 import { formatPrecio } from '@/lib/format'
@@ -46,6 +48,17 @@ export default function OrdenesPorRecibir({
 }: {
   onOrdenRecibida?: () => void
 }) {
+  const { usuario } = useUsuario()
+  const { modulos, esSuperAdmin } = usePermisos(authBypassActivo() ? null : usuario)
+  // Almacén no ve dinero: montos y comprobantes son de compras/admin. La
+  // plantilla `almacen` no trae ninguno de estos módulos; la de compras sí.
+  const puedeVerMontos =
+    esSuperAdmin ||
+    authBypassActivo() ||
+    tieneModulo(modulos, 'nueva-compra') ||
+    tieneModulo(modulos, 'ordenes') ||
+    tieneModulo(modulos, 'reportes')
+
   const [ordenes, setOrdenes] = useState<OrdenCompra[]>([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -159,7 +172,9 @@ export default function OrdenesPorRecibir({
                   <TableHead className="text-xs font-semibold">Material / Partidas</TableHead>
                   <TableHead className="text-xs font-semibold">Origen</TableHead>
                   <TableHead className="text-xs font-semibold">Fecha Factura</TableHead>
-                  <TableHead className="text-xs font-semibold text-right">Total</TableHead>
+                  {puedeVerMontos && (
+                    <TableHead className="text-xs font-semibold text-right">Total</TableHead>
+                  )}
                   <TableHead className="text-xs font-semibold text-center">Acción</TableHead>
                 </TableRow>
               </TableHeader>
@@ -228,9 +243,11 @@ export default function OrdenesPorRecibir({
                             {orden.fechaFactura || 'Sin fecha'}
                           </TableCell>
 
-                          <TableCell className="text-xs font-mono text-right font-semibold text-zinc-200">
-                            {formatPrecio(orden.total, orden.moneda || 'USD')}
-                          </TableCell>
+                          {puedeVerMontos && (
+                            <TableCell className="text-xs font-mono text-right font-semibold text-zinc-200">
+                              {formatPrecio(orden.total, orden.moneda || 'USD')}
+                            </TableCell>
+                          )}
 
                           <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                             <Button
@@ -302,7 +319,7 @@ export default function OrdenesPorRecibir({
                           </ContextMenuItem>
                         )}
 
-                        {orden.imagenUrl && (
+                        {puedeVerMontos && orden.imagenUrl && (
                           <ContextMenuItem
                             onClick={() => {
                               if (orden.imagenUrl) window.open(orden.imagenUrl, '_blank', 'noopener,noreferrer')
