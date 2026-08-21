@@ -6,8 +6,6 @@ import {
   Edit2,
   ExternalLink,
   Copy,
-  Building2,
-  PlusCircle,
   Eye,
 } from 'lucide-react'
 import { toast } from 'sonner'

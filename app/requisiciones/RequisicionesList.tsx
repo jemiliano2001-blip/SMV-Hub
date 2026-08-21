@@ -19,8 +19,6 @@ import {
   Copy,
   CheckCircle2,
   UserCheck,
-  MessageCircle,
-  Share2,
 } from 'lucide-react'
 import type { EstatusRequisicion, PrioridadRequisicion, TipoRequisicion, Requisicion } from '@/lib/schemas'
 import type { NuevaRequisicionPayload } from '@/lib/requisiciones'

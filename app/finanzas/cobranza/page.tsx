@@ -12,7 +12,6 @@ import {
   Loader2,
   Copy,
   Mail,
-  FileText,
   Edit3,
 } from "lucide-react"
 import { toast } from "sonner"

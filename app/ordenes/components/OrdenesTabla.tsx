@@ -6,7 +6,6 @@ import {
   Eye,
   FileText,
   MessageCircle,
-  Sparkles,
   Tags,
   Trash2,
   XCircle,
