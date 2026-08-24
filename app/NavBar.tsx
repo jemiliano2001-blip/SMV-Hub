@@ -17,6 +17,7 @@ import BuscadorGlobalCommand from '@/components/BuscadorGlobalCommand'
 import PedidoAlmacenBadge from '@/app/pedidos-almacen/PedidoAlmacenBadge'
 import NotificacionesBell from '@/app/notificaciones/NotificacionesBell'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
+import { abrirAppConSSO } from '@/lib/sso-cliente'
 import { tienePermiso } from '@/lib/roles'
 import { usePermisos } from '@/lib/hooks/useRol'
 import { cn } from '@/lib/utils'
@@ -182,6 +183,10 @@ export default function NavBar() {
                               href={l.href}
                               target="_blank"
                               rel="noopener noreferrer"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                void abrirAppConSSO(l.href)
+                              }}
                               className="flex items-center justify-between px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted"
                             >
                               <span>{l.label}</span>
@@ -255,6 +260,11 @@ export default function NavBar() {
                                 href={l.href}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  setMenuMovil(false)
+                                  void abrirAppConSSO(l.href)
+                                }}
                                 className="flex items-center justify-between rounded-md px-2.5 py-2 text-xs font-medium text-foreground active:bg-muted"
                               >
                                 <span>{l.label}</span>

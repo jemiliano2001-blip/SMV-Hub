@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
+import { abrirAppConSSO } from '@/lib/sso-cliente'
 import { usePermisos } from '@/lib/hooks/useRol'
 import { tienePermiso } from '@/lib/roles'
 import type { Rol } from '@/lib/schemas'
@@ -392,7 +393,16 @@ function TarjetaAcceso({
   )
 
   const cardElement = esExterna ? (
-    <a href={href} target="_blank" rel="noopener noreferrer" className={claseTarjeta}>
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={claseTarjeta}
+      onClick={(e) => {
+        e.preventDefault()
+        void abrirAppConSSO(href)
+      }}
+    >
       {contenidoInner}
     </a>
   ) : (
@@ -411,7 +421,7 @@ function TarjetaAcceso({
         <ContextMenuItem
           onClick={() => {
             if (esExterna) {
-              window.open(href, '_blank', 'noopener,noreferrer')
+              void abrirAppConSSO(href)
             } else {
               window.location.href = href
             }
@@ -424,7 +434,11 @@ function TarjetaAcceso({
 
         <ContextMenuItem
           onClick={() => {
-            window.open(href, '_blank', 'noopener,noreferrer')
+            if (esExterna) {
+              void abrirAppConSSO(href)
+            } else {
+              window.open(href, '_blank', 'noopener,noreferrer')
+            }
           }}
         >
           <ExternalLink className="text-sky-600" />
