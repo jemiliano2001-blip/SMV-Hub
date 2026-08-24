@@ -268,21 +268,21 @@ export default function ModalMovimientoCaja({
 
         <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-6 overflow-y-auto p-6">
           {error && (
-            <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm border border-red-200">
+            <div className="bg-rose-50 text-rose-700 p-3 rounded-lg text-sm border border-rose-200">
               {error}
             </div>
           )}
 
           {/* Tipo de Movimiento Toggle */}
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex bg-gray-100 p-1 rounded-lg w-fit">
+            <div className="flex bg-muted p-1 rounded-lg w-fit">
               <button
                 type="button"
                 onClick={() => handleTipoChange('SALIDA')}
                 className={`px-6 py-2 text-sm font-medium rounded-md transition-all ${
                   tipo === 'SALIDA'
-                    ? 'bg-white text-rose-600 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-900'
+                    ? 'bg-card text-rose-600 shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Gasto (Salida)
@@ -292,8 +292,8 @@ export default function ModalMovimientoCaja({
                 onClick={() => handleTipoChange('ENTRADA')}
                 className={`px-6 py-2 text-sm font-medium rounded-md transition-all ${
                   tipo === 'ENTRADA'
-                    ? 'bg-white text-emerald-600 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-900'
+                    ? 'bg-card text-emerald-600 shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Recarga (Entrada)
@@ -310,7 +310,7 @@ export default function ModalMovimientoCaja({
                   type="button"
                   onClick={() => setSubtipoEntrada('REABASTECIMIENTO')}
                   className={`text-left p-3 rounded-lg border text-sm transition-all ${
-                    subtipoEntrada === 'REABASTECIMIENTO' ? 'bg-emerald-100 border-emerald-500 shadow-sm' : 'bg-white border-gray-200 hover:bg-emerald-50'
+                    subtipoEntrada === 'REABASTECIMIENTO' ? 'bg-emerald-100 border-emerald-500 shadow-sm' : 'bg-card border-border hover:bg-emerald-50'
                   }`}
                 >
                   <p className="font-semibold text-emerald-900">Reabastecimiento</p>
@@ -320,7 +320,7 @@ export default function ModalMovimientoCaja({
                   type="button"
                   onClick={() => setSubtipoEntrada('DEVOLUCION')}
                   className={`text-left p-3 rounded-lg border text-sm transition-all ${
-                    subtipoEntrada === 'DEVOLUCION' ? 'bg-emerald-100 border-emerald-500 shadow-sm' : 'bg-white border-gray-200 hover:bg-emerald-50'
+                    subtipoEntrada === 'DEVOLUCION' ? 'bg-emerald-100 border-emerald-500 shadow-sm' : 'bg-card border-border hover:bg-emerald-50'
                   }`}
                 >
                   <p className="font-semibold text-emerald-900">Devolución de Cambio</p>
@@ -332,21 +332,21 @@ export default function ModalMovimientoCaja({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Fecha</label>
+              <label className="block text-sm font-medium text-foreground">Fecha</label>
               <input
                 type="date"
                 required
                 value={fecha}
                 onChange={e => setFecha(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ring focus:border-primary"
+                className="w-full px-3 py-2 border border-input rounded-md shadow-sm focus:ring-ring focus:border-primary"
               />
             </div>
             
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Monto</label>
+              <label className="block text-sm font-medium text-foreground">Monto</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 sm:text-sm">$</span>
+                  <span className="text-muted-foreground sm:text-sm">$</span>
                 </div>
                 <input
                   type="number"
@@ -355,20 +355,20 @@ export default function ModalMovimientoCaja({
                   min="0"
                   value={monto}
                   onChange={e => setMonto(e.target.value)}
-                  className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ring focus:border-primary"
+                  className="w-full pl-7 pr-3 py-2 border border-input rounded-md shadow-sm focus:ring-ring focus:border-primary"
                   placeholder="0.00"
                 />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Descripción</label>
+              <label className="block text-sm font-medium text-foreground">Descripción</label>
               <input
                 type="text"
                 required
                 value={descripcion}
                 onChange={e => setDescripcion(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ring focus:border-primary"
+                className="w-full px-3 py-2 border border-input rounded-md shadow-sm focus:ring-ring focus:border-primary"
                 placeholder="Ej. Recarga Telcel"
               />
             </div>
@@ -377,26 +377,26 @@ export default function ModalMovimientoCaja({
             {!(tipo === 'ENTRADA' && subtipoEntrada === 'REABASTECIMIENTO') && (
               <>
                 <div className="space-y-1">
-                  <label className="block text-sm font-medium text-gray-700">Proveedor / Lugar</label>
+                  <label className="block text-sm font-medium text-foreground">Proveedor / Lugar</label>
                   <input
                     type="text"
                     required
                     value={proveedor}
                     onChange={e => setProveedor(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ring focus:border-primary"
+                    className="w-full px-3 py-2 border border-input rounded-md shadow-sm focus:ring-ring focus:border-primary"
                     placeholder="Ej. Oxxo"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-sm font-medium text-gray-700">Categoría</label>
+                  <label className="block text-sm font-medium text-foreground">Categoría</label>
                   <input
                     type="text"
                     list="categorias-caja"
                     required
                     value={categoria}
                     onChange={e => setCategoria(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ring focus:border-primary"
+                    className="w-full px-3 py-2 border border-input rounded-md shadow-sm focus:ring-ring focus:border-primary"
                     placeholder="Selecciona o escribe..."
                   />
                   <datalist id="categorias-caja">
@@ -411,7 +411,7 @@ export default function ModalMovimientoCaja({
             {/* Ocultamos solicitante solo en reabastecimiento */}
             {!(tipo === 'ENTRADA' && subtipoEntrada === 'REABASTECIMIENTO') && (
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-foreground">
                   {tipo === 'ENTRADA' ? '¿Quién devuelve?' : 'Solicitante'}
                 </label>
                 <input
@@ -419,7 +419,7 @@ export default function ModalMovimientoCaja({
                   required
                   value={solicitante}
                   onChange={e => setSolicitante(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ring focus:border-primary"
+                  className="w-full px-3 py-2 border border-input rounded-md shadow-sm focus:ring-ring focus:border-primary"
                   placeholder={tipo === 'ENTRADA' ? 'Nombre de quien devuelve...' : '¿Quién pidió el dinero?'}
                 />
               </div>
@@ -428,11 +428,11 @@ export default function ModalMovimientoCaja({
             {tipo === 'SALIDA' && (
               <>
                 <div className="space-y-1">
-                  <label className="block text-sm font-medium text-gray-700">Tipo de Comprobante</label>
+                  <label className="block text-sm font-medium text-foreground">Tipo de Comprobante</label>
                   <select
                     value={comprobante}
                     onChange={e => setComprobante(e.target.value as ComprobanteCaja)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ring focus:border-primary"
+                    className="w-full px-3 py-2 border border-input rounded-md shadow-sm focus:ring-ring focus:border-primary"
                   >
                     <option value="NINGUNO">Ninguno</option>
                     <option value="TICKET">Ticket</option>
@@ -447,9 +447,9 @@ export default function ModalMovimientoCaja({
                       type="checkbox"
                       checked={deducible}
                       onChange={e => setDeducible(e.target.checked)}
-                      className="h-4 w-4 text-primary focus:ring-ring border-gray-300 rounded"
+                      className="h-4 w-4 text-primary focus:ring-ring border-input rounded"
                     />
-                    <span className="text-sm font-medium text-gray-700">Es Deducible</span>
+                    <span className="text-sm font-medium text-foreground">Es Deducible</span>
                   </label>
                 </div>
 
@@ -465,16 +465,16 @@ export default function ModalMovimientoCaja({
                   </div>
                 ) : (
                   <div className="md:col-span-2 space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Archivo de Comprobante</label>
+                    <label className="block text-sm font-medium text-foreground">Archivo de Comprobante</label>
                       {(archivoPreview || archivoUrl) ? (
-                        <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50">
+                        <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted">
                           <div className="flex items-center gap-3 min-w-0">
                             {archivoPreview && !archivoNombre?.toLowerCase().endsWith('.pdf') && !archivoUrl?.toLowerCase().includes('.pdf') ? (
                               /* eslint-disable-next-line @next/next/no-img-element */
                               <img
                                 src={archivoPreview}
                                 alt="Vista previa"
-                                className="h-12 w-12 rounded object-cover border border-gray-200 bg-white"
+                                className="h-12 w-12 rounded object-cover border border-border bg-card"
                               />
                             ) : (
                               <div className="h-12 w-12 rounded bg-sky-50 border border-sky-100 flex items-center justify-center text-primary">
@@ -482,10 +482,10 @@ export default function ModalMovimientoCaja({
                               </div>
                             )}
                             <div className="min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate max-w-[200px] sm:max-w-xs" title={archivoNombre || 'Comprobante digital'}>
+                              <p className="text-sm font-medium text-foreground truncate max-w-[200px] sm:max-w-xs" title={archivoNombre || 'Comprobante digital'}>
                                 {archivoNombre || 'Comprobante digital'}
                               </p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-muted-foreground">
                                 {archivo ? 'Nuevo archivo seleccionado' : 'Archivo guardado en el servidor'}
                               </p>
                             </div>
@@ -496,7 +496,7 @@ export default function ModalMovimientoCaja({
                                 href={archivoPreview || archivoUrl!}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-1.5 text-gray-500 hover:text-primary hover:bg-gray-100 rounded-md transition-colors"
+                                className="p-1.5 text-muted-foreground hover:text-primary hover:bg-muted rounded-md transition-colors"
                                 title="Visualizar comprobante"
                               >
                                 <Eye className="h-4.5 w-4.5" />
@@ -505,7 +505,7 @@ export default function ModalMovimientoCaja({
                             <button
                               type="button"
                               onClick={handleRemoveArchivo}
-                              className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                              className="p-1.5 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
                               title="Eliminar comprobante"
                             >
                               <Trash2 className="h-4.5 w-4.5" />
@@ -516,11 +516,11 @@ export default function ModalMovimientoCaja({
                         <div className="grid grid-cols-1 gap-4">
                           <div
                             onClick={() => fileInputRef.current?.click()}
-                            className="flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed border-gray-300 hover:border-primary hover:bg-sky-50/20 rounded-lg cursor-pointer transition-all group text-center"
+                            className="flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed border-input hover:border-primary hover:bg-sky-50/20 rounded-lg cursor-pointer transition-all group text-center"
                           >
-                            <Upload className="h-6 w-6 text-gray-400 group-hover:text-primary group-hover:scale-110 transition-transform" />
-                            <span className="text-xs font-semibold text-gray-700">Subir PDF o Imagen</span>
-                            <span className="text-[10px] text-gray-400">Seleccionar desde tu equipo</span>
+                            <Upload className="h-6 w-6 text-muted-foreground group-hover:text-primary group-hover:scale-110 transition-transform" />
+                            <span className="text-xs font-semibold text-foreground">Subir PDF o Imagen</span>
+                            <span className="text-[10px] text-muted-foreground">Seleccionar desde tu equipo</span>
                             <input
                               ref={fileInputRef}
                               type="file"
@@ -532,11 +532,11 @@ export default function ModalMovimientoCaja({
 
                           <div
                             onClick={() => setIsCamaraModalOpen(true)}
-                            className="flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed border-gray-300 hover:border-primary hover:bg-sky-50/20 rounded-lg cursor-pointer transition-all group text-center"
+                            className="flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed border-input hover:border-primary hover:bg-sky-50/20 rounded-lg cursor-pointer transition-all group text-center"
                           >
-                            <Camera className="h-6 w-6 text-gray-400 group-hover:text-primary group-hover:scale-110 transition-transform" />
-                            <span className="text-xs font-semibold text-gray-700">Tomar Foto (Cámara)</span>
-                            <span className="text-[10px] text-gray-400">Usar la cámara del dispositivo o celular</span>
+                            <Camera className="h-6 w-6 text-muted-foreground group-hover:text-primary group-hover:scale-110 transition-transform" />
+                            <span className="text-xs font-semibold text-foreground">Tomar Foto (Cámara)</span>
+                            <span className="text-[10px] text-muted-foreground">Usar la cámara del dispositivo o celular</span>
                           </div>
                         </div>
                       )}

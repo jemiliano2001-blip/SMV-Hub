@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
 import ModuleFilterChips from '@/components/layout/ModuleFilterChips'
+import ModuleSurface from '@/components/layout/ModuleSurface'
 import TarjetaProveedor from './TarjetaProveedor'
 import type { Proveedor, CategoriaProveedor } from '@/lib/schemas'
 import type { MercadoProveedor, OrdenamientoProveedor } from '@/lib/proveedores/directorio'
@@ -110,11 +111,11 @@ export default function DirectorioProveedores({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3.5 rounded-xl border border-border bg-card p-4 shadow-xs">
+      <ModuleSurface className="flex flex-col gap-3.5 p-4">
         <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
           {/* Campo Búsqueda */}
           <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3.5 top-3 text-muted-foreground" />
             <Input
               placeholder="Buscar por nombre, marca (ej. YG-1, Harvey, Shars), contacto o broker..."
               value={busqueda}
@@ -125,7 +126,7 @@ export default function DirectorioProveedores({
 
           {/* Ordenamiento & Conmutador Grid/Tabla */}
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
               <ArrowUpDown className="w-3.5 h-3.5" />
               <select
                 value={ordenamiento}
@@ -141,7 +142,7 @@ export default function DirectorioProveedores({
               </select>
             </div>
 
-            <div className="flex items-center p-1 bg-slate-100 rounded-lg border border-slate-200">
+            <div className="flex items-center p-1 bg-muted rounded-lg border border-border">
               <button
                 type="button"
                 onClick={() => setVista('grid')}
@@ -182,7 +183,7 @@ export default function DirectorioProveedores({
             label: cat.etiqueta,
           }))}
         />
-      </div>
+      </ModuleSurface>
 
       {/* Estado Carga o Vacío */}
       {error ? (
@@ -220,9 +221,9 @@ export default function DirectorioProveedores({
         </div>
       ) : (
         /* VISTA TABLA DE ALTA DENSIDAD */
-        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-xs">
+        <ModuleSurface className="overflow-x-auto">
           <Table className="w-full text-left text-xs">
-            <TableHeader className="bg-slate-50 border-b border-slate-200 font-bold uppercase tracking-wider text-slate-500">
+            <TableHeader className="bg-muted/50 border-b border-border font-bold uppercase tracking-wider text-muted-foreground">
               <TableRow>
                 <TableHead className="p-3.5">Proveedor</TableHead>
                 <TableHead className="p-3.5">Tier / Nivel</TableHead>
@@ -234,7 +235,7 @@ export default function DirectorioProveedores({
                 <TableHead className="p-3.5 text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="divide-y divide-slate-100 font-medium text-slate-700">
+            <TableBody className="divide-y divide-border font-medium text-foreground">
               {proveedoresVisibles.map((prov) => {
                 const sitioWeb = prov.web
 
@@ -242,10 +243,10 @@ export default function DirectorioProveedores({
                   <ContextMenu key={prov.id}>
                     <ContextMenuTrigger asChild>
                       <TableRow
-                        className="hover:bg-slate-50 transition-colors cursor-pointer select-none"
+                        className="hover:bg-muted/40 transition-colors cursor-pointer select-none"
                         onDoubleClick={() => onSelectProveedor(prov)}
                       >
-                        <TableCell className="p-3.5 font-bold text-slate-900">
+                        <TableCell className="p-3.5 font-bold text-foreground">
                           <button
                             type="button"
                             onClick={() => onSelectProveedor(prov)}
@@ -285,18 +286,18 @@ export default function DirectorioProveedores({
                               prov.marcas.slice(0, 2).map((m, idx) => (
                                 <span
                                   key={idx}
-                                  className="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] text-slate-600 font-semibold"
+                                  className="px-1.5 py-0.5 rounded bg-muted text-[10px] text-muted-foreground font-semibold"
                                 >
                                   {m}
                                 </span>
                               ))
                             ) : (
-                              <span className="text-slate-400 italic text-[10px]">—</span>
+                              <span className="text-muted-foreground italic text-[10px]">—</span>
                             )}
                           </div>
                         </TableCell>
 
-                        <TableCell className="p-3.5 text-slate-700">
+                        <TableCell className="p-3.5 text-foreground">
                           {prov.leadTimeDias || '3-5'}d
                         </TableCell>
 
@@ -307,7 +308,7 @@ export default function DirectorioProveedores({
                           </span>
                         </TableCell>
 
-                        <TableCell className="p-3.5 text-slate-600">
+                        <TableCell className="p-3.5 text-muted-foreground">
                           {prov.email || prov.telefono || prov.contacto || '—'}
                         </TableCell>
 
@@ -324,7 +325,7 @@ export default function DirectorioProveedores({
                             variant="ghost"
                             size="sm"
                             onClick={() => onEditProveedor(prov)}
-                            className="h-7 text-xs text-slate-500 hover:text-slate-800"
+                            className="h-7 text-xs text-muted-foreground hover:text-foreground"
                           >
                             Editar
                           </Button>
@@ -340,7 +341,7 @@ export default function DirectorioProveedores({
                       </ContextMenuItem>
 
                       <ContextMenuItem onClick={() => onEditProveedor(prov)}>
-                        <Edit2 className="text-slate-600" />
+                        <Edit2 className="text-muted-foreground" />
                         <span>Editar proveedor</span>
                       </ContextMenuItem>
 
@@ -348,7 +349,7 @@ export default function DirectorioProveedores({
 
                       <ContextMenuSub>
                         <ContextMenuSubTrigger>
-                          <Copy className="text-slate-500" />
+                          <Copy className="text-muted-foreground" />
                           <span>Copiar información</span>
                         </ContextMenuSubTrigger>
                         <ContextMenuSubContent className="w-48">
@@ -399,15 +400,15 @@ export default function DirectorioProveedores({
               })}
             </TableBody>
           </Table>
-        </div>
+        </ModuleSurface>
       )}
 
       {!error && !cargando && proveedores.length > 0 && (
-        <div className="flex flex-col items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 sm:flex-row">
-          <p className="text-xs font-medium text-slate-500" aria-live="polite">
-            Mostrando <span className="font-bold text-slate-800">{proveedoresVisibles.length}</span>
+        <ModuleSurface className="flex flex-col items-center justify-between gap-3 px-4 py-3 sm:flex-row">
+          <p className="text-xs font-medium text-muted-foreground" aria-live="polite">
+            Mostrando <span className="font-bold text-foreground">{proveedoresVisibles.length}</span>
             {typeof totalMercado === 'number' && (
-              <> de <span className="font-bold text-slate-800">{totalMercado}</span></>
+              <> de <span className="font-bold text-foreground">{totalMercado}</span></>
             )}{' '}
             proveedores
           </p>
@@ -432,7 +433,7 @@ export default function DirectorioProveedores({
               {cargandoMas ? 'Cargando…' : 'Cargar más'}
             </Button>
           )}
-        </div>
+        </ModuleSurface>
       )}
     </div>
   )

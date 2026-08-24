@@ -171,7 +171,7 @@ export default function NuevaCompraFormWrapper({
                 href={fallbackWhatsApp.comprobanteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-md border border-amber-400 bg-white px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-100"
+                className="rounded-md border border-amber-400 bg-card px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-100"
               >
                 Abrir comprobante
               </a>
@@ -179,7 +179,7 @@ export default function NuevaCompraFormWrapper({
             <button
               type="button"
               onClick={() => router.push('/ordenes')}
-              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              className="rounded-md border border-input bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
             >
               Ir a órdenes
             </button>

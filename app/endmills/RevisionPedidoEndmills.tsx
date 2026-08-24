@@ -274,9 +274,9 @@ export default function RevisionPedidoEndmills({
                   setError(null)
                   setModalImportarAbierto(true)
                 }}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold shadow-xs shrink-0"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-xs shrink-0"
               >
-                <Sparkles className="h-4 w-4 mr-1.5 animate-pulse" /> ✨ Importar Solicitud (IA / Excel)
+                <Sparkles className="h-4 w-4 mr-1.5 animate-pulse" aria-hidden /> Importar Solicitud (IA / Excel)
               </Button>
             </div>
           </DialogHeader>
@@ -302,22 +302,22 @@ export default function RevisionPedidoEndmills({
                     placeholder="Opcional"
                   />
                 </div>
-                <div className="rounded-lg border bg-slate-50 px-3 py-2 text-xs">
-                  <span className="text-slate-500">Proveedor</span>
+                <div className="rounded-lg border bg-muted px-3 py-2 text-xs">
+                  <span className="text-muted-foreground">Proveedor</span>
                   <div className="font-bold">Rita · ChangZhou</div>
                 </div>
               </div>
 
               {/* Barra de herramientas de vista y búsqueda interna del pedido */}
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-lg border bg-slate-50 p-2 text-xs">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-lg border bg-muted p-2 text-xs">
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => setVistaItems("solicitados")}
                     className={`rounded-md px-3 py-1.5 font-bold transition-colors ${
                       vistaItems === "solicitados"
-                        ? "bg-sky-700 text-white shadow-xs"
-                        : "text-slate-600 hover:bg-slate-200"
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "text-muted-foreground hover:bg-muted"
                     }`}
                   >
                     Solo Ítems Solicitados ({seleccionadas.length})
@@ -327,27 +327,27 @@ export default function RevisionPedidoEndmills({
                     onClick={() => setVistaItems("todos")}
                     className={`rounded-md px-3 py-1.5 font-bold transition-colors ${
                       vistaItems === "todos"
-                        ? "bg-sky-700 text-white shadow-xs"
-                        : "text-slate-600 hover:bg-slate-200"
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "text-muted-foreground hover:bg-muted"
                     }`}
                   >
                     Ver Todo el Catálogo ({medidas.length})
                   </button>
                 </div>
                 <div className="relative w-full sm:w-64">
-                  <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-400" />
+                  <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
                     value={busquedaInterna}
                     onChange={(e) => setBusquedaInterna(e.target.value)}
                     placeholder="Filtrar medida o spec..."
-                    className="h-8 pl-8 text-xs bg-white"
+                    className="h-8 pl-8 text-xs bg-card"
                   />
                 </div>
               </div>
 
               <div className="max-h-[50vh] overflow-auto rounded-lg border">
                 <Table>
-                  <TableHeader className="sticky top-0 z-10 bg-white">
+                  <TableHeader className="sticky top-0 z-10 bg-card">
                     <TableRow>
                       <TableHead>Medida / spec</TableHead>
                       <TableHead className="w-24 text-right">Stock</TableHead>
@@ -359,9 +359,9 @@ export default function RevisionPedidoEndmills({
                   <TableBody>
                     {medidasVisibles.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="p-8 text-center text-xs text-slate-500">
+                        <TableCell colSpan={5} className="p-8 text-center text-xs text-muted-foreground">
                           {vistaItems === "solicitados"
-                            ? "No hay partidas con cantidad > 0. Usa el botón '✨ Importar Solicitud (IA / Excel)' o cambia a 'Ver Todo el Catálogo'."
+                            ? "No hay partidas con cantidad > 0. Usa el botón 'Importar Solicitud (IA / Excel)' o cambia a 'Ver Todo el Catálogo'."
                             : "No se encontraron medidas que coincidan con la búsqueda."}
                         </TableCell>
                       </TableRow>
@@ -378,11 +378,11 @@ export default function RevisionPedidoEndmills({
                               <div className="font-semibold">
                                 {medida.medidaPulgadas}&quot; · {medida.descripcion}
                               </div>
-                              <div className="truncate font-mono text-[10px] text-slate-500">
+                              <div className="truncate font-mono text-[10px] text-muted-foreground">
                                 {medida.specPropuesta}
                               </div>
                               {sinBase && (
-                                <div className="text-[10px] font-bold text-slate-500">
+                                <div className="text-[10px] font-bold text-muted-foreground">
                                   Definir manualmente · sin base histórica
                                 </div>
                               )}
@@ -445,8 +445,8 @@ export default function RevisionPedidoEndmills({
             </div>
 
             <aside className="space-y-3 lg:pt-1">
-              <div className="rounded-xl border bg-slate-50 p-3">
-                <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
+              <div className="rounded-xl border bg-muted p-3">
+                <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                   Comparación
                 </div>
                 <div className="mt-2 flex justify-between text-sm">
@@ -507,20 +507,20 @@ export default function RevisionPedidoEndmills({
                   Costos adicionales confirmados
                 </label>
                 <div className="border-t pt-2">
-                  <div className="text-xs text-slate-500">Total landed</div>
+                  <div className="text-xs text-muted-foreground">Total landed</div>
                   {adicionalesConfirmados ? (
                     <div>
                       <div className="text-xl font-black text-emerald-700">
                         {formatPrecio(totales.totalUSD, "USD")}
                       </div>
                       {totalMXNEstimado !== null && (
-                        <div className="text-xs font-semibold text-slate-600">
+                        <div className="text-xs font-semibold text-muted-foreground">
                           (~{formatPrecio(totalMXNEstimado, "MXN")})
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className="mt-1 text-xs font-semibold text-slate-600">
+                    <div className="mt-1 text-xs font-semibold text-muted-foreground">
                       Confirma Ali Cost y shipping para mostrarlo.
                     </div>
                   )}
@@ -571,7 +571,7 @@ export default function RevisionPedidoEndmills({
             <Button
               onClick={() => void registrar()}
               disabled={guardando || !revisionHumana}
-              className="bg-sky-700 hover:bg-sky-800 font-bold"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
             >
               <ShieldCheck /> {guardando ? "Registrando..." : "Registrar pedido"}
             </Button>

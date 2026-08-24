@@ -49,7 +49,7 @@ import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { toast } from 'sonner'
 import ModuleFilterChips from '@/components/layout/ModuleFilterChips'
 import ModuleSurface from '@/components/layout/ModuleSurface'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import ModuleTabs from '@/components/layout/ModuleTabs'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -78,7 +78,7 @@ const PRIORIDAD_BADGE: Record<PrioridadRequisicion, string> = {
   '1-2 dias': 'bg-red-50 text-red-700',
   '3-5 dias': 'bg-orange-50 text-orange-700',
   '7-14 dias': 'bg-yellow-50 text-yellow-700',
-  'cuando se pueda': 'bg-gray-100 text-gray-600',
+  'cuando se pueda': 'bg-muted text-muted-foreground',
 }
 
 function emptyForm() {
@@ -101,7 +101,7 @@ function emptyForm() {
 }
 
 const INPUT_CLS =
-  'rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-ring'
+  'rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-ring'
 
 function esUrl(texto: string): boolean {
   return /^https?:\/\//i.test(texto.trim())
@@ -109,7 +109,7 @@ function esUrl(texto: string): boolean {
 
 function CeldaAtraso({ r, hoy, isAuto }: { r: Requisicion; hoy: string; isAuto: boolean }) {
   const a = isAuto ? estadoAtrasoEntrega(r, hoy) : estadoAtraso(r, hoy)
-  if (!a) return <span className="text-xs text-gray-400">—</span>
+  if (!a) return <span className="text-xs text-muted-foreground">—</span>
   return (
     <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${ATRASO_BADGE[a.tipo]}`}>
       {textoAtraso(a)}
@@ -131,7 +131,7 @@ function CeldaDescripcion({ r }: { r: Requisicion }) {
           {r.descripcion}
         </a>
       ) : (
-        <span className="text-gray-900">{r.descripcion}</span>
+        <span className="text-foreground">{r.descripcion}</span>
       )}
       {r.nota?.trim() && (
         <p className="mt-0.5 text-xs text-red-600" title={r.nota}>
@@ -174,14 +174,14 @@ function RequisicionCard({
             type="checkbox"
             checked={selected}
             onChange={(e) => onToggleSelect(r.id, e as unknown as React.MouseEvent)}
-            className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-ring shrink-0"
+            className="mt-1 h-4 w-4 rounded border-input text-primary focus:ring-ring shrink-0"
           />
           <div className="min-w-0">
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               {formatFecha(r.fechaPedido)}
               {!isAuto && r.solicitante ? ` · ${r.solicitante}` : ''}
             </p>
-            <div className="text-sm font-semibold text-gray-900 break-words">
+            <div className="text-sm font-semibold text-foreground break-words">
               <CeldaDescripcion r={r} />
             </div>
           </div>
@@ -202,32 +202,32 @@ function RequisicionCard({
         {isAuto ? (
           <>
             <div className="min-w-0">
-              <span className="text-gray-400 block">Proveedor</span>
-              <span className="text-gray-900 truncate block">{r.tienda || '-'}</span>
+              <span className="text-muted-foreground block">Proveedor</span>
+              <span className="text-foreground truncate block">{r.tienda || '-'}</span>
             </div>
             <div className="min-w-0">
-              <span className="text-gray-400 block">Parte # · Cant.</span>
-              <span className="text-gray-900 truncate block font-mono">{r.parteNumero || '-'} · {r.cantidad || '-'}</span>
+              <span className="text-muted-foreground block">Parte # · Cant.</span>
+              <span className="text-foreground truncate block font-mono">{r.parteNumero || '-'} · {r.cantidad || '-'}</span>
             </div>
             <div className="min-w-0">
-              <span className="text-gray-400 block">F. entrega</span>
-              <span className="text-gray-900 block">{r.fechaEntregaEst ? formatFecha(r.fechaEntregaEst) : '-'}</span>
+              <span className="text-muted-foreground block">F. entrega</span>
+              <span className="text-foreground block">{r.fechaEntregaEst ? formatFecha(r.fechaEntregaEst) : '-'}</span>
             </div>
             <div className="min-w-0">
-              <span className="text-gray-400 block">Plazo</span>
+              <span className="text-muted-foreground block">Plazo</span>
               <CeldaAtraso r={r} hoy={hoy} isAuto />
             </div>
             <div className="min-w-0">
-              <span className="text-gray-400 block">Empresa · O.T.</span>
+              <span className="text-muted-foreground block">Empresa · O.T.</span>
               <span className="flex items-center gap-1.5">
                 {r.empresa ? (
                   <span className={`rounded px-1.5 py-0.5 font-semibold ${badgeEmpresa(r.empresa)}`}>{r.empresa}</span>
                 ) : '-'}
-                <span className="text-gray-900 font-mono truncate">{r.ordenServicio || ''}</span>
+                <span className="text-foreground font-mono truncate">{r.ordenServicio || ''}</span>
               </span>
             </div>
             <div className="min-w-0">
-              <span className="text-gray-400 block">Link</span>
+              <span className="text-muted-foreground block">Link</span>
               {r.link ? (
                 <a href={r.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                   Abrir
@@ -235,11 +235,11 @@ function RequisicionCard({
               ) : '-'}
             </div>
             <div className="min-w-0">
-              <span className="text-gray-400 block">Recibió</span>
+              <span className="text-muted-foreground block">Recibió</span>
               <select
                 value={r.recibio ?? ''}
                 onChange={(e) => onCampoInline(r.id, 'recibio', e.target.value)}
-                className="rounded border-0 bg-transparent text-gray-900 focus:ring-1 focus:ring-ring -ml-1"
+                className="rounded border-0 bg-transparent text-foreground focus:ring-1 focus:ring-ring -ml-1"
               >
                 <option value="">—</option>
                 {SOLICITANTES.map((s) => (
@@ -248,12 +248,12 @@ function RequisicionCard({
               </select>
             </div>
             <div className="min-w-0">
-              <span className="text-gray-400 block">Rev. finanzas</span>
+              <span className="text-muted-foreground block">Rev. finanzas</span>
               <select
                 value={r.revisionFinanzas ?? ''}
                 onChange={(e) => onCampoInline(r.id, 'revisionFinanzas', e.target.value)}
                 className={`rounded px-1 -ml-1 font-semibold border-0 focus:ring-1 focus:ring-ring ${
-                  r.revisionFinanzas === 'Entrega parcial' ? 'bg-yellow-100 text-yellow-800' : 'bg-transparent text-gray-900'
+                  r.revisionFinanzas === 'Entrega parcial' ? 'bg-yellow-100 text-yellow-800' : 'bg-transparent text-foreground'
                 }`}
               >
                 {REVISION_FINANZAS_OPCIONES.map((op) => (
@@ -265,15 +265,15 @@ function RequisicionCard({
         ) : (
           <>
             <div className="min-w-0">
-              <span className="text-gray-400 block">Tienda</span>
-              <span className="text-gray-900 truncate block">{r.tienda || '-'}</span>
+              <span className="text-muted-foreground block">Tienda</span>
+              <span className="text-foreground truncate block">{r.tienda || '-'}</span>
             </div>
             <div className="min-w-0">
-              <span className="text-gray-400 block">Cantidad</span>
-              <span className="text-gray-900 block">{r.cantidad || '-'}</span>
+              <span className="text-muted-foreground block">Cantidad</span>
+              <span className="text-foreground block">{r.cantidad || '-'}</span>
             </div>
             <div className="min-w-0">
-              <span className="text-gray-400 block">Prioridad</span>
+              <span className="text-muted-foreground block">Prioridad</span>
               {r.prioridad ? (
                 <span className={`inline-block rounded px-1.5 py-0.5 font-semibold ${PRIORIDAD_BADGE[r.prioridad]}`}>
                   {r.prioridad}
@@ -281,27 +281,27 @@ function RequisicionCard({
               ) : '-'}
             </div>
             <div className="min-w-0">
-              <span className="text-gray-400 block">Límite</span>
+              <span className="text-muted-foreground block">Límite</span>
               <CeldaAtraso r={r} hoy={hoy} isAuto={false} />
             </div>
             <div className="min-w-0">
-              <span className="text-gray-400 block">Empresa · O.T.</span>
+              <span className="text-muted-foreground block">Empresa · O.T.</span>
               <span className="flex items-center gap-1.5">
                 {r.empresa ? (
                   <span className={`rounded px-1.5 py-0.5 font-semibold ${badgeEmpresa(r.empresa)}`}>{r.empresa}</span>
                 ) : '-'}
-                <span className="text-gray-900 font-mono truncate">{r.ordenServicio || ''}</span>
+                <span className="text-foreground font-mono truncate">{r.ordenServicio || ''}</span>
               </span>
             </div>
           </>
         )}
       </div>
 
-      <div className="flex items-center justify-end gap-3 pl-[26px] pt-2 border-t border-gray-50">
+      <div className="flex items-center justify-end gap-3 pl-[26px] pt-2 border-t border-border">
         {r.estado !== 'comprado' && r.estado !== 'recibido' ? (
           <Link
             href={`/nueva-compra?requisicionId=${r.id}&descripcion=${encodeURIComponent(r.descripcion || r.nota || '')}`}
-            className="p-1.5 text-gray-400 hover:text-emerald-600 transition-colors"
+            className="p-1.5 text-muted-foreground hover:text-emerald-600 transition-colors"
             title="Comprar en SMV Hub"
           >
             <ShoppingCart className="h-4 w-4" />
@@ -315,10 +315,10 @@ function RequisicionCard({
             <ExternalLink className="h-4 w-4" />
           </Link>
         )}
-        <button onClick={() => onEditar(r)} className="p-1.5 text-gray-400 hover:text-primary" title="Editar">
+        <button onClick={() => onEditar(r)} className="p-1.5 text-muted-foreground hover:text-primary" title="Editar">
           <Edit2 className="h-4 w-4" />
         </button>
-        <button onClick={() => onEliminar(r.id, r.descripcion)} className="p-1.5 text-gray-400 hover:text-red-600" title="Eliminar">
+        <button onClick={() => onEliminar(r.id, r.descripcion)} className="p-1.5 text-muted-foreground hover:text-red-600" title="Eliminar">
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
@@ -537,49 +537,46 @@ export default function RequisicionesList() {
 
   return (
     <div className="space-y-6">
-      {/* PESTAÑAS PRINCIPALES DE NAVEGACIÓN */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs value={tabVista} onValueChange={(value) => setTabVista(value as 'flujo' | 'tabla')}>
-          <TabsList className="h-auto w-full flex-wrap justify-start sm:w-fit">
-            <TabsTrigger value="flujo" className="gap-2 text-xs sm:text-sm">
-              <Zap className="h-4 w-4 text-amber-500" />
-              Flujo de Compras End-to-End ({totalRequisiciones})
-            </TabsTrigger>
-            <TabsTrigger value="tabla" className="gap-2 text-xs sm:text-sm">
-              <Layers className="h-4 w-4" />
-              Catálogo Tradicional de Requisiciones
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        {tabVista === 'flujo' && (
-          <div className="flex flex-wrap items-center gap-2">
-            {!coleccionCompleta && (
+      <ModuleTabs
+        value={tabVista}
+        onValueChange={(value) => setTabVista(value as 'flujo' | 'tabla')}
+        actions={
+          tabVista === 'flujo' ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {!coleccionCompleta && (
+                <button
+                  type="button"
+                  onClick={() => void cargarTodas().catch(() => undefined)}
+                  disabled={cargandoCompleto}
+                  className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-bold text-sky-800 hover:bg-sky-100 disabled:opacity-50"
+                >
+                  {cargandoCompleto && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  {cargandoCompleto ? 'Cargando historial...' : 'Completar KPIs'}
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => void cargarTodas().catch(() => undefined)}
-                disabled={cargandoCompleto}
-                className="flex items-center gap-1.5 px-3 py-2 border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-800 text-xs font-bold rounded-xl disabled:opacity-50"
+                onClick={() => setModalNuevaFlujo(true)}
+                className="flex cursor-pointer items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-xs transition-transform hover:bg-primary/90 active:scale-95"
               >
-                {cargandoCompleto && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                {cargandoCompleto ? 'Cargando historial...' : 'Completar KPIs'}
+                <Plus className="h-4 w-4" /> Nueva Requisición (Tooling)
               </button>
-            )}
-            <button
-              onClick={() => setModalNuevaFlujo(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-xl shadow-xs transition-transform active:scale-95"
-            >
-              <Plus className="h-4 w-4" /> + Nueva Requisición (Tooling)
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* VISTA 1: FLUJO DE COMPRAS END-TO-END */}
-      {tabVista === 'flujo' && (
+            </div>
+          ) : undefined
+        }
+        items={[
+          {
+            value: 'flujo',
+            label: (
+              <span className="inline-flex items-center gap-2">
+                <Zap className="h-4 w-4 text-amber-500" aria-hidden />
+                Flujo de Compras End-to-End ({totalRequisiciones})
+              </span>
+            ),
+            content: (
         <div className="space-y-6">
           {loading && (
-            <div className="flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-14 text-sm text-slate-500">
+            <div className="flex items-center justify-center gap-3 rounded-xl border border-border bg-card py-14 text-sm text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin text-sky-600" />
               Cargando requisiciones…
             </div>
@@ -599,9 +596,9 @@ export default function RequisicionesList() {
             <>
           {/* KPI STATS */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Solicitudes</span>
-              <p className="text-xl font-bold text-slate-900 font-mono">{totalRequisiciones}</p>
+            <div className="bg-card p-4 rounded-xl border border-border shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total Solicitudes</span>
+              <p className="text-xl font-bold text-foreground font-mono">{totalRequisiciones}</p>
             </div>
             <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-2xs space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700">En Cotización</span>
@@ -637,15 +634,15 @@ export default function RequisicionesList() {
               return (
                 <div
                   key={req.id}
-                  className="bg-white border border-slate-200 p-4 rounded-2xl shadow-2xs hover:shadow-md transition-all space-y-3 flex flex-col justify-between"
+                  className="bg-card border border-border p-4 rounded-2xl shadow-2xs hover:shadow-md transition-all space-y-3 flex flex-col justify-between"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-black bg-slate-900 text-white px-2.5 py-0.5 rounded-md">
+                        <span className="font-mono text-xs font-black bg-foreground text-background px-2.5 py-0.5 rounded-md">
                           {req.folio || `REQ-${req.id.substring(0, 6)}`}
                         </span>
-                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground border border-border">
                           {req.departamento || req.empresa || 'Taller'}
                         </span>
                       </div>
@@ -666,20 +663,20 @@ export default function RequisicionesList() {
                       </span>
                     </div>
 
-                    <h3 className="text-sm font-bold text-slate-900 leading-snug">{req.descripcion}</h3>
+                    <h3 className="text-sm font-bold text-foreground leading-snug">{req.descripcion}</h3>
 
-                    <div className="text-xs text-slate-500 space-y-1 font-mono">
+                    <div className="text-xs text-muted-foreground space-y-1 font-mono">
                       <div className="flex items-center justify-between">
                         <span>Solicitante:</span>
-                        <strong className="text-slate-800">{req.solicitante}</strong>
+                        <strong className="text-foreground">{req.solicitante}</strong>
                       </div>
                       <div className="flex items-center justify-between">
                         <span>Fecha:</span>
-                        <span className="text-slate-700">{req.fechaPedido}</span>
+                        <span className="text-foreground">{req.fechaPedido}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span>Herramientas solicitadas:</span>
-                        <strong className="text-slate-900">{req.items?.length || 1} ítem(s)</strong>
+                        <strong className="text-foreground">{req.items?.length || 1} ítem(s)</strong>
                       </div>
                       <div className="flex items-center justify-between">
                         <span>Atraso:</span>
@@ -702,7 +699,7 @@ export default function RequisicionesList() {
                     )}
                   </div>
 
-                  <div className="pt-3 border-t border-slate-100">
+                  <div className="pt-3 border-t border-border">
                     <button
                       onClick={() => setReqDetalleModal(req)}
                       className="w-full py-2 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
@@ -716,8 +713,8 @@ export default function RequisicionesList() {
           </div>
 
           {hayMas && (
-            <div className="flex flex-col items-center gap-2 rounded-xl border border-slate-200 bg-white p-4">
-              <p className="text-xs text-slate-500">
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4">
+              <p className="text-xs text-muted-foreground">
                 Mostrando {todasFlujo.length} de {totalRequisiciones} requisiciones
               </p>
               <button
@@ -733,10 +730,17 @@ export default function RequisicionesList() {
             </>
           )}
         </div>
-      )}
-
-      {/* VISTA 2: CATÁLOGO TRADICIONAL DE REQUISICIONES */}
-      {tabVista === 'tabla' && (
+            ),
+          },
+          {
+            value: 'tabla',
+            label: (
+              <span className="inline-flex items-center gap-2">
+                <Layers className="h-4 w-4" aria-hidden />
+                Catálogo Tradicional de Requisiciones
+              </span>
+            ),
+            content: (
         <div className="space-y-6">
           {/* Sub-tabs */}
           <ModuleFilterChips
@@ -757,7 +761,7 @@ export default function RequisicionesList() {
 
       {/* Form */}
       <ModuleSurface className="p-5">
-        <h2 className="text-sm font-semibold text-gray-900 mb-4">
+        <h2 className="text-sm font-semibold text-foreground mb-4">
           {isAuto ? 'Nueva compra — Automatización' : 'Nueva requisición'}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -958,7 +962,7 @@ export default function RequisicionesList() {
             className={`w-full ${INPUT_CLS}`}
           />
           <div className="flex items-center gap-3">
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               {filtradas.length} coincidencias · {requisiciones.length} de {totalRequisiciones} cargadas
             </p>
             {!coleccionCompleta && (
@@ -1020,15 +1024,15 @@ export default function RequisicionesList() {
         <ModuleSurface>
           {filtradas.length === 0 ? (
             <div className="text-center py-20">
-              <div className="mx-auto w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-4 text-gray-400">
+              <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4 text-muted-foreground">
                 <ClipboardList className="h-6 w-6" />
               </div>
-              <h3 className="text-sm font-semibold text-gray-900">
+              <h3 className="text-sm font-semibold text-foreground">
                 {filtradas.length === 0 && requisiciones.filter(r => (r.tipo ?? 'general') === tipoActivo).length === 0
                   ? `Sin ${isAuto ? 'compras de automatización' : 'requisiciones'}`
                   : 'Sin coincidencias'}
               </h3>
-              <p className="text-sm text-gray-500 mt-1 max-w-xs mx-auto">
+              <p className="text-sm text-muted-foreground mt-1 max-w-xs mx-auto">
                 {filtradas.length === 0 && requisiciones.filter(r => (r.tipo ?? 'general') === tipoActivo).length === 0
                   ? 'Agrega la primera con el formulario de arriba.'
                   : 'Ningún registro coincide con los filtros actuales.'}
@@ -1037,14 +1041,14 @@ export default function RequisicionesList() {
           ) : (
             <div className="hidden md:block">
               <Table className="text-sm text-left text-muted-foreground">
-                <TableHeader className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
+                <TableHeader className="text-xs text-foreground uppercase bg-muted border-b border-border">
                   <TableRow>
                     <TableHead className="px-3 py-3 w-10 text-center">
                       <input
                         type="checkbox"
                         checked={filtradas.length > 0 && selectedIds.size === filtradas.length}
                         onChange={toggleAllSelection}
-                        className="rounded border-gray-300 text-primary focus:ring-ring cursor-pointer"
+                        className="rounded border-input text-primary focus:ring-ring cursor-pointer"
                       />
                     </TableHead>
                     {isAuto ? (
@@ -1080,12 +1084,12 @@ export default function RequisicionesList() {
                     <TableHead className="px-3 py-3" />
                   </TableRow>
                 </TableHeader>
-                <TableBody className="divide-y divide-gray-200">
+                <TableBody className="divide-y divide-border">
                   {filtradas.map((r) => (
                     <ContextMenu key={r.id}>
                       <ContextMenuTrigger asChild>
                         <TableRow
-                          className={`hover:bg-gray-50 transition-colors cursor-pointer ${
+                          className={`hover:bg-muted transition-colors cursor-pointer ${
                             r.estado === 'parcial' ? 'bg-pink-50/40' : ''
                           }`}
                           onDoubleClick={() => setReqDetalleModal(r)}
@@ -1095,15 +1099,15 @@ export default function RequisicionesList() {
                               type="checkbox"
                               checked={selectedIds.has(r.id)}
                               onChange={(e) => toggleSelection(r.id, e as unknown as React.MouseEvent)}
-                              className="rounded border-gray-300 text-primary focus:ring-ring cursor-pointer"
+                              className="rounded border-input text-primary focus:ring-ring cursor-pointer"
                             />
                           </TableCell>
                           {isAuto ? (
                             <>
-                              <TableCell className="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
+                              <TableCell className="px-3 py-3 whitespace-nowrap text-xs text-muted-foreground">
                                 {formatFecha(r.fechaPedido)}
                               </TableCell>
-                              <TableCell className="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
+                              <TableCell className="px-3 py-3 whitespace-nowrap text-xs text-muted-foreground">
                                 {r.fechaEntregaEst ? formatFecha(r.fechaEntregaEst) : '-'}
                               </TableCell>
                               <TableCell className="px-3 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
@@ -1122,7 +1126,7 @@ export default function RequisicionesList() {
                                 <select
                                   value={r.recibio ?? ''}
                                   onChange={(e) => handleCampoInline(r.id, 'recibio', e.target.value)}
-                                  className="rounded border-0 bg-transparent text-xs text-gray-700 focus:ring-1 focus:ring-ring cursor-pointer max-w-[120px]"
+                                  className="rounded border-0 bg-transparent text-xs text-foreground focus:ring-1 focus:ring-ring cursor-pointer max-w-[120px]"
                                 >
                                   <option value="">—</option>
                                   {SOLICITANTES.map((s) => (
@@ -1137,7 +1141,7 @@ export default function RequisicionesList() {
                                   className={`rounded px-1.5 py-0.5 text-xs font-semibold border-0 cursor-pointer focus:ring-1 focus:ring-ring ${
                                     r.revisionFinanzas === 'Entrega parcial'
                                       ? 'bg-yellow-100 text-yellow-800'
-                                      : 'bg-transparent text-gray-700'
+                                      : 'bg-transparent text-foreground'
                                   }`}
                                 >
                                   {REVISION_FINANZAS_OPCIONES.map((op) => (
@@ -1178,10 +1182,10 @@ export default function RequisicionesList() {
                             </>
                           ) : (
                             <>
-                              <TableCell className="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
+                              <TableCell className="px-3 py-3 whitespace-nowrap text-xs text-muted-foreground">
                                 {formatFecha(r.fechaPedido)}
                               </TableCell>
-                              <TableCell className="px-3 py-3 whitespace-nowrap font-medium text-gray-900">
+                              <TableCell className="px-3 py-3 whitespace-nowrap font-medium text-foreground">
                                 {r.solicitante || '-'}
                               </TableCell>
                               <TableCell className="px-3 py-3"><CeldaDescripcion r={r} /></TableCell>
@@ -1226,7 +1230,7 @@ export default function RequisicionesList() {
                               {r.estado !== 'comprado' && r.estado !== 'recibido' ? (
                                 <Link
                                   href={`/nueva-compra?requisicionId=${r.id}&descripcion=${encodeURIComponent(r.descripcion || r.nota || '')}`}
-                                  className="text-gray-400 hover:text-emerald-600 transition-colors"
+                                  className="text-muted-foreground hover:text-emerald-600 transition-colors"
                                   title="Comprar en SMV Hub"
                                 >
                                   <ShoppingCart className="h-4 w-4" />
@@ -1242,14 +1246,14 @@ export default function RequisicionesList() {
                               )}
                               <button
                                 onClick={() => setRequisicionToEdit(r)}
-                                className="text-gray-400 hover:text-primary transition-colors"
+                                className="text-muted-foreground hover:text-primary transition-colors"
                                 title="Editar"
                               >
                                 <Edit2 className="h-4 w-4" />
                               </button>
                               <button
                                 onClick={() => handleEliminar(r.id, r.descripcion)}
-                                className="text-gray-400 hover:text-red-600 transition-colors"
+                                className="text-muted-foreground hover:text-red-600 transition-colors"
                                 title="Eliminar"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -1267,7 +1271,7 @@ export default function RequisicionesList() {
                         </ContextMenuItem>
 
                         <ContextMenuItem onClick={() => setRequisicionToEdit(r)}>
-                          <Edit2 className="text-slate-600" />
+                          <Edit2 className="text-muted-foreground" />
                           <span>Editar requisición</span>
                         </ContextMenuItem>
 
@@ -1288,7 +1292,7 @@ export default function RequisicionesList() {
 
                         <ContextMenuSub>
                           <ContextMenuSubTrigger>
-                            <CheckCircle2 className="text-slate-500" />
+                            <CheckCircle2 className="text-muted-foreground" />
                             <span>Cambiar estado ({ESTADO_LABEL[r.estado]})</span>
                           </ContextMenuSubTrigger>
                           <ContextMenuSubContent className="w-44">
@@ -1307,7 +1311,7 @@ export default function RequisicionesList() {
 
                         <ContextMenuSub>
                           <ContextMenuSubTrigger>
-                            <ShoppingCart className="text-slate-500" />
+                            <ShoppingCart className="text-muted-foreground" />
                             <span>Convertir / Comprar</span>
                           </ContextMenuSubTrigger>
                           <ContextMenuSubContent className="w-52">
@@ -1334,7 +1338,7 @@ export default function RequisicionesList() {
 
                         <ContextMenuSub>
                           <ContextMenuSubTrigger>
-                            <Copy className="text-slate-500" />
+                            <Copy className="text-muted-foreground" />
                             <span>Copiar datos</span>
                           </ContextMenuSubTrigger>
                           <ContextMenuSubContent className="w-48">
@@ -1408,7 +1412,7 @@ export default function RequisicionesList() {
           )}
 
           {filtradas.length > 0 && (
-            <div className="md:hidden divide-y divide-gray-100">
+            <div className="md:hidden divide-y divide-border">
               {filtradas.map((r) => (
                 <RequisicionCard
                   key={r.id}
@@ -1427,11 +1431,11 @@ export default function RequisicionesList() {
           )}
 
           {hayMas && !cargandoCompleto && (
-            <div className="flex justify-center border-t border-gray-100 p-4">
+            <div className="flex justify-center border-t border-border p-4">
               <button
                 onClick={cargarMas}
                 disabled={cargandoMas}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-lg border border-input bg-card px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-60"
               >
                 {cargandoMas && <Loader2 className="h-4 w-4 animate-spin" />}
                 {cargandoMas ? 'Cargando…' : `Cargar más (${requisiciones.length} de ${totalRequisiciones})`}
@@ -1441,7 +1445,10 @@ export default function RequisicionesList() {
         </ModuleSurface>
       )}
     </div>
-  )}
+            ),
+          },
+        ]}
+      />
 
       {/* MODALES DE EDICIÓN TRADICIONAL */}
       {requisicionToEdit && (

@@ -157,7 +157,7 @@ export default function VistaHoy({ departamento, semanaInicio, puedeEditar }: Pr
   }
 
   if (loading || loadingOps) {
-    return <div className="animate-pulse h-48 bg-gray-100 rounded-lg" />
+    return <div className="animate-pulse h-48 bg-muted rounded-lg" />
   }
 
   if (error || errorOps) {
@@ -194,7 +194,7 @@ export default function VistaHoy({ departamento, semanaInicio, puedeEditar }: Pr
        )}
 
        {filas.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 border border-dashed border-gray-200 rounded-lg">
+        <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-lg">
           <p>No hay empleados en esta semana.</p>
           {puedeEditar && (
              <button
@@ -222,15 +222,15 @@ export default function VistaHoy({ departamento, semanaInicio, puedeEditar }: Pr
                 ? 'bg-emerald-100 text-emerald-800'
                 : estado === 'vacaciones'
                   ? 'bg-amber-100 text-amber-800'
-                  : 'bg-gray-100 text-gray-600'
+                  : 'bg-muted text-muted-foreground'
 
             return (
               <div
                 key={fila.id}
-                className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow"
+                className="border border-border rounded-xl p-4 bg-card shadow-sm hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between gap-2 mb-3">
-                  <h3 className="font-semibold text-gray-900">{fila.empleado}</h3>
+                  <h3 className="font-semibold text-foreground">{fila.empleado}</h3>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badgeClass}`}>
                     {estado === 'capturado'
                       ? 'Capturado'
@@ -254,10 +254,10 @@ export default function VistaHoy({ departamento, semanaInicio, puedeEditar }: Pr
                       void guardar(fila.id, fila.empleado, e.target.value, fila.reg)
                     }}
                     placeholder={puedeEditar ? 'Horas hoy' : 'Solo lectura'}
-                    className="w-full text-2xl font-bold text-center py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 disabled:bg-gray-50 disabled:text-gray-500"
+                    className="w-full text-2xl font-bold text-center py-3 border border-border rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 disabled:bg-muted disabled:text-muted-foreground"
                   />
                   {isSaving && (
-                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 animate-spin" />
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground animate-spin" />
                   )}
                   {!isSaving && estado === 'capturado' && (
                     <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500" />
@@ -273,7 +273,7 @@ export default function VistaHoy({ departamento, semanaInicio, puedeEditar }: Pr
                       onClick={() =>
                         aplicarChip(fila.id, fila.empleado, chip.value, fila.reg)
                       }
-                      className="flex-1 min-w-[2.5rem] px-2 py-1.5 text-sm font-medium bg-gray-50 border border-gray-200 rounded-md hover:bg-sky-50 hover:border-sky-200"
+                      className="flex-1 min-w-[2.5rem] px-2 py-1.5 text-sm font-medium bg-muted border border-border rounded-md hover:bg-sky-50 hover:border-sky-200"
                     >
                       {chip.label}
                     </button>
@@ -286,7 +286,7 @@ export default function VistaHoy({ departamento, semanaInicio, puedeEditar }: Pr
         </div>
       )}
 
-      <p className="text-xs text-gray-500 flex items-center gap-1">
+      <p className="text-xs text-muted-foreground flex items-center gap-1">
         <AlertCircle className="h-3.5 w-3.5" />
         {puedeEditar
           ? 'Ideal para captura en piso desde el celular. Usa números (2, 2.5) o chips rápidos.'

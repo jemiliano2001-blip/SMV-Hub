@@ -54,7 +54,7 @@ export default function BandaRangoMetalConcepto({ concepto, items }: Props) {
       <span className="font-mono text-amber-900">
         max {formatPrecio(rango.max, moneda)}
       </span>
-      <span className="text-slate-500 font-mono">n={rango.n}</span>
+      <span className="text-muted-foreground font-mono">n={rango.n}</span>
     </div>
   )
 }

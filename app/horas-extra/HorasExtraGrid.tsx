@@ -356,7 +356,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
   }
 
   if (loading || loadingOps) {
-    return <div className="animate-pulse h-64 bg-gray-100 rounded-lg" />
+    return <div className="animate-pulse h-64 bg-muted rounded-lg" />
   }
 
   if (error) {
@@ -378,7 +378,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
             type="button"
             onClick={() => void handleCargarEquipo()}
             disabled={accionLote !== null}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-white border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-card border border-border rounded-md hover:bg-muted disabled:opacity-50"
           >
             {accionLote === 'equipo' ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -391,7 +391,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
             type="button"
             onClick={() => void handleCopiarSemana()}
             disabled={accionLote !== null}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-white border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-card border border-border rounded-md hover:bg-muted disabled:opacity-50"
           >
             {accionLote === 'copiar' ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -403,9 +403,9 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
         </div>
         )}
         {total > 0 && (
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             <span className="font-medium text-primary">{conHoras}/{total}</span> empleados con horas
-            <div className="mt-1 w-48 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="mt-1 w-48 h-1.5 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary rounded-full transition-all"
                 style={{ width: `${total > 0 ? (conHoras / total) * 100 : 0}%` }}
@@ -416,7 +416,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
       </div>
 
       {mensaje && (
-        <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-md px-3 py-2">
+        <p className="text-sm text-muted-foreground bg-muted border border-border rounded-md px-3 py-2">
           {mensaje}
         </p>
       )}
@@ -428,7 +428,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
           required
           value={nuevoEmpleado}
           onChange={(e) => setNuevoEmpleado(e.target.value)}
-          className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:border-primary"
+          className="flex-1 px-3 py-1.5 text-sm border border-border rounded-md bg-card focus:outline-none focus:border-primary"
         >
           <option value="" disabled>
             Agregar empleado a la semana...
@@ -452,7 +452,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
       {/* Chips rápidos al editar */}
       {activeCell && activeCell.field !== 'notas' && (
         <div className="flex flex-wrap gap-1.5 items-center">
-          <span className="text-xs text-gray-500 mr-1">Rápido:</span>
+          <span className="text-xs text-muted-foreground mr-1">Rápido:</span>
           {CHIPS_RAPIDOS.map((chip) => (
             <button
               key={chip.label}
@@ -470,30 +470,30 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
       {/* Grid */}
       <ModuleSurface>
         <Table className="min-w-[800px] text-sm text-center">
-          <TableHeader className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+          <TableHeader className="bg-muted text-muted-foreground font-medium border-b border-border">
             <TableRow>
-              <TableHead className="h-auto px-4 py-3 text-left w-48 sticky left-0 bg-gray-50 border-r border-gray-200 z-10">
+              <TableHead className="h-auto px-4 py-3 text-left w-48 sticky left-0 bg-muted border-r border-border z-10">
                 Nombre del Empleado
               </TableHead>
               {DIAS_SEMANA.map((d) => (
                 <TableHead
                   key={d}
-                  className={`px-2 py-3 w-20 text-center border-r border-gray-100 ${
+                  className={`px-2 py-3 w-20 text-center border-r border-border ${
                     FIN_DE_SEMANA.has(d) ? 'bg-amber-50/80' : ''
                   }`}
                 >
                   {etiquetaDia(d)}
                 </TableHead>
               ))}
-              <TableHead className="px-3 py-3 w-24 text-center border-r border-gray-200 bg-gray-50">Total Hrs</TableHead>
+              <TableHead className="px-3 py-3 w-24 text-center border-r border-border bg-muted">Total Hrs</TableHead>
               <TableHead className="px-3 py-3 text-left min-w-[180px]">Notas</TableHead>
               <TableHead className="px-2 py-3 w-16" />
             </TableRow>
           </TableHeader>
-          <TableBody className="divide-y divide-gray-100">
+          <TableBody className="divide-y divide-border">
             {registros.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="px-4 py-12 text-center text-gray-500">
+                <TableCell colSpan={11} className="px-4 py-12 text-center text-muted-foreground">
                   No hay registros. Usa &quot;Cargar equipo&quot; o agrega empleados manualmente.
                 </TableCell>
               </TableRow>
@@ -503,15 +503,15 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                 const totalFila = calcularTotalHoras(r)
 
                 return (
-                  <TableRow key={r.id} className="hover:bg-gray-50/80">
-                    <TableCell className="p-0 font-medium text-gray-900 text-left sticky left-0 bg-white border-r border-gray-200 z-10">
+                  <TableRow key={r.id} className="hover:bg-muted/80">
+                    <TableCell className="p-0 font-medium text-foreground text-left sticky left-0 bg-card border-r border-border z-10">
                       <ContextMenu>
                         <ContextMenuTrigger asChild>
                           <div className="px-4 py-2 flex items-center justify-between gap-2 cursor-context-menu w-full h-full select-none">
                             <span className="truncate">{r.empleado}</span>
                             <div className="flex items-center gap-1 shrink-0">
                               {status === 'saving' && (
-                                <Loader2 className="h-3 w-3 text-gray-400 animate-spin" />
+                                <Loader2 className="h-3 w-3 text-muted-foreground animate-spin" />
                               )}
                               {status === 'saved' && (
                                 <Check className="h-3 w-3 text-emerald-500" />
@@ -526,7 +526,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                               toast.success('Nombre copiado', { description: r.empleado })
                             }}
                           >
-                            <Copy className="text-slate-500" />
+                            <Copy className="text-muted-foreground" />
                             <span>Copiar nombre ({r.empleado})</span>
                           </ContextMenuItem>
 
@@ -542,7 +542,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                               <ContextMenuItem
                                 onClick={() => void limpiarSemanaOperador(r.id, r.empleado)}
                               >
-                                <Clock className="text-slate-400" />
+                                <Clock className="text-muted-foreground" />
                                 <span>Limpiar toda la semana</span>
                               </ContextMenuItem>
                               <ContextMenuSeparator />
@@ -569,7 +569,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                       return (
                         <TableCell
                           key={dia}
-                          className={`p-0.5 border-r border-gray-100 ${finSemana ? 'bg-amber-50/40' : ''}`}
+                          className={`p-0.5 border-r border-border ${finSemana ? 'bg-amber-50/40' : ''}`}
                         >
                           {isActive ? (
                             <input
@@ -582,7 +582,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                               }}
                               onBlur={() => cerrarEdicion(true)}
                               onKeyDown={handleKeyDown}
-                              className="w-full h-8 text-center text-sm border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-ring bg-white"
+                              className="w-full h-8 text-center text-sm border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-ring bg-card"
                               placeholder="-"
                             />
                           ) : (
@@ -606,8 +606,8 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                                       ? 'Formato no reconocido — usa 2, 2.5 o 2 30'
                                       : undefined
                                   }
-                                  className={`w-full h-8 flex items-center justify-center gap-0.5 rounded text-gray-700 select-none ${
-                                    puedeEditar ? 'cursor-text hover:ring-1 hover:ring-gray-200' : ''
+                                  className={`w-full h-8 flex items-center justify-center gap-0.5 rounded text-foreground select-none ${
+                                    puedeEditar ? 'cursor-text hover:ring-1 hover:ring-border' : ''
                                   } ${intensidadHeatmap(valor)}`}
                                 >
                                   {advertencia && (
@@ -637,7 +637,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                                       <ContextMenuItem
                                         onClick={() => void aplicarValorACelda(r.id, dia, null)}
                                       >
-                                        <span className="text-slate-400">0 hrs (Limpiar)</span>
+                                        <span className="text-muted-foreground">0 hrs (Limpiar)</span>
                                       </ContextMenuItem>
                                     </ContextMenuSubContent>
                                   </ContextMenuSub>
@@ -685,7 +685,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                                       toast.success('Valor de celda copiado')
                                     }}
                                   >
-                                    <Copy className="text-slate-500" />
+                                    <Copy className="text-muted-foreground" />
                                     <span>Copiar celda</span>
                                   </ContextMenuItem>
 
@@ -705,7 +705,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                       )
                     })}
 
-                    <TableCell className="px-3 py-2 border-r border-gray-200 bg-gray-50 font-medium text-primary">
+                    <TableCell className="px-3 py-2 border-r border-border bg-muted font-medium text-primary">
                       {totalFila > 0 ? totalFila.toFixed(1).replace(/\.0$/, '') : (r.totalHoras ?? 0)}
                     </TableCell>
 
@@ -721,7 +721,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                           }}
                           onBlur={() => cerrarEdicion(true)}
                           onKeyDown={handleKeyDown}
-                          className="w-full h-8 px-2 text-sm border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-ring bg-white"
+                          className="w-full h-8 px-2 text-sm border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-ring bg-card"
                           placeholder="Nota (ej. Permiso)"
                         />
                       ) : (
@@ -736,15 +736,15 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                                 },
                               }
                             : {})}
-                          className={`w-full h-8 px-2 flex items-center rounded text-gray-600 text-xs ${
-                            puedeEditar ? 'cursor-text hover:bg-gray-100' : ''
+                          className={`w-full h-8 px-2 flex items-center rounded text-muted-foreground text-xs ${
+                            puedeEditar ? 'cursor-text hover:bg-muted' : ''
                           }`}
                         >
                           {r.notas ||
                             (puedeEditar ? (
-                              <span className="text-gray-300 italic">Clic para nota...</span>
+                              <span className="text-muted-foreground italic">Clic para nota...</span>
                             ) : (
-                              <span className="text-gray-300">—</span>
+                              <span className="text-muted-foreground">—</span>
                             ))}
                         </div>
                       )}
@@ -755,7 +755,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                         <button
                           type="button"
                           onClick={() => void handleEliminar(r.id, r.empleado)}
-                          className="text-gray-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded transition-colors"
+                          className="text-muted-foreground hover:text-red-500 p-1.5 hover:bg-red-50 rounded transition-colors"
                           title="Remover fila"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -771,15 +771,15 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
       </ModuleSurface>
 
       {puedeEditar ? (
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           Clic en celda para editar.{' '}
-          <kbd className="bg-gray-100 border border-gray-300 px-1 rounded text-gray-600">Tab</kbd> avanza,{' '}
-          <kbd className="bg-gray-100 border border-gray-300 px-1 rounded text-gray-600">Enter</kbd> baja,{' '}
-          <kbd className="bg-gray-100 border border-gray-300 px-1 rounded text-gray-600">Esc</kbd> cancela.
+          <kbd className="bg-muted border border-input px-1 rounded text-muted-foreground">Tab</kbd> avanza,{' '}
+          <kbd className="bg-muted border border-input px-1 rounded text-muted-foreground">Enter</kbd> baja,{' '}
+          <kbd className="bg-muted border border-input px-1 rounded text-muted-foreground">Esc</kbd> cancela.
           Auto-guardado al salir de cada celda.
         </p>
       ) : (
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           Vista de solo lectura. La captura la realiza compras, contabilidad o automatización.
         </p>
       )}

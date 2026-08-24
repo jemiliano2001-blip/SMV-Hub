@@ -115,13 +115,13 @@ export default function SolicitudDetalleModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="overflow-y-auto px-4 py-3 space-y-3 flex-1">
+        <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
           {solicitud.partidas.length > 0 && (
             <div>
-              <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">
+              <p className="mb-1 text-[10px] font-bold uppercase text-muted-foreground">
                 Partidas
               </p>
-              <ul className="text-sm space-y-1">
+              <ul className="space-y-1 text-sm text-foreground">
                 {solicitud.partidas.map((p) => (
                   <li key={p.odooLineId}>
                     {p.qtySolicitada} × {p.productName}
@@ -132,7 +132,7 @@ export default function SolicitudDetalleModal({
           )}
 
           {solicitud.nota && (
-            <p className="text-sm text-slate-700 bg-slate-50 rounded-lg px-3 py-2">
+            <p className="rounded-lg bg-muted px-3 py-2 text-sm text-foreground">
               {solicitud.nota}
             </p>
           )}
@@ -141,11 +141,11 @@ export default function SolicitudDetalleModal({
             <p className="text-xs text-emerald-700">Folio Odoo: {solicitud.folioOdoo}</p>
           )}
           {solicitud.motivoRechazo && (
-            <p className="text-xs text-red-700">Motivo: {solicitud.motivoRechazo}</p>
+            <p className="text-xs text-destructive">Motivo: {solicitud.motivoRechazo}</p>
           )}
 
           {so && (
-            <p className="text-[10px] text-slate-400">
+            <p className="text-[10px] text-muted-foreground">
               Espejo: {so.invoiceStatus} · {so.lineas.length} líneas ·{' '}
               {so.remisiones.length} remisiones
             </p>
@@ -154,24 +154,24 @@ export default function SolicitudDetalleModal({
           {(atiende || (esSolicitante && solicitud.estado === 'pendiente')) &&
             solicitud.estado !== 'completada' &&
             solicitud.estado !== 'rechazada' && (
-              <div className="space-y-2 border-t border-slate-100 pt-3">
+              <div className="space-y-2 border-t border-border pt-3">
                 {atiende && (
                   <>
-                    <label className="block text-xs font-semibold text-slate-600">
+                    <label className="block text-xs font-semibold text-muted-foreground">
                       Folio Odoo (al completar)
                       <input
                         value={folio}
                         onChange={(e) => setFolio(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm"
+                        className="mt-1 w-full rounded-lg border border-input bg-card px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground"
                         placeholder="WH/OUT/… o INV/…"
                       />
                     </label>
-                    <label className="block text-xs font-semibold text-slate-600">
+                    <label className="block text-xs font-semibold text-muted-foreground">
                       Motivo rechazo
                       <input
                         value={motivo}
                         onChange={(e) => setMotivo(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm"
+                        className="mt-1 w-full rounded-lg border border-input bg-card px-3 py-1.5 text-sm text-foreground"
                       />
                     </label>
                     <div className="flex flex-wrap gap-2">
@@ -180,7 +180,7 @@ export default function SolicitudDetalleModal({
                           type="button"
                           disabled={busy}
                           onClick={() => void cambiarEstado('en_proceso')}
-                          className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-sky-200 text-sky-800 bg-sky-50"
+                          className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800"
                         >
                           Tomar
                         </button>
@@ -189,7 +189,7 @@ export default function SolicitudDetalleModal({
                         type="button"
                         disabled={busy}
                         onClick={() => void cambiarEstado('completada')}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-600 text-white"
+                        className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white"
                       >
                         Completar
                       </button>
@@ -197,7 +197,7 @@ export default function SolicitudDetalleModal({
                         type="button"
                         disabled={busy}
                         onClick={() => void cambiarEstado('rechazada')}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200 text-red-700"
+                        className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-destructive"
                       >
                         Rechazar
                       </button>
@@ -228,7 +228,7 @@ export default function SolicitudDetalleModal({
                         })
                         .finally(() => setBusy(false))
                     }}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200"
+                    className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground"
                   >
                     Cancelar solicitud
                   </button>
@@ -236,23 +236,23 @@ export default function SolicitudDetalleModal({
               </div>
             )}
 
-          <div className="border-t border-slate-100 pt-3 space-y-2">
-            <p className="text-[10px] font-bold uppercase text-slate-400">Chat</p>
-            <ul className="space-y-2 max-h-48 overflow-y-auto">
+          <div className="space-y-2 border-t border-border pt-3">
+            <p className="text-[10px] font-bold uppercase text-muted-foreground">Chat</p>
+            <ul className="max-h-48 space-y-2 overflow-y-auto">
               {mensajes.length === 0 && (
-                <li className="text-xs text-slate-400">Sin mensajes aún.</li>
+                <li className="text-xs text-muted-foreground">Sin mensajes aún.</li>
               )}
               {mensajes.map((m) => (
                 <li
                   key={m.id}
-                  className={`text-sm rounded-lg px-3 py-2 ${
-                    m.autorUid === uid ? 'bg-sky-50 ml-6' : 'bg-slate-50 mr-6'
+                  className={`rounded-lg px-3 py-2 text-sm ${
+                    m.autorUid === uid ? 'ml-6 bg-sky-50' : 'mr-6 bg-muted'
                   }`}
                 >
-                  <span className="text-[10px] font-bold text-slate-400">
+                  <span className="text-[10px] font-bold text-muted-foreground">
                     {m.autorNombre}
                   </span>
-                  <p>{m.texto}</p>
+                  <p className="text-foreground">{m.texto}</p>
                 </li>
               ))}
             </ul>
@@ -266,7 +266,7 @@ export default function SolicitudDetalleModal({
                     void enviar()
                   }
                 }}
-                className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm"
+                className="flex-1 rounded-lg border border-input bg-card px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground"
                 placeholder="Escribe un mensaje…"
               />
               <Button
@@ -280,7 +280,7 @@ export default function SolicitudDetalleModal({
             </div>
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
       </DialogContent>
     </Dialog>

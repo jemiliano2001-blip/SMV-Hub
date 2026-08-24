@@ -96,7 +96,7 @@ function CotizacionCard({
   onCopiarWhatsApp,
 }: CotizacionCardProps) {
   return (
-    <div onClick={() => onEditar(c)} className="p-4 space-y-2.5 active:bg-gray-50 cursor-pointer">
+    <div onClick={() => onEditar(c)} className="p-4 space-y-2.5 active:bg-muted cursor-pointer">
       <div className="flex justify-between items-start gap-3">
         <div className="min-w-0 flex items-start gap-2.5">
           <input
@@ -104,11 +104,11 @@ function CotizacionCard({
             checked={selected}
             onChange={(e) => onToggleSelect(c.id, e as unknown as React.MouseEvent)}
             onClick={(e) => e.stopPropagation()}
-            className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-ring shrink-0"
+            className="mt-1 h-4 w-4 rounded border-input text-primary focus:ring-ring shrink-0"
           />
           <div className="min-w-0">
-            <p className="text-xs text-gray-500">{formatFecha(c.fecha)} • {c.solicitante || '—'}</p>
-            <p className="text-sm font-semibold text-gray-900 break-words">{c.descripcion}</p>
+            <p className="text-xs text-muted-foreground">{formatFecha(c.fecha)} • {c.solicitante || '—'}</p>
+            <p className="text-sm font-semibold text-foreground break-words">{c.descripcion}</p>
           </div>
         </div>
         <span className={`shrink-0 inline-flex rounded-full px-2 py-1 text-xs font-semibold capitalize ring-1 ring-inset ${ESTATUS_BADGE[c.estatus]}`}>
@@ -123,36 +123,36 @@ function CotizacionCard({
 
       <div className="grid grid-cols-2 gap-2 text-xs pl-[26px]">
         <div className="min-w-0">
-          <span className="text-gray-400 block">Proveedor</span>
-          <span className="text-gray-900 truncate block">{c.proveedor}</span>
+          <span className="text-muted-foreground block">Proveedor</span>
+          <span className="text-foreground truncate block">{c.proveedor}</span>
         </div>
         <div className="min-w-0">
-          <span className="text-gray-400 block">No. parte</span>
-          <span className="text-gray-900 truncate block font-mono">{c.numeroParte || '-'}</span>
+          <span className="text-muted-foreground block">No. parte</span>
+          <span className="text-foreground truncate block font-mono">{c.numeroParte || '-'}</span>
         </div>
         <div className="min-w-0">
-          <span className="text-gray-400 block">Ubicación</span>
-          <span className={`inline-block rounded px-1.5 py-0.5 font-semibold ${c.ubicacion === 'USA' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+          <span className="text-muted-foreground block">Ubicación</span>
+          <span className={`inline-block rounded px-1.5 py-0.5 font-semibold ${c.ubicacion === 'USA' ? 'bg-blue-50 text-blue-700' : 'bg-muted text-foreground'}`}>
             {c.ubicacion === 'USA' ? 'EUA' : 'MX'}
           </span>
         </div>
         <div className="min-w-0">
-          <span className="text-gray-400 block">Cantidad</span>
-          <span className="text-gray-900">{c.cantidad ?? '-'}</span>
+          <span className="text-muted-foreground block">Cantidad</span>
+          <span className="text-foreground">{c.cantidad ?? '-'}</span>
         </div>
       </div>
 
-      <div className="flex items-center justify-between pl-[26px] pt-2 border-t border-gray-50">
-        <span className="text-xs text-gray-500">{formatPrecio(c.precioUnitario, c.moneda)} c/u</span>
+      <div className="flex items-center justify-between pl-[26px] pt-2 border-t border-border">
+        <span className="text-xs text-muted-foreground">{formatPrecio(c.precioUnitario, c.moneda)} c/u</span>
         <div className="flex items-center gap-3">
-          <span className="text-sm font-bold text-gray-900">{formatPrecio(c.total, c.moneda)}</span>
+          <span className="text-sm font-bold text-foreground">{formatPrecio(c.total, c.moneda)}</span>
           {c.link && /^https?:\/\//i.test(c.link) && (
             <a
               href={c.link}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="text-gray-400 hover:text-primary"
+              className="text-muted-foreground hover:text-primary"
             >
               <ExternalLink className="h-4 w-4" />
             </a>
@@ -602,7 +602,7 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-3 flex-wrap">
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 {filtradas.length} de {cotizaciones.length} cotizaciones cargadas
                 {!coleccionCompleta && hayMas ? ' (hay más en el servidor)' : ''}
               </p>
@@ -611,7 +611,7 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
                   type="button"
                   onClick={() => void cargarMas()}
                   disabled={cargandoMas || loading}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-50"
                 >
                   {cargandoMas ? 'Cargando…' : 'Cargar más del servidor'}
                 </button>
@@ -638,7 +638,7 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
               )}
             </div>
             {paginacion.totalFilas > 0 && (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Mostrando {paginacion.indiceInicio}—{paginacion.indiceFin} de {paginacion.totalFilas} resultados
               </p>
             )}
@@ -687,7 +687,7 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
                       filasPagina.every((c) => selectedIds.has(c.id))
                     }
                     onChange={toggleAllSelection}
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-ring"
+                    className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
                     aria-label="Seleccionar todas las cotizaciones de la página"
                   />
                 </TableHead>
@@ -729,7 +729,7 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
                               type="checkbox"
                               checked={isSelected}
                               onChange={(e) => toggleSelection(c.id, e as unknown as React.MouseEvent)}
-                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-ring"
+                              className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
                             />
                           </TableCell>
                           <TableCell className="px-4 py-3 text-xs font-mono">
@@ -791,7 +791,7 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
                                 <ExternalLink className="h-4 w-4" />
                               </a>
                             ) : (
-                              <span className="text-gray-300 text-xs">—</span>
+                              <span className="text-muted-foreground text-xs">—</span>
                             )}
                           </TableCell>
                           <TableCell className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>

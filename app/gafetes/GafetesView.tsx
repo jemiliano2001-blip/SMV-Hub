@@ -33,6 +33,7 @@ import {
 } from "@/lib/gafetes"
 import { cargarFotoGafete, subirFotoGafete } from "@/lib/storage"
 import type { Area, GafeteAjusteFoto, GafetePerfil, Operador } from "@/lib/schemas"
+import ModuleSurface from "@/components/layout/ModuleSurface"
 import PageHeader from "@/components/layout/PageHeader"
 import PageShell from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
@@ -64,6 +65,13 @@ const AREAS: { value: Area; label: string }[] = [
   { value: "limpieza", label: "Limpieza" },
   { value: "administracion", label: "Administración" },
 ]
+
+/** Clases de formulario en pantalla (no tocar el CSS de impresión del gafete). */
+const CAMPO_GAFETE_CLASS =
+  "w-full rounded-lg border border-input bg-card px-2.5 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/30"
+
+const AJUSTE_FOTO_CLASS =
+  "inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-bold text-foreground hover:bg-muted"
 
 type FormularioGafete = Omit<GafetePerfilPayload, "operadorId"> & {
   nombre: string
@@ -372,10 +380,6 @@ export default function GafetesView() {
         .gafete-datos-legales { position: absolute; z-index: 1; left: .25in; right: .25in; bottom: .45in; border-top: .012in solid rgba(255,255,255,.7); padding-top: .14in; font-size: .092in; line-height: 1.55; }
         .gafete-datos-legales p { margin: 0; }
         .gafete-print-root { display: none; }
-        .campo-gafete { width: 100%; border: 1px solid #cbd5e1; border-radius: .5rem; padding: .48rem .62rem; font-size: .875rem; color: #0f172a; outline: none; background: white; }
-        .campo-gafete:focus { border-color: #0369a1; box-shadow: 0 0 0 2px #e0f2fe; }
-        .ajuste-foto { display: inline-flex; align-items: center; gap: .25rem; border: 1px solid #cbd5e1; border-radius: .45rem; background: white; padding: .4rem .55rem; font-size: .75rem; font-weight: 700; color: #334155; }
-        .ajuste-foto:hover { background: #f8fafc; }
         @media print { @page { size: letter portrait; margin: 0; } header, .gafetes-screen { display: none !important; } .gafete-print-root { display: block !important; } .gafete-print-sheet { width: 8.5in; height: 11in; display: grid; grid-template-columns: repeat(2, ${MEDIDAS_GAFETE_PULGADAS.ancho}in); grid-template-rows: repeat(2, ${MEDIDAS_GAFETE_PULGADAS.alto}in); column-gap: .26in; row-gap: .26in; padding: 1.568in 1.658in; box-sizing: border-box; break-after: page; page-break-after: always; } .gafete-print-sheet:last-child { break-after: auto; page-break-after: auto; } .gafete-print-cell { position: relative; } .gafete-crop { position: absolute; width: .09in; height: .09in; border-color: #111; border-style: solid; } .gafete-crop-tl { left: -.06in; top: -.06in; border-width: .01in 0 0 .01in; } .gafete-crop-tr { right: -.06in; top: -.06in; border-width: .01in .01in 0 0; } .gafete-crop-bl { left: -.06in; bottom: -.06in; border-width: 0 0 .01in .01in; } .gafete-crop-br { right: -.06in; bottom: -.06in; border-width: 0 .01in .01in 0; } }
       `}</style>
 
@@ -394,23 +398,35 @@ export default function GafetesView() {
           }
         />
 
-        <section className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 text-xs text-sky-900">
-          <strong>Impresión:</strong> elige “Tamaño real” o 100%, papel Carta, doble cara y <strong>voltear por borde largo</strong>. Cada frente y reverso se colocan en la misma posición y mide {MEDIDAS_GAFETE_PULGADAS.ancho} × {MEDIDAS_GAFETE_PULGADAS.alto} pulgadas.
+        <section className="rounded-xl border border-border bg-muted px-4 py-3 text-xs text-muted-foreground">
+          <strong className="text-foreground">Impresión:</strong> elige “Tamaño real” o 100%, papel Carta, doble cara y <strong className="text-foreground">voltear por borde largo</strong>. Cada frente y reverso se colocan en la misma posición y mide {MEDIDAS_GAFETE_PULGADAS.ancho} × {MEDIDAS_GAFETE_PULGADAS.alto} pulgadas.
         </section>
 
-        {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</div>}
+        {error && <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
 
-        <section className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-          <div className="p-3 border-b border-slate-100 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-            <label className="relative block max-w-md w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input value={busqueda} onChange={(event) => setBusqueda(event.target.value)} placeholder="Buscar trabajador, área o cargo…" className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-sky-100" />
+        <ModuleSurface>
+          <div className="flex flex-col gap-3 border-b border-border p-3 sm:flex-row sm:items-center sm:justify-between">
+            <label className="relative block w-full max-w-md">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={busqueda}
+                onChange={(event) => setBusqueda(event.target.value)}
+                placeholder="Buscar trabajador, área o cargo…"
+                className="w-full rounded-lg border border-input bg-card py-2 pl-9 pr-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/30"
+              />
             </label>
-            <p className="text-xs text-slate-500"><strong>{imprimibles.length}</strong> completos listos para imprimir · {seleccionados.length - imprimibles.length > 0 ? `${seleccionados.length - imprimibles.length} borrador(es) excluido(s)` : ""}</p>
+            <p className="text-xs text-muted-foreground">
+              <strong className="text-foreground">{imprimibles.length}</strong> completos listos para imprimir
+              {seleccionados.length - imprimibles.length > 0
+                ? ` · ${seleccionados.length - imprimibles.length} borrador(es) excluido(s)`
+                : ""}
+            </p>
           </div>
 
-          {cargando ? <div className="p-8 text-center text-sm text-slate-500">Cargando personal y perfiles…</div> : (
-            <div className="divide-y divide-slate-100">
+          {cargando ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">Cargando personal y perfiles…</div>
+          ) : (
+            <div className="divide-y divide-border">
               {trabajadores.map((operador) => {
                 const perfil = perfilesPorOperador.get(operador.id)
                 const completo = estaListoParaImprimir(perfil)
@@ -420,21 +436,36 @@ export default function GafetesView() {
                 return (
                   <ContextMenu key={operador.id}>
                     <ContextMenuTrigger asChild>
-                      <article className={`flex gap-3 items-center p-3 sm:px-4 hover:bg-slate-50/80 transition-colors cursor-pointer select-none ${!operador.activo ? "opacity-55" : ""}`}>
+                      <article
+                        className={`flex cursor-pointer select-none items-center gap-3 p-3 transition-colors hover:bg-muted/60 sm:px-4 ${!operador.activo ? "opacity-55" : ""}`}
+                      >
                         <input
                           aria-label={`Seleccionar ${operador.nombre} para imprimir`}
                           type="checkbox"
                           checked={seleccionado}
                           onChange={() => alternarSeleccion(operador.id)}
                           onClick={(e) => e.stopPropagation()}
-                          className="h-4 w-4 shrink-0 accent-primary cursor-pointer"
+                          className="h-4 w-4 shrink-0 cursor-pointer accent-primary"
                         />
-                        <FotoGafete url={perfil?.fotoUrl ?? ""} ajuste={perfil?.fotoAjuste ?? AJUSTE_FOTO_INICIAL} nombre={operador.nombre} className="h-11 w-9 rounded-md shrink-0" />
+                        <FotoGafete
+                          url={perfil?.fotoUrl ?? ""}
+                          ajuste={perfil?.fotoAjuste ?? AJUSTE_FOTO_INICIAL}
+                          nombre={operador.nombre}
+                          className="h-11 w-9 shrink-0 rounded-md"
+                        />
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-sm text-slate-900 truncate">{operador.nombre}</p>
-                          <p className="text-xs text-slate-500 truncate">{cargoOArea} · {operador.activo ? "Activo" : "Inactivo"}</p>
+                          <p className="truncate text-sm font-semibold text-foreground">{operador.nombre}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {cargoOArea} · {operador.activo ? "Activo" : "Inactivo"}
+                          </p>
                         </div>
-                        <span className={`hidden sm:inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold border ${completo ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200"}`}>
+                        <span
+                          className={`hidden items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-bold sm:inline-flex ${
+                            completo
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                              : "border-amber-200 bg-amber-50 text-amber-800"
+                          }`}
+                        >
                           {completo ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
                           {completo ? "Listo" : "Borrador"}
                         </span>
@@ -443,7 +474,7 @@ export default function GafetesView() {
                             e.stopPropagation()
                             abrirEdicion(operador)
                           }}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                          className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
                         >
                           <Pencil className="h-3.5 w-3.5" /> Editar
                         </button>
@@ -475,14 +506,14 @@ export default function GafetesView() {
 
                       <ContextMenuSub>
                         <ContextMenuSubTrigger>
-                          <Copy className="text-slate-500" />
+                          <Copy className="text-muted-foreground" />
                           <span>Copiar información</span>
                         </ContextMenuSubTrigger>
                         <ContextMenuSubContent className="w-48">
                           <ContextMenuItem
                             onClick={() => {
                               void navigator.clipboard.writeText(operador.nombre)
-                              toast.success('Nombre copiado')
+                              toast.success("Nombre copiado")
                             }}
                           >
                             <span>Nombre ({operador.nombre})</span>
@@ -490,7 +521,7 @@ export default function GafetesView() {
                           <ContextMenuItem
                             onClick={() => {
                               void navigator.clipboard.writeText(areaTexto(operador.area))
-                              toast.success('Área copiada')
+                              toast.success("Área copiada")
                             }}
                           >
                             <span>Área ({areaTexto(operador.area)})</span>
@@ -499,7 +530,7 @@ export default function GafetesView() {
                             <ContextMenuItem
                               onClick={() => {
                                 void navigator.clipboard.writeText(perfil.cargo)
-                                toast.success('Cargo copiado')
+                                toast.success("Cargo copiado")
                               }}
                             >
                               <span>Cargo ({perfil.cargo})</span>
@@ -509,7 +540,7 @@ export default function GafetesView() {
                             <ContextMenuItem
                               onClick={() => {
                                 void navigator.clipboard.writeText(perfil.rfc)
-                                toast.success('RFC copiado')
+                                toast.success("RFC copiado")
                               }}
                             >
                               <span>RFC ({perfil.rfc})</span>
@@ -519,7 +550,7 @@ export default function GafetesView() {
                             <ContextMenuItem
                               onClick={() => {
                                 void navigator.clipboard.writeText(perfil.nss)
-                                toast.success('NSS copiado')
+                                toast.success("NSS copiado")
                               }}
                             >
                               <span>NSS ({perfil.nss})</span>
@@ -531,10 +562,15 @@ export default function GafetesView() {
                   </ContextMenu>
                 )
               })}
-              {trabajadores.length === 0 && <div className="p-8 text-center text-sm text-slate-500"><Users className="h-5 w-5 mx-auto mb-2" />No hay trabajadores que coincidan con la búsqueda.</div>}
+              {trabajadores.length === 0 && (
+                <div className="p-8 text-center text-sm text-muted-foreground">
+                  <Users className="mx-auto mb-2 h-5 w-5" />
+                  No hay trabajadores que coincidan con la búsqueda.
+                </div>
+              )}
             </div>
           )}
-        </section>
+        </ModuleSurface>
       </div>
 
       {editando && formulario && (
@@ -544,34 +580,160 @@ export default function GafetesView() {
               <DialogTitle>Editar gafete</DialogTitle>
               <DialogDescription>Los datos sensibles solo son visibles para super-admin.</DialogDescription>
             </DialogHeader>
-            <div className="grid lg:grid-cols-[1fr_270px] gap-6 p-4 sm:p-5">
-              <div className="grid sm:grid-cols-2 gap-3 content-start">
-                <Campo label="Nombre"><input value={formulario.nombre} onChange={(e) => setFormulario({ ...formulario, nombre: e.target.value })} className="campo-gafete" /></Campo>
-                <Campo label="Área"><select value={formulario.area} onChange={(e) => setFormulario({ ...formulario, area: e.target.value as Area })} className="campo-gafete">{AREAS.map((area) => <option key={area.value} value={area.value}>{area.label}</option>)}</select></Campo>
-                <Campo label="Cargo / departamento impreso"><input value={formulario.cargo} onChange={(e) => setFormulario({ ...formulario, cargo: e.target.value })} placeholder="Ej. Asistencia en Diseño y Fabricación" className="campo-gafete" /></Campo>
-                <Campo label="Fecha de ingreso"><input type="date" value={formulario.fechaIngreso} onChange={(e) => setFormulario({ ...formulario, fechaIngreso: e.target.value })} className="campo-gafete" /></Campo>
-                <div className="sm:col-span-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-950">
-                  <strong>Datos institucionales del taller</strong><span className="ml-1">se aplican a todos los gafetes.</span>
-                  <p className="mt-1 text-sky-800">{DATOS_TALLER_GAFETES.domicilio}</p>
-                  <p className="text-sky-800">{DATOS_TALLER_GAFETES.responsableNombre} · {DATOS_TALLER_GAFETES.responsablePuesto} · {DATOS_TALLER_GAFETES.responsableTelefono}</p>
-                </div>
-                <Campo label="NSS"><input value={formulario.nss} onChange={(e) => setFormulario({ ...formulario, nss: e.target.value })} className="campo-gafete" /></Campo>
-                <Campo label="RFC"><input value={formulario.rfc} onChange={(e) => setFormulario({ ...formulario, rfc: e.target.value.toUpperCase() })} className="campo-gafete" /></Campo>
-                <Campo label="Foto" wide>
-                  <input id="foto-gafete" type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => seleccionarFoto(e.target.files?.[0])} />
-                  <label htmlFor="foto-gafete" className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-sky-300 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-100"><ImagePlus className="h-4 w-4" /> Elegir foto JPG, PNG o WebP</label>
+            <div className="grid gap-6 p-4 sm:p-5 lg:grid-cols-[1fr_270px]">
+              <div className="grid content-start gap-3 sm:grid-cols-2">
+                <Campo label="Nombre">
+                  <input
+                    value={formulario.nombre}
+                    onChange={(e) => setFormulario({ ...formulario, nombre: e.target.value })}
+                    className={CAMPO_GAFETE_CLASS}
+                  />
                 </Campo>
-                <div className="sm:col-span-2 grid grid-cols-2 gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                  <Campo label={`Zoom ${formulario.fotoAjuste.zoom.toFixed(2)}×`}><input type="range" min="0.75" max="2.5" step="0.05" value={formulario.fotoAjuste.zoom} onChange={(e) => actualizarAjuste({ zoom: Number(e.target.value) })} className="w-full accent-primary" /></Campo>
-                  <Campo label="Rotación"><div className="flex gap-2"><button type="button" onClick={() => actualizarAjuste({ rotacion: formulario.fotoAjuste.rotacion - 90 })} className="ajuste-foto"><RotateCcw className="h-4 w-4" /> Izq.</button><button type="button" onClick={() => actualizarAjuste({ rotacion: formulario.fotoAjuste.rotacion + 90 })} className="ajuste-foto">Der.</button></div></Campo>
-                  <Campo label="Mover horizontal"><input type="range" min="-50" max="50" value={formulario.fotoAjuste.desplazamientoX} onChange={(e) => actualizarAjuste({ desplazamientoX: Number(e.target.value) })} className="w-full accent-primary" /></Campo>
-                  <Campo label="Mover vertical"><input type="range" min="-50" max="50" value={formulario.fotoAjuste.desplazamientoY} onChange={(e) => actualizarAjuste({ desplazamientoY: Number(e.target.value) })} className="w-full accent-primary" /></Campo>
+                <Campo label="Área">
+                  <select
+                    value={formulario.area}
+                    onChange={(e) => setFormulario({ ...formulario, area: e.target.value as Area })}
+                    className={CAMPO_GAFETE_CLASS}
+                  >
+                    {AREAS.map((area) => (
+                      <option key={area.value} value={area.value}>
+                        {area.label}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+                <Campo label="Cargo / departamento impreso">
+                  <input
+                    value={formulario.cargo}
+                    onChange={(e) => setFormulario({ ...formulario, cargo: e.target.value })}
+                    placeholder="Ej. Asistencia en Diseño y Fabricación"
+                    className={CAMPO_GAFETE_CLASS}
+                  />
+                </Campo>
+                <Campo label="Fecha de ingreso">
+                  <input
+                    type="date"
+                    value={formulario.fechaIngreso}
+                    onChange={(e) => setFormulario({ ...formulario, fechaIngreso: e.target.value })}
+                    className={CAMPO_GAFETE_CLASS}
+                  />
+                </Campo>
+                <div className="rounded-lg border border-border bg-muted px-3 py-2 text-xs text-muted-foreground sm:col-span-2">
+                  <strong className="text-foreground">Datos institucionales del taller</strong>
+                  <span className="ml-1">se aplican a todos los gafetes.</span>
+                  <p className="mt-1">{DATOS_TALLER_GAFETES.domicilio}</p>
+                  <p>
+                    {DATOS_TALLER_GAFETES.responsableNombre} · {DATOS_TALLER_GAFETES.responsablePuesto} ·{" "}
+                    {DATOS_TALLER_GAFETES.responsableTelefono}
+                  </p>
+                </div>
+                <Campo label="NSS">
+                  <input
+                    value={formulario.nss}
+                    onChange={(e) => setFormulario({ ...formulario, nss: e.target.value })}
+                    className={CAMPO_GAFETE_CLASS}
+                  />
+                </Campo>
+                <Campo label="RFC">
+                  <input
+                    value={formulario.rfc}
+                    onChange={(e) => setFormulario({ ...formulario, rfc: e.target.value.toUpperCase() })}
+                    className={CAMPO_GAFETE_CLASS}
+                  />
+                </Campo>
+                <Campo label="Foto" wide>
+                  <input
+                    id="foto-gafete"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    onChange={(e) => seleccionarFoto(e.target.files?.[0])}
+                  />
+                  <label
+                    htmlFor="foto-gafete"
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border bg-muted px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted/80"
+                  >
+                    <ImagePlus className="h-4 w-4" /> Elegir foto JPG, PNG o WebP
+                  </label>
+                </Campo>
+                <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-muted p-3 sm:col-span-2">
+                  <Campo label={`Zoom ${formulario.fotoAjuste.zoom.toFixed(2)}×`}>
+                    <input
+                      type="range"
+                      min="0.75"
+                      max="2.5"
+                      step="0.05"
+                      value={formulario.fotoAjuste.zoom}
+                      onChange={(e) => actualizarAjuste({ zoom: Number(e.target.value) })}
+                      className="w-full accent-primary"
+                    />
+                  </Campo>
+                  <Campo label="Rotación">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => actualizarAjuste({ rotacion: formulario.fotoAjuste.rotacion - 90 })}
+                        className={AJUSTE_FOTO_CLASS}
+                      >
+                        <RotateCcw className="h-4 w-4" /> Izq.
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => actualizarAjuste({ rotacion: formulario.fotoAjuste.rotacion + 90 })}
+                        className={AJUSTE_FOTO_CLASS}
+                      >
+                        Der.
+                      </button>
+                    </div>
+                  </Campo>
+                  <Campo label="Mover horizontal">
+                    <input
+                      type="range"
+                      min="-50"
+                      max="50"
+                      value={formulario.fotoAjuste.desplazamientoX}
+                      onChange={(e) => actualizarAjuste({ desplazamientoX: Number(e.target.value) })}
+                      className="w-full accent-primary"
+                    />
+                  </Campo>
+                  <Campo label="Mover vertical">
+                    <input
+                      type="range"
+                      min="-50"
+                      max="50"
+                      value={formulario.fotoAjuste.desplazamientoY}
+                      onChange={(e) => actualizarAjuste({ desplazamientoY: Number(e.target.value) })}
+                      className="w-full accent-primary"
+                    />
+                  </Campo>
                 </div>
               </div>
-              <aside className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col items-center gap-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Vista previa · frente</p>
-                <div className="origin-top scale-[.85] -mb-14"><CaraGafete item={{ operador: { ...editando, nombre: formulario.nombre || editando.nombre, area: formulario.area }, perfil: { ...perfilesPorOperador.get(editando.id), ...formulario, id: editando.id, operadorId: editando.id, creadoEn: perfilesPorOperador.get(editando.id)?.creadoEn ?? new Date(), actualizadoEn: new Date() } }} /></div>
-                <p className="text-center text-[11px] text-slate-500">Un perfil se puede guardar como borrador. Para imprimir requiere todos los campos y foto.</p>
+              <aside className="flex flex-col items-center gap-3 rounded-xl border border-border bg-muted p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Vista previa · frente
+                </p>
+                <div className="origin-top scale-[.85] -mb-14">
+                  <CaraGafete
+                    item={{
+                      operador: {
+                        ...editando,
+                        nombre: formulario.nombre || editando.nombre,
+                        area: formulario.area,
+                      },
+                      perfil: {
+                        ...perfilesPorOperador.get(editando.id),
+                        ...formulario,
+                        id: editando.id,
+                        operadorId: editando.id,
+                        creadoEn: perfilesPorOperador.get(editando.id)?.creadoEn ?? new Date(),
+                        actualizadoEn: new Date(),
+                      },
+                    }}
+                  />
+                </div>
+                <p className="text-center text-[11px] text-muted-foreground">
+                  Un perfil se puede guardar como borrador. Para imprimir requiere todos los campos y foto.
+                </p>
               </aside>
             </div>
             <DialogFooter className="border-t border-border p-4">
@@ -595,5 +757,10 @@ export default function GafetesView() {
 }
 
 function Campo({ label, children, wide = false }: { label: string; children: React.ReactNode; wide?: boolean }) {
-  return <label className={`grid gap-1 text-xs font-medium text-slate-700 ${wide ? "sm:col-span-2" : ""}`}><span>{label}</span>{children}</label>
+  return (
+    <label className={`grid gap-1 text-xs font-medium text-foreground ${wide ? "sm:col-span-2" : ""}`}>
+      <span className="text-muted-foreground">{label}</span>
+      {children}
+    </label>
+  )
 }

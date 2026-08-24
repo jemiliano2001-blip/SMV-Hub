@@ -10,13 +10,11 @@ import {
   ThumbsUp,
   FileCheck,
   Scale,
-  History,
-  Zap,
   Printer,
 } from 'lucide-react'
 import AuthGuard from '@/app/AuthGuard'
 import PageShell from '@/components/layout/PageShell'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import ModuleTabs from '@/components/layout/ModuleTabs'
 import { useDirectorioProveedores } from '@/lib/hooks/useDirectorioProveedores'
 import { useProveedoresInteligencia } from '@/lib/hooks/useProveedoresInteligencia'
 import type {
@@ -33,26 +31,15 @@ import type {
 } from '@/lib/schemas'
 import type { NuevoProveedorPayload, MatrizBackupProveedores } from '@/lib/proveedores'
 import { CATEGORIAS_PROVEEDOR_FORM } from '@/lib/proveedores/categorias-proveedor'
-import { obtenerMatrizBackupProveedores, guardarMatrizBackupProveedores } from '@/lib/proveedores'
+import { obtenerMatrizBackupProveedores } from '@/lib/proveedores'
 import type { NuevaCompraPayload } from '@/lib/proveedores-inteligencia'
-import SeccionRecomendacionInteligente from '@/app/requisiciones/SeccionRecomendacionInteligente'
 import PanelComprasOdoo from '@/app/proveedores/PanelComprasOdoo'
-import BandaRangoMetalConcepto from '@/app/proveedores/BandaRangoMetalConcepto'
 import HeaderCentroMando from './components/HeaderCentroMando'
 import DirectorioProveedores from './components/DirectorioProveedores'
 import DrawerDetalleProveedor from './components/DrawerDetalleProveedor'
-import PanelInteligencia360 from './components/PanelInteligencia360'
-import PanelVinculacionProveedores from './components/PanelVinculacionProveedores'
 import ModalInvestigacionPrecios from './components/ModalInvestigacionPrecios'
 import { listarItemsComprasOdoo } from '@/lib/compras-odoo-store'
-import { listarCotizaciones } from '@/lib/cotizaciones'
 import { listarOrdenesEnRango } from '@/lib/ordenes'
-import {
-  ofertasDesdeHistorico,
-  construirComparacionDesdeHistorico,
-  generarScorecardsDesdeOrdenes,
-  persistirScorecardsAutomaticas,
-} from '@/lib/proveedores-inteligencia-cruzada'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -215,11 +202,11 @@ function FormularioProveedorModal({
     <Dialog open={abierto} onOpenChange={(val) => !val && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
+          <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
             <Building2 className="h-5 w-5 text-primary" />
             {proveedorEdicion ? 'Editar Proveedor' : 'Nuevo Proveedor (Compras USA / Tooling CNC)'}
           </DialogTitle>
-          <DialogDescription className="text-xs text-slate-500">
+          <DialogDescription className="text-xs text-muted-foreground">
             Registra y gestiona proveedores internacionales para compras de endmills, insertos y herramental.
           </DialogDescription>
         </DialogHeader>
@@ -233,23 +220,23 @@ function FormularioProveedorModal({
         <form onSubmit={handleSubmit} className="space-y-4 text-xs font-sans">
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div className="sm:col-span-2 space-y-1">
-              <label className="font-bold text-slate-700">Nombre Comercial *</label>
+              <label className="font-bold text-foreground">Nombre Comercial *</label>
               <input
                 type="text"
                 required
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
                 placeholder="Ej. Shars Tool, OnlineCarbide, YG-1 USA..."
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Estatus</label>
+              <label className="font-bold text-foreground">Estatus</label>
               <select
                 value={estatus}
                 onChange={(e) => setEstatus(e.target.value as EstatusProveedor)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
               >
                 <option value="actual">Activo (Actual)</option>
                 <option value="prospecto">Prospecto</option>
@@ -258,7 +245,7 @@ function FormularioProveedorModal({
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Nivel de Precio / Gama</label>
+              <label className="font-bold text-foreground">Nivel de Precio / Gama</label>
               <select
                 value={tipoProveedor}
                 onChange={(e) => {
@@ -266,7 +253,7 @@ function FormularioProveedorModal({
                   setTipoProveedor(val)
                   if (val === 'barato') setBarato(true)
                 }}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold text-primary focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs font-bold text-primary focus:outline-none focus:border-primary"
               >
                 <option value="barato">Económico ($ Barato)</option>
                 <option value="estandar">Estándar ($)</option>
@@ -281,7 +268,7 @@ function FormularioProveedorModal({
                 type="checkbox"
                 checked={barato}
                 onChange={(e) => setBarato(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-ring"
+                className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
               />
               <Sparkles className="h-4 w-4 text-amber-500" />
               Marcar como Opción Económica ($ Barato)
@@ -292,7 +279,7 @@ function FormularioProveedorModal({
                 type="checkbox"
                 checked={recomendado}
                 onChange={(e) => setRecomendado(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-ring"
+                className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
               />
               <ThumbsUp className="h-4 w-4 text-emerald-600" />
               Proveedor Recomendado por Taller
@@ -303,7 +290,7 @@ function FormularioProveedorModal({
                 type="checkbox"
                 checked={facturaUSD}
                 onChange={(e) => setFacturaUSD(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-ring"
+                className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
               />
               <FileCheck className="h-4 w-4 text-sky-700" />
               Emite Invoice Fiscal en USD
@@ -311,7 +298,7 @@ function FormularioProveedorModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="font-bold text-slate-700">Categorías de Herramental *</label>
+            <label className="font-bold text-foreground">Categorías de Herramental *</label>
             <div className="flex flex-wrap gap-2">
               {CATEGORIAS_OPCIONES.map(({ valor, etiqueta }) => {
                 const selec = categorias.includes(valor)
@@ -324,7 +311,7 @@ function FormularioProveedorModal({
                       'px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors flex items-center gap-1.5',
                       selec
                         ? 'bg-sky-900 text-white border-sky-900 font-bold'
-                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50',
+                        : 'bg-card text-foreground border-input hover:bg-muted',
                     ].join(' ')}
                   >
                     <Tag className="h-3 w-3" />
@@ -335,30 +322,30 @@ function FormularioProveedorModal({
             </div>
           </div>
 
-          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="p-3 bg-muted rounded-xl border border-border space-y-3">
+            <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Truck className="h-4 w-4 text-primary" /> Logística &amp; Aduanas EE.UU. &rarr; México
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="font-bold text-slate-700">Shipping Address en USA (Bodega / Crossing)</label>
+                <label className="font-bold text-foreground">Shipping Address en USA (Bodega / Crossing)</label>
                 <input
                   type="text"
                   value={shippingAddressUSA}
                   onChange={(e) => setShippingAddressUSA(e.target.value)}
                   placeholder="Ej. 840 S Frontenac St, Aurora IL (Warehouse Laredo TX)"
-                  className="w-full px-3 py-2 border border-slate-300 bg-white rounded-lg text-xs focus:outline-none focus:border-primary"
+                  className="w-full px-3 py-2 border border-input bg-card rounded-lg text-xs focus:outline-none focus:border-primary"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="font-bold text-slate-700">Broker Aduanal / Agencia Forwarder</label>
+                <label className="font-bold text-foreground">Broker Aduanal / Agencia Forwarder</label>
                 <input
                   type="text"
                   value={brokerAduanal}
                   onChange={(e) => setBrokerAduanal(e.target.value)}
                   placeholder="Ej. Agencia Aduanal Rangel (Laredo, TX)"
-                  className="w-full px-3 py-2 border border-slate-300 bg-white rounded-lg text-xs focus:outline-none focus:border-primary"
+                  className="w-full px-3 py-2 border border-input bg-card rounded-lg text-xs focus:outline-none focus:border-primary"
                 />
               </div>
             </div>
@@ -366,7 +353,7 @@ function FormularioProveedorModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1.5">
-              <label className="font-bold text-slate-700">Métodos de Pago Aceptados</label>
+              <label className="font-bold text-foreground">Métodos de Pago Aceptados</label>
               <div className="flex flex-wrap gap-1.5">
                 {METODOS_PAGO_OPCIONES.map(({ valor, etiqueta }) => {
                   const selec = metodosPago.includes(valor)
@@ -379,7 +366,7 @@ function FormularioProveedorModal({
                         'px-2.5 py-1 rounded-md text-[11px] border transition-colors',
                         selec
                           ? 'bg-primary text-white border-primary font-bold'
-                          : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50',
+                          : 'bg-card text-muted-foreground border-input hover:bg-muted',
                       ].join(' ')}
                     >
                       {etiqueta}
@@ -390,11 +377,11 @@ function FormularioProveedorModal({
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Tiempo de Respuesta</label>
+              <label className="font-bold text-foreground">Tiempo de Respuesta</label>
               <select
                 value={tiempoRespuesta}
                 onChange={(e) => setTiempoRespuesta(e.target.value as TiempoRespuesta)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
               >
                 <option value="inmediato">Inmediato (&lt; 1 hora)</option>
                 <option value="mismo_dia">Mismo día</option>
@@ -404,11 +391,11 @@ function FormularioProveedorModal({
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Prioridad Interna</label>
+              <label className="font-bold text-foreground">Prioridad Interna</label>
               <select
                 value={prioridad}
                 onChange={(e) => setPrioridad(e.target.value as Prioridad)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
               >
                 <option value="alta">Alta</option>
                 <option value="media">Media</option>
@@ -419,54 +406,54 @@ function FormularioProveedorModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Contacto / At&apos;n</label>
+              <label className="font-bold text-foreground">Contacto / At&apos;n</label>
               <input
                 type="text"
                 value={contacto}
                 onChange={(e) => setContacto(e.target.value)}
                 placeholder="Ej. Sales Dept / Mark Stevens"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Sitio Web</label>
+              <label className="font-bold text-foreground">Sitio Web</label>
               <input
                 type="url"
                 value={web}
                 onChange={(e) => setWeb(e.target.value)}
                 placeholder="https://www.shars.com"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Correo Electrónico</label>
+              <label className="font-bold text-foreground">Correo Electrónico</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="sales@proveedor.com"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Teléfono / WhatsApp</label>
+              <label className="font-bold text-foreground">Teléfono / WhatsApp</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={telefono}
                   onChange={(e) => setTelefono(e.target.value)}
                   placeholder="Tel: +1 800-000-0000"
-                  className="w-1/2 px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
+                  className="w-1/2 px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
                 />
                 <input
                   type="text"
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
                   placeholder="WhatsApp..."
-                  className="w-1/2 px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
+                  className="w-1/2 px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
                 />
               </div>
             </div>
@@ -474,46 +461,46 @@ function FormularioProveedorModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">País</label>
+              <label className="font-bold text-foreground">País</label>
               <input
                 type="text"
                 value={pais}
                 onChange={(e) => setPais(e.target.value)}
                 placeholder="Estados Unidos, México..."
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
 
             <div className="sm:col-span-2 space-y-1">
-              <label className="font-bold text-slate-700">Ubicación / Ciudad, Estado</label>
+              <label className="font-bold text-foreground">Ubicación / Ciudad, Estado</label>
               <input
                 type="text"
                 value={ubicacion}
                 onChange={(e) => setUbicacion(e.target.value)}
                 placeholder="Ej. Aurora, Illinois, USA"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="font-bold text-slate-700">Marcas Manejadas (separadas por coma)</label>
+            <label className="font-bold text-foreground">Marcas Manejadas (separadas por coma)</label>
             <input
               type="text"
               value={marcasTexto}
               onChange={(e) => setMarcasTexto(e.target.value)}
               placeholder="Ej. YG-1, Shars, Korloy, OnlineCarbide, Deskar"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
             />
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Moneda</label>
+              <label className="font-bold text-foreground">Moneda</label>
               <select
                 value={moneda}
                 onChange={(e) => setMoneda(e.target.value as 'USD' | 'MXN')}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
               >
                 <option value="USD">USD ($)</option>
                 <option value="MXN">MXN ($)</option>
@@ -521,35 +508,35 @@ function FormularioProveedorModal({
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Lead Time (Días)</label>
+              <label className="font-bold text-foreground">Lead Time (Días)</label>
               <input
                 type="number"
                 min="0"
                 value={leadTimeDias}
                 onChange={(e) => setLeadTimeDias(e.target.value)}
                 placeholder="Ej. 4"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Pedido Mínimo ($)</label>
+              <label className="font-bold text-foreground">Pedido Mínimo ($)</label>
               <input
                 type="number"
                 min="0"
                 value={pedidoMinimo}
                 onChange={(e) => setPedidoMinimo(e.target.value)}
                 placeholder="Ej. 50"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Calificación (1-5)</label>
+              <label className="font-bold text-foreground">Calificación (1-5)</label>
               <select
                 value={calificacion}
                 onChange={(e) => setCalificacion(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
               >
                 <option value={5}>5 — Excelente</option>
                 <option value={4}>4 — Bueno</option>
@@ -562,33 +549,33 @@ function FormularioProveedorModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Notas Internas de Compras</label>
+              <label className="font-bold text-foreground">Notas Internas de Compras</label>
               <textarea
                 rows={3}
                 value={notas}
                 onChange={(e) => setNotas(e.target.value)}
                 placeholder="Detalles de descuento, observaciones sobre envíos, códigos de cupón, etc."
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Experiencia de Compra (Histórico de taller)</label>
+              <label className="font-bold text-foreground">Experiencia de Compra (Histórico de taller)</label>
               <textarea
                 rows={3}
                 value={experienciaCompra}
                 onChange={(e) => setExperienciaCompra(e.target.value)}
                 placeholder="Resumen de cómo llegó el paquete, rendimiento del cortador, atención a clientes..."
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+          <div className="flex justify-end gap-2 pt-3 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted rounded-lg transition-colors"
             >
               Cancelar
             </button>
@@ -665,10 +652,10 @@ function GenerarPOModal({
     <Dialog open={abierto} onOpenChange={(val) => !val && onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
+          <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
             <Printer className="h-5 w-5 text-primary" /> Generar Orden de Compra Internacional (PO / PDF)
           </DialogTitle>
-          <DialogDescription className="text-xs text-slate-500">
+          <DialogDescription className="text-xs text-muted-foreground">
             Genera e imprime el documento de compra formateado para proveedores de EE.UU. y registra en el historial.
           </DialogDescription>
         </DialogHeader>
@@ -677,11 +664,11 @@ function GenerarPOModal({
           {/* Datos Generales de la Orden */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Proveedor US</label>
+              <label className="font-bold text-foreground">Proveedor US</label>
               <select
                 value={proveedorId}
                 onChange={(e) => setProveedorId(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold text-primary"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs font-bold text-primary"
               >
                 {proveedores.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -692,22 +679,22 @@ function GenerarPOModal({
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">No. Orden / PO</label>
+              <label className="font-bold text-foreground">No. Orden / PO</label>
               <input
                 type="text"
                 value={numeroOrden}
                 onChange={(e) => setNumeroOrden(e.target.value)}
                 placeholder="PO-2026-001"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs font-mono font-bold"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Categoría</label>
+              <label className="font-bold text-foreground">Categoría</label>
               <select
                 value={categoria}
                 onChange={(e) => setCategoria(e.target.value as CategoriaProveedor)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs"
               >
                 <option value="endmills">Endmills</option>
                 <option value="insertos">Insertos</option>
@@ -720,102 +707,102 @@ function GenerarPOModal({
           {/* Producto, Cantidad, Precio */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div className="sm:col-span-2 space-y-1">
-              <label className="font-bold text-slate-700">Descripción del Herramental</label>
+              <label className="font-bold text-foreground">Descripción del Herramental</label>
               <input
                 type="text"
                 value={producto}
                 onChange={(e) => setProducto(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Marca</label>
+              <label className="font-bold text-foreground">Marca</label>
               <input
                 type="text"
                 value={marca}
                 onChange={(e) => setMarca(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Cantidad</label>
+              <label className="font-bold text-foreground">Cantidad</label>
               <input
                 type="number"
                 min="1"
                 value={cantidad}
                 onChange={(e) => setCantidad(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs font-bold"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Precio Unitario ($ USD)</label>
+              <label className="font-bold text-foreground">Precio Unitario ($ USD)</label>
               <input
                 type="number"
                 step="0.1"
                 value={precioUnitario}
                 onChange={(e) => setPrecioUnitario(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs font-bold"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Flete Estimado ($ USD)</label>
+              <label className="font-bold text-foreground">Flete Estimado ($ USD)</label>
               <input
                 type="number"
                 step="0.1"
                 value={fleteUSD}
                 onChange={(e) => setFleteUSD(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs font-bold"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Lead Time Est. (Días)</label>
+              <label className="font-bold text-foreground">Lead Time Est. (Días)</label>
               <input
                 type="number"
                 value={leadTimeRealDias}
                 onChange={(e) => setLeadTimeRealDias(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold"
+                className="w-full px-3 py-2 border border-input rounded-lg text-xs font-bold"
               />
             </div>
           </div>
 
           {/* VISTA PREVIA IMPRESIÓN PO */}
           {prov && (
-            <div className="p-4 bg-white border border-slate-300 rounded-xl space-y-3 font-mono text-[11px] shadow-xs">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+            <div className="p-4 bg-card border border-input rounded-xl space-y-3 font-mono text-[11px] shadow-xs">
+              <div className="flex items-center justify-between border-b border-border pb-2">
                 <div>
-                  <h3 className="font-bold text-slate-900 text-xs">SMV MAQUINADOS S.A. DE C.V.</h3>
-                  <p className="text-[10px] text-slate-500">Monterrey, N.L. México | Compras Internacionales</p>
+                  <h3 className="font-bold text-foreground text-xs">SMV MAQUINADOS S.A. DE C.V.</h3>
+                  <p className="text-[10px] text-muted-foreground">Monterrey, N.L. México | Compras Internacionales</p>
                 </div>
                 <div className="text-right">
                   <span className="font-bold text-primary">{numeroOrden}</span>
-                  <p className="text-[10px] text-slate-400">{fechaHoyLocal()}</p>
+                  <p className="text-[10px] text-muted-foreground">{fechaHoyLocal()}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-[10px]">
-                <div className="bg-slate-50 p-2 rounded border border-slate-200">
-                  <span className="font-bold text-slate-700 block uppercase">VENDOR / PROVEEDOR:</span>
-                  <p className="font-bold text-slate-900">{prov.nombre}</p>
-                  <p className="text-slate-500">{prov.ubicacion || prov.pais}</p>
+                <div className="bg-muted p-2 rounded border border-border">
+                  <span className="font-bold text-foreground block uppercase">VENDOR / PROVEEDOR:</span>
+                  <p className="font-bold text-foreground">{prov.nombre}</p>
+                  <p className="text-muted-foreground">{prov.ubicacion || prov.pais}</p>
                 </div>
 
                 <div className="bg-sky-50 p-2 rounded border border-sky-200">
                   <span className="font-bold text-primary block uppercase">SHIP TO / BODEGA USA:</span>
-                  <p className="font-bold text-slate-900">{prov.shippingAddressUSA || 'Laredo TX Crossing Warehouse'}</p>
-                  <p className="text-slate-600">Broker: {prov.brokerAduanal || 'Agencia Rangel'}</p>
+                  <p className="font-bold text-foreground">{prov.shippingAddressUSA || 'Laredo TX Crossing Warehouse'}</p>
+                  <p className="text-muted-foreground">Broker: {prov.brokerAduanal || 'Agencia Rangel'}</p>
                 </div>
               </div>
 
-              <div className="border border-slate-200 rounded overflow-hidden">
+              <div className="border border-border rounded overflow-hidden">
                 <Table className="w-full text-left text-[10px]">
-                  <TableHeader className="bg-slate-100 text-slate-600 font-bold border-b border-slate-200">
+                  <TableHeader className="bg-muted text-muted-foreground font-bold border-b border-border">
                     <TableRow>
                       <TableHead className="px-2 py-1">Item / Descripción</TableHead>
                       <TableHead className="px-2 py-1">Cant</TableHead>
@@ -834,18 +821,18 @@ function GenerarPOModal({
                 </Table>
               </div>
 
-              <div className="flex justify-between items-center pt-2 border-t border-slate-200 text-xs">
-                <span className="font-bold text-slate-700">TOTAL CON FLETE EST.:</span>
+              <div className="flex justify-between items-center pt-2 border-t border-border text-xs">
+                <span className="font-bold text-foreground">TOTAL CON FLETE EST.:</span>
                 <span className="font-black text-emerald-700 text-sm">${total.toFixed(2)} USD</span>
               </div>
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+          <div className="flex justify-end gap-2 pt-3 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
+              className="px-4 py-2 font-semibold text-muted-foreground hover:bg-muted rounded-lg"
             >
               Cancelar
             </button>
@@ -867,7 +854,7 @@ function GenerarPOModal({
 
 function ProveedoresContent() {
   const [region, setRegion] = useState<'usa' | 'mexico'>('usa')
-  const [seccion, setSeccion] = useState<'proveedores' | 'comparar' | 'inteligencia'>('proveedores')
+  const [seccion, setSeccion] = useState<'proveedores' | 'comparar'>('proveedores')
 
   const {
     proveedores,
@@ -892,42 +879,14 @@ function ProveedoresContent() {
     recargar: recargarProveedores,
   } = useDirectorioProveedores({ mercado: region })
 
-  const todosProveedores = useMemo(() => catalogoCompleto ?? [], [catalogoCompleto])
-
-  const {
-    todasCompras,
-    evaluaciones,
-    cotizaciones,
-    cargando: cargandoIntel,
-    crearCompra,
-    crearCotizacion,
-  } = useProveedoresInteligencia({
+  const { crearCompra } = useProveedoresInteligencia({
     habilitado: false,
   })
 
-  // Filtrar estrictamente compras y cotizaciones con precio > 0 (omitir 0s)
-  const comprasConPrecio = useMemo(() => {
-    return todasCompras.filter(
-      (c) => (c.precioUnitario && c.precioUnitario > 0) || (c.costoTotal && c.costoTotal > 0)
-    )
-  }, [todasCompras])
-
-  const cotizacionesFiltradas = useMemo(() => {
-    return cotizaciones
-      .map((cot) => ({
-        ...cot,
-        ofertas: cot.ofertas.filter((o) => o.precioUnitario > 0),
-        ofertasRanking: cot.ofertasRanking.filter((o) => o.precioUnitario > 0),
-      }))
-      .filter((cot) => cot.ofertas.length > 0)
-  }, [cotizaciones])
-
-  // Scorecards: ventana de 12 meses (no full-scan). Botón refresca la misma ventana.
+  // Ventana de 12 meses para ModalInvestigacionPrecios (no full-scan).
   const [ordenesScorecard, setOrdenesScorecard] = useState<OrdenCompra[]>([])
-  const [cargandoScorecards, setCargandoScorecards] = useState(false)
 
   async function cargarScorecardsVentana() {
-    setCargandoScorecards(true)
     try {
       const hasta = new Date()
       const desde = new Date()
@@ -935,32 +894,25 @@ function ProveedoresContent() {
       setOrdenesScorecard(await listarOrdenesEnRango(desde, hasta))
     } catch (err) {
       console.error('[proveedores] scorecards:', err)
-      toast.error('No se pudieron cargar las órdenes para scorecards')
-    } finally {
-      setCargandoScorecards(false)
+      toast.error('No se pudieron cargar las órdenes para investigación de precios')
     }
   }
-
-  useEffect(() => {
-    if (seccion !== 'inteligencia') return
-    const timer = window.setTimeout(() => void cargarScorecardsVentana(), 0)
-    return () => window.clearTimeout(timer)
-  }, [seccion])
 
   const [modalFormAbierto, setModalFormAbierto] = useState(false)
   const [modalPOAbierto, setModalPOAbierto] = useState(false)
   const [modalInvestigacionAbierto, setModalInvestigacionAbierto] = useState(false)
   const [proveedorEditar, setProveedorEditar] = useState<Proveedor | null>(null)
   const [idEliminar, setIdEliminar] = useState<string | null>(null)
-
-  // Estado para la sincronización desde 'ordenes'
-  const [conceptoHistorico, setConceptoHistorico] = useState('')
-  const [categoriaHistorico, setCategoriaHistorico] = useState<CategoriaProveedor>('endmills')
-  const [cargandoHistorico, setCargandoHistorico] = useState(false)
   const [itemsComprasOdoo, setItemsComprasOdoo] = useState<CompraOdooItem[]>([])
 
   useEffect(() => {
-    if (seccion !== 'inteligencia') return
+    if (!modalInvestigacionAbierto) return
+    const timer = window.setTimeout(() => void cargarScorecardsVentana(), 0)
+    return () => window.clearTimeout(timer)
+  }, [modalInvestigacionAbierto])
+
+  useEffect(() => {
+    if (!modalInvestigacionAbierto) return
     let cancelado = false
     void listarItemsComprasOdoo()
       .then((lista) => {
@@ -972,77 +924,29 @@ function ProveedoresContent() {
     return () => {
       cancelado = true
     }
-  }, [region, seccion])
+  }, [modalInvestigacionAbierto])
 
   useEffect(() => {
-    const requiereCatalogo = modalPOAbierto
-    if (!requiereCatalogo || catalogoCompleto || cargandoCatalogo) return
+    if (!modalPOAbierto || catalogoCompleto || cargandoCatalogo) return
     void cargarCatalogoCompleto().catch((err) => {
       console.error('No se pudo cargar el catálogo completo de proveedores:', err)
       toast.error('No se pudo preparar el catálogo completo')
     })
-  }, [cargarCatalogoCompleto, cargandoCatalogo, catalogoCompleto, modalPOAbierto, seccion])
+  }, [cargarCatalogoCompleto, cargandoCatalogo, catalogoCompleto, modalPOAbierto])
 
-  const catalogoRegion = todosProveedores.filter((p) => p.mercado === region)
   const totalProveedoresRegion = resumenProveedores[region]
-
-  async function handleComparadorDesdeHistorico() {
-    if (!conceptoHistorico.trim()) {
-      toast.error('Escribe un concepto o número de parte')
-      return
-    }
-    setCargandoHistorico(true)
-    try {
-      const catalogo = await cargarCatalogoCompleto()
-      const historico = await listarCotizaciones()
-      const ofertas = ofertasDesdeHistorico(
-        conceptoHistorico.trim(),
-        conceptoHistorico.trim(),
-        historico,
-        catalogo
-      )
-      if (ofertas.length === 0) {
-        toast.error('No hay cotizaciones históricas que coincidan')
-        return
-      }
-      const payload = construirComparacionDesdeHistorico(
-        conceptoHistorico.trim(),
-        categoriaHistorico,
-        ofertas
-      )
-      await crearCotizacion(payload)
-      toast.success(`Comparador creado con ${ofertas.length} ofertas desde histórico`)
-      setConceptoHistorico('')
-    } catch (err) {
-      console.error(err)
-      toast.error('No se pudo crear el comparador desde histórico')
-    } finally {
-      setCargandoHistorico(false)
-    }
-  }
 
   // Drawer lateral de detalle
   const [proveedorDetalle, setProveedorDetalle] = useState<Proveedor | null>(null)
-  const [guardandoScorecards, setGuardandoScorecards] = useState(false)
 
-  // Matriz de proveedor primario/backup por categoría — compartida entre el panel
-  // de edición (Inteligencia 360°) y los badges del directorio.
+  // Matriz de proveedor primario/backup por categoría — badges del directorio.
   const [mapeoBackup, setMapeoBackup] = useState<MatrizBackupProveedores>({})
 
   useEffect(() => {
-    // Badges Primario/Backup del directorio; la pestaña Inteligencia ya no existe.
     obtenerMatrizBackupProveedores()
       .then(setMapeoBackup)
       .catch((err) => console.error('Error cargando matriz de backup de proveedores:', err))
   }, [])
-
-  function actualizarYGuardarMapeoBackup(nuevo: MatrizBackupProveedores) {
-    setMapeoBackup(nuevo)
-    guardarMatrizBackupProveedores(nuevo).catch((err) => {
-      console.error('Error guardando matriz de backup de proveedores:', err)
-      toast.error('No se pudo guardar la matriz de proveedor primario/backup.')
-    })
-  }
 
   const proveedoresPrimarios = useMemo(
     () => new Set(Object.values(mapeoBackup).map((m) => m.primarioId).filter(Boolean)),
@@ -1052,27 +956,6 @@ function ProveedoresContent() {
     () => new Set(Object.values(mapeoBackup).map((m) => m.backupId).filter(Boolean)),
     [mapeoBackup]
   )
-
-  const scorecardsAuto = useMemo(() => {
-    return generarScorecardsDesdeOrdenes(ordenesScorecard, todasCompras, todosProveedores)
-  }, [ordenesScorecard, todasCompras, todosProveedores])
-
-  async function handleGenerarScorecards() {
-    if (scorecardsAuto.length === 0) {
-      toast.error('No hay compras suficientes registradas para generar scorecards')
-      return
-    }
-    setGuardandoScorecards(true)
-    try {
-      const guardadas = await persistirScorecardsAutomaticas(scorecardsAuto)
-      toast.success(`Se guardaron ${guardadas} scorecards en la base de datos`)
-    } catch (err) {
-      console.error(err)
-      toast.error('Error al guardar scorecards')
-    } finally {
-      setGuardandoScorecards(false)
-    }
-  }
 
   const totalProveedores = resumenProveedores.total
 
@@ -1128,292 +1011,54 @@ function ProveedoresContent() {
           onAbrirInvestigacion={() => setModalInvestigacionAbierto(true)}
         />
 
-        <Tabs value={seccion} onValueChange={(v) => setSeccion(v as typeof seccion)}>
-          <TabsList className="h-auto w-full flex-wrap justify-start sm:w-fit">
-            <TabsTrigger value="proveedores" className="gap-2 text-xs">
-              <Building2 className="size-4" aria-hidden />
-              Directorio ({totalProveedoresRegion}{resumenProveedores.sinMercado > 0 ? '+' : ''})
-            </TabsTrigger>
-            <TabsTrigger value="comparar" className="gap-2 text-xs">
-              <Scale className="size-4 text-emerald-600" aria-hidden />
-              Comparador de precios
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="proveedores">
-          <DirectorioProveedores
-            proveedores={proveedores}
-            mercado={region}
-            cargando={cargandoProv}
-            cargandoMas={cargandoMas}
-            error={errorProv}
-            hayMas={hayMas}
-            totalMercado={resumenProveedores.sinMercado === 0 ? totalProveedoresRegion : undefined}
-            onRetry={() => void recargarProveedores()}
-            onCargarMas={() => void cargarMas()}
-            busqueda={busqueda}
-            onBusquedaChange={setBusqueda}
-            categoriaFiltro={filtroCategoria}
-            onCategoriaChange={setFiltroCategoria}
-            ordenamiento={orden}
-            onOrdenamientoChange={setOrden}
-            onSelectProveedor={(prov) => setProveedorDetalle(prov)}
-            onEditProveedor={abrirEditar}
-            proveedoresPrimarios={proveedoresPrimarios}
-            proveedoresBackup={proveedoresBackup}
-          />
-          </TabsContent>
-          <TabsContent value="comparar">
-            <PanelComprasOdoo />
-          </TabsContent>
-        </Tabs>
-
-        {/* Comparador histórico anterior, retenido temporalmente mientras se migran los escenarios existentes. */}
-        {false && seccion === 'comparar' && region === 'usa' && (
-          <div className="space-y-6">
-            <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <Scale className="h-5 w-5 text-emerald-600" />
-                    Comparador Inteligente de Cotizaciones SMV
-                  </h2>
-                  <p className="text-xs text-slate-500">
-                    Ranking automatizado considerando 40% Precio, 30% Lead Time y 30% Scorecard del Proveedor.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-end gap-2 pt-2 border-t border-slate-100">
-                <div className="flex-1 min-w-[180px]">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Concepto / No. parte</label>
-                  <input
-                    type="text"
-                    value={conceptoHistorico}
-                    onChange={(e) => setConceptoHistorico(e.target.value)}
-                    placeholder="Ej. Endmill 1/2 AlTiN"
-                    className="w-full mt-0.5 px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Categoría</label>
-                  <select
-                    value={categoriaHistorico}
-                    onChange={(e) => setCategoriaHistorico(e.target.value as CategoriaProveedor)}
-                    className="mt-0.5 px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg"
-                  >
-                    <option value="endmills">Endmills</option>
-                    <option value="insertos">Insertos</option>
-                    <option value="tooling">Tooling</option>
-                    <option value="consumibles">Consumibles</option>
-                    <option value="otros">Otros</option>
-                  </select>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void handleComparadorDesdeHistorico()}
-                  disabled={cargandoHistorico}
-                  className="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  {cargandoHistorico ? 'Cargando…' : 'Crear desde histórico'}
-                </button>
-              </div>
-            </div>
-
-            {cargandoIntel ? (
-              <div className="p-8 text-center text-xs text-slate-400 animate-pulse">Cargando cotizaciones de comparación...</div>
-            ) : cotizacionesFiltradas.length === 0 ? (
-              <div className="bg-white border border-slate-200 rounded-xl p-10 text-center space-y-2">
-                <Scale className="h-10 w-10 text-slate-300 mx-auto" />
-                <h3 className="text-sm font-bold text-slate-900">Sin escenarios de cotización registrados</h3>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {cotizacionesFiltradas.map((cot) => (
-                  <div key={cot.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                      <div>
-                        <span className="text-[10px] font-mono font-bold bg-sky-50 text-primary px-2 py-0.5 rounded border border-sky-200 uppercase">
-                          Escenario: {cot.categoria}
-                        </span>
-                        <h3 className="text-sm font-bold text-slate-900 mt-1">{cot.concepto}</h3>
-                        <BandaRangoMetalConcepto concepto={cot.concepto} items={itemsComprasOdoo} />
-                      </div>
-                      <span className="text-xs font-mono text-slate-400">Fecha: {cot.fecha}</span>
-                    </div>
-
-                    <SeccionRecomendacionInteligente
-                      ofertas={cot.ofertas.map((of) => ({
-                        proveedorId: of.proveedorId,
-                        proveedorNombre: of.proveedorNombre,
-                        precioTotal: of.precioUnitario,
-                        moneda: of.moneda,
-                        leadTimeDias: of.leadTimeDias,
-                        observaciones: of.notas,
-                      }))}
-                      proveedoresCatalogo={todosProveedores}
-                      evaluacionesHistoricas={evaluaciones}
-                      comprasHistoricas={comprasConPrecio}
-                    />
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      {cot.ofertasRanking.map((of) => (
-                        <div
-                          key={of.proveedorId}
-                          className={[
-                            'border rounded-xl p-4 flex flex-col justify-between space-y-3 relative',
-                            of.esMejorBalance
-                              ? 'bg-emerald-50/60 border-emerald-300 shadow-xs'
-                              : 'bg-slate-50/60 border-slate-200',
-                          ].join(' ')}
-                        >
-                          <div>
-                            <div className="flex flex-wrap items-center gap-1 mb-2">
-                              {of.esMejorBalance && (
-                                <span className="bg-emerald-600 text-white text-[10px] font-bold font-mono px-2 py-0.5 rounded flex items-center gap-1 shadow-2xs">
-                                  <Zap className="h-3 w-3" /> #1 Mejor Balance ⭐
-                                </span>
-                              )}
-                              {of.esMejorPrecio && (
-                                <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold font-mono px-2 py-0.5 rounded flex items-center gap-1">
-                                  💰 Mejor Precio
-                                </span>
-                              )}
-                              {of.esMasRapido && (
-                                <span className="bg-sky-100 text-primary border border-sky-300 text-[10px] font-bold font-mono px-2 py-0.5 rounded flex items-center gap-1">
-                                  ⚡ Más Rápido
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-xs font-bold text-slate-900">{of.proveedorNombre}</h4>
-                              <span className="text-xs font-mono font-black text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">
-                                {of.scoreCalculado} pts
-                              </span>
-                            </div>
-
-                            <p className="text-[11px] text-slate-500 font-mono mt-0.5">Marca: {of.marca || 'Estándar'}</p>
-
-                            <div className="mt-3 space-y-1.5 text-xs font-mono">
-                              <div className="flex justify-between items-center">
-                                <span className="text-slate-500 text-[11px]">Precio Unitario:</span>
-                                <span className="font-bold text-slate-900 text-sm">
-                                  ${of.precioUnitario} {of.moneda}
-                                </span>
-                              </div>
-
-                              <div className="flex justify-between items-center">
-                                <span className="text-slate-500 text-[11px]">Lead Time:</span>
-                                <span className="font-bold text-slate-800">{of.leadTimeDias} días</span>
-                              </div>
-
-                              <div className="flex justify-between items-center">
-                                <span className="text-slate-500 text-[11px]">Pedido Mínimo:</span>
-                                <span className="font-medium text-slate-700">{of.MOQ} pz(s)</span>
-                              </div>
-                            </div>
-
-                            {of.notas && (
-                              <p className="mt-2.5 text-[11px] text-slate-600 bg-white p-2 rounded-md border border-slate-200 leading-snug">
-                                {of.notas}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* PESTAÑA 3: HISTORIAL DE COMPRAS */}
-        {false && seccion === 'comparar' && region === 'usa' && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <History className="h-5 w-5 text-amber-600" />
-                  Historial Registrado de Compras a Proveedores US
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Registro histórico de compras de endmills, insertos y accesorios para el taller de SMV Maquinados.
-                </p>
-              </div>
-
-            </div>
-
-            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
-              <div className="overflow-x-auto">
-                <Table className="w-full text-left text-xs font-sans">
-                  <TableHeader className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
-                    <TableRow>
-                      <TableHead className="px-4 py-3">Fecha / Orden</TableHead>
-                      <TableHead className="px-4 py-3">Proveedor</TableHead>
-                      <TableHead className="px-4 py-3">Producto / Herramienta</TableHead>
-                      <TableHead className="px-4 py-3">Categoría</TableHead>
-                      <TableHead className="px-4 py-3">Cant.</TableHead>
-                      <TableHead className="px-4 py-3">P. Unitario</TableHead>
-                      <TableHead className="px-4 py-3">Total</TableHead>
-                      <TableHead className="px-4 py-3">Lead Time Real</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody className="divide-y divide-slate-100 text-slate-700">
-                    {comprasConPrecio.map((c) => (
-                      <TableRow key={c.id} className="hover:bg-slate-50/80 transition-colors font-mono text-[11px]">
-                        <TableCell className="px-4 py-3">
-                          <span className="font-bold text-slate-900 block">{c.fecha}</span>
-                          <span className="text-[10px] text-slate-400">{c.numeroOrden}</span>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 font-bold text-slate-800">{c.proveedorNombre}</TableCell>
-                        <TableCell className="px-4 py-3 font-sans font-semibold text-slate-900">{c.producto}</TableCell>
-                        <TableCell className="px-4 py-3">
-                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 text-[10px]">
-                            {c.categoria}
-                          </span>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 font-bold text-slate-800">{c.cantidad}</TableCell>
-                        <TableCell className="px-4 py-3">${c.precioUnitario} {c.moneda}</TableCell>
-                        <TableCell className="px-4 py-3 font-bold text-emerald-700">${c.costoTotal} {c.moneda}</TableCell>
-                        <TableCell className="px-4 py-3 font-bold text-slate-800">{c.leadTimeRealDias} días</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PESTAÑA 3: INTELIGENCIA 360° & CONTINGENCIA */}
-        {false && seccion === 'inteligencia' && cargandoCatalogo && (
-          <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-sm font-medium text-slate-500">
-            Preparando el catálogo para Inteligencia 360°…
-          </div>
-        )}
-        {false && seccion === 'inteligencia' && !cargandoCatalogo && catalogoCompleto && (
-          <div className="space-y-6">
-            <PanelVinculacionProveedores proveedores={todosProveedores} />
-            <PanelInteligencia360
-              proveedores={catalogoRegion}
-              scorecards={scorecardsAuto}
-              onGenerarScorecards={handleGenerarScorecards}
-              guardandoScorecards={guardandoScorecards}
-              onActualizarVentanaScorecards={() => void cargarScorecardsVentana()}
-              cargandoVentanaScorecards={cargandoScorecards}
-              mapeoBackup={mapeoBackup}
-              onActualizarMapeoBackup={actualizarYGuardarMapeoBackup}
-            />
-          </div>
-        )}
-
-        {/* MÉXICO — comparar precios (rangos Odoo) */}
-        {false && seccion === 'comparar' && region === 'mexico' && (
-          <PanelComprasOdoo />
-        )}
+        <ModuleTabs
+          value={seccion}
+          onValueChange={(v) => setSeccion(v as typeof seccion)}
+          items={[
+            {
+              value: 'proveedores',
+              label: (
+                <span className="inline-flex items-center gap-2">
+                  <Building2 className="size-4" aria-hidden />
+                  Directorio ({totalProveedoresRegion}{resumenProveedores.sinMercado > 0 ? '+' : ''})
+                </span>
+              ),
+              content: (
+                <DirectorioProveedores
+                  proveedores={proveedores}
+                  mercado={region}
+                  cargando={cargandoProv}
+                  cargandoMas={cargandoMas}
+                  error={errorProv}
+                  hayMas={hayMas}
+                  totalMercado={resumenProveedores.sinMercado === 0 ? totalProveedoresRegion : undefined}
+                  onRetry={() => void recargarProveedores()}
+                  onCargarMas={() => void cargarMas()}
+                  busqueda={busqueda}
+                  onBusquedaChange={setBusqueda}
+                  categoriaFiltro={filtroCategoria}
+                  onCategoriaChange={setFiltroCategoria}
+                  ordenamiento={orden}
+                  onOrdenamientoChange={setOrden}
+                  onSelectProveedor={(prov) => setProveedorDetalle(prov)}
+                  onEditProveedor={abrirEditar}
+                  proveedoresPrimarios={proveedoresPrimarios}
+                  proveedoresBackup={proveedoresBackup}
+                />
+              ),
+            },
+            {
+              value: 'comparar',
+              label: (
+                <span className="inline-flex items-center gap-2">
+                  <Scale className="size-4 text-emerald-600" aria-hidden />
+                  Comparador de precios
+                </span>
+              ),
+              content: <PanelComprasOdoo />,
+            },
+          ]}
+        />
 
         {/* Drawer Lateral de Detalle / Master-Detail */}
         <DrawerDetalleProveedor

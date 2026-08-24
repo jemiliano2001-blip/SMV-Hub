@@ -2,9 +2,25 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Camera, ExternalLink, Loader2, Send, ShoppingCart, X, MessageSquare, Copy, Trash2, Eye } from 'lucide-react'
+import {
+  AlertTriangle,
+  Camera,
+  ExternalLink,
+  Inbox,
+  Loader2,
+  Send,
+  ShoppingCart,
+  X,
+  MessageSquare,
+  Copy,
+  Trash2,
+  Eye,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
+import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
+import ModuleFilterChips from '@/components/layout/ModuleFilterChips'
+import ModuleSurface from '@/components/layout/ModuleSurface'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
 import { tieneModulo } from '@/lib/roles'
@@ -158,7 +174,7 @@ export default function PedidosAlmacenView() {
     return (
       <ContextMenu>
         <ContextMenuTrigger asChild>
-          <div className="flex gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs hover:shadow-xs transition-all cursor-pointer select-none">
+          <div className="flex cursor-pointer select-none gap-3 overflow-hidden rounded-xl border border-border bg-card p-4 shadow-xs transition-shadow hover:shadow-sm">
             {pedido.imagenUrl && (
               <a
                 href={pedido.imagenUrl}
@@ -171,16 +187,20 @@ export default function PedidosAlmacenView() {
                 <img
                   src={pedido.imagenUrl}
                   alt="Foto del pedido"
-                  className="h-16 w-16 rounded-xl border border-slate-200 object-cover"
+                  className="h-16 w-16 rounded-xl border border-border object-cover"
                 />
               </a>
             )}
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-slate-900 break-words">{pedido.descripcion}</p>
+              <p className="break-words text-sm font-bold text-foreground">{pedido.descripcion}</p>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 {pedido.urgente && (
-                  <Badge variant="outline" className="bg-red-50 text-red-900 border-red-300 font-mono text-[10px] font-bold">
-                    🚨 URGENTE
+                  <Badge
+                    variant="outline"
+                    className="border-red-300 bg-red-50 font-mono text-[10px] font-bold text-red-900"
+                  >
+                    <AlertTriangle className="mr-1 h-3 w-3" aria-hidden />
+                    URGENTE
                   </Badge>
                 )}
                 <Badge
@@ -188,16 +208,16 @@ export default function PedidosAlmacenView() {
                   className={[
                     'font-mono text-[10px] font-bold uppercase',
                     pedido.estado === 'pendiente'
-                      ? 'bg-sky-50 text-primary border-sky-200'
+                      ? 'border-sky-200 bg-sky-50 text-primary'
                       : pedido.estado === 'comprado'
-                      ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
-                      : 'bg-slate-100 text-slate-600 border-slate-200',
+                        ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
+                        : 'border-border bg-muted text-muted-foreground',
                   ].join(' ')}
                 >
                   {ESTADO_LABEL[pedido.estado]}
                 </Badge>
               </div>
-              <p className="mt-1 text-xs text-slate-500 font-mono">
+              <p className="mt-1 font-mono text-xs text-muted-foreground">
                 {pedido.solicitadoPorNombre} · {formatFechaHoraCorta(pedido.creadoEn)}
               </p>
               {pedido.ordenIdVinculada && (
@@ -205,7 +225,7 @@ export default function PedidosAlmacenView() {
                   <Link
                     href="/ordenes"
                     onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:text-sky-700 hover:underline bg-sky-50 px-2 py-0.5 rounded border border-sky-200"
+                    className="inline-flex items-center gap-1 rounded border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-600 hover:text-sky-700 hover:underline"
                   >
                     <ExternalLink className="h-3 w-3" />
                     Ver Orden de Compra vinculada
@@ -216,7 +236,7 @@ export default function PedidosAlmacenView() {
                 <div className="mt-2.5 flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
                   <Link
                     href={`/nueva-compra?pedidoId=${pedido.id}&descripcion=${encodeURIComponent(pedido.descripcion)}`}
-                    className="inline-flex items-center gap-1 rounded-xl bg-primary hover:bg-primary/90 active:scale-98 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition-all"
+                    className="inline-flex items-center gap-1 rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-xs transition-all hover:bg-primary/90 active:scale-98"
                   >
                     <ShoppingCart className="h-3.5 w-3.5" />
                     Comprar ahora
@@ -224,7 +244,7 @@ export default function PedidosAlmacenView() {
                   <button
                     type="button"
                     onClick={() => handleCancelar(pedido.id)}
-                    className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-98 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs transition-all cursor-pointer"
+                    className="cursor-pointer rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground shadow-2xs transition-all hover:bg-muted active:scale-98"
                   >
                     Cancelar
                   </button>
@@ -260,7 +280,7 @@ export default function PedidosAlmacenView() {
 
           <ContextMenuSub>
             <ContextMenuSubTrigger>
-              <Copy className="text-slate-500" />
+              <Copy className="text-muted-foreground" />
               <span>Copiar información</span>
             </ContextMenuSubTrigger>
             <ContextMenuSubContent className="w-48">
@@ -345,75 +365,76 @@ export default function PedidosAlmacenView() {
         </div>
       )}
 
-      <form onSubmit={handleEnviar} className="space-y-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <textarea
-          ref={textareaRef}
-          autoFocus
-          required
-          rows={2}
-          placeholder="¿Qué necesitas que se compre? Ej. 5 brocas de 3/8"
-          value={descripcion}
-          onChange={(e) => setDescripcion(e.target.value)}
-          className="w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-
-        <div className="flex flex-wrap items-center gap-2">
-          {(['normal', 'urgente'] as const).map((opcion) => (
-            <button
-              key={opcion}
-              type="button"
-              onClick={() => setUrgente(opcion === 'urgente')}
-              className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
-                urgente === (opcion === 'urgente')
-                  ? 'border-primary bg-primary text-white'
-                  : 'border-gray-200 bg-white text-gray-700 hover:border-primary/50'
-              }`}
-            >
-              {opcion === 'urgente' ? 'Urgente' : 'Normal'}
-            </button>
-          ))}
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleImagenChange}
-            className="hidden"
+      <ModuleSurface className="space-y-3 p-4">
+        <form onSubmit={handleEnviar} className="space-y-3">
+          <textarea
+            ref={textareaRef}
+            autoFocus
+            required
+            rows={2}
+            placeholder="¿Qué necesitas que se compre? Ej. 5 brocas de 3/8"
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            className="w-full resize-none rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
-          {previewUrl ? (
-            <div className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={previewUrl} alt="Foto seleccionada" className="h-9 w-9 rounded-md border object-cover" />
+
+          <div className="flex flex-wrap items-center gap-2">
+            <ModuleFilterChips
+              ariaLabel="Prioridad del pedido"
+              value={urgente ? 'urgente' : 'normal'}
+              onValueChange={(value) => setUrgente(value === 'urgente')}
+              options={[
+                { value: 'normal', label: 'Normal' },
+                { value: 'urgente', label: 'Urgente' },
+              ]}
+            />
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleImagenChange}
+              className="hidden"
+            />
+            {previewUrl ? (
+              <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewUrl}
+                  alt="Foto seleccionada"
+                  className="h-9 w-9 rounded-md border border-border object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={quitarImagen}
+                  className="absolute -right-1.5 -top-1.5 rounded-full bg-foreground p-0.5 text-background"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ) : (
               <button
                 type="button"
-                onClick={quitarImagen}
-                className="absolute -right-1.5 -top-1.5 rounded-full bg-gray-900 p-0.5 text-white"
+                onClick={() => setIsCamaraOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted"
               >
-                <X className="h-3 w-3" />
+                <Camera className="h-4 w-4" />
+                Foto (opcional)
               </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setIsCamaraOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:border-primary/50 hover:bg-sky-50/50"
-            >
-              <Camera className="h-4 w-4" />
-              Foto (opcional)
-            </button>
-          )}
+            )}
 
-          <button
-            type="submit"
-            disabled={enviando || !descripcion.trim()}
-            className="ml-auto inline-flex items-center gap-2 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
-          >
-            {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Enviar pedido
-          </button>
-        </div>
-      </form>
+            <button
+              type="submit"
+              disabled={enviando || !descripcion.trim()}
+              className="ml-auto inline-flex items-center gap-2 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Enviar pedido
+            </button>
+          </div>
+        </form>
+      </ModuleSurface>
 
       <ModalCamara
         isOpen={isCamaraOpen}
@@ -423,17 +444,21 @@ export default function PedidosAlmacenView() {
       />
 
       {loading ? (
-        <div className="h-24 animate-pulse rounded-lg bg-gray-100"></div>
+        <div className="h-24 animate-pulse rounded-lg bg-muted" />
       ) : error ? (
-        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">{error}</div>
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">{error}</div>
       ) : (
         <div className="space-y-6">
           <div>
-            <h3 className="mb-3 text-sm font-medium text-gray-900">
+            <h3 className="mb-3 text-sm font-medium text-foreground">
               Pendientes ({pendientes.length})
             </h3>
             {pendientes.length === 0 ? (
-              <p className="text-sm text-gray-500">No hay pedidos pendientes.</p>
+              <ModuleEmptyState
+                icon={Inbox}
+                title="No hay pedidos pendientes"
+                description="Los requerimientos nuevos de piso aparecerán aquí."
+              />
             ) : (
               <div className="space-y-2">
                 {pendientes.map((p) => (
@@ -445,7 +470,7 @@ export default function PedidosAlmacenView() {
 
           {historial.length > 0 && (
             <details className="group">
-              <summary className="cursor-pointer text-sm font-medium text-gray-900">
+              <summary className="cursor-pointer text-sm font-medium text-foreground">
                 Historial ({historial.length})
               </summary>
               <div className="mt-3 space-y-2">

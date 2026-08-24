@@ -121,15 +121,15 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
           <form id="cotizacion-form" onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Solicitante</label>
+                <label className="mb-1 block text-xs font-semibold text-foreground">Solicitante</label>
                 <input value={formData.solicitante} onChange={e => setFormData({ ...formData, solicitante: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Fecha</label>
+                <label className="mb-1 block text-xs font-semibold text-foreground">Fecha</label>
                 <input type="date" value={formData.fecha} onChange={e => setFormData({ ...formData, fecha: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Estatus</label>
+                <label className="mb-1 block text-xs font-semibold text-foreground">Estatus</label>
                 <select value={formData.estatus} onChange={e => setFormData({ ...formData, estatus: e.target.value as EstatusCotizacion })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none">
                   <option value="cotizado">Cotizado</option>
                   <option value="revisar">Revisar</option>
@@ -140,14 +140,14 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Ubicación</label>
+                <label className="mb-1 block text-xs font-semibold text-foreground">Ubicación</label>
                 <select value={formData.ubicacion} onChange={e => setFormData({ ...formData, ubicacion: e.target.value as Ubicacion })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none">
                   <option value="USA">EUA (USD)</option>
                   <option value="MX">México (MXN)</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Proveedor *</label>
+                <label className="mb-1 block text-xs font-semibold text-foreground">Proveedor *</label>
                 <input
                   required
                   list="catalogo-proveedores-cotizacion"
@@ -163,42 +163,42 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
                 </datalist>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">No. de parte</label>
+                <label className="mb-1 block text-xs font-semibold text-foreground">No. de parte</label>
                 <input value={formData.numeroParte} onChange={e => setFormData({ ...formData, numeroParte: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Descripción *</label>
+              <label className="mb-1 block text-xs font-semibold text-foreground">Descripción *</label>
               <input required value={formData.descripcion} onChange={e => setFormData({ ...formData, descripcion: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Cantidad</label>
+                <label className="mb-1 block text-xs font-semibold text-foreground">Cantidad</label>
                 <input type="number" step="any" value={formData.cantidad} onChange={e => setFormData({ ...formData, cantidad: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">P. Unitario</label>
+                <label className="mb-1 block text-xs font-semibold text-foreground">P. Unitario</label>
                 <input type="number" step="any" value={formData.precioUnitario} onChange={e => setFormData({ ...formData, precioUnitario: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Total</label>
+                <label className="mb-1 block text-xs font-semibold text-foreground">Total</label>
                 <input type="number" step="any" value={formData.total} onChange={e => setFormData({ ...formData, total: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Días hábiles</label>
+                <label className="mb-1 block text-xs font-semibold text-foreground">Días hábiles</label>
                 <input placeholder="Ej. 3 dias" value={formData.diasHabiles} onChange={e => setFormData({ ...formData, diasHabiles: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Link</label>
+              <label className="mb-1 block text-xs font-semibold text-foreground">Link</label>
               <input type="url" placeholder="https://" value={formData.link} onChange={e => setFormData({ ...formData, link: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Notas</label>
+              <label className="mb-1 block text-xs font-semibold text-foreground">Notas</label>
               <textarea rows={3} value={formData.notas} onChange={e => setFormData({ ...formData, notas: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none resize-none" />
             </div>
           </form>

@@ -189,29 +189,29 @@ export default function ModalInvestigacionPrecios({
 
   return (
     <Dialog open={abierto} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-6 bg-white border border-slate-200 shadow-xl rounded-2xl">
-        <DialogHeader className="border-b border-slate-100 pb-4">
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto sm:max-w-4xl">
+        <DialogHeader className="border-b border-border pb-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <div className="p-2 rounded-xl bg-sky-50 border border-sky-200 text-primary">
                 <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
                   Asistente de Precios & Proveedores con Gemini 3.7
                   <Badge variant="outline" className="text-xs bg-sky-50 text-sky-700 border-sky-200 font-bold">
                     Deep Market Intel
                   </Badge>
                 </DialogTitle>
-                <DialogDescription className="text-xs text-slate-500 mt-0.5">
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                   Consulta precios de referencia, opciones de distribuidores (USA/MX), tiempos de entrega y recomendaciones técnicas para herramientas y materiales.
                 </DialogDescription>
               </div>
             </div>
 
-            <div className="hidden sm:flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg">
-              <span className="text-[11px] font-semibold text-slate-500">TC:</span>
-              <span className="text-xs font-mono font-bold text-slate-800">${tipoCambioActual.toFixed(2)} MXN</span>
+            <div className="hidden sm:flex items-center gap-1.5 bg-muted/40 border border-border px-2.5 py-1 rounded-lg">
+              <span className="text-[11px] font-semibold text-muted-foreground">TC:</span>
+              <span className="text-xs font-mono font-bold text-foreground">${tipoCambioActual.toFixed(2)} MXN</span>
             </div>
           </div>
         </DialogHeader>
@@ -219,7 +219,7 @@ export default function ModalInvestigacionPrecios({
         {/* Formulario de Entrada */}
         <div className="space-y-4 pt-2">
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700">
+            <label className="text-xs font-bold text-foreground">
               ¿Qué insumo, material o herramienta deseas investigar?
             </label>
             <div className="relative">
@@ -231,14 +231,14 @@ export default function ModalInvestigacionPrecios({
                   if (e.key === 'Enter' && !cargando) ejecutarInvestigacion()
                 }}
                 placeholder="Ej. Fresa de carburo 1/2 pulgada 4 filos AlTiN para acero 4140..."
-                className="w-full pl-10 pr-24 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+                className="w-full pl-10 pr-24 py-2.5 text-sm bg-muted/40 border border-input rounded-xl text-foreground focus:bg-card focus:outline-none focus:ring-2 focus:ring-ring transition-all"
               />
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5" />
               <Button
                 type="button"
                 onClick={() => ejecutarInvestigacion()}
                 disabled={cargando || !consulta.trim()}
-                className="absolute right-1.5 top-1.5 h-8 px-4 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-lg shadow-xs"
+                className="absolute right-1.5 top-1.5 h-8 px-4 text-xs font-bold rounded-lg shadow-xs"
               >
                 {cargando ? 'Buscando...' : 'Investigar'}
               </Button>
@@ -248,13 +248,13 @@ export default function ModalInvestigacionPrecios({
           {/* Filtros de Alcance y Cantidad */}
           <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-slate-600">Mercado:</span>
-              <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+              <span className="font-bold text-foreground">Mercado:</span>
+              <div className="flex bg-muted p-0.5 rounded-lg border border-border">
                 <button
                   type="button"
                   onClick={() => setMercado('ambos')}
                   className={`px-3 py-1 rounded-md font-bold transition-all ${
-                    mercado === 'ambos' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                    mercado === 'ambos' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   Ambos
@@ -263,7 +263,7 @@ export default function ModalInvestigacionPrecios({
                   type="button"
                   onClick={() => setMercado('usa')}
                   className={`px-3 py-1 rounded-md font-bold transition-all ${
-                    mercado === 'usa' ? 'bg-white text-sky-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                    mercado === 'usa' ? 'bg-card text-sky-800 shadow-xs' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   USA
@@ -272,7 +272,7 @@ export default function ModalInvestigacionPrecios({
                   type="button"
                   onClick={() => setMercado('mexico')}
                   className={`px-3 py-1 rounded-md font-bold transition-all ${
-                    mercado === 'mexico' ? 'bg-white text-emerald-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                    mercado === 'mexico' ? 'bg-card text-emerald-800 shadow-xs' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   México
@@ -281,14 +281,14 @@ export default function ModalInvestigacionPrecios({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="font-bold text-slate-600">Cantidad:</span>
+              <span className="font-bold text-foreground">Cantidad:</span>
               <input
                 type="number"
                 min="1"
                 max="1000"
                 value={cantidad}
                 onChange={(e) => setCantidad(Number(e.target.value) || 1)}
-                className="w-16 px-2 py-1 text-center bg-slate-50 border border-slate-200 rounded-md font-bold text-slate-800"
+                className="w-16 px-2 py-1 text-center bg-muted/40 border border-input rounded-md font-bold text-foreground"
               />
             </div>
           </div>
@@ -296,7 +296,7 @@ export default function ModalInvestigacionPrecios({
           {/* Sugerencias Rápidas */}
           {!resultado && !cargando && (
             <div className="space-y-1.5 pt-1">
-              <span className="text-[11px] font-semibold text-slate-400">Consultas frecuentes de taller:</span>
+              <span className="text-[11px] font-semibold text-muted-foreground">Consultas frecuentes de taller:</span>
               <div className="flex flex-wrap gap-1.5">
                 {EJEMPLOS_BUSQUEDA.map((ej, idx) => (
                   <button
@@ -306,7 +306,7 @@ export default function ModalInvestigacionPrecios({
                       setConsulta(ej)
                       ejecutarInvestigacion(ej)
                     }}
-                    className="text-left text-[11px] px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-sky-50 text-slate-600 hover:text-primary border border-slate-200 hover:border-sky-200 transition-all font-medium"
+                    className="text-left text-[11px] px-2.5 py-1 rounded-lg bg-muted/40 hover:bg-sky-50 text-muted-foreground hover:text-primary border border-border hover:border-sky-200 transition-all font-medium"
                   >
                     {ej}
                   </button>
@@ -319,12 +319,12 @@ export default function ModalInvestigacionPrecios({
           {cargando && (
             <div className="py-12 flex flex-col items-center justify-center gap-3 text-center">
               <div className="relative">
-                <div className="w-12 h-12 rounded-full border-4 border-sky-100 border-t-primary animate-spin" />
+                <div className="w-12 h-12 rounded-full border-4 border-muted border-t-primary animate-spin" />
                 <Sparkles className="w-5 h-5 text-primary absolute inset-0 m-auto animate-pulse" />
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-bold text-slate-800">Analizando mercado con Gemini 3.7 Flash...</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm font-bold text-foreground">Analizando mercado con Gemini 3.7 Flash...</p>
+                <p className="text-xs text-muted-foreground">
                   Consultando distribuidores industriales, calculando rangos y comparando especificaciones.
                 </p>
               </div>
@@ -333,7 +333,7 @@ export default function ModalInvestigacionPrecios({
 
           {/* Visualización de Resultados */}
           {resultado && !cargando && (
-            <div className="space-y-4 pt-2 border-t border-slate-100">
+            <div className="space-y-4 pt-2 border-t border-border">
               {/* Banner de Aviso de Estimaciones IA */}
               <div className="rounded-xl border border-amber-300/80 bg-amber-50/90 p-3 text-xs text-amber-950 flex items-start gap-2.5 shadow-2xs">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
@@ -343,17 +343,17 @@ export default function ModalInvestigacionPrecios({
               </div>
 
               {/* Header del Resultado */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/40 p-3.5 rounded-xl border border-border">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-primary">
                       {resultado.categoria.replace('_', ' ')}
                     </span>
-                    <Badge variant="secondary" className="text-[10px] bg-slate-200/80 text-slate-700 font-bold">
+                    <Badge variant="secondary" className="text-[10px] bg-muted text-foreground font-bold">
                       {resultado.opciones.length} opciones
                     </Badge>
                   </div>
-                  <h3 className="text-base font-bold text-slate-900 mt-0.5">{resultado.concepto}</h3>
+                  <h3 className="text-base font-bold text-foreground mt-0.5">{resultado.concepto}</h3>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -361,7 +361,7 @@ export default function ModalInvestigacionPrecios({
                     type="button"
                     onClick={copiarFichaMarkdown}
                     variant="outline"
-                    className="h-8 text-xs font-bold gap-1.5 bg-white hover:bg-slate-100 text-slate-700 border-slate-300"
+                    className="h-8 text-xs font-bold gap-1.5"
                   >
                     {copiado ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                     {copiado ? 'Copiado' : 'Copiar Ficha'}
@@ -392,12 +392,12 @@ export default function ModalInvestigacionPrecios({
 
               {/* Rango de Mercado */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase">Mínimo de Mercado</span>
+                <div className="p-3 bg-muted/40 rounded-xl border border-border text-center">
+                  <span className="text-[11px] font-bold text-muted-foreground uppercase">Mínimo de Mercado</span>
                   <div className="text-base font-bold text-emerald-700 mt-0.5">
                     ${resultado.rangoPreciosUSD.min} <span className="text-xs font-semibold">USD</span>
                   </div>
-                  <span className="text-[10px] text-slate-400 font-mono">
+                  <span className="text-[10px] text-muted-foreground font-mono">
                     ~{formatPrecio(resultado.rangoPreciosMXN.min, 'MXN')}
                   </span>
                 </div>
@@ -412,12 +412,12 @@ export default function ModalInvestigacionPrecios({
                   </span>
                 </div>
 
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase">Máximo Estimado</span>
+                <div className="p-3 bg-muted/40 rounded-xl border border-border text-center">
+                  <span className="text-[11px] font-bold text-muted-foreground uppercase">Máximo Estimado</span>
                   <div className="text-base font-bold text-amber-700 mt-0.5">
                     ${resultado.rangoPreciosUSD.max} <span className="text-xs font-semibold">USD</span>
                   </div>
-                  <span className="text-[10px] text-slate-400 font-mono">
+                  <span className="text-[10px] text-muted-foreground font-mono">
                     ~{formatPrecio(resultado.rangoPreciosMXN.max, 'MXN')}
                   </span>
                 </div>
@@ -425,7 +425,7 @@ export default function ModalInvestigacionPrecios({
 
               {/* Comparador de Opciones de Proveedores */}
               <div className="space-y-2.5">
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
                   <Building2 className="w-4 h-4 text-primary" /> Opciones de Distribuidores
                 </h4>
 
@@ -440,13 +440,13 @@ export default function ModalInvestigacionPrecios({
                         className={`p-3.5 rounded-xl border transition-all ${
                           esMejorCosto
                             ? 'bg-emerald-50/40 border-emerald-300 shadow-2xs'
-                            : 'bg-white border-slate-200 hover:border-slate-300'
+                            : 'bg-card border-border hover:border-input'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-bold text-sm text-slate-900">{op.proveedor}</span>
+                              <span className="font-bold text-sm text-foreground">{op.proveedor}</span>
                               <Badge
                                 variant="outline"
                                 className={`text-[10px] px-1.5 py-0 font-bold ${
@@ -469,32 +469,32 @@ export default function ModalInvestigacionPrecios({
                               )}
                             </div>
                             {op.skuReferencia && (
-                              <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                              <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
                                 SKU: {op.skuReferencia}
                               </div>
                             )}
                           </div>
 
                           <div className="text-right">
-                            <div className="text-sm font-bold text-slate-900 font-mono">
+                            <div className="text-sm font-bold text-foreground font-mono">
                               ${op.precioEstimadoUSD} USD
                             </div>
-                            <div className="text-[10px] text-slate-500 font-mono">
+                            <div className="text-[10px] text-muted-foreground font-mono">
                               ~{formatPrecio(op.precioEstimadoMXN, 'MXN')}
                             </div>
                           </div>
                         </div>
 
-                        <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+                        <div className="mt-3 pt-2 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
                           <span className="flex items-center gap-1 text-[11px]">
-                            <Clock className="w-3.5 h-3.5 text-slate-400" />
+                            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                             Entrega: <strong>~{op.tiempoEntregaDias} días</strong>
                           </span>
-                          <span className="text-[11px] text-slate-500 font-medium">{op.calidadGrado}</span>
+                          <span className="text-[11px] text-muted-foreground font-medium">{op.calidadGrado}</span>
                         </div>
 
                         {op.notas && (
-                          <p className="mt-1.5 text-[11px] text-slate-500 bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+                          <p className="mt-1.5 text-[11px] text-muted-foreground bg-muted/40 p-1.5 rounded-lg border border-border">
                             {op.notas}
                           </p>
                         )}
@@ -516,11 +516,11 @@ export default function ModalInvestigacionPrecios({
                 )}
 
                 {resultado.alternativasMaterial && resultado.alternativasMaterial.length > 0 && (
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-800 space-y-1">
-                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
-                      <Boxes className="w-4 h-4 text-slate-600" /> Materiales o Grados Sustitutos
+                  <div className="p-3 bg-muted/40 rounded-xl border border-border text-foreground space-y-1">
+                    <span className="font-bold text-foreground flex items-center gap-1.5">
+                      <Boxes className="w-4 h-4 text-muted-foreground" /> Materiales o Grados Sustitutos
                     </span>
-                    <ul className="list-disc list-inside text-xs text-slate-600 space-y-0.5">
+                    <ul className="list-disc list-inside text-xs text-muted-foreground space-y-0.5">
                       {resultado.alternativasMaterial.map((alt, idx) => (
                         <li key={idx}>{alt}</li>
                       ))}

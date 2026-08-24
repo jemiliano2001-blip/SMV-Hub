@@ -21,6 +21,9 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import AuthGuard from '../AuthGuard'
+import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
+import ModuleFilterChips from '@/components/layout/ModuleFilterChips'
+import ModuleSurface from '@/components/layout/ModuleSurface'
 import PageHeader from '@/components/layout/PageHeader'
 import PageShell from '@/components/layout/PageShell'
 import { Button } from '@/components/ui/button'
@@ -89,26 +92,31 @@ function BannerPasswordTemporal({ password, onClose }: { password: string; onClo
   }
 
   return (
-    <div className="p-4 bg-sky-50 rounded-xl border border-sky-200">
-      <p className="text-xs font-mono font-bold text-primary uppercase tracking-wider mb-2">
+    <ModuleSurface className="border-sky-200 bg-sky-50 p-4">
+      <p className="mb-2 font-mono text-xs font-bold uppercase tracking-wider text-primary">
         Contraseña temporal — cópiala ahora (no se vuelve a mostrar):
       </p>
       <div className="flex items-center gap-2">
-        <code className="flex-1 bg-white px-3 py-1.5 rounded-lg border border-sky-300 text-xs font-mono font-bold text-slate-900">
+        <code className="flex-1 rounded-lg border border-sky-300 bg-card px-3 py-1.5 font-mono text-xs font-bold text-foreground">
           {password}
         </code>
         <button
+          type="button"
           onClick={copiar}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-bold transition-colors"
+          className="flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90"
         >
           {copiado ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           {copiado ? 'Copiada' : 'Copiar'}
         </button>
-        <button onClick={onClose} className="px-2 py-1.5 text-xs text-slate-500 hover:underline">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-2 py-1.5 text-xs text-muted-foreground hover:underline"
+        >
           Cerrar
         </button>
       </div>
-    </div>
+    </ModuleSurface>
   )
 }
 
@@ -129,23 +137,23 @@ function MatrizModulos({
   }
 
   return (
-    <div className="space-y-3 max-h-64 overflow-y-auto border border-slate-200 rounded-lg p-3 bg-slate-50">
+    <div className="max-h-64 space-y-3 overflow-y-auto rounded-lg border border-border bg-muted/40 p-3">
       {GRUPOS_MODULOS.map((grupo) => (
         <div key={grupo.nombre}>
-          <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+          <p className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             {grupo.nombre}
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+          <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
             {grupo.modulos.map((m) => (
               <label
                 key={m.id}
-                className="flex items-center gap-2 text-xs text-slate-800 cursor-pointer hover:bg-white rounded px-1.5 py-1"
+                className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-xs text-foreground hover:bg-card"
               >
                 <input
                   type="checkbox"
                   checked={set.has(m.id)}
                   onChange={() => toggle(m.id)}
-                  className="rounded border-slate-300 text-primary focus:ring-ring"
+                  className="rounded border-input text-primary focus:ring-ring"
                 />
                 {m.label}
               </label>
@@ -182,17 +190,17 @@ function TarjetaCoberturaOperadores({
   const porcentaje = totalActivos > 0 ? Math.round((vinculadosCount / totalActivos) * 100) : 100
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-3">
+    <ModuleSurface className="space-y-3 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-sky-50 border border-sky-200 flex items-center justify-center text-primary">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-primary">
             <UserCheck className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">
+            <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Cobertura de Correos ↔ Catálogo de Operadores
             </h3>
-            <p className="text-sm font-bold text-slate-900">
+            <p className="text-sm font-bold text-foreground">
               {vinculadosCount} de {totalActivos} operadores tienen correo vinculado ({porcentaje}%)
             </p>
           </div>
@@ -200,8 +208,9 @@ function TarjetaCoberturaOperadores({
 
         {unlinkedOperadores.length > 0 && (
           <button
+            type="button"
             onClick={() => setExpandido(!expandido)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-900 text-xs font-bold hover:bg-amber-100 transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 transition-colors hover:bg-amber-100"
           >
             <span>{unlinkedOperadores.length} pendientes de cuenta</span>
             {expandido ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -209,16 +218,16 @@ function TarjetaCoberturaOperadores({
         )}
       </div>
 
-      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
         <div
-          className="bg-primary h-2 rounded-full transition-all duration-300"
+          className="h-2 rounded-full bg-primary transition-all duration-300"
           style={{ width: `${porcentaje}%` }}
         />
       </div>
 
       {expandido && unlinkedOperadores.length > 0 && (
-        <div className="pt-2 border-t border-slate-100">
-          <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-2">
+        <div className="border-t border-border pt-2">
+          <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
             Operadores sin cuenta de usuario en SMV Hub:
           </p>
           <div className="flex flex-wrap gap-2">
@@ -227,15 +236,16 @@ function TarjetaCoberturaOperadores({
               return (
                 <div
                   key={op.id}
-                  className="flex items-center gap-2 px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-800"
+                  className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-1 text-xs text-foreground"
                 >
                   <span className="font-semibold">{op.nombre}</span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white text-slate-600 border border-slate-200 uppercase">
+                  <span className="rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[10px] uppercase text-muted-foreground">
                     {op.area}
                   </span>
                   <button
+                    type="button"
                     onClick={() => onSeleccionarParaCrear(op)}
-                    className="flex items-center gap-1 text-[11px] font-bold text-primary hover:underline ml-1"
+                    className="ml-1 flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
                     title={`Crear usuario para ${op.nombre} (sugiere plantilla ${rec})`}
                   >
                     <UserPlus className="h-3 w-3" />
@@ -247,7 +257,7 @@ function TarjetaCoberturaOperadores({
           </div>
         </div>
       )}
-    </div>
+    </ModuleSurface>
   )
 }
 
@@ -362,16 +372,14 @@ function FormNuevoUsuario({
   const opSeleccionado = operadores.find((o) => o.id === operadorId)
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="p-4 bg-white rounded-xl border border-slate-200 space-y-3 shadow-xs"
-    >
-      <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-        <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700">
+    <ModuleSurface>
+      <form onSubmit={handleSubmit} className="space-y-3 p-4">
+      <div className="flex items-center justify-between gap-2 border-b border-border pb-2">
+        <span className="font-mono text-xs font-bold uppercase tracking-wider text-foreground">
           Nuevo usuario y vinculación
         </span>
         {opSeleccionado && (
-          <span className="flex items-center gap-1 text-[11px] font-mono font-bold bg-sky-50 text-primary border border-sky-200 px-2 py-0.5 rounded-full">
+          <span className="flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 font-mono text-[11px] font-bold text-primary">
             <Sparkles className="h-3 w-3" />
             Plantilla sugerida ({plantillaRecomendadaPorArea(opSeleccionado.area)}) por área {opSeleccionado.area}
           </span>
@@ -379,8 +387,8 @@ function FormNuevoUsuario({
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
-        <div className="flex-1 min-w-[200px]">
-          <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">
+        <div className="min-w-[200px] flex-1">
+          <label className="mb-1 block font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
             Correo Electrónico
           </label>
           <input
@@ -389,18 +397,18 @@ function FormNuevoUsuario({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="persona@gmail.com"
-            className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-primary"
+            className="w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
           />
         </div>
 
-        <div className="flex-1 min-w-[200px]">
-          <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">
+        <div className="min-w-[200px] flex-1">
+          <label className="mb-1 block font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
             Operador del Catálogo
           </label>
           <select
             value={operadorId || ''}
             onChange={(e) => handleSeleccionarOperador(e.target.value)}
-            className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white text-slate-900 focus:outline-none focus:border-primary"
+            className="w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
           >
             <option value="">-- Sin operador (externo / administrativo) --</option>
             {operadores
@@ -414,13 +422,13 @@ function FormNuevoUsuario({
         </div>
 
         <div>
-          <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">
+          <label className="mb-1 block font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
             Plantilla
           </label>
           <select
             value={plantilla}
             onChange={(e) => handlePlantilla(e.target.value as Rol)}
-            className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white text-slate-900 focus:outline-none focus:border-primary"
+            className="rounded-lg border border-input bg-background px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
           >
             {PLANTILLAS.map((r) => (
               <option key={r} value={r}>
@@ -431,7 +439,7 @@ function FormNuevoUsuario({
         </div>
 
         <div className="min-w-[160px]">
-          <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">
+          <label className="mb-1 block font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
             Contraseña (Opcional)
           </label>
           <input
@@ -439,14 +447,14 @@ function FormNuevoUsuario({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="En blanco = temporal"
-            className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-primary"
+            className="w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
           />
         </div>
 
         <button
           type="submit"
           disabled={enviando}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-bold disabled:opacity-50 transition-colors active:scale-[0.98]"
+          className="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
         >
           <UserPlus className="h-3.5 w-3.5" />
           {enviando ? 'Creando...' : 'Crear usuario'}
@@ -454,50 +462,51 @@ function FormNuevoUsuario({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-xs text-slate-800 cursor-pointer">
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-foreground">
           <input
             type="checkbox"
             checked={esSuperAdmin}
             onChange={(e) => setEsSuperAdmin(e.target.checked)}
-            className="rounded border-slate-300 text-primary"
+            className="rounded border-input text-primary"
           />
           <Shield className="h-3.5 w-3.5 text-rose-600" />
           Super-admin (puede editar usuarios)
         </label>
-        <label className="flex items-center gap-2 text-xs text-slate-800 cursor-pointer">
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-foreground">
           <input
             type="checkbox"
             checked={atiendeDocumentosVenta}
             onChange={(e) => setAtiendeDocumentosVenta(e.target.checked)}
-            className="rounded border-slate-300 text-primary"
+            className="rounded border-input text-primary"
           />
           Atiende documentos de venta (cola remisión/factura)
         </label>
-        <label className="flex items-center gap-2 text-xs text-slate-800 cursor-pointer">
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-foreground">
           <input
             type="checkbox"
             checked={editaHorasExtra}
             onChange={(e) => setEditaHorasExtra(e.target.checked)}
-            className="rounded border-slate-300 text-primary"
+            className="rounded border-input text-primary"
           />
           Edita horas extra (además de admin/compras)
         </label>
         {personalizado && (
-          <span className="text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded">
+          <span className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-amber-800">
             PERSONALIZADO
           </span>
         )}
       </div>
 
       <div>
-        <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+        <p className="mb-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
           Módulos
         </p>
         <MatrizModulos modulos={modulos} onChange={setModulos} />
       </div>
 
-      {error && <p className="text-xs font-mono text-rose-600">{error}</p>}
-    </form>
+      {error && <p className="font-mono text-xs text-destructive">{error}</p>}
+      </form>
+    </ModuleSurface>
   )
 }
 
@@ -597,7 +606,7 @@ function ModalEditarPermisos({
         <div className="space-y-3 overflow-y-auto p-4">
 
         <div>
-          <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">
+          <label className="mb-1 block font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
             Operador del Catálogo Vinculado
           </label>
           <div className="flex gap-2">
@@ -629,13 +638,13 @@ function ModalEditarPermisos({
 
         <div className="flex flex-wrap items-center gap-3">
           <div>
-            <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">
+            <label className="mb-1 block font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               Plantilla
             </label>
             <select
               value={plantilla}
               onChange={(e) => handlePlantilla(e.target.value as Rol)}
-              className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white"
+              className="rounded-lg border border-input bg-background px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
             >
               {PLANTILLAS.map((r) => (
                 <option key={r} value={r}>
@@ -644,7 +653,7 @@ function ModalEditarPermisos({
               ))}
             </select>
           </div>
-          <label className="flex items-center gap-2 text-xs text-slate-800 cursor-pointer mt-4">
+          <label className="mt-4 flex cursor-pointer items-center gap-2 text-xs text-foreground">
             <input
               type="checkbox"
               checked={esSuperAdmin}
@@ -654,7 +663,7 @@ function ModalEditarPermisos({
             <Shield className="h-3.5 w-3.5 text-rose-600" />
             Super-admin
           </label>
-          <label className="flex items-center gap-2 text-xs text-slate-800 cursor-pointer mt-4">
+          <label className="mt-4 flex cursor-pointer items-center gap-2 text-xs text-foreground">
             <input
               type="checkbox"
               checked={atiendeDocumentosVenta}
@@ -663,7 +672,7 @@ function ModalEditarPermisos({
             />
             Atiende documentos de venta
           </label>
-          <label className="flex items-center gap-2 text-xs text-slate-800 cursor-pointer mt-2">
+          <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-foreground">
             <input
               type="checkbox"
               checked={editaHorasExtra}
@@ -673,7 +682,7 @@ function ModalEditarPermisos({
             Edita horas extra (además de admin/compras)
           </label>
           {personalizado && (
-            <span className="mt-4 text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded">
+            <span className="mt-4 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-amber-800">
               PERSONALIZADO
             </span>
           )}
@@ -681,7 +690,7 @@ function ModalEditarPermisos({
 
         <MatrizModulos modulos={modulos} onChange={setModulos} />
 
-        {error && <p className="font-mono text-xs text-rose-600">{error}</p>}
+        {error && <p className="font-mono text-xs text-destructive">{error}</p>}
         </div>
         <DialogFooter className="border-t border-border px-4 py-3">
           <Button type="button" variant="outline" size="sm" onClick={onCerrar}>
@@ -751,6 +760,7 @@ function AccionesUsuario({
   return (
     <div className="flex flex-wrap items-center gap-3 font-mono">
       <button
+        type="button"
         onClick={onEditar}
         className="flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
       >
@@ -766,25 +776,31 @@ function AccionesUsuario({
               value={nuevaPassword}
               onChange={(e) => setNuevaPassword(e.target.value)}
               placeholder="Temporal..."
-              className="w-28 px-2 py-1 text-xs rounded border border-slate-300"
+              className="w-28 rounded border border-input bg-background px-2 py-1 text-xs text-foreground"
             />
-            <button onClick={confirmarReset} className="text-[11px] font-bold text-primary hover:underline">
+            <button
+              type="button"
+              onClick={confirmarReset}
+              className="text-[11px] font-bold text-primary hover:underline"
+            >
               OK
             </button>
             <button
+              type="button"
               onClick={() => {
                 setMostrarReset(false)
                 setNuevaPassword('')
                 setErrorReset(null)
               }}
-              className="text-[11px] text-slate-400 hover:underline"
+              className="text-[11px] text-muted-foreground hover:underline"
             >
               X
             </button>
-            {errorReset && <span className="text-[10px] text-rose-600">{errorReset}</span>}
+            {errorReset && <span className="text-[10px] text-destructive">{errorReset}</span>}
           </div>
         ) : (
           <button
+            type="button"
             onClick={() => setMostrarReset(true)}
             className="flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
           >
@@ -793,18 +809,20 @@ function AccionesUsuario({
           </button>
         ))}
       <button
+        type="button"
         onClick={handleToggleActivo}
-        className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+        className={`rounded-full border px-2 py-0.5 font-mono text-[10px] font-bold ${
           usuario.activo
-            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-            : 'bg-slate-100 text-slate-500 border-slate-200'
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+            : 'border-border bg-muted text-muted-foreground'
         }`}
       >
         {usuario.activo ? 'ACTIVO' : 'INACTIVO'}
       </button>
       <button
+        type="button"
         onClick={handleEliminar}
-        className="flex items-center gap-1 text-[11px] font-bold text-rose-600 hover:underline"
+        className="flex items-center gap-1 text-[11px] font-bold text-destructive hover:underline"
       >
         <Trash2 className="h-3 w-3" />
         Eliminar
@@ -927,12 +945,13 @@ function UsuariosContent() {
         )}
 
         {(error || accionError) && (
-          <div className="p-3 bg-rose-50 rounded-lg flex items-start gap-2.5 border border-rose-200 text-xs">
-            <AlertCircle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2.5 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
             <div>
-              <p className="text-rose-700 font-medium">{error || accionError}</p>
+              <p className="font-medium text-rose-700">{error || accionError}</p>
               {error && (
                 <button
+                  type="button"
                   onClick={() => fetchUsuarios()}
                   className="mt-1 text-xs font-bold text-rose-800 underline hover:text-rose-900"
                 >
@@ -960,27 +979,27 @@ function UsuariosContent() {
           onCrear={handleCrear}
         />
 
-        {/* Barra de Filtros y Búsqueda (Mejora B) */}
-        <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+        {/* Barra de Filtros y Búsqueda */}
+        <ModuleSurface className="flex flex-wrap items-center justify-between gap-3 p-3">
+          <div className="relative min-w-[200px] flex-1">
+            <Search className="absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="Buscar por correo u operador..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-primary"
+              className="w-full rounded-lg border border-input bg-background py-1.5 pr-3 pl-8 text-xs text-foreground focus:border-primary focus:outline-none"
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
-              <Filter className="h-3.5 w-3.5 text-slate-400" />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Filter className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="font-mono text-[11px]">Plantilla:</span>
               <select
                 value={filtroPlantilla}
                 onChange={(e) => setFiltroPlantilla(e.target.value as Rol | 'todas')}
-                className="px-2 py-1 text-xs rounded-lg border border-slate-200 bg-white text-slate-800"
+                className="rounded-lg border border-input bg-background px-2 py-1 text-xs text-foreground"
               >
                 <option value="todas">Todas</option>
                 {PLANTILLAS.map((p) => (
@@ -991,66 +1010,75 @@ function UsuariosContent() {
               </select>
             </div>
 
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
-              <span className="font-mono text-[11px]">Estado:</span>
-              <select
-                value={filtroEstado}
-                onChange={(e) => setFiltroEstado(e.target.value as 'todos' | 'activos' | 'inactivos')}
-                className="px-2 py-1 text-xs rounded-lg border border-slate-200 bg-white text-slate-800"
-              >
-                <option value="todos">Todos</option>
-                <option value="activos">Activos</option>
-                <option value="inactivos">Inactivos</option>
-              </select>
-            </div>
+            <ModuleFilterChips
+              ariaLabel="Filtrar por estado"
+              value={filtroEstado}
+              onValueChange={(value) =>
+                setFiltroEstado(value as 'todos' | 'activos' | 'inactivos')
+              }
+              options={[
+                { value: 'todos', label: 'Todos' },
+                { value: 'activos', label: 'Activos' },
+                { value: 'inactivos', label: 'Inactivos' },
+              ]}
+            />
           </div>
-        </div>
+        </ModuleSurface>
 
         {/* Tabla / Lista de usuarios */}
-        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
-          <div className="md:hidden divide-y divide-slate-100">
+        <ModuleSurface>
+          <div className="divide-y divide-border md:hidden">
             {loading ? (
-              <p className="px-4 py-6 text-center text-xs font-mono text-slate-500">Cargando usuarios...</p>
+              <p className="px-4 py-6 text-center font-mono text-xs text-muted-foreground">
+                Cargando usuarios...
+              </p>
             ) : usuariosFiltrados.length === 0 ? (
-              <p className="px-4 py-6 text-center text-xs font-mono text-slate-500">Sin usuarios que coincidan con la búsqueda.</p>
+              <ModuleEmptyState
+                icon={User}
+                title="Sin usuarios"
+                description="No hay usuarios que coincidan con la búsqueda o los filtros."
+                className="border-0"
+              />
             ) : (
               usuariosFiltrados.map((u) => {
                 const opVinculado = u.operadorId ? operadores.find((o) => o.id === u.operadorId) : null
                 return (
-                  <div key={u.id} className="p-3.5 space-y-2 text-xs">
+                  <div key={u.id} className="space-y-2 p-3.5 text-xs">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="font-semibold text-slate-900 break-all">{u.email}</p>
+                        <p className="break-all font-semibold text-foreground">{u.email}</p>
                         {u.operadorNombre ? (
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <span className="inline-flex items-center gap-1 font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full text-[11px]">
-                              <User className="h-3 w-3 text-slate-500" />
+                          <div className="mt-1 flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground">
+                              <User className="h-3 w-3 text-muted-foreground" />
                               {u.operadorNombre}
                               {opVinculado && (
-                                <span className="font-mono text-[9px] text-slate-500 uppercase">
+                                <span className="font-mono text-[9px] uppercase text-muted-foreground">
                                   ({opVinculado.area})
                                 </span>
                               )}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-[10px] text-slate-400 font-mono italic">Sin operador</span>
+                          <span className="font-mono text-[10px] italic text-muted-foreground">
+                            Sin operador
+                          </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex shrink-0 items-center gap-1">
                         {u.esSuperAdmin && (
-                          <span className="text-[9px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200 px-1 py-0.5 rounded">
+                          <span className="rounded border border-rose-200 bg-rose-50 px-1 py-0.5 font-mono text-[9px] font-bold text-rose-700">
                             SA
                           </span>
                         )}
                         {esMatrizPersonalizada(u.plantilla, u.modulos) && (
-                          <span className="text-[9px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1 py-0.5 rounded">
+                          <span className="rounded border border-amber-200 bg-amber-50 px-1 py-0.5 font-mono text-[9px] font-bold text-amber-800">
                             CUSTOM
                           </span>
                         )}
                       </div>
                     </div>
-                    <p className="text-slate-500 font-mono text-[11px]">
+                    <p className="font-mono text-[11px] text-muted-foreground">
                       Plantilla: {u.plantilla} · {u.proveedor} · {u.modulos.length} módulos
                     </p>
                     <AccionesUsuario
@@ -1067,8 +1095,8 @@ function UsuariosContent() {
           </div>
 
           <div className="hidden md:block">
-            <Table className="text-xs text-left">
-              <TableHeader className="bg-slate-50 text-slate-600 font-mono text-[11px] uppercase tracking-wider border-b border-slate-200">
+            <Table className="text-left text-xs">
+              <TableHeader className="border-b border-border bg-muted font-mono text-[11px] tracking-wider text-muted-foreground uppercase">
                 <TableRow>
                   <TableHead className="px-3.5 py-2.5">Correo</TableHead>
                   <TableHead className="px-3.5 py-2.5">Operador Vinculado</TableHead>
@@ -1078,36 +1106,46 @@ function UsuariosContent() {
                   <TableHead className="px-3.5 py-2.5 text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className="divide-y divide-slate-100">
+              <TableBody className="divide-y divide-border">
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="px-4 py-6 text-center text-xs font-mono text-slate-500">
+                    <TableCell
+                      colSpan={6}
+                      className="px-4 py-6 text-center font-mono text-xs text-muted-foreground"
+                    >
                       Cargando usuarios...
                     </TableCell>
                   </TableRow>
                 ) : usuariosFiltrados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="px-4 py-6 text-center text-xs font-mono text-slate-500">
-                      Sin usuarios registrados o que coincidan con los filtros.
+                    <TableCell colSpan={6} className="p-0">
+                      <ModuleEmptyState
+                        icon={User}
+                        title="Sin usuarios"
+                        description="Sin usuarios registrados o que coincidan con los filtros."
+                        className="border-0"
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
                   usuariosFiltrados.map((u) => {
-                    const opVinculado = u.operadorId ? operadores.find((o) => o.id === u.operadorId) : null
+                    const opVinculado = u.operadorId
+                      ? operadores.find((o) => o.id === u.operadorId)
+                      : null
                     return (
                       <ContextMenu key={u.id}>
                         <ContextMenuTrigger asChild>
-                          <TableRow className="border-b border-slate-100 hover:bg-slate-50 text-xs cursor-pointer select-none">
-                            <TableCell className="px-3.5 py-2.5 font-semibold text-slate-900">
+                          <TableRow className="cursor-pointer border-b border-border text-xs select-none hover:bg-muted/50">
+                            <TableCell className="px-3.5 py-2.5 font-semibold text-foreground">
                               <div className="flex items-center gap-1.5">
                                 {u.email}
                                 {u.esSuperAdmin && (
-                                  <span className="text-[9px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200 px-1 py-0.5 rounded">
+                                  <span className="rounded border border-rose-200 bg-rose-50 px-1 py-0.5 font-mono text-[9px] font-bold text-rose-700">
                                     SA
                                   </span>
                                 )}
                                 {esMatrizPersonalizada(u.plantilla, u.modulos) && (
-                                  <span className="text-[9px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1 py-0.5 rounded">
+                                  <span className="rounded border border-amber-200 bg-amber-50 px-1 py-0.5 font-mono text-[9px] font-bold text-amber-800">
                                     CUSTOM
                                   </span>
                                 )}
@@ -1115,22 +1153,28 @@ function UsuariosContent() {
                             </TableCell>
                             <TableCell className="px-3.5 py-2.5">
                               {u.operadorNombre ? (
-                                <span className="inline-flex items-center gap-1 text-slate-800 font-medium bg-slate-100 px-2 py-0.5 rounded-full text-xs">
-                                  <User className="h-3 w-3 text-slate-500" />
+                                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+                                  <User className="h-3 w-3 text-muted-foreground" />
                                   {u.operadorNombre}
                                   {opVinculado && (
-                                    <span className="font-mono text-[10px] text-slate-500 uppercase">
+                                    <span className="font-mono text-[10px] uppercase text-muted-foreground">
                                       ({opVinculado.area})
                                     </span>
                                   )}
                                 </span>
                               ) : (
-                                <span className="text-[11px] text-slate-400 font-mono italic">Sin operador</span>
+                                <span className="font-mono text-[11px] italic text-muted-foreground">
+                                  Sin operador
+                                </span>
                               )}
                             </TableCell>
                             <TableCell className="px-3.5 py-2.5 font-mono">{u.plantilla}</TableCell>
-                            <TableCell className="px-3.5 py-2.5 text-slate-500 font-mono">{u.modulos.length}</TableCell>
-                            <TableCell className="px-3.5 py-2.5 text-slate-500 font-mono text-[11px]">{u.proveedor}</TableCell>
+                            <TableCell className="px-3.5 py-2.5 font-mono text-muted-foreground">
+                              {u.modulos.length}
+                            </TableCell>
+                            <TableCell className="px-3.5 py-2.5 font-mono text-[11px] text-muted-foreground">
+                              {u.proveedor}
+                            </TableCell>
                             <TableCell className="px-3.5 py-2.5" onClick={(e) => e.stopPropagation()}>
                               <div className="flex justify-end">
                                 <AccionesUsuario
@@ -1175,7 +1219,7 @@ function UsuariosContent() {
 
                           <ContextMenuSub>
                             <ContextMenuSubTrigger>
-                              <Copy className="text-slate-500" />
+                              <Copy className="text-muted-foreground" />
                               <span>Copiar información</span>
                             </ContextMenuSubTrigger>
                             <ContextMenuSubContent className="w-48">
@@ -1233,7 +1277,7 @@ function UsuariosContent() {
               </TableBody>
             </Table>
           </div>
-        </div>
+        </ModuleSurface>
 
       {editando && (
         <ModalEditarPermisos

@@ -28,6 +28,7 @@ import {
   tituloPdfContable,
 } from "@/lib/reportes-contables-export"
 import { useConfirmDialog } from "@/components/ConfirmDialogProvider"
+import ModuleSurface from "@/components/layout/ModuleSurface"
 import { toast } from "sonner"
 import {
   ContextMenu,
@@ -449,19 +450,19 @@ export default function ReporteContableView() {
 
   if (cargando && ordenes.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="h-6 w-6 animate-spin text-blue-500 mr-2" />
-        <span className="text-sm text-gray-600">Cargando órdenes…</span>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="mr-2 size-6 animate-spin text-primary" />
+        <span className="text-sm text-muted-foreground">Cargando órdenes…</span>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
-        <AlertCircle className="h-8 w-8 text-red-500" />
-        <p className="text-sm text-gray-700">{error}</p>
-        <button onClick={cargar} className="rounded-lg bg-primary text-primary-foreground hover:bg-primary/90">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background">
+        <AlertCircle className="size-8 text-destructive" />
+        <p className="text-sm text-foreground">{error}</p>
+        <button onClick={cargar} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
           Reintentar
         </button>
       </div>
@@ -484,8 +485,8 @@ export default function ReporteContableView() {
     <div className="w-full">
       <div className="max-w-[1400px] mx-auto px-4 py-6 print:max-w-none print:px-0 print:py-0">
         
-        <div className="mb-4 no-print flex flex-wrap gap-4 border-b border-slate-200 text-sm">
-          <Link href="/reportes" className="min-h-11 content-center text-gray-500 hover:text-gray-900">
+        <div className="mb-4 no-print flex flex-wrap gap-4 border-b border-border text-sm">
+          <Link href="/reportes" className="min-h-11 content-center text-muted-foreground hover:text-foreground">
             Reporte gerencial
           </Link>
           <span className="min-h-11 content-center border-b-2 border-primary font-semibold text-primary">
@@ -493,10 +494,10 @@ export default function ReporteContableView() {
           </span>
         </div>
 
-        <div className="no-print flex gap-4 mb-6 border-b border-gray-200">
+        <div className="no-print mb-6 flex gap-4 border-b border-border">
           <button 
             onClick={() => setTab("pendientes")}
-            className={`pb-2 px-1 font-medium transition-colors ${tab === "pendientes" ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-700"}`}
+            className={`px-1 pb-2 font-medium transition-colors ${tab === "pendientes" ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}
           >
             Nuevos (Pendientes por Enviar)
           </button>
@@ -505,9 +506,9 @@ export default function ReporteContableView() {
               setTab("historial")
                if (!loteSeleccionado && lotes.length > 0) void seleccionarLote(lotes[0].id)
             }}
-            className={`pb-2 px-1 font-medium transition-colors flex items-center ${tab === "historial" ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-700"}`}
+            className={`flex items-center px-1 pb-2 font-medium transition-colors ${tab === "historial" ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}
           >
-            <History className="w-4 h-4 mr-1" />
+            <History className="mr-1 size-4" />
             Historial de Reportes
           </button>
         </div>
@@ -517,20 +518,20 @@ export default function ReporteContableView() {
           {/* Sidebar de Lotes (Solo en Historial) */}
           {tab === "historial" && (
             <div className="w-64 shrink-0 no-print">
-              <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">Lotes Guardados</h2>
+              <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-foreground">Lotes Guardados</h2>
               <div className="flex flex-col gap-2">
                 {lotes.length === 0 ? (
-                  <p className="text-sm text-gray-500">No hay lotes en el historial.</p>
+                  <p className="text-sm text-muted-foreground">No hay lotes en el historial.</p>
                 ) : (
                   lotes.map(lote => (
                     <button
                       key={lote.id}
                       onClick={() => void seleccionarLote(lote.id)}
-                      className={`text-left px-3 py-3 rounded-lg border text-sm transition-colors ${loteSeleccionado === lote.id ? "bg-blue-50 border-blue-200" : "bg-white border-gray-200 hover:bg-gray-50"}`}
+                      className={`rounded-lg border px-3 py-3 text-left text-sm transition-colors ${loteSeleccionado === lote.id ? "border-primary/30 bg-primary/10" : "border-border bg-card hover:bg-muted"}`}
                     >
-                      <div className="font-medium text-gray-900">{lote.id}</div>
-                      <div className="text-gray-500 text-xs mt-1">{lote.fechaGeneracion.toLocaleDateString("es-MX", { day: "2-digit", month: "long", year: "numeric" })}</div>
-                      <div className="text-gray-400 text-xs mt-0.5">{lote.totalLineas} artículos</div>
+                      <div className="font-medium text-foreground">{lote.id}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">{lote.fechaGeneracion.toLocaleDateString("es-MX", { day: "2-digit", month: "long", year: "numeric" })}</div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">{lote.totalLineas} artículos</div>
                     </button>
                   ))
                 )}
@@ -540,12 +541,12 @@ export default function ReporteContableView() {
 
           {/* Contenido Principal */}
           <div className="flex-1 overflow-hidden min-w-0">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 no-print gap-4">
+            <div className="mb-4 flex flex-col items-start justify-between gap-4 no-print sm:flex-row sm:items-center">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-foreground">
                   {tab === "pendientes" ? "Compras Pendientes de Enviar" : `Reporte ${loteSeleccionado || ""}`}
                 </h1>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="mt-1 text-sm text-muted-foreground">
                   {tab === "pendientes" 
                     ? "Compras no enviadas de los últimos 12 meses. Carga el historial completo si necesitas buscar más atrás."
                     : "Modo solo lectura. Visualizando un lote cerrado del historial."}
@@ -558,9 +559,9 @@ export default function ReporteContableView() {
                     type="button"
                     onClick={() => void cargarHistorialCompleto()}
                     disabled={cargandoHistorial}
-                    className="flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    className="flex items-center rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
                   >
-                    {cargandoHistorial && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    {cargandoHistorial && <Loader2 className="mr-2 size-4 animate-spin" />}
                     {cargandoHistorial ? "Cargando historial..." : "Cargar historial completo"}
                   </button>
                 )}
@@ -569,7 +570,7 @@ export default function ReporteContableView() {
                   <select 
                     value={monedaActiva} 
                     onChange={e => setMoneda(e.target.value)}
-                    className="rounded-lg border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground shadow-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-ring"
                   >
                     {monedas.map(m => (
                       <option key={m} value={m}>{m}</option>
@@ -581,9 +582,9 @@ export default function ReporteContableView() {
                    <button
                      onClick={procesarFaltantesIa}
                      disabled={procesandoIa}
-                     className="flex items-center rounded-lg bg-amber-100 px-4 py-2 text-sm font-medium text-amber-800 hover:bg-amber-200 transition-colors"
+                     className="flex items-center rounded-lg bg-amber-100 px-4 py-2 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-200"
                    >
-                     {procesandoIa ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                     {procesandoIa ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Sparkles className="mr-2 size-4" />}
                      {procesandoIa && progresoIa
                        ? `Procesando ${progresoIa.actual}/${progresoIa.total}...`
                        : `Completar faltantes (${lineasConFaltantes})`}
@@ -594,26 +595,26 @@ export default function ReporteContableView() {
                   <button
                     onClick={handleGuardarLote}
                     disabled={guardandoLote || procesandoIa}
-                    className="flex items-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
+                    className="flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-xs transition-colors hover:bg-primary/90 disabled:opacity-50"
                   >
-                    {guardandoLote ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                    {guardandoLote ? <Loader2 className="mr-2 size-4 animate-spin" /> : <CheckCircle2 className="mr-2 size-4" />}
                     Cerrar Reporte
                   </button>
                 )}
 
-                <button onClick={exportarExcel} className="flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors">
-                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                <button onClick={exportarExcel} className="flex items-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted">
+                  <FileSpreadsheet className="mr-2 size-4" />
                   Excel
                 </button>
-                <button onClick={imprimirPDF} className="flex items-center rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-900 transition-colors">
-                  <Printer className="h-4 w-4 mr-2" />
+                <button onClick={imprimirPDF} className="flex items-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted">
+                  <Printer className="mr-2 size-4" />
                   PDF
                 </button>
               </div>
             </div>
 
             {errorResugerir && (
-              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 no-print">
+              <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive no-print">
                 {errorResugerir}
               </div>
             )}
@@ -628,22 +629,22 @@ export default function ReporteContableView() {
               <div className="mb-3 hidden print:flex print:items-center print:justify-between print:bg-[#111111] print:px-3 print:py-2.5 print:text-white">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest">SMV Maquinados</p>
-                  <p className="mt-0.5 text-[8px] tracking-wide text-gray-400">S.A. de C.V.</p>
+                  <p className="mt-0.5 text-[8px] tracking-wide print:text-gray-400">S.A. de C.V.</p>
                 </div>
                 <div className="text-center">
                   <p className="text-[12.5px] font-semibold uppercase tracking-wide">Cierre contable</p>
-                  <p className="mt-1 text-[8.5px] text-gray-400">{subtituloPrint}</p>
+                  <p className="mt-1 text-[8.5px] print:text-gray-400">{subtituloPrint}</p>
                 </div>
-                <div className="text-right text-[8px] leading-relaxed text-gray-400">
+                <div className="text-right text-[8px] leading-relaxed print:text-gray-400">
                   <p>{monedaActiva} · {lineas.length} líneas</p>
                   <p>Generado el {generadoEl}</p>
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm print:overflow-visible print:rounded-none print:border-0 print:shadow-none">
+              <ModuleSurface className="print:overflow-visible print:rounded-none print:border-0 print:shadow-none">
                 <div className="overflow-x-auto print:overflow-visible">
-                  <Table className="w-full border-collapse text-left text-sm text-gray-600 print:min-w-0 print:text-[9px]">
-                    <TableHeader className="bg-gray-50 text-xs font-semibold uppercase text-gray-500 print:bg-[#111111]">
+                  <Table className="w-full border-collapse text-left text-sm text-muted-foreground print:min-w-0 print:text-[9px]">
+                    <TableHeader className="bg-muted text-xs font-semibold uppercase text-muted-foreground print:bg-[#111111]">
                       <TableRow className="print:border-b-0">
                         <TableHead className="px-4 py-3 print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">
                           Fecha
@@ -672,18 +673,18 @@ export default function ReporteContableView() {
                         </TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody className="divide-y divide-gray-100 print:divide-gray-300">
+                    <TableBody className="divide-y divide-border print:divide-gray-300">
                       {lineas.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={8} className="px-4 py-12 text-center">
                             {tab === "pendientes" ? (
-                              <div className="text-gray-500">
-                                <CheckCircle2 className="mx-auto mb-3 h-12 w-12 text-emerald-400" />
-                                <p className="text-lg font-medium text-gray-900">¡Todo al día!</p>
+                              <div className="text-muted-foreground">
+                                <CheckCircle2 className="mx-auto mb-3 size-12 text-emerald-500" />
+                                <p className="text-lg font-medium text-foreground">¡Todo al día!</p>
                                 <p>No hay compras pendientes por enviar a la contadora en los últimos 12 meses.</p>
                               </div>
                             ) : (
-                              <p className="text-gray-500">Selecciona un lote del historial para ver sus compras.</p>
+                              <p className="text-muted-foreground">Selecciona un lote del historial para ver sus compras.</p>
                             )}
                           </TableCell>
                         </TableRow>
@@ -696,7 +697,7 @@ export default function ReporteContableView() {
                             <ContextMenu key={`${l.ordenId}-${i}`}>
                               <ContextMenuTrigger asChild>
                                 <TableRow
-                                  className={`grupo-linea cursor-pointer select-none hover:bg-gray-50 print:hover:bg-transparent ${i % 2 === 1 ? "print:bg-[#fafafa]" : ""}`}
+                                  className={`grupo-linea cursor-pointer select-none hover:bg-muted print:hover:bg-transparent ${i % 2 === 1 ? "print:bg-[#fafafa]" : ""}`}
                                 >
                                   <TableCell className="whitespace-nowrap px-4 py-3 print:px-2 print:py-1 print:font-mono print:text-[8.5px]">
                                     {l.dia ? l.dia.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" }) : "-"}
@@ -705,21 +706,21 @@ export default function ReporteContableView() {
                                     {l.referencia || "—"}
                                   </TableCell>
                                   <TableCell className="px-4 py-3 print:px-2 print:py-1 print:text-[8.5px]">
-                                    <div className="font-medium text-gray-900 print:font-semibold print:text-black">{l.proveedor}</div>
-                                    <div className="text-xs text-gray-400 print:hidden">Ref: {l.referencia}</div>
+                                    <div className="font-medium text-foreground print:font-semibold print:text-black">{l.proveedor}</div>
+                                    <div className="text-xs text-muted-foreground print:hidden">Ref: {l.referencia}</div>
                                   </TableCell>
                                   <TableCell className="max-w-xs px-4 py-3 print:max-w-[200px] print:px-2 print:py-1 print:text-[8.5px]" title={descFinal}>
                                     {l.descripcionSimplificada ? (
-                                      <span className="font-medium text-gray-900 print:font-normal print:text-black">{l.descripcionSimplificada}</span>
+                                      <span className="font-medium text-foreground print:font-normal print:text-black">{l.descripcionSimplificada}</span>
                                     ) : (
-                                      <span className="italic text-gray-400" title={l.descripcion}>
+                                      <span className="italic text-muted-foreground" title={l.descripcion}>
                                         {l.descripcion.length > 50 ? `${l.descripcion.substring(0, 50)}...` : l.descripcion}
                                       </span>
                                     )}
                                   </TableCell>
                                   <TableCell className="max-w-xs px-4 py-3 print:max-w-[140px] print:px-2 print:py-1">
                                     <div className="flex items-center gap-1.5">
-                                      <span className="font-medium text-gray-900 print:font-mono print:text-[8.5px] print:text-black">
+                                      <span className="font-medium text-foreground print:font-mono print:text-[8.5px] print:text-black">
                                         {l.claveProdServ || "—"}
                                       </span>
                                       {l.itemIndex >= 0 && (
@@ -728,10 +729,10 @@ export default function ReporteContableView() {
                                           onClick={() => handleResugerir(l)}
                                           disabled={resugieriendo.has(`${l.ordenId}-${l.itemIndex}`)}
                                           title="Volver a sugerir la clave SAT para esta línea"
-                                          className="cursor-pointer text-gray-400 hover:text-primary no-print disabled:opacity-50"
+                                          className="cursor-pointer text-muted-foreground hover:text-primary no-print disabled:opacity-50"
                                         >
                                           <RefreshCw
-                                            className={`h-3.5 w-3.5 ${resugieriendo.has(`${l.ordenId}-${l.itemIndex}`) ? "animate-spin" : ""}`}
+                                            className={`size-3.5 ${resugieriendo.has(`${l.ordenId}-${l.itemIndex}`) ? "animate-spin" : ""}`}
                                           />
                                         </button>
                                       )}
@@ -742,7 +743,7 @@ export default function ReporteContableView() {
                                       </span>
                                     )}
                                     <div
-                                      className="truncate text-xs text-gray-500 print:text-[7.5px] print:leading-tight print:text-gray-600"
+                                      className="truncate text-xs text-muted-foreground print:text-[7.5px] print:leading-tight print:text-gray-600"
                                       title={satDict[l.claveProdServ || ""]}
                                     >
                                       {cargandoSat && l.claveProdServ && !satDict[l.claveProdServ]
@@ -757,7 +758,7 @@ export default function ReporteContableView() {
                                             type="button"
                                             title={alt.descripcionSat}
                                             onClick={() => void aplicarClaveLinea(l, alt.clave, altsPorLinea[`${l.ordenId}-${l.itemIndex}`])}
-                                            className="cursor-pointer rounded border border-blue-200 bg-white px-1.5 py-0.5 font-mono text-[10px] text-blue-800 hover:bg-blue-50"
+                                            className="cursor-pointer rounded border border-primary/30 bg-card px-1.5 py-0.5 font-mono text-[10px] text-primary hover:bg-primary/10"
                                           >
                                             {alt.clave}
                                           </button>
@@ -773,7 +774,7 @@ export default function ReporteContableView() {
                                       ? new Intl.NumberFormat("es-MX", { style: "currency", currency: monedaActiva }).format(l.precioUnitario)
                                       : "—"}
                                   </TableCell>
-                                  <TableCell className="px-4 py-3 text-right font-semibold text-gray-900 print:px-2 print:py-1 print:font-mono print:text-[9px] print:font-semibold print:text-black">
+                                  <TableCell className="px-4 py-3 text-right font-semibold text-foreground print:px-2 print:py-1 print:font-mono print:text-[9px] print:font-semibold print:text-black">
                                     {totalFormateado}
                                   </TableCell>
                                 </TableRow>
@@ -796,7 +797,7 @@ export default function ReporteContableView() {
                                     window.location.href = `/ordenes`
                                   }}
                                 >
-                                  <ExternalLink className="text-sky-600" />
+                                  <ExternalLink className="text-primary" />
                                   <span>Ver orden en Compras</span>
                                 </ContextMenuItem>
 
@@ -804,7 +805,7 @@ export default function ReporteContableView() {
 
                                 <ContextMenuSub>
                                   <ContextMenuSubTrigger>
-                                    <Copy className="text-slate-500" />
+                                    <Copy className="text-muted-foreground" />
                                     <span>Copiar información</span>
                                   </ContextMenuSubTrigger>
                                   <ContextMenuSubContent className="w-48">
@@ -861,11 +862,11 @@ export default function ReporteContableView() {
                       )}
                     </TableBody>
                     {lineas.length > 0 && (
-                      <TableFooter className="bg-gray-50 font-bold text-gray-900 print:border-t-[3px] print:border-double print:border-black print:bg-white">
+                      <TableFooter className="bg-muted font-bold text-foreground print:border-t-[3px] print:border-double print:border-black print:bg-white">
                         <TableRow className="total-general">
                           <TableCell
                             colSpan={6}
-                            className="px-4 py-3 text-right text-xs uppercase text-gray-500 print:hidden"
+                            className="px-4 py-3 text-right text-xs uppercase text-muted-foreground print:hidden"
                           >
                             Total ({monedaActiva})
                           </TableCell>
@@ -883,9 +884,9 @@ export default function ReporteContableView() {
                     )}
                   </Table>
                 </div>
-              </div>
+              </ModuleSurface>
 
-              <div className="mt-3 hidden justify-between border-t border-gray-200 pt-2 text-[7.5px] tracking-wide text-gray-400 print:flex">
+              <div className="mt-3 hidden justify-between border-t border-border pt-2 text-[7.5px] tracking-wide text-muted-foreground print:flex">
                 <span>SMV Hub · Cierre contable SAT</span>
                 <span>{subtituloPrint} · {monedaActiva}</span>
               </div>

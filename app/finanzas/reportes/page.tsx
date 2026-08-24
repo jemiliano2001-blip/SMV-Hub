@@ -3,6 +3,7 @@
 import AuthGuard from "@/app/AuthGuard"
 import PageHeader from "@/components/layout/PageHeader"
 import PageShell from "@/components/layout/PageShell"
+import ModuleSurface from "@/components/layout/ModuleSurface"
 import { useMemo, useState } from "react"
 import { Loader2, AlertCircle, Download, Printer } from "lucide-react"
 import { useFinanzasFacturas } from "@/lib/hooks/useFinanzasFacturas"
@@ -69,8 +70,8 @@ function ReportesFinanzas() {
   if (loading && facturas.length === 0) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-6 w-6 animate-spin text-blue-500 mr-2" />
-        <span className="text-sm text-gray-600">Cargando reporte…</span>
+        <Loader2 className="mr-2 h-6 w-6 animate-spin text-primary" />
+        <span className="text-sm text-muted-foreground">Cargando reporte…</span>
       </div>
     )
   }
@@ -78,8 +79,8 @@ function ReportesFinanzas() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-24">
-        <AlertCircle className="h-8 w-8 text-red-500" />
-        <p className="text-sm text-gray-700">{error}</p>
+        <AlertCircle className="h-8 w-8 text-rose-500" />
+        <p className="text-sm text-foreground">{error}</p>
         <button onClick={recargar} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
           Reintentar
         </button>
@@ -98,8 +99,10 @@ function ReportesFinanzas() {
                 <button
                   key={m}
                   onClick={() => setMonedaActiva(m)}
-                  className={`px-3 py-1 text-xs font-medium rounded-full border ${
-                    m === moneda ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200"
+                  className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                    m === moneda
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-muted-foreground"
                   }`}
                 >
                   {m}
@@ -107,13 +110,13 @@ function ReportesFinanzas() {
               ))}
             </div>
           )}
-          <div className="flex bg-gray-200/50 p-1 rounded-lg">
+          <div className="flex rounded-lg bg-muted p-1">
             {(["mes", "anio"] as Periodo[]).map((p) => (
               <button
                 key={p}
                 onClick={() => setPeriodo(p)}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                  periodo === p ? "bg-white text-primary shadow-sm" : "text-gray-500"
+                className={`rounded-md px-3 py-1 text-xs font-medium transition-all ${
+                  periodo === p ? "bg-card text-primary shadow-sm" : "text-muted-foreground"
                 }`}
               >
                 {p === "mes" ? "Mes actual" : "Acumulado del año"}
@@ -122,81 +125,81 @@ function ReportesFinanzas() {
           </div>
           <button
             onClick={exportarExcel}
-            className="flex items-center gap-1.5 rounded-lg bg-white border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
           >
             <Download className="h-3.5 w-3.5" /> Excel
           </button>
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-1.5 rounded-lg bg-white border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
           >
             <Printer className="h-3.5 w-3.5" /> Imprimir
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm print:border-0 print:shadow-none">
-          <p className="text-xs text-gray-500 mb-1">Facturación</p>
-          <p className="text-xl font-bold text-gray-900 tabular-nums">{formatPrecio(kpis.facturacionTotal, moneda)}</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm print:border-0 print:shadow-none">
-          <p className="text-xs text-gray-500 mb-1">Subtotal</p>
-          <p className="text-xl font-bold text-gray-900 tabular-nums">{formatPrecio(kpis.subtotal, moneda)}</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm print:border-0 print:shadow-none">
-          <p className="text-xs text-gray-500 mb-1">IVA</p>
-          <p className="text-xl font-bold text-gray-900 tabular-nums">{formatPrecio(kpis.impuestos, moneda)}</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm print:border-0 print:shadow-none">
-          <p className="text-xs text-gray-500 mb-1">Facturas</p>
-          <p className="text-xl font-bold text-gray-900 tabular-nums">{kpis.numFacturas}</p>
-        </div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <ModuleSurface className="p-4 print:border-0 print:shadow-none">
+          <p className="mb-1 text-xs text-muted-foreground">Facturación</p>
+          <p className="text-xl font-bold text-foreground tabular-nums">{formatPrecio(kpis.facturacionTotal, moneda)}</p>
+        </ModuleSurface>
+        <ModuleSurface className="p-4 print:border-0 print:shadow-none">
+          <p className="mb-1 text-xs text-muted-foreground">Subtotal</p>
+          <p className="text-xl font-bold text-foreground tabular-nums">{formatPrecio(kpis.subtotal, moneda)}</p>
+        </ModuleSurface>
+        <ModuleSurface className="p-4 print:border-0 print:shadow-none">
+          <p className="mb-1 text-xs text-muted-foreground">IVA</p>
+          <p className="text-xl font-bold text-foreground tabular-nums">{formatPrecio(kpis.impuestos, moneda)}</p>
+        </ModuleSurface>
+        <ModuleSurface className="p-4 print:border-0 print:shadow-none">
+          <p className="mb-1 text-xs text-muted-foreground">Facturas</p>
+          <p className="text-xl font-bold text-foreground tabular-nums">{kpis.numFacturas}</p>
+        </ModuleSurface>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 print:border-0 print:shadow-none print:p-0">
+      <ModuleSurface className="p-4 sm:p-6 print:border-0 print:p-0 print:shadow-none">
         {grupos.length === 0 ? (
-          <p className="text-sm text-gray-500 py-8 text-center">Sin facturación en este periodo.</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">Sin facturación en este periodo.</p>
         ) : (
           <>
           {/* print:hidden — al imprimir siempre se usa la tabla, sin importar el ancho de página. */}
-          <div className="md:hidden print:hidden divide-y divide-gray-100 -mx-4 sm:-mx-6">
+          <div className="-mx-4 divide-y divide-border print:hidden sm:-mx-6 md:hidden">
             {facturasPeriodo.map((f) => (
-              <div key={f.id} className="px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
+              <div key={f.id} className="flex items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{f.cliente}</p>
-                  <p className="text-xs text-gray-500 font-mono">{f.numeroFactura} · {formatFecha(f.fechaFactura)}</p>
+                  <p className="truncate text-sm font-semibold text-foreground">{f.cliente}</p>
+                  <p className="font-mono text-xs text-muted-foreground">{f.numeroFactura} · {formatFecha(f.fechaFactura)}</p>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-bold text-gray-900 tabular-nums">{formatPrecio(f.total, moneda)}</p>
-                  <p className="text-xs text-gray-400 tabular-nums">
+                <div className="shrink-0 text-right">
+                  <p className="text-sm font-bold text-foreground tabular-nums">{formatPrecio(f.total, moneda)}</p>
+                  <p className="text-xs text-muted-foreground tabular-nums">
                     {formatPrecio(f.subtotal, moneda)} + {formatPrecio(f.impuestos, moneda)} IVA
                   </p>
                 </div>
               </div>
             ))}
           </div>
-          <div className="hidden md:block print:block overflow-x-auto">
-            <Table className="w-full text-sm border-collapse">
+          <div className="hidden overflow-x-auto md:block print:block">
+            <Table className="w-full border-collapse text-sm">
               <TableHeader>
-                <TableRow className="border-b-2 border-gray-300">
-                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Cliente</TableHead>
-                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Factura</TableHead>
-                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Fecha</TableHead>
-                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Subtotal</TableHead>
-                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">IVA</TableHead>
-                  <TableHead className="pb-2 text-right text-xs font-semibold text-gray-600">Total</TableHead>
+                <TableRow className="border-b-2 border-border">
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-muted-foreground">Cliente</TableHead>
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-muted-foreground">Factura</TableHead>
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-muted-foreground">Fecha</TableHead>
+                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-muted-foreground">Subtotal</TableHead>
+                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-muted-foreground">IVA</TableHead>
+                  <TableHead className="pb-2 text-right text-xs font-semibold text-muted-foreground">Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {facturasPeriodo.map((f) => (
-                  <TableRow key={f.id} className="border-b border-gray-100">
+                  <TableRow key={f.id} className="border-b border-border">
                     <TableCell className="py-1.5 pr-3">{f.cliente}</TableCell>
-                    <TableCell className="py-1.5 pr-3 font-mono text-xs text-gray-500">{f.numeroFactura}</TableCell>
+                    <TableCell className="py-1.5 pr-3 font-mono text-xs text-muted-foreground">{f.numeroFactura}</TableCell>
                     <TableCell className="py-1.5 pr-3 text-xs">{formatFecha(f.fechaFactura)}</TableCell>
                     <TableCell className="py-1.5 pr-3 text-right tabular-nums">{formatPrecio(f.subtotal, moneda)}</TableCell>
                     <TableCell className="py-1.5 pr-3 text-right tabular-nums">{formatPrecio(f.impuestos, moneda)}</TableCell>
-                    <TableCell className="py-1.5 text-right tabular-nums font-medium">{formatPrecio(f.total, moneda)}</TableCell>
+                    <TableCell className="py-1.5 text-right font-medium tabular-nums">{formatPrecio(f.total, moneda)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -204,7 +207,7 @@ function ReportesFinanzas() {
           </div>
           </>
         )}
-      </div>
+      </ModuleSurface>
     </div>
   )
 }

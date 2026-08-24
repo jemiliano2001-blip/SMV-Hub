@@ -29,7 +29,7 @@ export default function IntegrityTrustStrip() {
 
   if (loading) {
     return (
-      <div className="mb-4 flex min-h-11 items-center gap-3 border-y border-slate-200 bg-white px-3 py-2 no-print">
+      <div className="mb-4 flex min-h-11 items-center gap-3 border-y border-border bg-card px-3 py-2 no-print">
         <Skeleton className="h-4 w-28" />
         <Skeleton className="h-4 w-44" />
       </div>

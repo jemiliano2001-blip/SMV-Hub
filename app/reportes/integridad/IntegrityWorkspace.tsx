@@ -1,8 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react"
-import { AlertCircle, ShieldCheck } from "lucide-react"
+import { AlertCircle, ShieldAlert, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import ModuleEmptyState from "@/components/layout/ModuleEmptyState"
+import ModuleSurface from "@/components/layout/ModuleSurface"
+import PageHeader from "@/components/layout/PageHeader"
 import {
   Sheet,
   SheetContent,
@@ -257,10 +260,10 @@ export default function IntegrityWorkspace() {
   if (loading && !trust) {
     return (
       <div className="space-y-4">
-        <div className="space-y-2 border-y border-slate-200 bg-white p-4">
+        <ModuleSurface className="space-y-2 p-4">
           <Skeleton className="h-5 w-64" />
           <Skeleton className="h-4 w-full max-w-3xl" />
-        </div>
+        </ModuleSurface>
         <IntegrityQueueSkeleton />
       </div>
     )
@@ -268,18 +271,16 @@ export default function IntegrityWorkspace() {
 
   if (error && !trust) {
     return (
-      <div className="grid min-h-80 place-items-center border border-rose-200 bg-white p-8 text-center">
-        <div>
-          <AlertCircle className="mx-auto h-8 w-8 text-rose-700" aria-hidden="true" />
-          <h2 className="mt-3 text-lg font-semibold text-slate-900">
-            No se pudo cargar Integridad
-          </h2>
-          <p className="mt-2 max-w-xl text-sm text-slate-700">{error}</p>
-          <Button type="button" className="mt-4 min-h-11" onClick={() => void loadList(true)}>
+      <ModuleEmptyState
+        icon={AlertCircle}
+        title="No se pudo cargar Integridad"
+        description={error}
+        action={
+          <Button type="button" className="min-h-11" onClick={() => void loadList(true)}>
             Reintentar
           </Button>
-        </div>
-      </div>
+        }
+      />
     )
   }
 
@@ -288,20 +289,16 @@ export default function IntegrityWorkspace() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 px-1">
-        <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" />
-        <div>
-          <h1 className="text-xl font-semibold text-slate-950">Integridad del gasto</h1>
-          <p className="text-sm text-slate-600">
-            Excepciones entre órdenes de SMV Hub y facturas posted de Odoo.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Integridad del gasto"
+        icon={ShieldCheck}
+        description="Excepciones entre órdenes de SMV Hub y facturas posted de Odoo."
+      />
 
       <TrustLedger trust={trust} syncing={syncing} onSync={() => void sync()} />
       {message && (
         <p
-          className="border-y border-sky-200 bg-sky-50 px-4 py-3 text-sm font-medium text-sky-950"
+          className="rounded-xl border border-border bg-muted px-4 py-3 text-sm font-medium text-foreground"
           role="status"
           aria-live="polite"
         >
@@ -316,14 +313,11 @@ export default function IntegrityWorkspace() {
       />
 
       {!trust.activeRunId ? (
-        <div className="border border-slate-200 bg-white px-6 py-14 text-center">
-          <h2 className="text-lg font-semibold text-slate-900">
-            {unavailable.title}
-          </h2>
-          <p className="mt-2 text-sm text-slate-600">
-            {unavailable.description}
-          </p>
-        </div>
+        <ModuleEmptyState
+          icon={ShieldAlert}
+          title={unavailable.title}
+          description={unavailable.description}
+        />
       ) : (
         <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,58fr)_minmax(480px,42fr)]">
           <IntegrityQueue
@@ -337,18 +331,20 @@ export default function IntegrityWorkspace() {
           />
 
           {viewport === "desktop" && items.length > 0 && (
-            <aside className="sticky top-20 max-h-[calc(100vh-6rem)] min-h-[560px] overflow-hidden border border-slate-200 bg-white">
-              <IntegrityInspector
-                detail={detail}
-                loading={detailLoading}
-                error={detailError}
-                fresh={trust.sourceStatus === "current"}
-                busy={busy}
-                message={message}
-                onRetry={() => selectedId && void loadDetail(selectedId, trust.activeRunId ?? undefined)}
-                onCommand={runCommand}
-                onNext={items.length > 1 ? nextCase : undefined}
-              />
+            <aside className="sticky top-20 max-h-[calc(100vh-6rem)] min-h-[560px]">
+              <ModuleSurface className="h-full max-h-[calc(100vh-6rem)] min-h-[560px]">
+                <IntegrityInspector
+                  detail={detail}
+                  loading={detailLoading}
+                  error={detailError}
+                  fresh={trust.sourceStatus === "current"}
+                  busy={busy}
+                  message={message}
+                  onRetry={() => selectedId && void loadDetail(selectedId, trust.activeRunId ?? undefined)}
+                  onCommand={runCommand}
+                  onNext={items.length > 1 ? nextCase : undefined}
+                />
+              </ModuleSurface>
             </aside>
           )}
         </div>

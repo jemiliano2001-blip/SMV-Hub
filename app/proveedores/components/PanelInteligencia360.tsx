@@ -3,10 +3,13 @@
 import {
   Award,
   CheckCircle2,
+  Clock,
   RefreshCw,
+  Star,
   Zap,
   Layers,
 } from 'lucide-react'
+import ModuleSurface from '@/components/layout/ModuleSurface'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { Proveedor, CategoriaProveedor } from '@/lib/schemas'
@@ -85,19 +88,19 @@ export default function PanelInteligencia360({
 
   return (
     <div className="space-y-6">
-      {/* 🟢 FEATURE C: MATRIZ DE PROVEEDOR PRIMARIO VS BACKUP */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      {/* Matriz de proveedor primario vs backup */}
+      <ModuleSurface className="p-6 space-y-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="p-1.5 rounded-lg bg-sky-50 text-primary border border-sky-200">
                 <Layers className="w-5 h-5" />
               </span>
-              <h2 className="text-lg font-bold text-slate-900">
+              <h2 className="text-lg font-bold text-foreground">
                 Matriz de Cobertura: Proveedor Primario vs Backup
               </h2>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               Garantiza la continuidad operativa del taller asignando un proveedor principal y una alternativa de respaldo por categoría de herramental.
             </p>
           </div>
@@ -118,13 +121,13 @@ export default function PanelInteligencia360({
             return (
               <div
                 key={catItem.id}
-                className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3"
+                className="p-4 rounded-xl bg-muted/40 border border-border space-y-3"
               >
                 <div>
-                  <h4 className="text-sm font-bold text-slate-800">
+                  <h4 className="text-sm font-bold text-foreground">
                     {catItem.titulo}
                   </h4>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-muted-foreground">
                     {catItem.descripcion}
                   </p>
                 </div>
@@ -138,7 +141,7 @@ export default function PanelInteligencia360({
                     <select
                       value={selPrimario}
                       onChange={(e) => handleSeleccionarPrimario(catItem.id, e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-primary"
+                      className="w-full bg-card border border-input rounded-lg p-2 text-xs font-semibold text-foreground focus:outline-none focus:border-primary"
                     >
                       <option value="">Seleccionar primario...</option>
                       {disponibles.map((p) => (
@@ -148,8 +151,8 @@ export default function PanelInteligencia360({
                       ))}
                     </select>
                     {provPrimario && (
-                      <div className="text-[10px] text-slate-500">
-                        Lead time: <strong className="text-slate-700">{provPrimario.leadTimeDias || '3-5'}d</strong> | Rating: ⭐ {provPrimario.calificacion || 5}.0
+                      <div className="text-[10px] text-muted-foreground">
+                        Lead time: <strong className="text-foreground">{provPrimario.leadTimeDias || '3-5'}d</strong> | Rating: {provPrimario.calificacion || 5}.0
                       </div>
                     )}
                   </div>
@@ -162,7 +165,7 @@ export default function PanelInteligencia360({
                     <select
                       value={selBackup}
                       onChange={(e) => handleSeleccionarBackup(catItem.id, e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-primary"
+                      className="w-full bg-card border border-input rounded-lg p-2 text-xs font-semibold text-foreground focus:outline-none focus:border-primary"
                     >
                       <option value="">Seleccionar backup...</option>
                       {disponibles.map((p) => (
@@ -172,8 +175,8 @@ export default function PanelInteligencia360({
                       ))}
                     </select>
                     {provBackup && (
-                      <div className="text-[10px] text-slate-500">
-                        Lead time: <strong className="text-slate-700">{provBackup.leadTimeDias || '3-5'}d</strong> | Rating: ⭐ {provBackup.calificacion || 5}.0
+                      <div className="text-[10px] text-muted-foreground">
+                        Lead time: <strong className="text-foreground">{provBackup.leadTimeDias || '3-5'}d</strong> | Rating: {provBackup.calificacion || 5}.0
                       </div>
                     )}
                   </div>
@@ -182,21 +185,21 @@ export default function PanelInteligencia360({
             )
           })}
         </div>
-      </div>
+      </ModuleSurface>
 
-      {/* 🔵 FEATURE D: SCORECARD AUTOMÁTICO 360° */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      {/* Scorecard automático 360° */}
+      <ModuleSurface className="p-6 space-y-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="p-1.5 rounded-lg bg-amber-50 text-amber-600 border border-amber-200">
                 <Award className="w-5 h-5" />
               </span>
-              <h2 className="text-lg font-bold text-slate-900">
+              <h2 className="text-lg font-bold text-foreground">
                 Scorecards de Desempeño 360° (Odoo + Requisiciones)
               </h2>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               Evaluación ponderada en tiempo real: Cumplimiento de Lead Time (35%), Competitividad de Precio (35%), Calidad/Aprobación (20%) y Servicio (10%).
             </p>
           </div>
@@ -226,16 +229,16 @@ export default function PanelInteligencia360({
         </div>
 
         {scorecards.length === 0 ? (
-          <div className="p-8 text-center bg-slate-50 rounded-xl space-y-2 border border-slate-200/80">
-            <Award className="w-10 h-10 text-slate-300 mx-auto" />
-            <p className="text-xs text-slate-500">
+          <div className="p-8 text-center bg-muted/40 rounded-xl space-y-2 border border-border">
+            <Award className="w-10 h-10 text-muted-foreground mx-auto" />
+            <p className="text-xs text-muted-foreground">
               Presiona &quot;Persistir Scorecards en DB&quot; para generar y sincronizar las métricas automáticas desde Odoo y órdenes.
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <div className="overflow-x-auto rounded-xl border border-border">
             <Table className="w-full text-left text-xs">
-              <TableHeader className="bg-slate-50 border-b border-slate-200 font-bold uppercase tracking-wider text-slate-500">
+              <TableHeader className="bg-muted/50 border-b border-border font-bold uppercase tracking-wider text-muted-foreground">
                 <TableRow>
                   <TableHead className="p-3">Proveedor</TableHead>
                   <TableHead className="p-3 text-center">Órdenes Totales</TableHead>
@@ -245,10 +248,10 @@ export default function PanelInteligencia360({
                   <TableHead className="p-3">Observaciones / Fortalezas</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className="divide-y divide-slate-100 font-medium text-slate-700">
+              <TableBody className="divide-y divide-border font-medium text-foreground">
                 {scorecards.map((sc, idx) => (
-                  <TableRow key={idx} className="hover:bg-slate-50 transition-colors">
-                    <TableCell className="p-3 font-bold text-slate-900">
+                  <TableRow key={idx} className="hover:bg-muted/40 transition-colors">
+                    <TableCell className="p-3 font-bold text-foreground">
                       {sc.proveedorNombre}
                     </TableCell>
 
@@ -263,14 +266,20 @@ export default function PanelInteligencia360({
                     </TableCell>
 
                     <TableCell className="p-3 text-center font-bold text-sky-700">
-                      ⏱️ {sc.scoreCalidad.toFixed(1)} / 5.0
+                      <span className="inline-flex items-center justify-center gap-1">
+                        <Clock className="h-3.5 w-3.5" aria-hidden />
+                        {sc.scoreCalidad.toFixed(1)} / 5.0
+                      </span>
                     </TableCell>
 
                     <TableCell className="p-3 text-center font-bold text-amber-600 text-sm">
-                      ⭐ {sc.promedioGeneral.toFixed(1)}
+                      <span className="inline-flex items-center justify-center gap-1">
+                        <Star className="h-3.5 w-3.5" aria-hidden />
+                        {sc.promedioGeneral.toFixed(1)}
+                      </span>
                     </TableCell>
 
-                    <TableCell className="p-3 text-slate-500 text-[11px]">
+                    <TableCell className="p-3 text-muted-foreground text-[11px]">
                       {sc.evaluacionPayload.fortalezas.join(', ') || 'Desempeño estable'}
                     </TableCell>
                   </TableRow>
@@ -279,7 +288,7 @@ export default function PanelInteligencia360({
             </Table>
           </div>
         )}
-      </div>
+      </ModuleSurface>
 
     </div>
   )

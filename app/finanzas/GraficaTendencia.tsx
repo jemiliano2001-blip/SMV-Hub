@@ -47,7 +47,7 @@ export default function GraficaTendencia({ serie, moneda }: { serie: PuntoMensua
   }, [serie])
 
   if (serie.length === 0) {
-    return <p className="text-sm text-gray-500 py-4 text-center">Sin datos para graficar.</p>
+    return <p className="py-4 text-center text-sm text-muted-foreground">Sin datos para graficar.</p>
   }
 
   const activo = hover !== null ? puntos[hover] : null
@@ -55,7 +55,7 @@ export default function GraficaTendencia({ serie, moneda }: { serie: PuntoMensua
   return (
     <div className="relative">
       {activo && (
-        <div className="absolute -top-1 left-1/2 -translate-x-1/2 rounded-lg bg-gray-900 px-3 py-1.5 text-xs text-white shadow-lg pointer-events-none z-10 whitespace-nowrap">
+        <div className="pointer-events-none absolute -top-1 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg bg-foreground px-3 py-1.5 text-xs text-background shadow-lg">
           <span className="font-medium">{etiquetaMes(activo.mes)}:</span>{" "}
           <span className="tabular-nums">{formatPrecio(activo.total, moneda)}</span>
         </div>

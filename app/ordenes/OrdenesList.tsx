@@ -399,17 +399,17 @@ export default function OrdenesList() {
       )}
 
       {!cargandoCompleto && ordenesFiltradas.length > 0 && (
-        <div className="mt-3 flex flex-col items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 sm:flex-row">
-          <p className="text-xs font-medium text-slate-500" aria-live="polite">
-            Mostrando <span className="font-bold text-slate-800">{ordenesFiltradas.length}</span> de{' '}
-            <span className="font-bold text-slate-800">{totalOrdenes}</span> órdenes
+        <div className="mt-3 flex flex-col items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 sm:flex-row">
+          <p className="text-xs font-medium text-muted-foreground" aria-live="polite">
+            Mostrando <span className="font-bold text-foreground">{ordenesFiltradas.length}</span> de{' '}
+            <span className="font-bold text-foreground">{totalOrdenes}</span> órdenes
           </p>
           {hayMas && (
             <button
               type="button"
               onClick={() => void cargarMas()}
               disabled={cargandoMas}
-              className="min-h-10 min-w-32 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-primary hover:bg-slate-50 disabled:opacity-50"
+              className="min-h-10 min-w-32 rounded-lg border border-input bg-card px-4 py-2 text-xs font-bold text-primary hover:bg-muted disabled:opacity-50"
             >
               {cargandoMas ? 'Cargando…' : 'Cargar más'}
             </button>

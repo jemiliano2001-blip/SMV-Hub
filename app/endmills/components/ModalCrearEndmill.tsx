@@ -99,7 +99,7 @@ export default function ModalCrearEndmill({
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5 text-sky-700" /> Agregar Nuevo Endmill al Catálogo
+            <Plus className="h-5 w-5 text-primary" /> Agregar Nuevo Endmill al Catálogo
           </DialogTitle>
           <DialogDescription>
             La nueva medida se agregará automáticamente al final de la lista de inventario.
@@ -113,7 +113,7 @@ export default function ModalCrearEndmill({
               id="nuevo-categoria"
               value={form.categoria}
               onChange={(e) => updateField("categoria", e.target.value as CategoriaEndmill)}
-              className="w-full rounded-md border border-slate-300 bg-white p-2 text-sm font-medium focus:border-sky-500 focus:outline-hidden"
+              className="w-full rounded-md border border-input bg-card p-2 text-sm font-medium text-foreground focus:border-primary focus:outline-hidden"
             >
               {CATEGORIAS_OPCIONES.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -197,9 +197,9 @@ export default function ModalCrearEndmill({
               id="nuevo-confirmacion"
               checked={form.requiereConfirmacion}
               onChange={(e) => updateField("requiereConfirmacion", e.target.checked)}
-              className="h-4 w-4 rounded-xs border-slate-300 text-sky-600 focus:ring-sky-500"
+              className="h-4 w-4 rounded-xs border-border text-primary focus:ring-ring"
             />
-            <Label htmlFor="nuevo-confirmacion" className="cursor-pointer text-xs font-semibold text-slate-700">
+            <Label htmlFor="nuevo-confirmacion" className="cursor-pointer text-xs font-semibold text-foreground">
               Marcar como pendiente de confirmación (precio/spec con China)
             </Label>
           </div>
@@ -224,7 +224,7 @@ export default function ModalCrearEndmill({
           <Button
             onClick={() => void handleGuardar()}
             disabled={guardando}
-            className="bg-sky-700 hover:bg-sky-800 text-white font-semibold"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
           >
             {guardando ? "Guardando..." : "Agregar Endmill"}
           </Button>

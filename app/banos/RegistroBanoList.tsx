@@ -48,7 +48,7 @@ const AREA_COLORS: Record<string, string> = {
   diseno: 'bg-purple-100 text-purple-700',
   automatizacion: 'bg-emerald-100 text-emerald-700',
   cnc: 'bg-amber-100 text-amber-700',
-  limpieza: 'bg-gray-100 text-gray-600',
+  limpieza: 'bg-muted text-muted-foreground',
   administracion: 'bg-rose-100 text-rose-700',
 }
 
@@ -265,7 +265,7 @@ export default function RegistroBanoList() {
   }
 
   if (loadingBanos || loadingOps) {
-    return <div className="animate-pulse h-64 bg-gray-100 rounded-lg"></div>
+    return <div className="animate-pulse h-64 bg-muted rounded-lg"></div>
   }
 
   if (error) {
@@ -320,97 +320,96 @@ export default function RegistroBanoList() {
         </div>
       )}
 
-      <form
-        onSubmit={handleAgregar}
-        className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3"
-      >
-        <div className="flex flex-wrap gap-2">
-          <span className="text-xs font-medium text-gray-500 w-full sm:w-auto sm:self-center">
-            Baño / Área
-          </span>
-          {BANOS.map((b) => (
-            <button
-              key={b}
-              type="button"
-              onClick={() => {
-                setBano(b)
-                setErrorCaptura(null)
-              }}
-              className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
-                bano === b
-                  ? 'bg-primary text-white border-primary'
-                  : 'bg-white text-gray-700 border-gray-200 hover:border-primary/50'
-              }`}
-            >
-              {b}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="w-full sm:w-64">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Operador</label>
-            <input
-              list="operadores-list"
-              ref={operadorInputRef}
-              required
-              placeholder="Buscar o escribir..."
-              value={operador}
-              onChange={(e) => {
-                setOperador(e.target.value)
-                setErrorDuplicado(null)
-                setErrorCaptura(null)
-              }}
-              className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:border-primary"
-            />
-            <datalist id="operadores-list">
-              {operadoresActivos.map(op => (
-                <option key={op.id} value={op.nombre} />
-              ))}
-            </datalist>
-            <p className="mt-1 text-xs text-gray-500">
-              {formatIndicadorCapturaBano(indicadorHora)}
-            </p>
+      <ModuleSurface className="p-4 space-y-3">
+        <form onSubmit={handleAgregar} className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <span className="text-xs font-medium text-muted-foreground w-full sm:w-auto sm:self-center">
+              Baño / Área
+            </span>
+            {BANOS.map((b) => (
+              <button
+                key={b}
+                type="button"
+                onClick={() => {
+                  setBano(b)
+                  setErrorCaptura(null)
+                }}
+                className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
+                  bano === b
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-card text-foreground border-border hover:border-primary/50'
+                }`}
+              >
+                {b}
+              </button>
+            ))}
           </div>
 
-          <button
-            type="submit"
-            disabled={agregando || yaEnCurso || !bano}
-            title={
-              yaEnCurso
-                ? `${operador} ya tiene un registro abierto hoy`
-                : !bano
-                  ? 'Selecciona un baño primero'
-                  : undefined
-            }
-            className="bg-primary hover:bg-primary/90 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 sm:ml-auto"
-          >
-            <Plus className="h-4 w-4" />
-            Registrar Entrada
-          </button>
-        </div>
-      </form>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="w-full sm:w-64">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Operador</label>
+              <input
+                list="operadores-list"
+                ref={operadorInputRef}
+                required
+                placeholder="Buscar o escribir..."
+                value={operador}
+                onChange={(e) => {
+                  setOperador(e.target.value)
+                  setErrorDuplicado(null)
+                  setErrorCaptura(null)
+                }}
+                className="w-full px-3 py-1.5 text-sm border border-input rounded-md bg-card text-foreground focus:outline-none focus:border-primary"
+              />
+              <datalist id="operadores-list">
+                {operadoresActivos.map(op => (
+                  <option key={op.id} value={op.nombre} />
+                ))}
+              </datalist>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {formatIndicadorCapturaBano(indicadorHora)}
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={agregando || yaEnCurso || !bano}
+              title={
+                yaEnCurso
+                  ? `${operador} ya tiene un registro abierto hoy`
+                  : !bano
+                    ? 'Selecciona un baño primero'
+                    : undefined
+              }
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 sm:ml-auto"
+            >
+              <Plus className="h-4 w-4" />
+              Registrar Entrada
+            </button>
+          </div>
+        </form>
+      </ModuleSurface>
 
       <div className="relative w-full sm:w-64">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <input
           type="text"
           placeholder="Buscar operador..."
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
+          className="w-full pl-9 pr-3 py-1.5 text-sm border border-input bg-card text-foreground rounded-md focus:outline-none focus:border-primary"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
-          <h3 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+          <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
             En el baño ({enCurso.length})
           </h3>
           <ModuleSurface>
             <Table className="text-xs">
-              <TableHeader className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+              <TableHeader className="bg-muted text-muted-foreground font-medium border-b border-border">
                 <TableRow>
                   <TableHead className="px-4 py-2">Operador</TableHead>
                   <TableHead className="px-4 py-2">Baño</TableHead>
@@ -418,10 +417,10 @@ export default function RegistroBanoList() {
                   <TableHead className="px-4 py-2 w-28 text-right">Acción</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className="divide-y divide-gray-100">
+              <TableBody className="divide-y divide-border">
                 {enCurso.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="px-4 py-6 text-center text-gray-500 text-xs">
+                    <TableCell colSpan={4} className="px-4 py-6 text-center text-muted-foreground text-xs">
                       {filtro && enCursoTodos.length > 0 ? 'Sin coincidencias' : 'Nadie en el baño'}
                     </TableCell>
                   </TableRow>
@@ -430,16 +429,16 @@ export default function RegistroBanoList() {
                     <ContextMenu key={r.id}>
                       <ContextMenuTrigger asChild>
                         <TableRow className="hover:bg-amber-50/50 cursor-pointer select-none" onDoubleClick={() => handleLlegada(r.id, r.horaEntrada)}>
-                          <TableCell className="px-4 py-2 font-medium text-gray-900">
+                          <TableCell className="px-4 py-2 font-medium text-foreground">
                             <div className="flex items-center gap-2">
-                              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${AREA_COLORS[operadoresActivos.find(o => o.nombre === r.operador)?.area || 'taller'] || 'bg-gray-100 text-gray-600'}`}>
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${AREA_COLORS[operadoresActivos.find(o => o.nombre === r.operador)?.area || 'taller'] || 'bg-muted text-muted-foreground'}`}>
                                 {getInitials(r.operador)}
                               </div>
                               {r.operador}
                             </div>
                           </TableCell>
-                          <TableCell className="px-4 py-2 text-gray-600">{r.bano}</TableCell>
-                          <TableCell className="px-4 py-2 text-gray-900">{r.horaEntrada}</TableCell>
+                          <TableCell className="px-4 py-2 text-muted-foreground">{r.bano}</TableCell>
+                          <TableCell className="px-4 py-2 text-foreground">{r.horaEntrada}</TableCell>
                           <TableCell className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-1">
                               <button
@@ -500,7 +499,7 @@ export default function RegistroBanoList() {
                             toast.success('Nombre copiado', { description: r.operador })
                           }}
                         >
-                          <Copy className="text-slate-500" />
+                          <Copy className="text-muted-foreground" />
                           <span>Copiar nombre ({r.operador})</span>
                         </ContextMenuItem>
 
@@ -539,13 +538,13 @@ export default function RegistroBanoList() {
         </div>
 
         <div>
-          <h3 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-gray-300"></span>
+          <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-muted-foreground/40"></span>
             Completados hoy ({terminados.length})
           </h3>
           <ModuleSurface>
             <Table className="text-xs">
-              <TableHeader className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+              <TableHeader className="bg-muted text-muted-foreground font-medium border-b border-border">
                 <TableRow>
                   <TableHead className="px-4 py-2">Operador</TableHead>
                   <TableHead className="px-4 py-2">Baño</TableHead>
@@ -554,10 +553,10 @@ export default function RegistroBanoList() {
                   <TableHead className="px-4 py-2 w-16 text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className="divide-y divide-gray-100">
+              <TableBody className="divide-y divide-border">
                 {terminados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="px-4 py-6 text-center text-gray-500 text-xs">
+                    <TableCell colSpan={5} className="px-4 py-6 text-center text-muted-foreground text-xs">
                       {filtro && terminadosTodos.length > 0 ? 'Sin coincidencias' : 'No hay registros completados'}
                     </TableCell>
                   </TableRow>
@@ -565,27 +564,27 @@ export default function RegistroBanoList() {
                   terminados.map((r) => (
                     <ContextMenu key={r.id}>
                       <ContextMenuTrigger asChild>
-                        <TableRow className="hover:bg-gray-50 cursor-pointer select-none" onDoubleClick={() => abrirModalEditar(r)}>
-                          <TableCell className="px-4 py-2 font-medium text-gray-900">
+                        <TableRow className="hover:bg-muted cursor-pointer select-none" onDoubleClick={() => abrirModalEditar(r)}>
+                          <TableCell className="px-4 py-2 font-medium text-foreground">
                             <div className="flex items-center gap-2">
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold ${AREA_COLORS[operadoresActivos.find(o => o.nombre === r.operador)?.area || 'taller'] || 'bg-gray-100 text-gray-600'}`}>
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold ${AREA_COLORS[operadoresActivos.find(o => o.nombre === r.operador)?.area || 'taller'] || 'bg-muted text-muted-foreground'}`}>
                                 {getInitials(r.operador)}
                               </div>
                               {r.operador}
                             </div>
                           </TableCell>
-                          <TableCell className="px-4 py-2 text-gray-500 text-xs">{r.bano}</TableCell>
+                          <TableCell className="px-4 py-2 text-muted-foreground text-xs">{r.bano}</TableCell>
                           <TableCell
                             onClick={(e) => {
                               e.stopPropagation()
                               abrirModalEditar(r)
                             }}
-                            className="px-4 py-2 text-gray-600 text-xs tracking-tighter cursor-pointer hover:text-primary hover:underline"
+                            className="px-4 py-2 text-muted-foreground text-xs tracking-tighter cursor-pointer hover:text-primary hover:underline"
                             title="Clic para editar horario"
                           >
                             {r.horaEntrada} - {r.horaLlegada}
                           </TableCell>
-                          <TableCell className="px-4 py-2 text-right font-medium text-gray-900">
+                          <TableCell className="px-4 py-2 text-right font-medium text-foreground">
                             {r.tiempoMinutos} m
                           </TableCell>
                           <TableCell className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
@@ -604,7 +603,7 @@ export default function RegistroBanoList() {
                                   type="button"
                                   onClick={() => handleEliminar(r.id, r.operador)}
                                   title="Eliminar registro (Solo Super Admin)"
-                                  className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                                  className="p-1 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
@@ -645,7 +644,7 @@ export default function RegistroBanoList() {
                             toast.success('Nombre copiado', { description: r.operador })
                           }}
                         >
-                          <Copy className="text-slate-500" />
+                          <Copy className="text-muted-foreground" />
                           <span>Copiar nombre ({r.operador})</span>
                         </ContextMenuItem>
 
@@ -704,8 +703,8 @@ export default function RegistroBanoList() {
             <form onSubmit={handleGuardarHorario} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5 text-slate-400" />
+                  <label className="block text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                     Hora Entrada
                   </label>
                   <input
@@ -713,13 +712,13 @@ export default function RegistroBanoList() {
                     required
                     value={editHoraEntrada}
                     onChange={(e) => setEditHoraEntrada(e.target.value)}
-                    className="w-full rounded-lg border border-input px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
+                    className="w-full rounded-lg border border-input bg-card text-foreground px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5 text-slate-400" />
+                  <label className="block text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                     Hora Llegada
                   </label>
                   <input
@@ -727,15 +726,15 @@ export default function RegistroBanoList() {
                     required
                     value={editHoraLlegada}
                     onChange={(e) => setEditHoraLlegada(e.target.value)}
-                    className="w-full rounded-lg border border-input px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
+                    className="w-full rounded-lg border border-input bg-card text-foreground px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
                   />
                 </div>
               </div>
 
               {/* Dynamic preview badge */}
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-center justify-between text-xs">
-                <span className="text-slate-600 font-medium">Duración recalculada:</span>
-                <span className="rounded border border-sky-200/60 bg-sky-50 px-2 py-0.5 text-sm font-bold text-primary">
+              <div className="bg-muted border border-border rounded-lg p-3 flex items-center justify-between text-xs">
+                <span className="text-muted-foreground font-medium">Duración recalculada:</span>
+                <span className="rounded border border-primary/20 bg-primary/10 px-2 py-0.5 text-sm font-bold text-primary">
                   {editHoraEntrada && editHoraLlegada ? `${calcularMinutos(editHoraEntrada, editHoraLlegada)} min` : '--'}
                 </span>
               </div>

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useBanos } from '@/lib/hooks/useBanos'
 import { Search, Download } from 'lucide-react'
 import { fechaHoyLocal } from '@/lib/format'
+import ModuleSurface from '@/components/layout/ModuleSurface'
 import {
   Table,
   TableBody,
@@ -84,74 +85,74 @@ export default function CuentaDiaria() {
   return (
     <div className="space-y-6">
       {/* Controles */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
+      <ModuleSurface className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4">
         <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-gray-700">Mes a consultar:</label>
+          <label className="text-sm font-medium text-foreground">Mes a consultar:</label>
           <input
             type="month"
             value={mes}
             onChange={(e) => setMes(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
+            className="px-3 py-1.5 text-sm border border-input bg-card text-foreground rounded-md focus:outline-none focus:border-primary"
           />
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Buscar operador..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
+              className="w-full pl-9 pr-3 py-1.5 text-sm border border-input bg-card text-foreground rounded-md focus:outline-none focus:border-primary"
             />
           </div>
 
           <button
             onClick={exportarCSV}
             disabled={operadoresFiltrados.length === 0 || pivot.fechas.length === 0}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-white border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-card border border-border text-foreground rounded-md hover:bg-muted disabled:opacity-50 transition-colors"
             title="Exportar a CSV"
           >
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Exportar</span>
           </button>
         </div>
-      </div>
+      </ModuleSurface>
 
       {loading ? (
-        <div className="animate-pulse h-64 bg-gray-100 rounded-lg"></div>
+        <div className="animate-pulse h-64 bg-muted rounded-lg"></div>
       ) : pivot.fechas.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 bg-gray-50 border border-gray-200 rounded-lg border-dashed">
+        <div className="text-center py-12 text-muted-foreground bg-muted/50 border border-border rounded-lg border-dashed">
           No hay registros en este mes
         </div>
       ) : (
-        <div className="overflow-x-auto border border-gray-200 rounded-lg bg-white shadow-sm">
+        <ModuleSurface className="overflow-x-auto">
           <Table className="w-full text-sm text-center">
-            <TableHeader className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+            <TableHeader className="bg-muted text-muted-foreground font-medium border-b border-border">
               <TableRow>
-                <TableHead className="px-4 py-3 text-left sticky left-0 bg-gray-50 border-r border-gray-200 z-10 whitespace-nowrap">
+                <TableHead className="px-4 py-3 text-left sticky left-0 bg-muted border-r border-border z-10 whitespace-nowrap">
                   Fecha
                 </TableHead>
                 {operadoresFiltrados.map(op => (
-                  <TableHead key={op} className="px-3 py-3 text-center whitespace-nowrap border-l border-gray-100 font-medium">
+                  <TableHead key={op} className="px-3 py-3 text-center whitespace-nowrap border-l border-border font-medium">
                     <div className="w-16 truncate mx-auto" title={op}>{op.split(' ')[0]}</div>
                   </TableHead>
                 ))}
               </TableRow>
             </TableHeader>
-            <TableBody className="divide-y divide-gray-100">
+            <TableBody className="divide-y divide-border">
               {pivot.fechas.map(fecha => (
-                <TableRow key={fecha} className="hover:bg-gray-50">
-                  <TableCell className="px-4 py-2 font-medium text-gray-900 text-left sticky left-0 bg-white border-r border-gray-200 whitespace-nowrap">
+                <TableRow key={fecha} className="hover:bg-muted">
+                  <TableCell className="px-4 py-2 font-medium text-foreground text-left sticky left-0 bg-card border-r border-border whitespace-nowrap">
                     {fecha}
                   </TableCell>
                   {operadoresFiltrados.map(op => {
                     const count = pivot.conteos[fecha][op]
                     return (
-                      <TableCell key={op} className="px-3 py-2 border-l border-gray-100">
+                      <TableCell key={op} className="px-3 py-2 border-l border-border">
                         <span className={`inline-flex w-6 h-6 items-center justify-center rounded-full text-xs ${
-                          count === 0 ? 'text-gray-300' :
+                          count === 0 ? 'text-muted-foreground/40' :
                           count > 2 ? 'bg-red-100 text-red-700 font-bold' :
                           count === 2 ? 'bg-amber-100 text-amber-700 font-medium' :
                           'bg-blue-50 text-blue-700 font-medium'
@@ -165,7 +166,7 @@ export default function CuentaDiaria() {
               ))}
             </TableBody>
           </Table>
-        </div>
+        </ModuleSurface>
       )}
     </div>
   )

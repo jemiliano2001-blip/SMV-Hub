@@ -50,14 +50,14 @@ export default function PanelComprasOdoo() {
 
   return (
     <div className="space-y-6">
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div className="bg-card border border-border rounded-xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-start gap-3">
             <Database className="h-5 w-5 text-sky-600 mt-0.5" />
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Base de compras Odoo · solo lectura</h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <h2 className="text-sm font-bold text-foreground">Base de compras Odoo · solo lectura</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Espejo de POs y facturas de proveedor. Última sync:{' '}
-                <span className="font-mono text-slate-700">{formatFecha(estadoSync?.ultimaCorridaEn ?? null)}</span>
+                <span className="font-mono text-foreground">{formatFecha(estadoSync?.ultimaCorridaEn ?? null)}</span>
               </p>
               {estadoSync?.ultimoError && (
                 <p className="text-xs text-red-600 mt-1 flex items-center gap-1">

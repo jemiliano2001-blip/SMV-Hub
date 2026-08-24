@@ -17,6 +17,7 @@ import FiltrosReporte from "@/app/reportes/components/FiltrosReporte"
 import FranjaKpis from "@/app/reportes/components/FranjaKpis"
 import TablaReporte from "@/app/reportes/components/TablaReporte"
 import AvisoPendientes from "@/app/reportes/components/AvisoPendientes"
+import ModuleSurface from "@/components/layout/ModuleSurface"
 import { Loader2, AlertCircle } from "lucide-react"
 
 type PresetTipo = "semana" | "mes" | "personalizado"
@@ -106,12 +107,12 @@ export default function ReporteView() {
       <div className="max-w-[1400px] mx-auto px-4 py-6 print:max-w-none print:px-0 print:py-0">
 
         {/* Navegación (Oculto al imprimir) */}
-        <div className="mb-6 no-print flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+        <div className="mb-6 no-print flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
           <Link href="/" className="flex items-center gap-1 text-xs font-bold text-primary hover:underline">
             ← Volver al Inicio
           </Link>
 
-          <Link href="/reportes/contable" className="text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors">
+          <Link href="/reportes/contable" className="text-xs font-bold text-muted-foreground transition-colors hover:text-foreground">
             Cierre contable →
           </Link>
         </div>
@@ -149,11 +150,11 @@ export default function ReporteView() {
             </div>
           )}
 
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm print:rounded-none print:border-0 print:shadow-none print:p-0">
+          <ModuleSurface className="p-6 print:rounded-none print:border-0 print:p-0 print:shadow-none">
             <TablaReporte grupos={grupos} totalGeneral={totalGeneral} moneda={monedaActiva} />
-          </div>
+          </ModuleSurface>
 
-          <div className="hidden print:flex justify-between mt-3 pt-2 border-t border-gray-200 text-[7.5px] text-gray-400 tracking-wide">
+          <div className="mt-3 hidden justify-between border-t border-gray-200 pt-2 text-[7.5px] tracking-wide text-gray-400 print:flex">
             <span>SMV Maquinados, S.A. de C.V.</span>
             <span>Uso interno · Confidencial</span>
           </div>

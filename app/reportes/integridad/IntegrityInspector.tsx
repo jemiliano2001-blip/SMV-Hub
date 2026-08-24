@@ -34,7 +34,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from "@/components/ui/table"
 
 type CommandDraft = Omit<
   CaseCommandInput,
@@ -74,42 +74,42 @@ function Evidence({
   const currencyMismatch = detail.type === "currency_mismatch"
   const amountMismatch = detail.type === "diferencia_importe"
   return (
-    <section className="border-t border-slate-200 pt-4" aria-labelledby="case-evidence-title">
-      <h3 id="case-evidence-title" className="text-base font-semibold text-slate-900">
+    <section className="border-t border-border pt-4" aria-labelledby="case-evidence-title">
+      <h3 id="case-evidence-title" className="text-base font-semibold text-foreground">
         Evidencia de la corrida
       </h3>
       <div
-        className="mt-3 overflow-x-auto border border-slate-200"
+        className="mt-3 overflow-x-auto rounded-lg border border-border"
         tabIndex={0}
         role="region"
         aria-label="Comparación de evidencia; desplázate horizontalmente si es necesario"
       >
         <Table className="w-full min-w-[520px] text-left text-sm">
-          <TableHeader className="bg-slate-50 text-slate-600">
+          <TableHeader className="bg-muted text-muted-foreground">
             <TableRow>
               <TableHead scope="col" className="px-3 py-2 font-medium">Campo</TableHead>
               <TableHead scope="col" className="px-3 py-2 font-medium">SMV Hub</TableHead>
               <TableHead scope="col" className="px-3 py-2 font-medium">Odoo</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="divide-y divide-slate-200">
+          <TableBody className="divide-y divide-border">
             <TableRow>
-              <TableHead scope="row" className="px-3 py-2 font-medium text-slate-700">Documento</TableHead>
+              <TableHead scope="row" className="px-3 py-2 font-medium text-foreground">Documento</TableHead>
               <TableCell className="px-3 py-2 font-mono">{local?.invoiceNumber ?? "Sin orden"}</TableCell>
               <TableCell className="px-3 py-2 font-mono">{odoo?.invoiceNumber ?? "Sin factura"}</TableCell>
             </TableRow>
             <TableRow>
-              <TableHead scope="row" className="px-3 py-2 font-medium text-slate-700">Proveedor</TableHead>
+              <TableHead scope="row" className="px-3 py-2 font-medium text-foreground">Proveedor</TableHead>
               <TableCell className="px-3 py-2">{local?.providerName ?? "—"}</TableCell>
               <TableCell className="px-3 py-2">{odoo?.providerName ?? "—"}</TableCell>
             </TableRow>
             <TableRow className={currencyMismatch ? "bg-rose-50" : undefined}>
-              <TableHead scope="row" className="px-3 py-2 font-medium text-slate-700">Moneda</TableHead>
+              <TableHead scope="row" className="px-3 py-2 font-medium text-foreground">Moneda</TableHead>
               <TableCell className="px-3 py-2 font-mono">{local?.currency || "—"}</TableCell>
               <TableCell className="px-3 py-2 font-mono">{odoo?.currency || "—"}</TableCell>
             </TableRow>
             <TableRow className={amountMismatch ? "bg-amber-50" : undefined}>
-              <TableHead scope="row" className="px-3 py-2 font-medium text-slate-700">Total</TableHead>
+              <TableHead scope="row" className="px-3 py-2 font-medium text-foreground">Total</TableHead>
               <TableCell className="px-3 py-2 font-mono">
                 {money(local?.total ?? null, local?.currency ?? detail.currency ?? "")}
               </TableCell>
@@ -120,7 +120,7 @@ function Evidence({
           </TableBody>
         </Table>
       </div>
-      <p className="mt-2 text-sm text-slate-600">
+      <p className="mt-2 text-sm text-muted-foreground">
         Regla: {detail.ruleLabel} · revisión{" "}
         <span className="font-mono">{detail.sourceRevision}</span>
       </p>
@@ -162,7 +162,7 @@ function CaseActions({
 
   if (closed) {
     return (
-      <div className="border-t border-slate-200 pt-4">
+      <div className="border-t border-border pt-4">
         <p className="inline-flex items-center gap-2 text-sm font-medium text-emerald-800">
           <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
           Este caso está {WORKFLOW_STATE_LABELS[detail.workflow.state].toLowerCase()}.
@@ -172,8 +172,8 @@ function CaseActions({
   }
 
   return (
-    <section className="border-t border-slate-200 pt-4" aria-labelledby="case-actions-title">
-      <h3 id="case-actions-title" className="text-base font-semibold text-slate-900">
+    <section className="border-t border-border pt-4" aria-labelledby="case-actions-title">
+      <h3 id="case-actions-title" className="text-base font-semibold text-foreground">
         Siguiente acción
       </h3>
       {!fresh && (
@@ -183,13 +183,13 @@ function CaseActions({
       )}
 
       <div className="mt-4 grid gap-4">
-        <div className="grid gap-2 border-b border-slate-200 pb-4">
-          <label htmlFor={`assignee-${detail.caseId}`} className="text-sm font-medium text-slate-700">
+        <div className="grid gap-2 border-b border-border pb-4">
+          <label htmlFor={`assignee-${detail.caseId}`} className="text-sm font-medium text-foreground">
             Responsable
           </label>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Select value={assigneeUid} onValueChange={setAssigneeUid}>
-              <SelectTrigger id={`assignee-${detail.caseId}`} className="h-11 w-full bg-white">
+              <SelectTrigger id={`assignee-${detail.caseId}`} className="h-11 w-full bg-card">
                 <SelectValue placeholder="Seleccionar responsable" />
               </SelectTrigger>
               <SelectContent>
@@ -212,8 +212,8 @@ function CaseActions({
           </div>
         </div>
 
-        <div className="grid gap-2 border-b border-slate-200 pb-4">
-          <label htmlFor={`note-${detail.caseId}`} className="text-sm font-medium text-slate-700">
+        <div className="grid gap-2 border-b border-border pb-4">
+          <label htmlFor={`note-${detail.caseId}`} className="text-sm font-medium text-foreground">
             Nota o comentario
           </label>
           <textarea
@@ -223,9 +223,9 @@ function CaseActions({
             rows={3}
             maxLength={2000}
             placeholder="Describe lo revisado y el siguiente paso."
-            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
-          <label htmlFor={`evidence-${detail.caseId}`} className="text-sm font-medium text-slate-700">
+          <label htmlFor={`evidence-${detail.caseId}`} className="text-sm font-medium text-foreground">
             URL de evidencia (HTTPS, opcional)
           </label>
           <Input
@@ -253,7 +253,7 @@ function CaseActions({
           </Button>
         </div>
 
-        <div className="flex flex-col gap-2 border-b border-slate-200 pb-4 sm:flex-row">
+        <div className="flex flex-col gap-2 border-b border-border pb-4 sm:flex-row">
           <Button
             type="button"
             variant="outline"
@@ -274,14 +274,14 @@ function CaseActions({
         </div>
 
         {canLink && (
-          <fieldset className="grid gap-3 border-b border-slate-200 pb-4">
-            <legend className="text-sm font-semibold text-slate-900">
+          <fieldset className="grid gap-3 border-b border-border pb-4">
+            <legend className="text-sm font-semibold text-foreground">
               Vincular documentos por comparación
             </legend>
             {detail.candidates.map((candidate, index) => (
               <label
                 key={`${candidate.localOrderId}-${candidate.odooInvoiceId}-${index}`}
-                className="flex cursor-pointer gap-3 border border-slate-200 p-3 text-sm has-[:checked]:border-primary has-[:checked]:bg-sky-50"
+                className="flex cursor-pointer gap-3 rounded-lg border border-border p-3 text-sm has-[:checked]:border-primary has-[:checked]:bg-muted"
               >
                 <input
                   type="radio"
@@ -291,10 +291,10 @@ function CaseActions({
                   className="mt-1 h-4 w-4"
                 />
                 <span>
-                  <span className="block font-medium text-slate-900">
+                  <span className="block font-medium text-foreground">
                     {candidate.reference} · {candidate.providerName}
                   </span>
-                  <span className="mt-1 block text-slate-600">
+                  <span className="mt-1 block text-muted-foreground">
                     {candidate.companyLabel} · {candidate.date ?? "sin fecha"} ·{" "}
                     <span className="font-mono">
                       {money(candidate.amount, candidate.currency)}
@@ -341,7 +341,7 @@ function CaseActions({
           >
             Resolver
           </Button>
-          <label htmlFor={`discard-${detail.caseId}`} className="text-sm font-medium text-slate-700">
+          <label htmlFor={`discard-${detail.caseId}`} className="text-sm font-medium text-foreground">
             Motivo para descartar
           </label>
           <textarea
@@ -351,7 +351,7 @@ function CaseActions({
             rows={2}
             maxLength={1000}
             placeholder="Explica por qué no debe tratarse como excepción."
-            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           <Button
             type="button"
@@ -407,8 +407,8 @@ export default function IntegrityInspector({
   if (error) {
     return (
       <div className="grid place-items-center gap-3 p-8 text-center">
-        <AlertCircle className="h-7 w-7 text-rose-700" aria-hidden="true" />
-        <p className="text-sm text-slate-700">{error}</p>
+        <AlertCircle className="h-7 w-7 text-destructive" aria-hidden="true" />
+        <p className="text-sm text-foreground">{error}</p>
         <Button type="button" variant="outline" className="min-h-11" onClick={onRetry}>
           Reintentar
         </Button>
@@ -418,8 +418,8 @@ export default function IntegrityInspector({
   if (!detail) return null
 
   return (
-    <article className="flex min-h-0 flex-col bg-white" aria-labelledby="case-inspector-title">
-      <header className="border-b border-slate-200 p-4">
+    <article className="flex min-h-0 flex-col bg-card" aria-labelledby="case-inspector-title">
+      <header className="border-b border-border p-4">
         {onBack && (
           <Button type="button" variant="ghost" className="mb-2 min-h-11 px-2" onClick={onBack}>
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
@@ -428,11 +428,11 @@ export default function IntegrityInspector({
         )}
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <p className="font-mono text-xs text-slate-500">{detail.caseId}</p>
-            <h2 id="case-inspector-title" className="mt-1 text-xl font-semibold text-slate-950">
+            <p className="font-mono text-xs text-muted-foreground">{detail.caseId}</p>
+            <h2 id="case-inspector-title" className="mt-1 text-xl font-semibold text-foreground">
               {detail.comparison.explanation}
             </h2>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm text-muted-foreground">
               {detail.providerName} · {CASE_TYPE_LABELS[detail.type]}
             </p>
           </div>
@@ -455,7 +455,7 @@ export default function IntegrityInspector({
       </header>
 
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4">
-        <section aria-label="Workflow actual" className="grid gap-1 text-sm text-slate-700">
+        <section aria-label="Workflow actual" className="grid gap-1 text-sm text-foreground">
           <p>
             Responsable:{" "}
             <strong>{detail.workflow.assignee?.displayName ?? "Sin asignar"}</strong>
@@ -488,21 +488,21 @@ export default function IntegrityInspector({
           onCommand={onCommand}
         />
 
-        <section className="border-t border-slate-200 pt-4" aria-labelledby="case-history-title">
-          <h3 id="case-history-title" className="text-base font-semibold text-slate-900">
+        <section className="border-t border-border pt-4" aria-labelledby="case-history-title">
+          <h3 id="case-history-title" className="text-base font-semibold text-foreground">
             Historial append-only
           </h3>
           {detail.history.length === 0 ? (
-            <p className="mt-2 text-sm text-slate-600">Aún no hay actividad humana registrada.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Aún no hay actividad humana registrada.</p>
           ) : (
             <ol className="mt-3 grid gap-3">
               {detail.history.map((event) => (
-                <li key={event.eventId} className="border-l-2 border-slate-300 pl-3 text-sm">
-                  <p className="font-medium text-slate-900">{event.action.replaceAll("_", " ")}</p>
-                  <p className="mt-1 text-slate-600">
+                <li key={event.eventId} className="border-l-2 border-border pl-3 text-sm">
+                  <p className="font-medium text-foreground">{event.action.replaceAll("_", " ")}</p>
+                  <p className="mt-1 text-muted-foreground">
                     {event.actorLabel} · <span className="font-mono">{dateTime(event.createdAt)}</span>
                   </p>
-                  {event.note && <p className="mt-1 text-slate-700">{event.note}</p>}
+                  {event.note && <p className="mt-1 text-foreground">{event.note}</p>}
                 </li>
               ))}
             </ol>
@@ -510,14 +510,14 @@ export default function IntegrityInspector({
         </section>
       </div>
 
-      <footer className="sticky bottom-0 flex items-center gap-2 border-t border-slate-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <footer className="sticky bottom-0 flex items-center gap-2 border-t border-border bg-card p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {busy && (
-          <span className="inline-flex items-center gap-2 text-sm text-slate-600">
+          <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
             Guardando…
           </span>
         )}
-        <p className="text-sm text-slate-700" aria-live="polite">
+        <p className="text-sm text-foreground" aria-live="polite">
           {message}
         </p>
         {onNext && (

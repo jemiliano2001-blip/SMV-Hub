@@ -3,6 +3,7 @@
 import AuthGuard from "@/app/AuthGuard"
 import PageHeader from "@/components/layout/PageHeader"
 import PageShell from "@/components/layout/PageShell"
+import ModuleSurface from "@/components/layout/ModuleSurface"
 import { Fragment, useMemo, useState } from "react"
 import {
   AlertCircle,
@@ -102,8 +103,8 @@ function FacturaCobranzaCard({
     <div className={`p-4 space-y-2.5 ${prioritaria ? "bg-amber-50/70" : ""}`}>
       <div className="flex justify-between items-start gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-gray-900 truncate">{factura.cliente}</p>
-          <p className="text-xs text-gray-500 font-mono">{factura.numeroFactura} · vence {formatFecha(factura.fechaVencimiento)}</p>
+          <p className="text-sm font-semibold text-foreground truncate">{factura.cliente}</p>
+          <p className="text-xs text-muted-foreground font-mono">{factura.numeroFactura} · vence {formatFecha(factura.fechaVencimiento)}</p>
         </div>
         {seguimiento?.enDisputa ? (
           <span className="shrink-0 rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">En disputa</span>
@@ -116,12 +117,12 @@ function FacturaCobranzaCard({
 
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="min-w-0">
-          <span className="text-gray-400 block">Total</span>
-          <span className="text-gray-900 tabular-nums block">{formatPrecio(factura.total, moneda)}</span>
+          <span className="text-muted-foreground block">Total</span>
+          <span className="text-foreground tabular-nums block">{formatPrecio(factura.total, moneda)}</span>
         </div>
         <div className="min-w-0">
-          <span className="text-gray-400 block">Saldo</span>
-          <span className="text-gray-900 tabular-nums font-medium block">
+          <span className="text-muted-foreground block">Saldo</span>
+          <span className="text-foreground tabular-nums font-medium block">
             {formatPrecio(factura.saldoPendiente, moneda)}
             {prioritaria && (
               <span className="ml-1.5 inline-flex rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-800">
@@ -131,11 +132,11 @@ function FacturaCobranzaCard({
           </span>
         </div>
         <div className="min-w-0">
-          <span className="text-gray-400 block">Días atraso</span>
-          <span className="text-gray-900 tabular-nums block">{atraso > 0 ? atraso : "—"}</span>
+          <span className="text-muted-foreground block">Días atraso</span>
+          <span className="text-foreground tabular-nums block">{atraso > 0 ? atraso : "—"}</span>
         </div>
         <div className="min-w-0">
-          <span className="text-gray-400 block">Antigüedad</span>
+          <span className="text-muted-foreground block">Antigüedad</span>
           {factura.saldoPendiente > 0 && atraso > 0 ? (
             <span
               className="inline-flex items-center gap-1 font-medium"
@@ -146,18 +147,18 @@ function FacturaCobranzaCard({
               {INFO_BUCKET[bucket].label}
             </span>
           ) : (
-            <span className="text-gray-400">—</span>
+            <span className="text-muted-foreground">—</span>
           )}
         </div>
       </div>
 
-      <div className="pt-2 border-t border-gray-50">
+      <div className="pt-2 border-t border-border">
         <button
           type="button"
           onClick={() => onToggleExpand(factura.id)}
           disabled={loadingSeguimiento}
           aria-expanded={expandida}
-          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
         >
           {seguimiento ? "Editar seguimiento" : "Agregar seguimiento"}
           {expandida ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -189,7 +190,7 @@ const COLUMNAS_TABLA = 9
 const ETIQUETA_ESTADO: Record<EstadoCobranza, { label: string; clase: string }> = {
   pagada: { label: "Pagada", clase: "bg-emerald-50 text-emerald-700" },
   pendiente: { label: "Pendiente", clase: "bg-amber-50 text-amber-700" },
-  vencida: { label: "Vencida", clase: "bg-red-50 text-red-700" },
+  vencida: { label: "Vencida", clase: "bg-rose-50 text-rose-700" },
 }
 
 // Etiqueta, acción sugerida por bucket (playbook estándar de cobranza para
@@ -284,8 +285,8 @@ function Cobranza() {
   if (loading && facturas.length === 0) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-6 w-6 animate-spin text-blue-500 mr-2" />
-        <span className="text-sm text-gray-600">Cargando cobranza…</span>
+        <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+        <span className="text-sm text-muted-foreground">Cargando cobranza…</span>
       </div>
     )
   }
@@ -293,8 +294,8 @@ function Cobranza() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-24">
-        <AlertCircle className="h-8 w-8 text-red-500" />
-        <p className="text-sm text-gray-700">{error}</p>
+        <AlertCircle className="h-8 w-8 text-rose-500" />
+        <p className="text-sm text-foreground">{error}</p>
         <button onClick={recargar} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
           Reintentar
         </button>
@@ -307,13 +308,13 @@ function Cobranza() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <BannerSync estadoSync={estadoSync} onSincronizado={recargar} />
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex bg-gray-200/50 p-1 rounded-lg gap-1">
+          <div className="flex bg-muted p-1 rounded-lg gap-1">
             {(["todas", "mes"] as PeriodoCobranza[]).map((p) => (
               <button
                 key={p}
                 onClick={() => setPeriodoTipo(p)}
                 className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                  periodoTipo === p ? "bg-white text-primary shadow-sm" : "text-gray-500"
+                  periodoTipo === p ? "bg-card text-primary shadow-sm" : "text-muted-foreground"
                 }`}
               >
                 {p === "todas" ? "Todas" : "Por mes"}
@@ -328,7 +329,7 @@ function Cobranza() {
                   key={m}
                   onClick={() => setMonedaActiva(m)}
                   className={`px-3 py-1 text-xs font-medium rounded-full border ${
-                    m === moneda ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200"
+                    m === moneda ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border"
                   }`}
                 >
                   {m}
@@ -355,54 +356,54 @@ function Cobranza() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Total por cobrar</p>
-          <p className="text-2xl font-bold text-gray-900 tabular-nums">{formatPrecio(totalPorCobrar, moneda)}</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Pendientes</p>
-          <p className="text-2xl font-bold text-gray-900 tabular-nums">{numPendientes}</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Vencidas</p>
-          <p className="text-2xl font-bold text-red-600 tabular-nums">{numVencidas}</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">DSO</p>
-          <p className="text-2xl font-bold text-gray-900 tabular-nums">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <ModuleSurface className="p-4">
+          <p className="mb-1 text-xs text-muted-foreground">Total por cobrar</p>
+          <p className="text-2xl font-bold text-foreground tabular-nums">{formatPrecio(totalPorCobrar, moneda)}</p>
+        </ModuleSurface>
+        <ModuleSurface className="p-4">
+          <p className="mb-1 text-xs text-muted-foreground">Pendientes</p>
+          <p className="text-2xl font-bold text-foreground tabular-nums">{numPendientes}</p>
+        </ModuleSurface>
+        <ModuleSurface className="p-4">
+          <p className="mb-1 text-xs text-muted-foreground">Vencidas</p>
+          <p className="text-2xl font-bold text-rose-600 tabular-nums">{numVencidas}</p>
+        </ModuleSurface>
+        <ModuleSurface className="p-4">
+          <p className="mb-1 text-xs text-muted-foreground">DSO</p>
+          <p className="text-2xl font-bold text-foreground tabular-nums">
             {dso === null ? "—" : `${Math.round(dso)} días`}
           </p>
-          <p className="text-xs text-gray-400 mt-1">Días promedio en cobrar</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">CEI del mes</p>
+          <p className="mt-1 text-xs text-muted-foreground">Días promedio en cobrar</p>
+        </ModuleSurface>
+        <ModuleSurface className="p-4">
+          <p className="mb-1 text-xs text-muted-foreground">CEI del mes</p>
           <p
             className={`text-2xl font-bold tabular-nums ${
-              cei === null ? "text-gray-900" : cei >= 80 ? "text-emerald-600" : cei >= 70 ? "text-amber-600" : "text-red-600"
+              cei === null ? "text-foreground" : cei >= 80 ? "text-emerald-600" : cei >= 70 ? "text-amber-600" : "text-rose-600"
             }`}
           >
             {cei === null ? "—" : `${cei.toFixed(0)}%`}
           </p>
-          <p className="text-xs text-gray-400 mt-1">Efectividad de cobro (aprox.)</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Saldo en 90+ días</p>
-          <p className={`text-2xl font-bold tabular-nums ${alerta90 ? "text-red-600" : "text-gray-900"}`}>
+          <p className="mt-1 text-xs text-muted-foreground">Efectividad de cobro (aprox.)</p>
+        </ModuleSurface>
+        <ModuleSurface className="p-4">
+          <p className="mb-1 text-xs text-muted-foreground">Saldo en 90+ días</p>
+          <p className={`text-2xl font-bold tabular-nums ${alerta90 ? "text-rose-600" : "text-foreground"}`}>
             {pct90.toFixed(1)}%
           </p>
-          <p className={`text-xs mt-1 ${alerta90 ? "text-red-500 font-medium" : "text-gray-400"}`}>
+          <p className={`mt-1 text-xs ${alerta90 ? "font-medium text-rose-500" : "text-muted-foreground"}`}>
             {alerta90 ? "Arriba del 5% — atención" : "Sano si es menor al 5%"}
           </p>
-        </div>
+        </ModuleSurface>
       </div>
 
       {aging.totalPorCobrar > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">
+        <ModuleSurface className="p-4 sm:p-6">
+          <h2 className="mb-3 text-sm font-semibold text-foreground">
             Antigüedad del saldo por cobrar ({moneda})
           </h2>
-          <div className="flex h-4 w-full overflow-hidden rounded-full bg-gray-100">
+          <div className="flex h-4 w-full overflow-hidden rounded-full bg-muted">
             {BUCKETS_AGING.map((b) =>
               aging.buckets[b].pct > 0 ? (
                 <div
@@ -414,7 +415,7 @@ function Cobranza() {
               ) : null
             )}
           </div>
-          <div className="mt-3 grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-5">
             {BUCKETS_AGING.map((b) => (
               <div key={b} className="flex items-start gap-1.5">
                 <span
@@ -422,66 +423,66 @@ function Cobranza() {
                   style={{ backgroundColor: INFO_BUCKET[b].color }}
                 />
                 <div>
-                  <p className="font-medium text-gray-700">
+                  <p className="font-medium text-foreground">
                     {INFO_BUCKET[b].label}
-                    <span className="text-gray-400 font-normal"> · {aging.buckets[b].cantidad}</span>
+                    <span className="font-normal text-muted-foreground"> · {aging.buckets[b].cantidad}</span>
                   </p>
-                  <p className="tabular-nums text-gray-500">
+                  <p className="text-muted-foreground tabular-nums">
                     {formatPrecio(aging.buckets[b].total, moneda)} ({aging.buckets[b].pct.toFixed(1)}%)
                   </p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </ModuleSurface>
       )}
 
       {clientesVencidos.length > 0 && (
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+        <ModuleSurface className="p-4 sm:p-6">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold text-gray-700">
+              <h2 className="text-sm font-semibold text-foreground">
                 Top clientes con saldo vencido ({moneda})
               </h2>
-              <p className="mt-0.5 text-xs text-gray-400">
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 Excluye facturas marcadas en disputa
               </p>
             </div>
-            <Flag className="h-5 w-5 text-red-500" />
+            <Flag className="h-5 w-5 text-rose-500" />
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             {clientesVencidos.map((cliente, indice) => (
               <div
                 key={cliente.cliente}
-                className="rounded-lg border border-red-100 bg-red-50/40 p-3"
+                className="rounded-lg border border-rose-100 bg-rose-50/40 p-3"
               >
-                <p className="truncate text-xs font-semibold text-gray-800" title={cliente.cliente}>
+                <p className="truncate text-xs font-semibold text-foreground" title={cliente.cliente}>
                   {indice + 1}. {cliente.cliente}
                 </p>
-                <p className="mt-1 text-lg font-bold tabular-nums text-red-700">
+                <p className="mt-1 text-lg font-bold text-rose-700 tabular-nums">
                   {formatPrecio(cliente.saldoVencido, moneda)}
                 </p>
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {cliente.cantidadFacturas} factura
                   {cliente.cantidadFacturas === 1 ? "" : "s"} · más antigua{" "}
                   {cliente.facturaMasAntigua}
                 </p>
-                <p className="text-xs font-medium text-red-600">
+                <p className="text-xs font-medium text-rose-600">
                   {cliente.diasMaximosAtraso} días de atraso
                 </p>
               </div>
             ))}
           </div>
-        </div>
+        </ModuleSurface>
       )}
 
-      <div className="flex bg-gray-200/50 p-1 rounded-lg w-fit gap-1">
+      <div className="flex w-fit gap-1 rounded-lg bg-muted p-1">
         {(["todas", "pendiente", "vencida", "pagada", "disputa"] as Filtro[]).map((f) => (
           <button
             key={f}
             onClick={() => setFiltro(f)}
-            className={`px-3 py-1 text-xs font-medium rounded-md transition-all capitalize ${
-              filtro === f ? "bg-white text-primary shadow-sm" : "text-gray-500"
+            className={`rounded-md px-3 py-1 text-xs font-medium capitalize transition-all ${
+              filtro === f ? "bg-card text-primary shadow-sm" : "text-muted-foreground"
             }`}
           >
             {f === "disputa" ? "En disputa" : f}
@@ -489,12 +490,12 @@ function Cobranza() {
         ))}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+      <ModuleSurface className="p-4 sm:p-6">
         {filasFiltradas.length === 0 ? (
-          <p className="text-sm text-gray-500 py-8 text-center">No hay facturas para este filtro.</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">No hay facturas para este filtro.</p>
         ) : (
           <>
-            <div className="md:hidden divide-y divide-gray-100 -mx-4 sm:-mx-6">
+            <div className="md:hidden divide-y divide-border -mx-4 sm:-mx-6">
               {filasFiltradas.map((fila) => (
                 <FacturaCobranzaCard
                   key={fila.factura.id}
@@ -514,16 +515,16 @@ function Cobranza() {
             <div className="hidden md:block overflow-x-auto">
             <Table className="w-full text-sm border-collapse">
               <TableHeader>
-                <TableRow className="border-b-2 border-gray-300">
-                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Cliente</TableHead>
-                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Factura</TableHead>
-                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Vencimiento</TableHead>
-                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Total</TableHead>
-                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Saldo</TableHead>
-                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-gray-600">Días atraso</TableHead>
-                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Antigüedad</TableHead>
-                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-gray-600">Estado</TableHead>
-                  <TableHead className="pb-2 text-right text-xs font-semibold text-gray-600">Seguimiento</TableHead>
+                <TableRow className="border-b-2 border-border">
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-muted-foreground">Cliente</TableHead>
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-muted-foreground">Factura</TableHead>
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-muted-foreground">Vencimiento</TableHead>
+                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-muted-foreground">Total</TableHead>
+                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-muted-foreground">Saldo</TableHead>
+                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-muted-foreground">Días atraso</TableHead>
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-muted-foreground">Antigüedad</TableHead>
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-muted-foreground">Estado</TableHead>
+                  <TableHead className="pb-2 text-right text-xs font-semibold text-muted-foreground">Seguimiento</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -536,7 +537,7 @@ function Cobranza() {
                       <ContextMenu>
                         <ContextMenuTrigger asChild>
                           <TableRow
-                            className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
+                            className={`border-b border-border hover:bg-muted cursor-pointer ${
                               prioritaria ? "bg-amber-50/70" : ""
                             }`}
                             onDoubleClick={() =>
@@ -546,7 +547,7 @@ function Cobranza() {
                             }
                           >
                             <TableCell className="py-2 pr-3">{factura.cliente}</TableCell>
-                            <TableCell className="py-2 pr-3 font-mono text-xs text-gray-500">{factura.numeroFactura}</TableCell>
+                            <TableCell className="py-2 pr-3 font-mono text-xs text-muted-foreground">{factura.numeroFactura}</TableCell>
                             <TableCell className="py-2 pr-3">{formatFecha(factura.fechaVencimiento)}</TableCell>
                             <TableCell className="py-2 pr-3 text-right tabular-nums">{formatPrecio(factura.total, moneda)}</TableCell>
                             <TableCell className="py-2 pr-3 text-right tabular-nums font-medium">
@@ -557,7 +558,7 @@ function Cobranza() {
                                 </span>
                               )}
                             </TableCell>
-                            <TableCell className="py-2 pr-3 text-right tabular-nums text-gray-500">{atraso > 0 ? atraso : "—"}</TableCell>
+                            <TableCell className="py-2 pr-3 text-right tabular-nums text-muted-foreground">{atraso > 0 ? atraso : "—"}</TableCell>
                             <TableCell className="py-2 pr-3">
                               {factura.saldoPendiente > 0 && atraso > 0 ? (
                                 <span
@@ -572,7 +573,7 @@ function Cobranza() {
                                   {INFO_BUCKET[bucket].label}
                                 </span>
                               ) : (
-                                <span className="text-xs text-gray-400">—</span>
+                                <span className="text-xs text-muted-foreground">—</span>
                               )}
                             </TableCell>
                             <TableCell className="py-2 pr-3">
@@ -597,7 +598,7 @@ function Cobranza() {
                                 disabled={loadingSeguimiento}
                                 aria-expanded={expandida}
                                 aria-controls={`seguimiento-${factura.id}`}
-                                className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                                className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
                               >
                                 {seguimiento ? "Editar" : "Agregar"}
                                 {expandida ? (
@@ -627,7 +628,7 @@ function Cobranza() {
 
                           <ContextMenuSub>
                             <ContextMenuSubTrigger>
-                              <Copy className="text-slate-500" />
+                              <Copy className="text-muted-foreground" />
                               <span>Copiar información</span>
                             </ContextMenuSubTrigger>
                             <ContextMenuSubContent className="w-52">
@@ -683,7 +684,7 @@ function Cobranza() {
                       {expandida && (
                         <TableRow
                           id={`seguimiento-${factura.id}`}
-                          className="border-b border-gray-100"
+                          className="border-b border-border"
                         >
                           <TableCell colSpan={COLUMNAS_TABLA} className="px-2 py-3">
                             {usuario?.email ? (
@@ -710,7 +711,7 @@ function Cobranza() {
             </div>
           </>
         )}
-      </div>
+      </ModuleSurface>
     </div>
   )
 }

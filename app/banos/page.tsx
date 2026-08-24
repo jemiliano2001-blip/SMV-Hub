@@ -9,7 +9,7 @@ import RegistroBanoList from './RegistroBanoList'
 import ResumenMensual from './ResumenMensual'
 import PageHeader from '@/components/layout/PageHeader'
 import PageShell from '@/components/layout/PageShell'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import ModuleTabs from '@/components/layout/ModuleTabs'
 
 type TabBanos = 'registro' | 'diaria' | 'mensual'
 
@@ -19,41 +19,48 @@ export default function BanosPage() {
   return (
     <AuthGuard>
       <PageShell>
-        <Tabs value={tab} onValueChange={(v) => setTab(v as TabBanos)} className="flex flex-col gap-4">
-          <PageHeader
-            title="Control de baños"
-            badge="Incidencias taller"
-            icon={Clock}
-            description="Registro de tiempos y resúmenes diarios o mensuales de uso."
-            actions={
-              <TabsList className="h-auto w-max">
-                <TabsTrigger value="registro" className="gap-1.5 text-xs">
+        <PageHeader
+          title="Control de baños"
+          badge="Incidencias taller"
+          icon={Clock}
+          description="Registro de tiempos y resúmenes diarios o mensuales de uso."
+        />
+        <ModuleTabs
+          value={tab}
+          onValueChange={(v) => setTab(v as TabBanos)}
+          items={[
+            {
+              value: 'registro',
+              label: (
+                <span className="inline-flex items-center gap-1.5">
                   <Clock className="size-3.5" aria-hidden />
                   Registro
-                </TabsTrigger>
-                <TabsTrigger value="diaria" className="gap-1.5 text-xs">
+                </span>
+              ),
+              content: <RegistroBanoList />,
+            },
+            {
+              value: 'diaria',
+              label: (
+                <span className="inline-flex items-center gap-1.5">
                   <CalendarDays className="size-3.5" aria-hidden />
                   Cuenta diaria
-                </TabsTrigger>
-                <TabsTrigger value="mensual" className="gap-1.5 text-xs">
+                </span>
+              ),
+              content: <CuentaDiaria />,
+            },
+            {
+              value: 'mensual',
+              label: (
+                <span className="inline-flex items-center gap-1.5">
                   <Calculator className="size-3.5" aria-hidden />
                   Resumen
-                </TabsTrigger>
-              </TabsList>
-            }
-          />
-          <div className="rounded-xl border border-border bg-card p-4 shadow-xs sm:p-5">
-            <TabsContent value="registro">
-              <RegistroBanoList />
-            </TabsContent>
-            <TabsContent value="diaria">
-              <CuentaDiaria />
-            </TabsContent>
-            <TabsContent value="mensual">
-              <ResumenMensual />
-            </TabsContent>
-          </div>
-        </Tabs>
+                </span>
+              ),
+              content: <ResumenMensual />,
+            },
+          ]}
+        />
       </PageShell>
     </AuthGuard>
   )

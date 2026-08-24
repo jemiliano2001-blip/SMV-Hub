@@ -3,6 +3,7 @@
 import AuthGuard from "@/app/AuthGuard"
 import PageHeader from "@/components/layout/PageHeader"
 import PageShell from "@/components/layout/PageShell"
+import ModuleSurface from "@/components/layout/ModuleSurface"
 import { useEffect, useMemo, useState } from "react"
 import { Loader2, AlertCircle, AlertTriangle, TrendingUp, TrendingDown, DollarSign, Wallet, RefreshCw } from "lucide-react"
 import { useFinanzasFacturas } from "@/lib/hooks/useFinanzasFacturas"
@@ -50,7 +51,7 @@ type TabFinanzas = "ar" | "ap" | "flujo" | "conciliacion"
 
 function DeltaBadge({ delta }: { delta: DeltaKpi }) {
   if (delta.porcentaje === null) {
-    return <span className="text-xs font-mono text-slate-400">— vs. mes anterior</span>
+    return <span className="text-xs font-mono text-muted-foreground">— vs. mes anterior</span>
   }
   const positivo = delta.porcentaje >= 0
   const Icono = positivo ? TrendingUp : TrendingDown
@@ -82,12 +83,12 @@ function KpiCard({
   delta?: DeltaKpi
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs hover:shadow-xs transition-all space-y-1">
-      <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">{titulo}</p>
-      <p className="text-xl sm:text-2xl font-black font-mono text-slate-900 tabular-nums leading-tight break-words">{valor}</p>
+    <ModuleSurface className="space-y-1 p-5 transition-all hover:shadow-xs">
+      <p className="mb-1 text-[11px] font-mono font-bold uppercase tracking-wider text-muted-foreground">{titulo}</p>
+      <p className="break-words font-mono text-xl font-black leading-tight text-foreground tabular-nums sm:text-2xl">{valor}</p>
       {delta && <div className="pt-1"><DeltaBadge delta={delta} /></div>}
-      {subtitulo && <p className="text-[11px] text-slate-400 font-medium">{subtitulo}</p>}
-    </div>
+      {subtitulo && <p className="text-[11px] font-medium text-muted-foreground">{subtitulo}</p>}
+    </ModuleSurface>
   )
 }
 
@@ -95,11 +96,11 @@ function AlertasFinancieras({ alertas }: { alertas: AnomaliaFinanciera[] }) {
   const visibles = alertas.slice(0, 5)
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs sm:p-5">
+    <ModuleSurface className="p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-700">Alertas para revisar</h2>
-          <p className="mt-0.5 text-xs text-slate-500">
+          <h2 className="text-xs font-bold font-mono uppercase tracking-wider text-foreground">Alertas para revisar</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
             Reglas de integridad y desviaciones del último mes cerrado
           </p>
         </div>
@@ -107,7 +108,7 @@ function AlertasFinancieras({ alertas }: { alertas: AnomaliaFinanciera[] }) {
       </div>
 
       {visibles.length === 0 ? (
-        <p className="mt-3 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs font-medium text-emerald-700">
+        <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
           No hay alertas con los datos actuales.
         </p>
       ) : (
@@ -117,27 +118,27 @@ function AlertasFinancieras({ alertas }: { alertas: AnomaliaFinanciera[] }) {
               <div className="flex flex-wrap items-center gap-2">
                 <span className={`rounded px-1.5 py-0.2 text-[9px] font-mono font-bold uppercase ${
                   alerta.severidad === "alta"
-                    ? "bg-rose-100 text-rose-700 border border-rose-200"
+                    ? "border border-rose-200 bg-rose-100 text-rose-700"
                     : alerta.severidad === "media"
-                      ? "bg-amber-100 text-amber-800 border border-amber-200"
-                      : "bg-slate-100 text-slate-700 border border-slate-200"
+                      ? "border border-amber-200 bg-amber-100 text-amber-800"
+                      : "border border-border bg-muted text-foreground"
                 }`}>
                   {alerta.severidad}
                 </span>
-                <p className="font-bold text-slate-800">{alerta.titulo}</p>
+                <p className="font-bold text-foreground">{alerta.titulo}</p>
               </div>
-              <p className="mt-1 text-slate-600">{alerta.detalle}</p>
-              <p className="mt-0.5 font-medium text-slate-500">Acción: {alerta.accion}</p>
+              <p className="mt-1 text-muted-foreground">{alerta.detalle}</p>
+              <p className="mt-0.5 font-medium text-muted-foreground">Acción: {alerta.accion}</p>
             </div>
           ))}
           {alertas.length > visibles.length && (
-            <p className="pt-1 text-[11px] font-mono text-slate-500">
+            <p className="pt-1 text-[11px] font-mono text-muted-foreground">
               Hay {alertas.length - visibles.length} alertas adicionales en los datos cargados.
             </p>
           )}
         </div>
       )}
-    </section>
+    </ModuleSurface>
   )
 }
 
@@ -228,8 +229,8 @@ function ResumenFinanzas() {
   if (loading && facturas.length === 0) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
-        <span className="text-xs font-mono text-slate-600">Cargando facturación…</span>
+        <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />
+        <span className="text-xs font-mono text-muted-foreground">Cargando facturación…</span>
       </div>
     )
   }
@@ -238,8 +239,8 @@ function ResumenFinanzas() {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-20">
         <AlertCircle className="h-7 w-7 text-rose-500" />
-        <p className="text-xs text-slate-700 font-mono">{error}</p>
-        <button onClick={recargar} className="rounded-md bg-primary px-3.5 py-1.5 text-xs font-bold text-white hover:bg-primary/90">
+        <p className="text-xs font-mono text-foreground">{error}</p>
+        <button onClick={recargar} className="rounded-md bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90">
           Reintentar
         </button>
       </div>
@@ -257,8 +258,10 @@ function ResumenFinanzas() {
               <button
                 key={m}
                 onClick={() => setMonedaActiva(m)}
-                className={`px-2.5 py-1 text-xs font-mono font-bold rounded-md border ${
-                  m === moneda ? "bg-primary text-white border-primary" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                className={`rounded-md border px-2.5 py-1 text-xs font-mono font-bold ${
+                  m === moneda
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card text-muted-foreground hover:bg-muted"
                 }`}
               >
                 {m}
@@ -269,52 +272,52 @@ function ResumenFinanzas() {
       </div>
 
       {/* Tabs Principales de Finanzas 360° */}
-      <div className="-mx-4 flex gap-2 overflow-x-auto border-b border-slate-200 px-4 pb-2 sm:mx-0 sm:px-0">
+      <div className="-mx-4 flex gap-2 overflow-x-auto border-b border-border px-4 pb-2 sm:mx-0 sm:px-0">
         <button
           onClick={() => setTabActiva("ar")}
-          className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
+          className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-bold transition-colors ${
             tabActiva === "ar"
-              ? "bg-primary text-white shadow-xs"
-              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "border border-border bg-card text-muted-foreground hover:bg-muted"
           }`}
         >
-          <DollarSign className="w-4 h-4" />
+          <DollarSign className="h-4 w-4" />
           Cuentas por Cobrar (AR)
         </button>
 
         <button
           onClick={() => setTabActiva("ap")}
-          className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
+          className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-bold transition-colors ${
             tabActiva === "ap"
-              ? "bg-primary text-white shadow-xs"
-              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "border border-border bg-card text-muted-foreground hover:bg-muted"
           }`}
         >
-          <Wallet className="w-4 h-4" />
+          <Wallet className="h-4 w-4" />
           Cuentas por Pagar (AP)
         </button>
 
         <button
           onClick={() => setTabActiva("flujo")}
-          className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
+          className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-bold transition-colors ${
             tabActiva === "flujo"
-              ? "bg-primary text-white shadow-xs"
-              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "border border-border bg-card text-muted-foreground hover:bg-muted"
           }`}
         >
-          <TrendingUp className="w-4 h-4" />
+          <TrendingUp className="h-4 w-4" />
           Flujo de Caja Proyectado
         </button>
 
         <button
           onClick={() => setTabActiva("conciliacion")}
-          className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3.5 py-2 text-xs font-bold rounded-lg transition-colors ${
+          className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-bold transition-colors ${
             tabActiva === "conciliacion"
-              ? "bg-primary text-white shadow-xs"
-              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "border border-border bg-card text-muted-foreground hover:bg-muted"
           }`}
         >
-          <RefreshCw className="w-4 h-4" />
+          <RefreshCw className="h-4 w-4" />
           Conciliación Compras
         </button>
       </div>
@@ -323,11 +326,11 @@ function ResumenFinanzas() {
       {tabActiva === "ar" && (
         <div className="space-y-4">
           <div>
-            <div className="flex items-center justify-between mb-2.5">
-              <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700">Facturación del mes</h2>
+            <div className="mb-2.5 flex items-center justify-between">
+              <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-foreground">Facturación del mes</h2>
               <SelectorMes value={mesSeleccionado} onChange={setMesSeleccionado} />
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <KpiCard titulo="Facturación" valor={formatPrecio(kpisMes.facturacionTotal, moneda)} subtitulo="Neto de notas de crédito" delta={deltasMes.facturacionTotal} />
               <KpiCard titulo="Subtotal" valor={formatPrecio(kpisMes.subtotal, moneda)} delta={deltasMes.subtotal} />
               <KpiCard titulo="IVA" valor={formatPrecio(kpisMes.impuestos, moneda)} delta={deltasMes.impuestos} />
@@ -337,16 +340,16 @@ function ResumenFinanzas() {
 
           <AlertasFinancieras alertas={alertas} />
 
-          <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5">
-            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-3">
+          <ModuleSurface className="p-4 sm:p-5">
+            <h2 className="mb-3 text-xs font-mono font-bold uppercase tracking-wider text-foreground">
               Tendencia de facturación — últimos 12 meses ({moneda})
             </h2>
             <GraficaTendencia serie={serie12Meses} moneda={moneda} />
-          </div>
+          </ModuleSurface>
 
           <div>
-            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-2.5">Acumulado del año</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <h2 className="mb-2.5 text-xs font-mono font-bold uppercase tracking-wider text-foreground">Acumulado del año</h2>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <KpiCard titulo="Facturación" valor={formatPrecio(kpisAnio.facturacionTotal, moneda)} subtitulo="Neto de notas de crédito" />
               <KpiCard titulo="Subtotal" valor={formatPrecio(kpisAnio.subtotal, moneda)} />
               <KpiCard titulo="IVA" valor={formatPrecio(kpisAnio.impuestos, moneda)} />
@@ -354,37 +357,37 @@ function ResumenFinanzas() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5">
-            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-3">Top clientes del año</h2>
+          <ModuleSurface className="p-4 sm:p-5">
+            <h2 className="mb-3 text-xs font-mono font-bold uppercase tracking-wider text-foreground">Top clientes del año</h2>
             {topClientes.length === 0 ? (
-              <p className="text-xs text-slate-500 py-4 text-center font-mono">Sin facturación registrada este año.</p>
+              <p className="py-4 text-center text-xs font-mono text-muted-foreground">Sin facturación registrada este año.</p>
             ) : (
               <Table className="w-full text-xs">
                 <TableBody>
                   {topClientes.map((g) => (
-                    <TableRow key={g.cliente} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                      <TableCell className="py-2 pr-3 font-semibold text-slate-800">{g.cliente}</TableCell>
-                      <TableCell className="py-2 pr-3 text-right font-mono font-bold text-slate-900 tabular-nums">{formatPrecio(g.total, moneda)}</TableCell>
-                      <TableCell className="py-2 text-right font-mono text-slate-500 w-20 tabular-nums">{g.pctDelTotal.toFixed(1)}%</TableCell>
+                    <TableRow key={g.cliente} className="border-b border-border last:border-0 hover:bg-muted">
+                      <TableCell className="py-2 pr-3 font-semibold text-foreground">{g.cliente}</TableCell>
+                      <TableCell className="py-2 pr-3 text-right font-mono font-bold text-foreground tabular-nums">{formatPrecio(g.total, moneda)}</TableCell>
+                      <TableCell className="w-20 py-2 text-right font-mono text-muted-foreground tabular-nums">{g.pctDelTotal.toFixed(1)}%</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             )}
-          </div>
+          </ModuleSurface>
         </div>
       )}
 
       {tabActiva === "ap" && (
         <div className="space-y-4">
           {cargandoAP ? (
-            <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5 flex items-center justify-center py-12">
-              <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
-              <span className="text-xs font-mono text-slate-600">Cargando facturas de proveedor…</span>
-            </div>
+            <ModuleSurface className="flex items-center justify-center p-4 py-12 sm:p-5">
+              <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />
+              <span className="text-xs font-mono text-muted-foreground">Cargando facturas de proveedor…</span>
+            </ModuleSurface>
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <KpiCard titulo="Total por Pagar" valor={formatPrecio(kpisAP.totalPorPagar, moneda)} />
                 <KpiCard titulo="Facturas Pendientes" valor={String(kpisAP.numFacturasPendientes)} />
                 <KpiCard titulo="Proveedores con Saldo" valor={String(kpisAP.numProveedoresConSaldo)} />
@@ -396,13 +399,13 @@ function ResumenFinanzas() {
               </div>
 
               {topProveedoresAP.length > 0 && (
-                <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5">
-                  <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-3">
+                <ModuleSurface className="p-4 sm:p-5">
+                  <h2 className="mb-3 text-xs font-mono font-bold uppercase tracking-wider text-foreground">
                     Top Proveedores por Saldo Pendiente
                   </h2>
                   <div className="overflow-x-auto">
                     <Table className="w-full text-left text-xs">
-                      <TableHeader className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                      <TableHeader className="border-b border-border text-[11px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
                         <TableRow>
                           <TableHead className="py-2 pr-3">Proveedor</TableHead>
                           <TableHead className="py-2 pr-3 text-right">Facturas Pendientes</TableHead>
@@ -410,29 +413,29 @@ function ResumenFinanzas() {
                           <TableHead className="py-2 pr-3 text-right">% del Total</TableHead>
                         </TableRow>
                       </TableHeader>
-                      <TableBody className="divide-y divide-slate-100">
+                      <TableBody className="divide-y divide-border">
                         {topProveedoresAP.map((g) => (
                           <TableRow key={g.proveedor}>
-                            <TableCell className="py-2 pr-3 font-medium text-slate-800">{g.proveedor}</TableCell>
+                            <TableCell className="py-2 pr-3 font-medium text-foreground">{g.proveedor}</TableCell>
                             <TableCell className="py-2 pr-3 text-right font-mono">{g.facturasPendientes}</TableCell>
-                            <TableCell className="py-2 pr-3 text-right font-mono font-bold text-slate-900 tabular-nums">
+                            <TableCell className="py-2 pr-3 text-right font-mono font-bold text-foreground tabular-nums">
                               {formatPrecio(g.totalPorPagar, moneda)}
                             </TableCell>
-                            <TableCell className="py-2 pr-3 text-right font-mono text-slate-500">{g.pctDelTotal.toFixed(1)}%</TableCell>
+                            <TableCell className="py-2 pr-3 text-right font-mono text-muted-foreground">{g.pctDelTotal.toFixed(1)}%</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
                   </div>
-                </div>
+                </ModuleSurface>
               )}
 
-              <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5">
-                <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-3">
+              <ModuleSurface className="p-4 sm:p-5">
+                <h2 className="mb-3 text-xs font-mono font-bold uppercase tracking-wider text-foreground">
                   Cuentas por Pagar a Proveedores (AP - Odoo) — {moneda}
                 </h2>
                 <TablaCuentasPorPagar facturas={facturasAPMoneda} />
-              </div>
+              </ModuleSurface>
             </>
           )}
         </div>
@@ -440,37 +443,33 @@ function ResumenFinanzas() {
 
       {tabActiva === "flujo" && (
         <div className="space-y-4">
-          <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5">
-            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-3">
-              Proyección de Flujo de Caja (AR vs AP)
-            </h2>
-            {cargandoAP ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
-                <span className="text-xs font-mono text-slate-600">Calculando proyección de liquidez…</span>
-              </div>
-            ) : (
-              <GraficaFlujoCaja resumen={resumenFlujo} moneda={moneda} />
-            )}
-          </div>
+          <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+            Proyección de Flujo de Caja (AR vs AP)
+          </h2>
+          {cargandoAP ? (
+            <ModuleSurface className="flex items-center justify-center py-12">
+              <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />
+              <span className="text-xs font-mono text-muted-foreground">Calculando proyección de liquidez…</span>
+            </ModuleSurface>
+          ) : (
+            <GraficaFlujoCaja resumen={resumenFlujo} moneda={moneda} />
+          )}
         </div>
       )}
 
       {tabActiva === "conciliacion" && (
         <div className="space-y-4">
-          <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-5">
-            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 mb-3">
-              Conciliación Automática: Compras SMV Hub vs Odoo
-            </h2>
-            {cargandoAP ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
-                <span className="text-xs font-mono text-slate-600">Analizando discrepancias y emparejamiento…</span>
-              </div>
-            ) : (
-              <TablaConciliacionOdoo resumen={resumenConciliacion} />
-            )}
-          </div>
+          <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+            Conciliación Automática: Compras SMV Hub vs Odoo
+          </h2>
+          {cargandoAP ? (
+            <ModuleSurface className="flex items-center justify-center py-12">
+              <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />
+              <span className="text-xs font-mono text-muted-foreground">Analizando discrepancias y emparejamiento…</span>
+            </ModuleSurface>
+          ) : (
+            <TablaConciliacionOdoo resumen={resumenConciliacion} />
+          )}
         </div>
       )}
     </div>

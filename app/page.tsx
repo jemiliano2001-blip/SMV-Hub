@@ -440,7 +440,7 @@ function TarjetaAcceso({
             toast.success('Enlace directo copiado', { description: urlCompleta })
           }}
         >
-          <Copy className="text-slate-500" />
+          <Copy className="text-muted-foreground" />
           <span>Copiar enlace directo</span>
         </ContextMenuItem>
 
@@ -450,7 +450,7 @@ function TarjetaAcceso({
             toast.success('Nombre del módulo copiado', { description: label })
           }}
         >
-          <Copy className="text-slate-400" />
+          <Copy className="text-muted-foreground" />
           <span>Copiar nombre ({label})</span>
         </ContextMenuItem>
       </ContextMenuContent>

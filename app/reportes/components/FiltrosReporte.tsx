@@ -40,7 +40,7 @@ export default function FiltrosReporte({
   const btnBase = "shrink-0 rounded-md px-3 py-1.5 text-xs font-bold transition-colors"
   const btnActive = "bg-primary text-primary-foreground"
   const btnInactive = "border border-border bg-card text-foreground hover:bg-muted"
-  const inputCls = "min-w-0 rounded-md border border-input px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+  const inputCls = "min-w-0 rounded-md border border-input bg-card px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
 
   return (
     <div className="no-print mb-4 flex flex-wrap items-end gap-3 sm:mb-6">
@@ -69,7 +69,7 @@ export default function FiltrosReporte({
           value={toInputDate(desde)}
           onChange={(e) => onDesde(new Date(e.target.value + "T00:00:00"))}
         />
-        <span className="text-xs text-slate-400">—</span>
+        <span className="text-xs text-muted-foreground">—</span>
         <input
           type="date"
           aria-label="Fecha final"
@@ -82,7 +82,7 @@ export default function FiltrosReporte({
       {/* Agrupar por */}
       {!ocultarAgrupar && (
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">Agrupar:</span>
+          <span className="text-sm text-muted-foreground">Agrupar:</span>
           <select
             className={inputCls}
             value={agruparPor}
@@ -98,7 +98,7 @@ export default function FiltrosReporte({
       {/* Filtro de moneda (solo cuando hay más de una) */}
       {monedas.length > 1 && (
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">Moneda:</span>
+          <span className="text-sm text-muted-foreground">Moneda:</span>
           <select
             className={inputCls}
             value={moneda}

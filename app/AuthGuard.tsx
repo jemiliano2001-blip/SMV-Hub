@@ -44,8 +44,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (cargando || !usuario) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-sm text-gray-500">Cargando…</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">Cargando…</p>
       </div>
     )
   }

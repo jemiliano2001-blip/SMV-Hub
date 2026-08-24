@@ -9,7 +9,7 @@ import SalidasList from './SalidasList'
 import OrdenesPorRecibir from './OrdenesPorRecibir'
 import PageHeader from '@/components/layout/PageHeader'
 import PageShell from '@/components/layout/PageShell'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import ModuleTabs from '@/components/layout/ModuleTabs'
 
 type TabAlmacen = 'entradas' | 'salidas' | 'por_recibir'
 
@@ -18,41 +18,48 @@ function AlmacenContent() {
 
   return (
     <PageShell>
-      <Tabs value={tab} onValueChange={(v) => setTab(v as TabAlmacen)} className="flex flex-col gap-4">
-        <PageHeader
-          title="Control de almacén"
-          badge="Entradas, salidas y recepción"
-          icon={Warehouse}
-          description="Gestión de entradas y salidas de materiales, herramientas y recepción de compras."
-          actions={
-            <TabsList>
-              <TabsTrigger value="entradas" className="gap-2 text-xs">
+      <PageHeader
+        title="Control de almacén"
+        badge="Entradas, salidas y recepción"
+        icon={Warehouse}
+        description="Gestión de entradas y salidas de materiales, herramientas y recepción de compras."
+      />
+      <ModuleTabs
+        value={tab}
+        onValueChange={(v) => setTab(v as TabAlmacen)}
+        items={[
+          {
+            value: 'entradas',
+            label: (
+              <span className="inline-flex items-center gap-2">
                 <PackagePlus className="size-3.5" aria-hidden />
                 Entradas
-              </TabsTrigger>
-              <TabsTrigger value="salidas" className="gap-2 text-xs">
+              </span>
+            ),
+            content: <EntradasList />,
+          },
+          {
+            value: 'salidas',
+            label: (
+              <span className="inline-flex items-center gap-2">
                 <PackageMinus className="size-3.5" aria-hidden />
                 Salidas
-              </TabsTrigger>
-              <TabsTrigger value="por_recibir" className="gap-2 text-xs">
-                <Truck className="size-3.5 text-amber-400" aria-hidden />
+              </span>
+            ),
+            content: <SalidasList />,
+          },
+          {
+            value: 'por_recibir',
+            label: (
+              <span className="inline-flex items-center gap-2">
+                <Truck className="size-3.5 text-amber-500" aria-hidden />
                 Por recibir
-              </TabsTrigger>
-            </TabsList>
-          }
-        />
-        <div className="rounded-xl border border-border bg-card p-4 shadow-xs sm:p-5">
-          <TabsContent value="entradas">
-            <EntradasList />
-          </TabsContent>
-          <TabsContent value="salidas">
-            <SalidasList />
-          </TabsContent>
-          <TabsContent value="por_recibir">
-            <OrdenesPorRecibir onOrdenRecibida={() => setTab('entradas')} />
-          </TabsContent>
-        </div>
-      </Tabs>
+              </span>
+            ),
+            content: <OrdenesPorRecibir onOrdenRecibida={() => setTab('entradas')} />,
+          },
+        ]}
+      />
     </PageShell>
   )
 }

@@ -84,8 +84,8 @@ export default function ModalImportadorIA({
     <Dialog open={abierto} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-purple-900">
-            <Sparkles className="h-5 w-5 text-purple-600" /> Importar Solicitud con IA / Excel
+          <DialogTitle className="flex items-center gap-2 text-foreground">
+            <Sparkles className="h-5 w-5 text-primary" /> Importar Solicitud con IA / Excel
           </DialogTitle>
           <DialogDescription>
             Pega celdas copiadas directamente de Excel o escribe el texto de tu solicitud. La IA de Gemini realizará el pareo automático con tu catálogo de endmills.
@@ -94,7 +94,7 @@ export default function ModalImportadorIA({
 
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="texto-importar" className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+            <Label htmlFor="texto-importar" className="flex items-center gap-1.5 text-xs font-bold text-foreground">
               <FileSpreadsheet className="h-4 w-4 text-emerald-600" /> Pegar celdas de Excel o texto de solicitud (Ctrl + V)
             </Label>
             <textarea
@@ -103,7 +103,7 @@ export default function ModalImportadorIA({
               value={textoImportar}
               onChange={(e) => setTextoImportar(e.target.value)}
               placeholder={`Ejemplo copiado de Excel:\n1/4 FLAT 4 FILOS\t10\t7.92\n1/8 BALL 2 FILOS\t20\t5.50\n\nO texto libre:\nNecesitamos 10 piezas de fresa flat 1/4 y 20 piezas de ball 1/8.`}
-              className="w-full rounded-md border border-slate-300 bg-slate-50 p-3 font-mono text-xs focus:border-purple-500 focus:bg-white focus:outline-hidden"
+              className="w-full rounded-md border border-input bg-muted p-3 font-mono text-xs text-foreground focus:border-primary focus:bg-card focus:outline-hidden"
             />
           </div>
 
@@ -111,28 +111,28 @@ export default function ModalImportadorIA({
             <Button
               onClick={() => void procesarAnalisisIA()}
               disabled={procesandoImportacion || !textoImportar.trim()}
-              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-2.5"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-2.5"
             >
               <Sparkles className="h-4 w-4 mr-2" />
               {procesandoImportacion ? "Analizando coincidencia con Gemini IA..." : "Analizar e Identificar Piezas"}
             </Button>
           ) : (
-            <div className="space-y-3 rounded-lg border border-purple-200 bg-purple-50/50 p-3">
-              <div className="flex items-center justify-between text-xs font-bold text-purple-900">
+            <div className="space-y-3 rounded-lg border border-border bg-muted/50 p-3">
+              <div className="flex items-center justify-between text-xs font-bold text-foreground">
                 <span>Piezas Identificadas ({itemsImportadosPreview.length})</span>
                 <button
                   type="button"
                   onClick={() => setItemsImportadosPreview(null)}
-                  className="text-purple-600 hover:underline"
+                  className="text-primary hover:underline"
                 >
                   Limpiar y volver a intentar
                 </button>
               </div>
 
-              <div className="max-h-48 overflow-y-auto rounded border bg-white text-xs">
+              <div className="max-h-48 overflow-y-auto rounded border border-border bg-card text-xs">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-slate-50">
+                    <TableRow className="bg-muted">
                       <TableHead>Texto detectado</TableHead>
                       <TableHead>Pulgadas</TableHead>
                       <TableHead className="text-right">Cantidad</TableHead>

@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Slider } from '@/components/ui/slider'
+import ModuleSurface from '@/components/layout/ModuleSurface'
 import {
   CONFIGURACION_PESOS_DEFAULT,
   evaluarYRecomendarProveedores,
@@ -81,7 +82,7 @@ export default function SeccionRecomendacionInteligente({
   const { proveedorRecomendado, modoEvaluacion, explicacionModo } = resultado
 
   return (
-    <div className="flex flex-col gap-5 rounded-xl border border-border bg-card p-5 shadow-xs">
+    <ModuleSurface className="flex flex-col gap-5 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
         <div className="flex items-center gap-3">
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-amber-600">
@@ -179,7 +180,7 @@ export default function SeccionRecomendacionInteligente({
             </div>
             <div className="flex items-center gap-2 text-xs">
               <span className="font-mono font-bold text-muted-foreground">Score total:</span>
-              <span className="rounded-xl border border-emerald-200 bg-white px-3.5 py-1 font-mono text-lg font-bold text-emerald-700">
+              <span className="rounded-xl border border-emerald-200 bg-card px-3.5 py-1 font-mono text-lg font-bold text-emerald-700">
                 {proveedorRecomendado.scoreTotal} / 100
               </span>
             </div>
@@ -255,6 +256,6 @@ export default function SeccionRecomendacionInteligente({
           ) : null}
         </div>
       ) : null}
-    </div>
+    </ModuleSurface>
   )
 }

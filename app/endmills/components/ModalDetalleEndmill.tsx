@@ -125,15 +125,15 @@ export default function ModalDetalleEndmill({
               onChange={(event) => setStockEditado(event.target.value)}
             />
           </div>
-          <div className="rounded-lg bg-slate-50 p-3 text-sm">
-            <div className="text-xs text-slate-500">Precio vigente</div>
+          <div className="rounded-lg bg-muted p-3 text-sm">
+            <div className="text-xs text-muted-foreground">Precio vigente</div>
             <div className="font-bold text-emerald-700">{formatPrecio(medida.precioActualUSD, "USD")}</div>
-            <div className="mt-2 text-xs text-slate-500">Objetivo base</div>
+            <div className="mt-2 text-xs text-muted-foreground">Objetivo base</div>
             <div className="font-bold">{medida.objetivoPar ?? "Sin base"}</div>
           </div>
         </div>
 
-        {medida.notas && <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">{medida.notas}</p>}
+        {medida.notas && <p className="rounded-lg bg-muted p-3 text-xs text-muted-foreground">{medida.notas}</p>}
 
         <div>
           <div className="mb-2 flex items-center gap-2 text-sm font-bold">
@@ -142,7 +142,7 @@ export default function ModalDetalleEndmill({
           {historial?.medidaId !== medida.id ? (
             <Skeleton className="h-16 w-full" />
           ) : historial.rows.length === 0 ? (
-            <p className="text-xs text-slate-500">Sin pedidos rastreados para esta medida.</p>
+            <p className="text-xs text-muted-foreground">Sin pedidos rastreados para esta medida.</p>
           ) : (
             <div className="space-y-1">
               {historial.rows.map((linea, index) => {

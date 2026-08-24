@@ -3,6 +3,7 @@
 import { Filter, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import ModuleSurface from "@/components/layout/ModuleSurface"
 import {
   Select,
   SelectContent,
@@ -57,7 +58,7 @@ function Controls({
   const controlClass = stacked ? "w-full" : "min-w-44"
   return (
     <div className={stacked ? "grid gap-4" : "flex flex-wrap items-end gap-3"}>
-      <label className={`grid gap-1.5 text-sm font-medium text-slate-700 ${controlClass}`}>
+      <label className={`grid gap-1.5 text-sm font-medium text-foreground ${controlClass}`}>
         Estado
         <Select
           value={filters.state}
@@ -65,7 +66,7 @@ function Controls({
             onChange({ ...filters, state: state as FilterSelection["state"] })
           }
         >
-          <SelectTrigger className="h-11 w-full bg-white">
+          <SelectTrigger className="h-11 w-full bg-card">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -79,7 +80,7 @@ function Controls({
         </Select>
       </label>
 
-      <label className={`grid gap-1.5 text-sm font-medium text-slate-700 ${controlClass}`}>
+      <label className={`grid gap-1.5 text-sm font-medium text-foreground ${controlClass}`}>
         Severidad
         <Select
           value={filters.severity}
@@ -90,7 +91,7 @@ function Controls({
             })
           }
         >
-          <SelectTrigger className="h-11 w-full bg-white">
+          <SelectTrigger className="h-11 w-full bg-card">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -101,7 +102,7 @@ function Controls({
         </Select>
       </label>
 
-      <label className={`grid gap-1.5 text-sm font-medium text-slate-700 ${controlClass}`}>
+      <label className={`grid gap-1.5 text-sm font-medium text-foreground ${controlClass}`}>
         Tipo
         <Select
           value={filters.type}
@@ -109,7 +110,7 @@ function Controls({
             onChange({ ...filters, type: type as FilterSelection["type"] })
           }
         >
-          <SelectTrigger className="h-11 w-full bg-white">
+          <SelectTrigger className="h-11 w-full bg-card">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -123,13 +124,13 @@ function Controls({
         </Select>
       </label>
 
-      <label className={`grid gap-1.5 text-sm font-medium text-slate-700 ${controlClass}`}>
+      <label className={`grid gap-1.5 text-sm font-medium text-foreground ${controlClass}`}>
         Moneda
         <Select
           value={filters.currency}
           onValueChange={(currency) => onChange({ ...filters, currency })}
         >
-          <SelectTrigger className="h-11 w-full bg-white">
+          <SelectTrigger className="h-11 w-full bg-card">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -175,60 +176,61 @@ export default function IntegrityFilters({
   ].filter((item): item is NonNullable<typeof item> => item != null)
 
   return (
-    <section className="border-b border-slate-200 bg-slate-50 px-4 py-4" aria-label="Filtros de Integridad">
-      <div className="hidden md:block">
-        <Controls filters={filters} currencies={currencies} onChange={onChange} />
-      </div>
-      <div className="md:hidden">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button type="button" variant="outline" className="min-h-11 w-full justify-center">
-              <Filter className="h-4 w-4" aria-hidden="true" />
-              Filtros ({count})
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))] motion-reduce:duration-0">
-            <SheetHeader>
-              <SheetTitle>Filtrar casos</SheetTitle>
-              <SheetDescription>
-                La prioridad siempre conserva el orden canónico.
-              </SheetDescription>
-            </SheetHeader>
-            <div className="px-4 pb-4">
-              <Controls
-                filters={filters}
-                currencies={currencies}
-                onChange={onChange}
-                stacked
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
-
-      {chips.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {chips.map((chip) => (
-            <Badge key={chip.key} variant="secondary" className="min-h-8 gap-1 px-2 text-sm">
-              {chip.label}
-              <button
-                type="button"
-                className="rounded-sm p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label={`Quitar filtro ${chip.label}`}
-                onClick={() => onChange({ ...filters, [chip.key]: "all" })}
-              >
-                <X className="h-3.5 w-3.5" aria-hidden="true" />
-              </button>
-            </Badge>
-          ))}
-          <Button type="button" variant="ghost" size="sm" onClick={() => onChange(DEFAULT_FILTERS)}>
-            Limpiar
-          </Button>
+    <ModuleSurface className="px-4 py-4">
+      <section aria-label="Filtros de Integridad">
+        <div className="hidden md:block">
+          <Controls filters={filters} currencies={currencies} onChange={onChange} />
         </div>
-      )}
-    </section>
+        <div className="md:hidden">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button type="button" variant="outline" className="min-h-11 w-full justify-center">
+                <Filter className="h-4 w-4" aria-hidden="true" />
+                Filtros ({count})
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))] motion-reduce:duration-0">
+              <SheetHeader>
+                <SheetTitle>Filtrar casos</SheetTitle>
+                <SheetDescription>
+                  La prioridad siempre conserva el orden canónico.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="px-4 pb-4">
+                <Controls
+                  filters={filters}
+                  currencies={currencies}
+                  onChange={onChange}
+                  stacked
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+
+        {chips.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {chips.map((chip) => (
+              <Badge key={chip.key} variant="secondary" className="min-h-8 gap-1 px-2 text-sm">
+                {chip.label}
+                <button
+                  type="button"
+                  className="rounded-sm p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label={`Quitar filtro ${chip.label}`}
+                  onClick={() => onChange({ ...filters, [chip.key]: "all" })}
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              </Badge>
+            ))}
+            <Button type="button" variant="ghost" size="sm" onClick={() => onChange(DEFAULT_FILTERS)}>
+              Limpiar
+            </Button>
+          </div>
+        )}
+      </section>
+    </ModuleSurface>
   )
 }
 
 export { DEFAULT_FILTERS }
-

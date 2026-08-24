@@ -129,28 +129,28 @@ export default function DetalleVentasSimple({
             </p>
           )}
           {solicitud.motivoRechazo && (
-            <p className="text-xs text-red-700">
+            <p className="text-xs text-destructive">
               Motivo: {solicitud.motivoRechazo}
             </p>
           )}
         </DialogHeader>
 
-        <div className="overflow-y-auto px-5 py-4 space-y-4 flex-1">
+        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
           {solicitud.partidas.length > 0 && (
             <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-2">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
                 Descripción · Cantidad
               </p>
               <ul className="space-y-2">
                 {solicitud.partidas.map((p) => (
                   <li
                     key={p.odooLineId}
-                    className="flex gap-3 justify-between text-base border border-slate-100 rounded-xl px-3 py-2"
+                    className="flex justify-between gap-3 rounded-xl border border-border px-3 py-2 text-base"
                   >
-                    <span className="min-w-0 whitespace-pre-wrap break-words text-slate-800">
+                    <span className="min-w-0 whitespace-pre-wrap break-words text-foreground">
                       {p.productName}
                     </span>
-                    <span className="tabular-nums font-semibold text-slate-700 shrink-0">
+                    <span className="shrink-0 font-semibold tabular-nums text-foreground">
                       {p.qtySolicitada}
                     </span>
                   </li>
@@ -160,19 +160,19 @@ export default function DetalleVentasSimple({
           )}
 
           {solicitud.nota.trim() !== '' && (
-            <p className="text-base text-slate-700 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
+            <p className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-base text-foreground">
               {solicitud.nota}
             </p>
           )}
 
           {solicitud.estado !== 'completada' && solicitud.estado !== 'rechazada' && (
-            <div className="space-y-3 border-t border-slate-100 pt-4">
+            <div className="space-y-3 border-t border-border pt-4">
               {solicitud.estado === 'pendiente' && (
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => void cambiarEstado('en_proceso')}
-                  className="w-full text-base font-bold py-3 rounded-xl bg-sky-600 text-white disabled:opacity-50"
+                  className="w-full rounded-xl bg-sky-600 py-3 text-base font-bold text-white disabled:opacity-50"
                 >
                   Atender
                 </button>
@@ -180,12 +180,12 @@ export default function DetalleVentasSimple({
 
               {solicitud.estado === 'en_proceso' && (
                 <>
-                  <label className="block text-sm font-semibold text-slate-700">
+                  <label className="block text-sm font-semibold text-foreground">
                     Folio Odoo (opcional)
                     <input
                       value={folio}
                       onChange={(e) => setFolio(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-base"
+                      className="mt-1 w-full rounded-xl border border-input bg-card px-3 py-3 text-base text-foreground placeholder:text-muted-foreground"
                       placeholder="WH/OUT/… o factura"
                     />
                   </label>
@@ -193,16 +193,16 @@ export default function DetalleVentasSimple({
                     type="button"
                     disabled={busy}
                     onClick={() => void cambiarEstado('completada')}
-                    className="w-full text-base font-bold py-3 rounded-xl bg-emerald-600 text-white disabled:opacity-50"
+                    className="w-full rounded-xl bg-emerald-600 py-3 text-base font-bold text-white disabled:opacity-50"
                   >
                     Listo
                   </button>
-                  <label className="block text-sm font-semibold text-slate-700">
+                  <label className="block text-sm font-semibold text-foreground">
                     Motivo obligatorio al cancelar
                     <input
                       value={motivo}
                       onChange={(e) => setMotivo(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-base"
+                      className="mt-1 w-full rounded-xl border border-input bg-card px-3 py-3 text-base text-foreground placeholder:text-muted-foreground"
                       placeholder="Indica por qué se cancela"
                     />
                   </label>
@@ -210,7 +210,7 @@ export default function DetalleVentasSimple({
                     type="button"
                     disabled={busy || !motivo.trim()}
                     onClick={() => void cambiarEstado('rechazada')}
-                    className="w-full text-base font-bold py-3 rounded-xl border-2 border-red-200 text-red-700 disabled:opacity-50"
+                    className="w-full rounded-xl border-2 border-red-200 py-3 text-base font-bold text-destructive disabled:opacity-50"
                   >
                     Cancelar
                   </button>
@@ -219,25 +219,25 @@ export default function DetalleVentasSimple({
             </div>
           )}
 
-          <div className="border-t border-slate-100 pt-4 space-y-3">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+          <div className="space-y-3 border-t border-border pt-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
               Mensajes
             </p>
-            <ul className="space-y-2 max-h-56 overflow-y-auto">
+            <ul className="max-h-56 space-y-2 overflow-y-auto">
               {mensajes.length === 0 && (
-                <li className="text-sm text-slate-400">Sin mensajes aún.</li>
+                <li className="text-sm text-muted-foreground">Sin mensajes aún.</li>
               )}
               {mensajes.map((m) => (
                 <li
                   key={m.id}
-                  className={`text-base rounded-xl px-4 py-3 ${
-                    m.autorUid === uid ? 'bg-sky-50 ml-4' : 'bg-slate-50 mr-4'
+                  className={`rounded-xl px-4 py-3 text-base ${
+                    m.autorUid === uid ? 'ml-4 bg-sky-50' : 'mr-4 bg-muted'
                   }`}
                 >
-                  <span className="text-xs font-bold text-slate-400 block mb-1">
+                  <span className="mb-1 block text-xs font-bold text-muted-foreground">
                     {m.autorNombre}
                   </span>
-                  <p className="whitespace-pre-wrap">{m.texto}</p>
+                  <p className="whitespace-pre-wrap text-foreground">{m.texto}</p>
                 </li>
               ))}
             </ul>
@@ -245,7 +245,7 @@ export default function DetalleVentasSimple({
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
               rows={3}
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-base"
+              className="w-full rounded-xl border border-input bg-card px-4 py-3 text-base text-foreground placeholder:text-muted-foreground"
               placeholder="Escribe un mensaje…"
             />
             <Button
@@ -259,7 +259,7 @@ export default function DetalleVentasSimple({
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-800 text-sm rounded-xl px-4 py-3">
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
               {error}
             </div>
           )}

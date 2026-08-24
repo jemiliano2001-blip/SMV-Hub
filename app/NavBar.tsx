@@ -19,6 +19,7 @@ import NotificacionesBell from '@/app/notificaciones/NotificacionesBell'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { tienePermiso } from '@/lib/roles'
 import { usePermisos } from '@/lib/hooks/useRol'
+import { cn } from '@/lib/utils'
 
 type GrupoNav = { nombre: string; links: { href: string; label: string }[] }
 
@@ -128,40 +129,48 @@ export default function NavBar() {
   if (pathname === '/login') return null
 
   return (
-    <header ref={navRef} className="no-print bg-white border-b border-slate-200 sticky top-0 z-40 font-sans shadow-2xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-14">
+    <header
+      ref={navRef}
+      className="no-print sticky top-0 z-40 border-b border-border bg-card font-sans shadow-xs"
+    >
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-14 items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 transition-opacity hover:opacity-90">
             <LogoSMV height={26} />
-            <span className="text-slate-300 font-light">|</span>
-            <span className="text-xs font-bold tracking-tight text-slate-900 uppercase">SMV Hub</span>
+            <span className="font-light text-border">|</span>
+            <span className="text-xs font-bold uppercase tracking-tight text-foreground">SMV Hub</span>
           </Link>
 
           {/* Escritorio Utilitario */}
-          <nav className="hidden md:flex items-center gap-1 text-xs font-medium">
+          <nav className="hidden items-center gap-1 text-xs font-medium md:flex">
             {gruposFiltrados.map((g) => {
               const activo = g.links.some((l) => esActiva(l.href))
               const desplegado = abierto === g.nombre
               return (
                 <div key={g.nombre} className="relative">
                   <button
+                    type="button"
                     onClick={() => setAbierto(desplegado ? null : g.nombre)}
-                    className={`flex items-center gap-1 rounded-md px-3 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    className={cn(
+                      'flex cursor-pointer items-center gap-1 rounded-md px-3 py-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                       activo
-                        ? 'bg-slate-100 text-primary font-bold'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                    }`}
+                        ? 'bg-muted font-bold text-primary'
+                        : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                    )}
                   >
                     <span>{g.nombre}</span>
                     {g.links.some((l) => l.href === '/pedidos-almacen') && <PedidoAlmacenBadge />}
                     <ChevronDown
-                      className={`h-3.5 w-3.5 transition-transform duration-150 ${desplegado ? 'rotate-180 text-primary' : 'text-slate-400'}`}
+                      className={cn(
+                        'h-3.5 w-3.5 transition-transform duration-150',
+                        desplegado ? 'rotate-180 text-primary' : 'text-muted-foreground'
+                      )}
                     />
                   </button>
 
                   {desplegado && (
-                    <div className="absolute right-0 mt-1.5 w-56 rounded-lg border border-slate-200 bg-white py-1 shadow-md z-50 animate-in fade-in-50 zoom-in-95 duration-100">
-                      <div className="px-3 py-1 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
+                    <div className="absolute right-0 z-50 mt-1.5 w-56 animate-in fade-in-50 zoom-in-95 rounded-lg border border-border bg-card py-1 shadow-md duration-100">
+                      <div className="mb-1 border-b border-border px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                         {g.nombre}
                       </div>
                       {g.links.map((l) => {
@@ -173,7 +182,7 @@ export default function NavBar() {
                               href={l.href}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center justify-between px-3 py-2 text-xs transition-colors text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-medium"
+                              className="flex items-center justify-between px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted"
                             >
                               <span>{l.label}</span>
                             </a>
@@ -183,11 +192,12 @@ export default function NavBar() {
                           <Link
                             key={l.href}
                             href={l.href}
-                            className={`flex items-center justify-between px-3 py-2 text-xs transition-colors ${
+                            className={cn(
+                              'flex items-center justify-between px-3 py-2 text-xs transition-colors',
                               esActiva(l.href)
-                                ? 'bg-sky-50 text-primary font-bold border-l-2 border-primary'
-                                : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                            }`}
+                                ? 'border-l-2 border-primary bg-primary/5 font-bold text-primary'
+                                : 'text-foreground hover:bg-muted hover:text-foreground'
+                            )}
                           >
                             <span>{l.label}</span>
                             {l.href === '/pedidos-almacen' && <PedidoAlmacenBadge />}
@@ -200,7 +210,7 @@ export default function NavBar() {
               )
             })}
 
-            <div className="ml-3 pl-3 border-l border-slate-200 flex items-center gap-2">
+            <div className="ml-3 flex items-center gap-2 border-l border-border pl-3">
               <NotificacionesBell />
               <BuscadorGlobalCommand />
               <BotonSesion />
@@ -208,74 +218,75 @@ export default function NavBar() {
           </nav>
 
           {/* Menú Móvil */}
-          <div className="md:hidden flex items-center gap-1">
+          <div className="flex items-center gap-1 md:hidden">
             <NotificacionesBell />
             <Sheet open={menuMovil} onOpenChange={setMenuMovil}>
-            <SheetTrigger asChild>
-              <button
-                type="button"
-                aria-label="Abrir menú"
-                className="flex items-center gap-1 rounded-lg p-2 text-slate-900 hover:bg-slate-100 transition-colors"
-              >
-                <Menu className="h-5 w-5" />
-                <PedidoAlmacenBadge />
-              </button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[85vw] max-w-sm overflow-y-auto p-0 border-l border-slate-200">
-              <SheetHeader className="border-b border-slate-200 p-4">
-                <SheetTitle className="text-sm font-bold flex items-center gap-2 text-slate-900">
-                  <Shield className="h-4 w-4 text-primary" />
-                  Menú de Accesos
-                </SheetTitle>
-              </SheetHeader>
+              <SheetTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Abrir menú"
+                  className="flex cursor-pointer items-center gap-1 rounded-lg p-2 text-foreground transition-colors hover:bg-muted"
+                >
+                  <Menu className="h-5 w-5" />
+                  <PedidoAlmacenBadge />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[85vw] max-w-sm overflow-y-auto border-l border-border p-0">
+                <SheetHeader className="border-b border-border p-4">
+                  <SheetTitle className="flex items-center gap-2 text-sm font-bold text-foreground">
+                    <Shield className="h-4 w-4 text-primary" />
+                    Menú de Accesos
+                  </SheetTitle>
+                </SheetHeader>
 
-              <nav className="flex flex-col gap-4 p-4">
-                {gruposFiltrados.map((g) => (
-                  <div key={g.nombre} className="space-y-1">
-                    <p className="px-2 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                      {g.nombre}
-                    </p>
-                    <div className="flex flex-col">
-                      {g.links.map((l) => {
-                        const esExt = l.href.startsWith('http')
-                        if (esExt) {
+                <nav className="flex flex-col gap-4 p-4">
+                  {gruposFiltrados.map((g) => (
+                    <div key={g.nombre} className="space-y-1">
+                      <p className="px-2 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {g.nombre}
+                      </p>
+                      <div className="flex flex-col">
+                        {g.links.map((l) => {
+                          const esExt = l.href.startsWith('http')
+                          if (esExt) {
+                            return (
+                              <a
+                                key={l.href}
+                                href={l.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-between rounded-md px-2.5 py-2 text-xs font-medium text-foreground active:bg-muted"
+                              >
+                                <span>{l.label}</span>
+                              </a>
+                            )
+                          }
                           return (
-                            <a
+                            <Link
                               key={l.href}
                               href={l.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center justify-between rounded-md px-2.5 py-2 text-xs font-medium text-slate-700 active:bg-slate-100"
+                              className={cn(
+                                'flex items-center justify-between rounded-md px-2.5 py-2 text-xs font-medium transition-colors',
+                                esActiva(l.href)
+                                  ? 'bg-primary/5 font-bold text-primary'
+                                  : 'text-foreground active:bg-muted'
+                              )}
                             >
                               <span>{l.label}</span>
-                            </a>
+                              {l.href === '/pedidos-almacen' && <PedidoAlmacenBadge />}
+                            </Link>
                           )
-                        }
-                        return (
-                          <Link
-                            key={l.href}
-                            href={l.href}
-                            className={`flex items-center justify-between rounded-md px-2.5 py-2 text-xs font-medium transition-colors ${
-                              esActiva(l.href)
-                                ? 'bg-sky-50 text-primary font-bold'
-                                : 'text-slate-700 active:bg-slate-100'
-                            }`}
-                          >
-                            <span>{l.label}</span>
-                            {l.href === '/pedidos-almacen' && <PedidoAlmacenBadge />}
-                          </Link>
-                        )
-                      })}
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </nav>
+                  ))}
+                </nav>
 
-              <div className="mt-auto border-t border-slate-200 p-4 text-xs">
-                <BotonSesion />
-              </div>
-            </SheetContent>
-          </Sheet>
+                <div className="mt-auto border-t border-border p-4 text-xs">
+                  <BotonSesion />
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>

@@ -73,33 +73,33 @@ export default function ResumenMensual({ departamento }: Props) {
 
   return (
     <div className="space-y-6 print:space-y-4" id="resumen-horas-extra">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gray-50 border border-gray-200 rounded-lg p-4 print:hidden">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-muted border border-border rounded-lg p-4 print:hidden">
         <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-gray-700">Mes:</label>
+          <label className="text-sm font-medium text-foreground">Mes:</label>
           <input
             type="month"
             value={mes}
             onChange={(e) => setMes(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
+            className="px-3 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:border-primary"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-56">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Buscar empleado..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
+              className="w-full pl-9 pr-3 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:border-primary"
             />
           </div>
           <button
             type="button"
             onClick={exportarResumen}
             disabled={resumenFiltrado.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-white border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-card border border-border rounded-md hover:bg-muted disabled:opacity-50"
           >
             <Download className="h-4 w-4" />
             Resumen CSV
@@ -108,7 +108,7 @@ export default function ResumenMensual({ departamento }: Props) {
             type="button"
             onClick={exportarDetalle}
             disabled={registros.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-white border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-card border border-border rounded-md hover:bg-muted disabled:opacity-50"
           >
             <Download className="h-4 w-4" />
             Detalle CSV
@@ -126,7 +126,7 @@ export default function ResumenMensual({ departamento }: Props) {
 
       <div className="print:block hidden mb-4">
         <h2 className="text-lg font-bold">Horas Extra — {deptLabel}</h2>
-        <p className="text-sm text-gray-600">Mes: {mes}</p>
+        <p className="text-sm text-muted-foreground">Mes: {mes}</p>
       </div>
 
       {!loading && registros.length > 0 && (
@@ -146,15 +146,15 @@ export default function ResumenMensual({ departamento }: Props) {
       )}
 
       {loading ? (
-        <div className="animate-pulse h-64 bg-gray-100 rounded-lg" />
+        <div className="animate-pulse h-64 bg-muted rounded-lg" />
       ) : resumen.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 bg-gray-50 border border-dashed border-gray-200 rounded-lg">
+        <div className="text-center py-12 text-muted-foreground bg-muted border border-dashed border-border rounded-lg">
           No hay horas extra registradas en {mes} para {deptLabel}
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+        <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
           <Table className="w-full text-sm text-left">
-            <TableHeader className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+            <TableHeader className="bg-muted text-muted-foreground font-medium border-b border-border">
               <TableRow>
                 <TableHead className="px-6 py-3">Empleado</TableHead>
                 <TableHead className="px-6 py-3 text-right">Total horas</TableHead>
@@ -162,29 +162,29 @@ export default function ResumenMensual({ departamento }: Props) {
                 <TableHead className="px-6 py-3 w-40 print:hidden" />
               </TableRow>
             </TableHeader>
-            <TableBody className="divide-y divide-gray-100">
+            <TableBody className="divide-y divide-border">
               {resumenFiltrado.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                  <TableCell colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
                     Sin resultados para la búsqueda
                   </TableCell>
                 </TableRow>
               ) : (
                 resumenFiltrado.map((item, index) => (
-                  <TableRow key={item.empleado} className="hover:bg-gray-50">
-                    <TableCell className="px-6 py-3 font-medium text-gray-900">
-                      <span className="text-gray-400 text-xs mr-2">{index + 1}.</span>
+                  <TableRow key={item.empleado} className="hover:bg-muted">
+                    <TableCell className="px-6 py-3 font-medium text-foreground">
+                      <span className="text-muted-foreground text-xs mr-2">{index + 1}.</span>
                       {item.empleado}
                     </TableCell>
                     <TableCell className="px-6 py-3 text-right font-medium text-primary">
                       <Clock className="inline h-3.5 w-3.5 mr-1 opacity-60" />
                       {item.totalHoras.toFixed(1)}
                     </TableCell>
-                    <TableCell className="px-6 py-3 text-right text-gray-600">
+                    <TableCell className="px-6 py-3 text-right text-muted-foreground">
                       {item.semanas.length}
                     </TableCell>
                     <TableCell className="px-6 py-3 print:hidden">
-                      <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div className="w-full bg-muted rounded-full h-1.5">
                         <div
                           className="bg-primary h-full rounded-full opacity-70"
                           style={{
@@ -221,11 +221,11 @@ function KpiCard({
   return (
     <div
       className={`rounded-lg border px-4 py-3 ${
-        warn ? 'border-amber-200 bg-amber-50' : 'border-gray-200 bg-white'
+        warn ? 'border-amber-200 bg-amber-50' : 'border-border bg-card'
       }`}
     >
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className={`text-xl font-bold mt-0.5 ${warn ? 'text-amber-800' : 'text-gray-900'}`}>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={`text-xl font-bold mt-0.5 ${warn ? 'text-amber-800' : 'text-foreground'}`}>
         {value}
       </p>
     </div>

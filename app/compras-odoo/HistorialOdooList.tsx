@@ -424,7 +424,7 @@ export default function HistorialOdooList() {
 
                         <ContextMenuSub>
                           <ContextMenuSubTrigger>
-                            <Copy className="text-slate-500" />
+                            <Copy className="text-muted-foreground" />
                             <span>Copiar información</span>
                           </ContextMenuSubTrigger>
                           <ContextMenuSubContent className="w-48">

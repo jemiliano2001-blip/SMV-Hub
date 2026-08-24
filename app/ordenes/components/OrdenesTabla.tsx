@@ -128,7 +128,7 @@ export default function OrdenesTabla({
                 href={avisoWhatsApp.comprobanteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-md border border-amber-400 bg-white px-2.5 py-1 font-semibold hover:bg-amber-100"
+                className="rounded-md border border-amber-400 bg-card px-2.5 py-1 font-semibold hover:bg-amber-100"
               >
                 Abrir comprobante
               </a>
@@ -136,15 +136,15 @@ export default function OrdenesTabla({
           </div>
         </div>
       )}
-      <Table className="text-xs text-left text-slate-600">
-        <TableHeader className="bg-muted/50 text-[11px] font-mono text-slate-700 uppercase">
+      <Table className="text-xs text-left text-muted-foreground">
+        <TableHeader className="bg-muted/50 text-[11px] font-mono text-foreground uppercase">
           <TableRow className="hover:bg-transparent">
             <TableHead className={`${thFiltro} w-8 text-center`}>
               <input
                 type="checkbox"
                 checked={ordenesFiltradas.length > 0 && selectedIds.size === ordenesFiltradas.length}
                 onChange={toggleAllSelection}
-                className="rounded border-slate-300 text-primary focus:ring-ring cursor-pointer"
+                className="rounded border-input text-primary focus:ring-ring cursor-pointer"
               />
             </TableHead>
             <TableHead className={thFiltro}>
@@ -153,7 +153,7 @@ export default function OrdenesTabla({
                 value={colFiltros.proveedor}
                 onChange={e => setColFiltros({...colFiltros, proveedor: e.target.value})}
                 onFocus={onPrepararFiltros}
-                className="mt-1.5 block w-full max-w-[130px] text-[11px] font-normal border border-slate-300 rounded p-1 bg-white text-slate-900 focus:outline-none focus:border-primary"
+                className="mt-1.5 block w-full max-w-[130px] text-[11px] font-normal border border-input rounded p-1 bg-card text-foreground focus:outline-none focus:border-primary"
               >
                 <option value="">Todos</option>
                 {proveedoresUnicos.map(p => <option key={p} value={p}>{p}</option>)}
@@ -165,7 +165,7 @@ export default function OrdenesTabla({
                 value={colFiltros.requisitor}
                 onChange={e => setColFiltros({...colFiltros, requisitor: e.target.value})}
                 onFocus={onPrepararFiltros}
-                className="mt-1.5 block w-full max-w-[100px] text-[11px] font-normal border border-slate-300 rounded p-1 bg-white text-slate-900 focus:outline-none focus:border-primary"
+                className="mt-1.5 block w-full max-w-[100px] text-[11px] font-normal border border-input rounded p-1 bg-card text-foreground focus:outline-none focus:border-primary"
               >
                 <option value="">Todos</option>
                 {requisitoresUnicos.map(p => <option key={p} value={p}>{p}</option>)}
@@ -178,7 +178,7 @@ export default function OrdenesTabla({
                 value={colFiltros.empresa}
                 onChange={e => setColFiltros({...colFiltros, empresa: e.target.value})}
                 onFocus={onPrepararFiltros}
-                className="mt-1.5 block w-full max-w-[100px] text-[11px] font-normal border border-slate-300 rounded p-1 bg-white text-slate-900 focus:outline-none focus:border-primary"
+                className="mt-1.5 block w-full max-w-[100px] text-[11px] font-normal border border-input rounded p-1 bg-card text-foreground focus:outline-none focus:border-primary"
               >
                 <option value="">Todos</option>
                 {empresasUnicas.map(p => <option key={p} value={p}>{p}</option>)}
@@ -190,7 +190,7 @@ export default function OrdenesTabla({
                 value={colFiltros.cuentaCargo}
                 onChange={e => setColFiltros({...colFiltros, cuentaCargo: e.target.value})}
                 onFocus={onPrepararFiltros}
-                className="mt-1.5 block w-full max-w-[130px] text-[11px] font-normal border border-slate-300 rounded p-1 bg-white text-slate-900 focus:outline-none focus:border-primary"
+                className="mt-1.5 block w-full max-w-[130px] text-[11px] font-normal border border-input rounded p-1 bg-card text-foreground focus:outline-none focus:border-primary"
               >
                 <option value="">Todos</option>
                 {cuentasUnicas.map(p => <option key={p} value={p}>{p}</option>)}
@@ -218,10 +218,10 @@ export default function OrdenesTabla({
                         type="checkbox"
                         checked={selectedIds.has(orden.id)}
                         onChange={(e) => toggleSelection(orden.id, e as unknown as React.MouseEvent)}
-                        className="rounded border-slate-300 text-primary focus:ring-ring cursor-pointer"
+                        className="rounded border-input text-primary focus:ring-ring cursor-pointer"
                       />
                     </TableCell>
-                    <TableCell className="px-3 py-2.5 font-semibold text-slate-900 truncate max-w-[140px]" title={orden.proveedor}>
+                    <TableCell className="px-3 py-2.5 font-semibold text-foreground truncate max-w-[140px]" title={orden.proveedor}>
                       <span className="inline-flex items-center gap-1.5 w-full">
                         <span className="truncate">{orden.proveedor}</span>
                         {linkNorm && (
@@ -246,7 +246,7 @@ export default function OrdenesTabla({
                     <TableCell className="px-3 py-2.5 truncate max-w-[100px]" title={orden.requisitor || ''}>
                       {displayOGuion(orden.requisitor)}
                     </TableCell>
-                    <TableCell className="px-3 py-2.5 font-mono text-slate-900 truncate max-w-[120px]" title={orden.numeroFactura || ''}>
+                    <TableCell className="px-3 py-2.5 font-mono text-foreground truncate max-w-[120px]" title={orden.numeroFactura || ''}>
                       {displayOGuion(orden.numeroFactura)}
                     </TableCell>
                     <TableCell className="px-3 py-2.5 truncate max-w-[100px]" title={orden.empresa || ''}>
@@ -255,13 +255,13 @@ export default function OrdenesTabla({
                     <TableCell className="px-3 py-2.5 truncate max-w-[140px]" title={cuentaCargoEfectiva(orden) || ''}>
                       {displayOGuion(cuentaCargoEfectiva(orden))}
                     </TableCell>
-                    <TableCell className="px-3 py-2.5 font-mono font-bold text-slate-900 text-right tabular-nums">
+                    <TableCell className="px-3 py-2.5 font-mono font-bold text-foreground text-right tabular-nums">
                       {formatPrecio(orden.total, orden.moneda)}
                     </TableCell>
                     <TableCell className="px-3 py-2.5 font-mono">
-                      <div className="text-slate-900">{fechas.principal}</div>
+                      <div className="text-foreground">{fechas.principal}</div>
                       {fechas.secundaria && (
-                        <div className="text-[10px] text-slate-400">{fechas.secundaria}</div>
+                        <div className="text-[10px] text-muted-foreground">{fechas.secundaria}</div>
                       )}
                     </TableCell>
                     <TableCell className="px-3 py-2.5">
@@ -273,14 +273,14 @@ export default function OrdenesTabla({
                           <>
                             <button
                               onClick={(e) => onApproveClick(orden.id, e)}
-                              className="p-1 text-slate-400 hover:text-emerald-600 rounded hover:bg-emerald-50 transition-colors"
+                              className="p-1 text-muted-foreground hover:text-emerald-600 rounded hover:bg-emerald-50 transition-colors"
                               title="Aprobar"
                             >
                               <CheckCircle2 className="h-4 w-4" />
                             </button>
                             <button
                               onClick={(e) => onRejectClick(orden.id, e)}
-                              className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
+                              className="p-1 text-muted-foreground hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
                               title="Rechazar"
                             >
                               <XCircle className="h-4 w-4" />
@@ -302,14 +302,14 @@ export default function OrdenesTabla({
                             e.stopPropagation()
                             onSelectOrden(orden)
                           }}
-                          className="p-1 text-slate-400 hover:text-primary hover:bg-sky-50 rounded transition-colors"
+                          className="p-1 text-muted-foreground hover:text-primary hover:bg-sky-50 rounded transition-colors"
                           title="Ver detalles"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
                         <button
                           onClick={(e) => onDeleteClick(orden.id, e)}
-                          className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
+                          className="p-1 text-muted-foreground hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
                           title="Eliminar"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -330,7 +330,7 @@ export default function OrdenesTabla({
 
                   <ContextMenuSub>
                     <ContextMenuSubTrigger>
-                      <Copy className="h-4 w-4 mr-2 text-slate-500" />
+                      <Copy className="h-4 w-4 mr-2 text-muted-foreground" />
                       <span>Copiar datos</span>
                     </ContextMenuSubTrigger>
                     <ContextMenuSubContent className="w-48">

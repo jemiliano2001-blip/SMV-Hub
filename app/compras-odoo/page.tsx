@@ -8,7 +8,7 @@ import CapturaOdooForm from './CapturaOdooForm'
 import HistorialOdooList from './HistorialOdooList'
 import PageHeader from '@/components/layout/PageHeader'
 import PageShell from '@/components/layout/PageShell'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import ModuleTabs from '@/components/layout/ModuleTabs'
 import DrawerPendientesAbastecimiento from '@/components/abastecimiento/DrawerPendientesAbastecimiento'
 
 type TabModo = 'captura' | 'historial'
@@ -24,30 +24,35 @@ export default function ComprasOdooPage() {
           badge="Cotizaciones rápidas"
           icon={PlusCircle}
           description="Pega filas desde Excel o escanea cotizaciones con IA para generar solicitudes en Odoo."
-          actions={
-            <div className="flex items-center gap-2">
-              <DrawerPendientesAbastecimiento />
-              <Tabs value={tab} onValueChange={(v) => setTab(v as TabModo)}>
-                <TabsList>
-                  <TabsTrigger value="captura" className="gap-2 text-xs">
-                    <PlusCircle className="size-3.5" aria-hidden />
-                    Nueva cotización
-                  </TabsTrigger>
-                  <TabsTrigger value="historial" className="gap-2 text-xs">
-                    <History className="size-3.5" aria-hidden />
-                    Historial
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          }
+          actions={<DrawerPendientesAbastecimiento />}
         />
 
-        {tab === 'captura' ? (
-          <CapturaOdooForm onCotizacionCreada={() => setTab('historial')} />
-        ) : (
-          <HistorialOdooList />
-        )}
+        <ModuleTabs
+          value={tab}
+          onValueChange={(v) => setTab(v as TabModo)}
+          items={[
+            {
+              value: 'captura',
+              label: (
+                <span className="inline-flex items-center gap-2">
+                  <PlusCircle className="size-3.5" aria-hidden />
+                  Nueva cotización
+                </span>
+              ),
+              content: <CapturaOdooForm onCotizacionCreada={() => setTab('historial')} />,
+            },
+            {
+              value: 'historial',
+              label: (
+                <span className="inline-flex items-center gap-2">
+                  <History className="size-3.5" aria-hidden />
+                  Historial
+                </span>
+              ),
+              content: <HistorialOdooList />,
+            },
+          ]}
+        />
       </PageShell>
     </AuthGuard>
   )

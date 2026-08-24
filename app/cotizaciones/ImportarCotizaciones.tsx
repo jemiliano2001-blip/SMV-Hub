@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/table'
 
 const cls = {
-  section: 'rounded-xl border border-gray-200 bg-white p-6 shadow-xs',
+  section: 'rounded-xl border border-border bg-card p-6 shadow-xs',
 }
 
 export default function ImportarCotizaciones() {
@@ -157,8 +157,8 @@ export default function ImportarCotizaciones() {
       <div className={cls.section}>
         <div className="flex flex-col items-center text-center py-8">
           <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
-          <h3 className="text-lg font-bold text-gray-900">Importación completada</h3>
-          <p className="text-sm text-gray-500 mt-1">
+          <h3 className="text-lg font-bold text-foreground">Importación completada</h3>
+          <p className="text-sm text-muted-foreground mt-1">
             Se importaron <strong>{resultado}</strong> cotizaciones a la base de datos.
           </p>
           <button
@@ -181,8 +181,8 @@ export default function ImportarCotizaciones() {
         <div className={cls.section}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-base font-semibold text-gray-900">Vista previa</h3>
-              <p className="text-xs text-gray-500 mt-1">
+              <h3 className="text-base font-semibold text-foreground">Vista previa</h3>
+              <p className="text-xs text-muted-foreground mt-1">
                 {filas.length} filas · {seleccionadas} seleccionadas
                 {conError > 0 && ` · ${conError} con error`}
                 {duplicados.size > 0 && ` · ${duplicados.size} duplicadas (deseleccionadas)`}
@@ -192,7 +192,7 @@ export default function ImportarCotizaciones() {
               <button
                 onClick={reiniciar}
                 disabled={importando}
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="rounded-lg border border-input bg-card px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -217,7 +217,7 @@ export default function ImportarCotizaciones() {
         <ModuleSurface>
           <div className="max-h-[60vh]">
             <Table className="text-sm text-left text-muted-foreground">
-              <TableHeader className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200 sticky top-0">
+              <TableHeader className="text-xs text-foreground uppercase bg-muted border-b border-border sticky top-0">
                 <TableRow>
                   <TableHead className="px-3 py-3 w-10"></TableHead>
                   <TableHead className="px-3 py-3 font-semibold whitespace-nowrap">Fecha</TableHead>
@@ -230,7 +230,7 @@ export default function ImportarCotizaciones() {
                   <TableHead className="px-3 py-3 font-semibold">Notas / estado</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className="divide-y divide-gray-100">
+              <TableBody className="divide-y divide-border">
                 {filas.map((f) => {
                   const conErr = f.errores.length > 0
                   const dup = duplicados.has(f.indice)
@@ -242,12 +242,12 @@ export default function ImportarCotizaciones() {
                           checked={f.seleccionada}
                           disabled={conErr}
                           onChange={() => toggleFila(f.indice)}
-                          className="rounded border-gray-300 text-primary focus:ring-ring cursor-pointer disabled:opacity-40"
+                          className="rounded border-input text-primary focus:ring-ring cursor-pointer disabled:opacity-40"
                         />
                       </TableCell>
                       <TableCell className="px-3 py-2.5 whitespace-nowrap">{f.datos.fecha ?? '-'}</TableCell>
-                      <TableCell className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap">{f.datos.proveedor || '—'}</TableCell>
-                      <TableCell className="px-3 py-2.5 text-gray-900 min-w-[200px]">{f.datos.descripcion || '—'}</TableCell>
+                      <TableCell className="px-3 py-2.5 font-medium text-foreground whitespace-nowrap">{f.datos.proveedor || '—'}</TableCell>
+                      <TableCell className="px-3 py-2.5 text-foreground min-w-[200px]">{f.datos.descripcion || '—'}</TableCell>
                       <TableCell className="px-3 py-2.5 font-mono text-xs whitespace-nowrap">{f.datos.numeroParte ?? '-'}</TableCell>
                       <TableCell className="px-3 py-2.5 text-center">{f.datos.ubicacion === 'USA' ? 'EUA' : 'MX'}</TableCell>
                       <TableCell className="px-3 py-2.5 text-center">{f.datos.cantidad ?? '-'}</TableCell>
@@ -256,7 +256,7 @@ export default function ImportarCotizaciones() {
                         {conErr && <span className="text-xs text-red-600 font-medium">{f.errores.join(', ')}</span>}
                         {!conErr && dup && <span className="text-xs text-yellow-700 font-medium">Ya existe (duplicada)</span>}
                         {!conErr && !dup && f.advertencias.length > 0 && (
-                          <span className="text-xs text-gray-400">{f.advertencias.join(', ')}</span>
+                          <span className="text-xs text-muted-foreground">{f.advertencias.join(', ')}</span>
                         )}
                       </TableCell>
                     </TableRow>
@@ -275,10 +275,10 @@ export default function ImportarCotizaciones() {
     <div className="space-y-6">
       <section className={cls.section}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-gray-900">Importar desde Google Sheets</h2>
+          <h2 className="text-base font-semibold text-foreground">Importar desde Google Sheets</h2>
           <button
             onClick={descargarPlantilla}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-xs"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-input bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition-colors shadow-xs"
           >
             <FileSpreadsheet className="h-3.5 w-3.5 text-blue-500" />
             Descargar plantilla
@@ -291,15 +291,15 @@ export default function ImportarCotizaciones() {
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
           className={`flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed p-12 cursor-pointer transition-all duration-200 ${
-            dragActive ? 'border-blue-500 bg-blue-50/50' : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50/30'
+            dragActive ? 'border-blue-500 bg-blue-50/50' : 'border-input hover:border-blue-400 hover:bg-muted/30'
           }`}
         >
-          <UploadCloud className={`h-12 w-12 transition-colors ${dragActive ? 'text-primary' : 'text-gray-400'}`} />
+          <UploadCloud className={`h-12 w-12 transition-colors ${dragActive ? 'text-primary' : 'text-muted-foreground'}`} />
           <div className="text-center">
-            <span className="text-sm font-semibold text-gray-700 block mb-1">
+            <span className="text-sm font-semibold text-foreground block mb-1">
               Haz clic para seleccionar o arrastra un archivo CSV
             </span>
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-muted-foreground">
               En Google Sheets: Archivo → Descargar → CSV, y súbelo aquí
             </span>
           </div>
@@ -318,21 +318,21 @@ export default function ImportarCotizaciones() {
       </section>
 
       <section className={cls.section}>
-        <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
           <Copy className="h-4 w-4 text-blue-500" />
           Columnas que reconoce el importador
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="border border-gray-100 rounded-lg p-3 bg-gray-50/50">
-            <span className="text-xs font-bold text-gray-700 block mb-1.5">Obligatorias (fila en rojo si falta):</span>
-            <ul className="text-xs text-gray-600 space-y-1 list-disc pl-4">
+          <div className="border border-border rounded-lg p-3 bg-muted/50">
+            <span className="text-xs font-bold text-foreground block mb-1.5">Obligatorias (fila en rojo si falta):</span>
+            <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
               <li><strong>Proveedor</strong></li>
               <li><strong>Descripcion</strong></li>
             </ul>
           </div>
-          <div className="border border-gray-100 rounded-lg p-3 bg-gray-50/50">
-            <span className="text-xs font-bold text-gray-700 block mb-1.5">Opcionales:</span>
-            <ul className="text-xs text-gray-600 space-y-1 list-disc pl-4">
+          <div className="border border-border rounded-lg p-3 bg-muted/50">
+            <span className="text-xs font-bold text-foreground block mb-1.5">Opcionales:</span>
+            <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
               <li><strong>Columna 1</strong> (solicitante), <strong>Fecha</strong>, <strong>Estatus</strong></li>
               <li><strong>Ubicación</strong> (MX / USA), <strong>No. de parte</strong>, <strong>Cantidad</strong></li>
               <li><strong>Precio en dolares</strong>, <strong>Precio Unit mx</strong> (según ubicación)</li>

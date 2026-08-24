@@ -54,8 +54,8 @@ function EntradaCard({ e, onCycleEstatus, onEliminar }: EntradaCardProps) {
     <div className="p-4 space-y-2.5">
       <div className="flex justify-between items-start gap-3">
         <div className="min-w-0">
-          <p className="text-xs text-gray-500">{e.fecha}</p>
-          <p className="text-sm font-semibold text-gray-900 break-words">{e.descripcion}</p>
+          <p className="text-xs text-muted-foreground">{e.fecha}</p>
+          <p className="text-sm font-semibold text-foreground break-words">{e.descripcion}</p>
         </div>
         <button
           onClick={() => onCycleEstatus(e.id, e.estatus)}
@@ -67,22 +67,22 @@ function EntradaCard({ e, onCycleEstatus, onEliminar }: EntradaCardProps) {
       </div>
       <div className="grid grid-cols-3 gap-2 text-xs">
         <div className="min-w-0">
-          <span className="text-gray-400 block">Cantidad</span>
-          <span className="text-gray-900 block">{e.cantidad}</span>
+          <span className="text-muted-foreground block">Cantidad</span>
+          <span className="text-foreground block">{e.cantidad}</span>
         </div>
         <div className="min-w-0">
-          <span className="text-gray-400 block">Cargo a</span>
-          <span className={`inline-block px-2 py-0.5 rounded-full font-medium ${e.cargoA.toLowerCase() === 'stock' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+          <span className="text-muted-foreground block">Cargo a</span>
+          <span className={`inline-block px-2 py-0.5 rounded-full font-medium ${e.cargoA.toLowerCase() === 'stock' ? 'bg-blue-100 text-blue-700' : 'bg-muted text-foreground'}`}>
             {e.cargoA}
           </span>
         </div>
         <div className="min-w-0">
-          <span className="text-gray-400 block">Recibió</span>
-          <span className="text-gray-900 truncate block">{e.recibio}</span>
+          <span className="text-muted-foreground block">Recibió</span>
+          <span className="text-foreground truncate block">{e.recibio}</span>
         </div>
       </div>
-      <div className="flex justify-end pt-2 border-t border-gray-50">
-        <button onClick={() => onEliminar(e.id, e.descripcion)} className="p-1.5 text-gray-400 hover:text-red-500" title="Eliminar">
+      <div className="flex justify-end pt-2 border-t border-border">
+        <button onClick={() => onEliminar(e.id, e.descripcion)} className="p-1.5 text-muted-foreground hover:text-red-500" title="Eliminar">
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
@@ -163,7 +163,7 @@ export default function EntradasList() {
   }
 
   if (loading) {
-    return <div className="animate-pulse h-64 bg-gray-100 rounded-lg"></div>
+    return <div className="animate-pulse h-64 bg-muted rounded-lg"></div>
   }
 
   if (error) {
@@ -180,7 +180,7 @@ export default function EntradasList() {
       {/* Search and Filters */}
       <div className="flex items-center justify-between">
         <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Buscar por descripción o cargo..."
@@ -192,56 +192,56 @@ export default function EntradasList() {
       </div>
 
       {/* Add Form */}
-      <form onSubmit={handleAgregar} className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex flex-wrap items-end gap-3">
+      <form onSubmit={handleAgregar} className="bg-muted border border-border rounded-lg p-4 flex flex-wrap items-end gap-3">
         <div className="w-32">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Fecha</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Fecha</label>
           <input
             type="date"
             required
             value={fecha}
             onChange={(e) => setFecha(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
+            className="w-full px-3 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:border-primary"
           />
         </div>
         <div className="flex-1 min-w-[200px]">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Descripción</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Descripción</label>
           <input
             type="text"
             required
             placeholder="Ej. Broca de centro #3"
             value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
+            className="w-full px-3 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:border-primary"
           />
         </div>
         <div className="w-24">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Cantidad</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Cantidad</label>
           <input
             type="text"
             required
             placeholder="Ej. 15 pza"
             value={cantidad}
             onChange={(e) => setCantidad(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
+            className="w-full px-3 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:border-primary"
           />
         </div>
         <div className="w-32">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Cargo a</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Cargo a</label>
           <input
             type="text"
             required
             value={cargoA}
             onChange={(e) => setCargoA(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
+            className="w-full px-3 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:border-primary"
           />
         </div>
         <div className="w-32">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Recibió</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Recibió</label>
           <select
             required
             value={recibio}
             onChange={(e) => setRecibio(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:border-primary"
+            className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card focus:outline-none focus:border-primary"
           >
             <option value="" disabled>Seleccionar...</option>
             {operadoresActivos.map((op) => (
@@ -250,11 +250,11 @@ export default function EntradasList() {
           </select>
         </div>
         <div className="w-32">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Estatus</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Estatus</label>
           <select
             value={estatus}
             onChange={(e) => setEstatus(e.target.value as EstatusEntrada)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:border-primary"
+            className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card focus:outline-none focus:border-primary"
           >
             <option value="pendiente">Pendiente</option>
             <option value="entregado">Entregado</option>
@@ -298,7 +298,7 @@ export default function EntradasList() {
                         <TableCell className="px-4 py-2 font-medium text-foreground whitespace-normal">{e.descripcion}</TableCell>
                         <TableCell className="px-4 py-2">{e.cantidad}</TableCell>
                         <TableCell className="px-4 py-2">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${e.cargoA.toLowerCase() === 'stock' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${e.cargoA.toLowerCase() === 'stock' ? 'bg-blue-100 text-blue-700' : 'bg-muted text-foreground'}`}>
                             {e.cargoA}
                           </span>
                         </TableCell>
@@ -344,7 +344,7 @@ export default function EntradasList() {
 
                       <ContextMenuSub>
                         <ContextMenuSubTrigger>
-                          <Copy className="text-slate-500" />
+                          <Copy className="text-muted-foreground" />
                           <span>Copiar información</span>
                         </ContextMenuSubTrigger>
                         <ContextMenuSubContent className="w-48">
@@ -402,9 +402,9 @@ export default function EntradasList() {
       </div>
 
       {/* Cards (mobile) */}
-      <div className="md:hidden border border-gray-200 rounded-lg divide-y divide-gray-100">
+      <div className="md:hidden border border-border rounded-lg divide-y divide-border">
         {filtradas.length === 0 ? (
-          <div className="px-4 py-8 text-center text-gray-500 text-sm">
+          <div className="px-4 py-8 text-center text-muted-foreground text-sm">
             {busqueda ? 'No se encontraron entradas' : 'No hay entradas registradas'}
           </div>
         ) : (

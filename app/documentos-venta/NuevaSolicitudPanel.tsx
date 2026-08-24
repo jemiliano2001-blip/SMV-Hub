@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Sparkles } from 'lucide-react'
+import { Inbox, Sparkles } from 'lucide-react'
 import type {
   NuevaSolicitudDocumento,
   SolicitudDocumento,
@@ -13,6 +13,8 @@ import {
   ordenCompraEfectiva,
   validarPartidasRemision,
 } from '@/lib/documentos-venta-helpers'
+import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
+import ModuleSurface from '@/components/layout/ModuleSurface'
 import ModalLectorOrdenCliente from './ModalLectorOrdenCliente'
 
 type Props = {
@@ -143,15 +145,14 @@ export default function NuevaSolicitudPanel({
 
   return (
     <div className="space-y-4">
-      {/* Barra Superior con Buscador y Botón IA */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <label className="block text-xs font-semibold text-slate-600 flex-1">
+      <ModuleSurface className="space-y-3 p-4">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <label className="block flex-1 text-xs font-semibold text-muted-foreground">
             Buscar empresa, orden de compra o SO
             <input
               value={busqueda}
               onChange={(e) => onBusquedaChange(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
               placeholder="Ej. OHD, PO.20263330, 2026/S01126"
             />
           </label>
@@ -160,7 +161,7 @@ export default function NuevaSolicitudPanel({
             <button
               type="button"
               onClick={() => setModalLectorAbierto(true)}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white font-semibold text-xs shadow-xs transition-all"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-sky-600 to-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:from-sky-700 hover:to-indigo-700 sm:w-auto"
             >
               <Sparkles className="h-4 w-4" />
               <span>Escanear Orden de Compra Cliente (IA)</span>
@@ -169,23 +170,26 @@ export default function NuevaSolicitudPanel({
         </div>
 
         {sos.length === 0 ? (
-          <p className="text-sm text-slate-500 py-4 text-center">
-            No hay órdenes a facturar (to invoice / upselling). Sincroniza desde Odoo o espera la sync.
-          </p>
+          <ModuleEmptyState
+            icon={Inbox}
+            title="Sin órdenes a facturar"
+            description="No hay órdenes a facturar (to invoice / upselling). Sincroniza desde Odoo o espera la sync."
+            className="py-8"
+          />
         ) : (
-          <ul className="max-h-56 overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-lg">
+          <ul className="max-h-56 divide-y divide-border overflow-y-auto rounded-lg border border-border">
             {sos.map((s) => (
               <li key={s.id}>
                 <button
                   type="button"
                   onClick={() => elegirSo(s)}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-sky-50 ${
+                  className={`w-full px-3 py-2 text-left text-sm hover:bg-sky-50 ${
                     soId === s.id ? 'bg-sky-50' : ''
                   }`}
                 >
-                  <span className="font-semibold text-slate-900">{s.name}</span>
-                  <span className="text-slate-500"> · {s.partnerName || 'Sin cliente'}</span>
-                  <span className="block text-xs text-slate-400">
+                  <span className="font-semibold text-foreground">{s.name}</span>
+                  <span className="text-muted-foreground"> · {s.partnerName || 'Sin cliente'}</span>
+                  <span className="block text-xs text-muted-foreground">
                     {ordenCompraEfectiva(s)
                       ? `Orden de compra ${ordenCompraEfectiva(s)}`
                       : 'Sin orden de compra'}{' '}
@@ -196,11 +200,11 @@ export default function NuevaSolicitudPanel({
             ))}
           </ul>
         )}
-      </div>
+      </ModuleSurface>
 
       {so && (
-        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-2xs">
-          <p className="text-sm font-semibold text-slate-900">
+        <ModuleSurface className="space-y-3 p-4">
+          <p className="text-sm font-semibold text-foreground">
             {so.name} — {so.partnerName}
           </p>
 
@@ -210,10 +214,10 @@ export default function NuevaSolicitudPanel({
                 key={t}
                 type="button"
                 onClick={() => setTipo(t)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border ${
+                className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${
                   tipo === t
-                    ? 'bg-sky-600 text-white border-sky-600'
-                    : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    ? 'border-sky-600 bg-sky-600 text-white'
+                    : 'border-border text-muted-foreground hover:bg-muted'
                 }`}
               >
                 {t === 'remision' ? 'Remisión' : 'Factura'}
@@ -223,17 +227,17 @@ export default function NuevaSolicitudPanel({
 
           {tipo === 'remision' && (
             <div className="space-y-2">
-              <p className="text-xs font-semibold text-slate-600">Partidas a solicitar</p>
+              <p className="text-xs font-semibold text-muted-foreground">Partidas a solicitar</p>
               {lineasDisponibles.length === 0 ? (
-                <p className="text-xs text-slate-400">Sin líneas con cantidad pendiente</p>
+                <p className="text-xs text-muted-foreground">Sin líneas con cantidad pendiente</p>
               ) : (
                 <ul className="space-y-1 text-sm">
                   {lineasDisponibles.map((l) => (
                     <li
                       key={l.odooLineId}
-                      className="flex flex-wrap items-center justify-between gap-2 border border-slate-100 rounded-lg p-2"
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border p-2"
                     >
-                      <label className="flex items-center gap-2 flex-1 min-w-[200px]">
+                      <label className="flex min-w-[200px] flex-1 items-center gap-2">
                         <input
                           type="checkbox"
                           checked={seleccionadas.has(l.odooLineId)}
@@ -244,9 +248,9 @@ export default function NuevaSolicitudPanel({
                             setSeleccionadas(next)
                           }}
                         />
-                        <span className="text-xs text-slate-800">{l.productName}</span>
+                        <span className="text-xs text-foreground">{l.productName}</span>
                       </label>
-                      <div className="flex items-center gap-1 text-xs text-slate-500">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <span>Cant:</span>
                         <input
                           type="number"
@@ -258,7 +262,7 @@ export default function NuevaSolicitudPanel({
                             const val = parseFloat(e.target.value) || 0
                             setQtyPorLinea((prev) => ({ ...prev, [l.odooLineId]: val }))
                           }}
-                          className="w-16 rounded border border-slate-200 px-1 py-0.5 text-right text-xs"
+                          className="w-16 rounded border border-input bg-card px-1 py-0.5 text-right text-xs text-foreground"
                         />
                         <span>/ {l.qtyPending}</span>
                       </div>
@@ -269,31 +273,30 @@ export default function NuevaSolicitudPanel({
             </div>
           )}
 
-          <label className="block text-xs font-semibold text-slate-600">
+          <label className="block text-xs font-semibold text-muted-foreground">
             Nota
             <textarea
               value={nota}
               onChange={(e) => setNota(e.target.value)}
               rows={3}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
               placeholder="Detalle extra para ventas…"
             />
           </label>
 
-          {errorLocal && <p className="text-sm text-red-600">{errorLocal}</p>}
+          {errorLocal && <p className="text-sm text-destructive">{errorLocal}</p>}
 
           <button
             type="button"
             disabled={enviando}
             onClick={() => void submit()}
-            className="px-4 py-2 text-sm font-semibold rounded-lg bg-sky-600 text-white hover:bg-sky-700 disabled:opacity-50 shadow-xs"
+            className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-sky-700 disabled:opacity-50"
           >
             {enviando ? 'Enviando…' : 'Crear solicitud'}
           </button>
-        </div>
+        </ModuleSurface>
       )}
 
-      {/* Modal Lector Inteligente de Órdenes de Compra */}
       <ModalLectorOrdenCliente
         abierto={modalLectorAbierto}
         onClose={() => setModalLectorAbierto(false)}

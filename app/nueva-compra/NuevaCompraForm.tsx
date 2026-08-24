@@ -46,12 +46,12 @@ const ITEM_VACIO: ItemFactura = {
 }
 
 const cls = {
-  input: 'w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:bg-gray-50',
-  inputSm: 'w-full min-w-0 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:bg-gray-50',
-  label: 'block text-sm font-medium text-gray-700 mb-1',
+  input: 'w-full rounded-md border border-input px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:bg-muted',
+  inputSm: 'w-full min-w-0 rounded-md border border-input px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:bg-muted',
+  label: 'block text-sm font-medium text-foreground mb-1',
   error: 'text-xs text-red-500 mt-1',
-  section: 'rounded-xl border border-gray-200 bg-white p-6 shadow-sm',
-  heading: 'text-base font-semibold text-gray-900 mb-4',
+  section: 'rounded-xl border border-border bg-card p-6 shadow-sm',
+  heading: 'text-base font-semibold text-foreground mb-4',
 }
 
 const ACCEPT_FACTURA = 'image/jpeg,image/png,image/webp,image/gif,application/pdf'
@@ -525,8 +525,8 @@ export default function NuevaCompraForm({
 
       {/* ── Archivo de factura ──────────────────────────────────────── */}
       <section className={cls.section}>
-        <h2 className={cls.heading}>Factura <span className="font-normal text-gray-500">(opcional)</span></h2>
-        <p className="mb-4 text-sm text-gray-500">
+        <h2 className={cls.heading}>Factura <span className="font-normal text-muted-foreground">(opcional)</span></h2>
+        <p className="mb-4 text-sm text-muted-foreground">
           Sube una imagen o PDF de la factura y la IA intentará extraer los datos (incluyendo Your reference por ítem en McMaster-Carr).
           También puedes capturar la compra manualmente.
         </p>
@@ -547,12 +547,12 @@ export default function NuevaCompraForm({
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-              dragActive ? 'border-blue-400 bg-blue-50/50' : 'border-gray-300 hover:border-blue-400'
+              dragActive ? 'border-blue-400 bg-blue-50/50' : 'border-input hover:border-blue-400'
             }`}
           >
-            <Upload className="h-8 w-8 text-gray-400" />
-            <span className="text-sm text-gray-500">Haz clic, arrastra o pega una imagen o PDF</span>
-            <span className="text-xs text-gray-400">JPG · PNG · WEBP · PDF</span>
+            <Upload className="h-8 w-8 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Haz clic, arrastra o pega una imagen o PDF</span>
+            <span className="text-xs text-muted-foreground">JPG · PNG · WEBP · PDF</span>
             <span className="mt-1 text-xs text-primary">Clic en esta zona para seleccionar archivo</span>
             <input
               ref={fileInputRef}
@@ -565,31 +565,31 @@ export default function NuevaCompraForm({
         ) : (
           <div className="relative">
             {imagen.type === 'application/pdf' ? (
-              <div className="flex max-h-72 flex-col items-center justify-center gap-3 rounded-lg bg-gray-50 p-8">
+              <div className="flex max-h-72 flex-col items-center justify-center gap-3 rounded-lg bg-muted p-8">
                 <FileText className="h-12 w-12 text-red-500" />
-                <p className="text-sm font-medium text-gray-800">{imagen.name}</p>
+                <p className="text-sm font-medium text-foreground">{imagen.name}</p>
                 <iframe
                   src={previewUrl!}
                   title="Vista previa PDF"
-                  className="mt-2 h-48 w-full rounded border border-gray-200 bg-white"
+                  className="mt-2 h-48 w-full rounded border border-border bg-card"
                 />
               </div>
             ) : (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={previewUrl!} alt="Factura" className="max-h-72 w-full rounded-lg object-contain bg-gray-50" />
+              <img src={previewUrl!} alt="Factura" className="max-h-72 w-full rounded-lg object-contain bg-muted" />
             )}
             <button
               type="button"
               onClick={clearImage}
-              className="absolute top-2 right-2 rounded-full bg-white p-1 shadow-md hover:bg-gray-100"
+              className="absolute top-2 right-2 rounded-full bg-card p-1 shadow-md hover:bg-muted"
               aria-label="Quitar archivo"
             >
-              <X className="h-4 w-4 text-gray-600" />
+              <X className="h-4 w-4 text-muted-foreground" />
             </button>
             {extrayendo && (
-              <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-lg bg-white/80">
+              <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-lg bg-card/80">
                 <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
-                <span className="text-sm font-medium text-gray-700">Extrayendo datos con IA…</span>
+                <span className="text-sm font-medium text-foreground">Extrayendo datos con IA…</span>
               </div>
             )}
           </div>
@@ -625,7 +625,7 @@ export default function NuevaCompraForm({
         )}
 
         {verificandoDuplicado && !duplicadoDetectado && (
-          <p className="mb-3 text-xs text-gray-500 flex items-center gap-1.5">
+          <p className="mb-3 text-xs text-muted-foreground flex items-center gap-1.5">
             <Loader2 className="h-3 w-3 animate-spin" />
             Verificando si la factura ya existe…
           </p>
@@ -713,7 +713,7 @@ export default function NuevaCompraForm({
               placeholder="https://www.mcmaster.com/... o enlace del producto/tienda"
               disabled={extrayendo}
             />
-            <p className="mt-1 text-[11px] text-gray-500">
+            <p className="mt-1 text-[11px] text-muted-foreground">
               Guarda el enlace a la tienda o producto para consultar rápidamente donde se compró y tiempos de entrega.
             </p>
           </div>
@@ -753,9 +753,9 @@ export default function NuevaCompraForm({
 
         <div className="space-y-4">
           {fields.map((field, i) => (
-            <div key={field.id} className="rounded-lg border border-gray-200 bg-gray-50/50 p-4 space-y-3">
+            <div key={field.id} className="rounded-lg border border-border bg-muted/50 p-4 space-y-3">
               <div className="flex items-start justify-between gap-2">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Ítem {i + 1}
                 </span>
                 {fields.length > 1 && (
@@ -799,7 +799,7 @@ export default function NuevaCompraForm({
                     type="button"
                     onClick={() => void sugerirSatParaItem(i, field.id)}
                     disabled={extrayendo || sugiriendoSat.has(field.id)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-sky-200 bg-white px-3 py-2 text-xs font-semibold text-sky-700 hover:bg-sky-100 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-sky-200 bg-card px-3 py-2 text-xs font-semibold text-sky-700 hover:bg-sky-100 disabled:opacity-50"
                   >
                     {sugiriendoSat.has(field.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                     {sugiriendoSat.has(field.id) ? 'Sugerir...' : 'Sugerir SAT'}
@@ -810,9 +810,9 @@ export default function NuevaCompraForm({
                 )}
                 {sugerenciasSat[field.id] && (
                   <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
-                    <span className="text-slate-500">Alternativas:</span>
+                    <span className="text-muted-foreground">Alternativas:</span>
                     {sugerenciasSat[field.id].alternativas.length === 0 ? (
-                      <span className="text-slate-500">ninguna</span>
+                      <span className="text-muted-foreground">ninguna</span>
                     ) : (
                       sugerenciasSat[field.id].alternativas.map((alternativa) => (
                         <button
@@ -820,7 +820,7 @@ export default function NuevaCompraForm({
                           type="button"
                           title={alternativa.descripcionSat}
                           onClick={() => aplicarClaveSat(i, alternativa.clave)}
-                          className="rounded border border-sky-200 bg-white px-1.5 py-0.5 font-mono text-sky-800 hover:bg-sky-100"
+                          className="rounded border border-sky-200 bg-card px-1.5 py-0.5 font-mono text-sky-800 hover:bg-sky-100"
                         >
                           {alternativa.clave}
                         </button>
@@ -845,7 +845,7 @@ export default function NuevaCompraForm({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-gray-200">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-border">
                 <div>
                   <label className={cls.label}>Empresa / destino *</label>
                   <input
@@ -895,15 +895,15 @@ export default function NuevaCompraForm({
       </section>
 
       {/* ── Submit ───────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-8 border-t border-gray-200 pt-6">
-        <label className="flex items-center gap-2.5 text-sm text-gray-600 cursor-pointer select-none">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-8 border-t border-border pt-6">
+        <label className="flex items-center gap-2.5 text-sm text-muted-foreground cursor-pointer select-none">
           <input
             type="checkbox"
             checked={notificarWhatsApp}
             onChange={(e) => setNotificarWhatsApp(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer transition-colors duration-200"
+            className="h-4 w-4 rounded border-input text-green-600 focus:ring-green-500 cursor-pointer transition-colors duration-200"
           />
-          <span className="flex items-center gap-1.5 font-medium text-gray-700">
+          <span className="flex items-center gap-1.5 font-medium text-foreground">
             <WhatsAppIcon className="h-4.5 w-4.5 text-green-500 shrink-0" />
             Notificar por WhatsApp al guardar
           </span>

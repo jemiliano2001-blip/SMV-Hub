@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Sparkles, Check, CheckCheck, X, RefreshCw, AlertCircle } from 'lucide-react'
+import { Sparkles, Check, CheckCheck, CheckCircle2, X, RefreshCw, AlertCircle } from 'lucide-react'
+import ModuleSurface from '@/components/layout/ModuleSurface'
 import { Badge } from '@/components/ui/badge'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { getClienteAuth } from '@/lib/firebase'
@@ -239,23 +240,23 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
   }
 
   return (
-    <div
+    <ModuleSurface
       id="panel-clasificacion-ia"
-      className="bg-gradient-to-r from-sky-50 via-slate-50 to-emerald-50 border border-sky-200 rounded-xl p-4 shadow-xs space-y-4"
+      className="p-4 space-y-4"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-sky-600 text-white rounded-lg shadow-xs">
+          <div className="p-2 bg-primary text-primary-foreground rounded-lg shadow-xs">
             <Sparkles className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
               Clasificación Inteligente IA
               <Badge variant="secondary" className="bg-sky-100 text-sky-800 font-mono text-[10px]">
                 Gemini 3.5 Flash Lite
               </Badge>
             </h3>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-muted-foreground">
               Hay{' '}
               <span className="font-bold text-sky-700">{itemsSinClasificar.length} ítems</span> en
               &quot;Otros&quot; sin categoría asignada.
@@ -268,7 +269,7 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
             type="button"
             onClick={() => void reclasificarHeuristica()}
             disabled={reclasificando || procesando || itemsSinClasificar.length === 0}
-            className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-slate-50 disabled:opacity-60 text-slate-800 text-xs font-bold rounded-lg shadow-xs border border-slate-300 transition-all"
+            className="flex items-center gap-2 px-3 py-2 bg-card hover:bg-muted/40 disabled:opacity-60 text-foreground text-xs font-bold rounded-lg shadow-xs border border-input transition-all"
           >
             <RefreshCw className={`h-4 w-4 ${reclasificando ? 'animate-spin' : ''}`} />
             {reclasificando ? 'Re-clasificando…' : 'Re-clasificar heurística'}
@@ -277,7 +278,7 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
             type="button"
             onClick={() => void clasificarConIa()}
             disabled={procesando || reclasificando}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 disabled:opacity-60 text-white text-xs font-bold rounded-lg shadow-xs transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 disabled:opacity-60 text-primary-foreground text-xs font-bold rounded-lg shadow-xs transition-all"
           >
             <RefreshCw className={`h-4 w-4 ${procesando ? 'animate-spin' : ''}`} />
             {procesando ? 'Analizando con IA…' : 'Clasificar con IA'}
@@ -286,13 +287,14 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
       </div>
 
       {mensajeGlobal && (
-        <div className="rounded-lg border border-sky-200 bg-white p-3 text-xs text-slate-700 flex items-start gap-2">
+        <div className="rounded-lg border border-sky-200 bg-card p-3 text-xs text-foreground flex items-start gap-2">
           <AlertCircle className="h-4 w-4 text-sky-600 shrink-0 mt-0.5" />
           <div>
             <span>{mensajeGlobal}</span>
             {itemsAutoAprobados > 0 && (
-              <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">
-                ✅ {itemsAutoAprobados} ítems auto-clasificados con mapeos previos en Firestore.
+              <p className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
+                <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+                {itemsAutoAprobados} ítems auto-clasificados con mapeos previos en Firestore.
               </p>
             )}
           </div>
@@ -301,8 +303,8 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
 
       {sugerencias.length > 0 && (
         <div className="space-y-3 pt-2">
-          <div className="flex flex-wrap items-center justify-between gap-2 bg-white p-2.5 rounded-lg border border-slate-200">
-            <span className="text-xs font-bold text-slate-700">
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-muted/40 p-2.5 rounded-lg border border-border">
+            <span className="text-xs font-bold text-foreground">
               Sugerencias recibidas ({sugerencias.filter((s) => s.estado === 'pendiente').length}{' '}
               pendientes)
             </span>
@@ -319,17 +321,17 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
               <button
                 type="button"
                 onClick={() => setSugerencias([])}
-                className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 underline px-2"
+                className="text-[11px] font-semibold text-muted-foreground hover:text-foreground underline px-2"
               >
                 Cerrar sugerencias
               </button>
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs">
+          <div className="border border-border rounded-lg overflow-hidden bg-card shadow-xs">
             <div className="overflow-x-auto max-h-80">
               <Table className="w-full text-left text-[11px]">
-                <TableHeader className="sticky top-0 bg-slate-100 text-slate-600 font-bold uppercase tracking-wider">
+                <TableHeader className="sticky top-0 bg-muted text-muted-foreground font-bold uppercase tracking-wider">
                   <TableRow>
                     <TableHead className="px-3 py-2">Descripción Producto</TableHead>
                     <TableHead className="px-3 py-2">Categoría Sugerida</TableHead>
@@ -339,18 +341,18 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
                     <TableHead className="px-3 py-2 text-right">Acción</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody className="divide-y divide-slate-100">
+                <TableBody className="divide-y divide-border">
                   {sugerencias.map((sug, idx) => (
                     <TableRow
                       key={sug.item.id}
-                      className={`hover:bg-slate-50 ${sug.estado === 'aprobado' ? 'bg-emerald-50/50' : ''}`}
+                      className={`hover:bg-muted/40 ${sug.estado === 'aprobado' ? 'bg-emerald-50/50' : ''}`}
                     >
                       <TableCell className="px-3 py-2 max-w-[240px]">
-                        <p className="font-semibold text-slate-900 truncate" title={sug.item.descripcion}>
+                        <p className="font-semibold text-foreground truncate" title={sug.item.descripcion}>
                           {sug.item.descripcion}
                         </p>
                         {sug.item.odooCategoria && (
-                          <p className="text-[10px] text-slate-400 font-mono truncate">
+                          <p className="text-[10px] text-muted-foreground font-mono truncate">
                             Cat Odoo: {sug.item.odooCategoria}
                           </p>
                         )}
@@ -366,7 +368,7 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
                               prev.map((s, i) => (i === idx ? { ...s, categoriaEditada: val } : s))
                             )
                           }}
-                          className="rounded border border-slate-300 px-2 py-1 text-xs bg-white focus:ring-1 focus:ring-sky-500 font-medium"
+                          className="rounded border border-input px-2 py-1 text-xs bg-card text-foreground focus:ring-1 focus:ring-ring font-medium"
                         >
                           {CATEGORIAS_PRODUCTO_REGISTRO.map((c) => (
                             <option key={c.id} value={c.id}>
@@ -388,7 +390,7 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
                               prev.map((s, i) => (i === idx ? { ...s, tipoEditado: val } : s))
                             )
                           }}
-                          className="w-28 rounded border border-slate-300 px-2 py-1 text-xs bg-white font-mono focus:ring-1 focus:ring-sky-500"
+                          className="w-28 rounded border border-input px-2 py-1 text-xs bg-card text-foreground font-mono focus:ring-1 focus:ring-ring"
                         />
                       </TableCell>
 
@@ -404,7 +406,7 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
                               prev.map((s, i) => (i === idx ? { ...s, medidaEditada: val } : s))
                             )
                           }}
-                          className="w-24 rounded border border-slate-300 px-2 py-1 text-xs bg-white font-mono focus:ring-1 focus:ring-sky-500"
+                          className="w-24 rounded border border-input px-2 py-1 text-xs bg-card text-foreground font-mono focus:ring-1 focus:ring-ring"
                         />
                       </TableCell>
 
@@ -438,7 +440,7 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
                               type="button"
                               onClick={() => descartarFila(idx)}
                               title="Descartar"
-                              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded transition-colors"
+                              className="p-1.5 bg-muted hover:bg-muted/80 text-muted-foreground rounded transition-colors"
                             >
                               <X className="h-3.5 w-3.5" />
                             </button>
@@ -471,6 +473,6 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
           </div>
         </div>
       )}
-    </div>
+    </ModuleSurface>
   )
 }

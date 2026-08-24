@@ -11,8 +11,10 @@ import {
   ShieldCheck,
   Send,
   AlertTriangle,
+  DollarSign,
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import ModuleSurface from '@/components/layout/ModuleSurface'
 import type { Requisicion, CotizacionRequisicion } from '@/lib/schemas'
 import { useProveedores } from '@/lib/hooks/useProveedores'
 import { useProveedoresInteligencia } from '@/lib/hooks/useProveedoresInteligencia'
@@ -280,19 +282,19 @@ export default function DetalleRequisicionModal({
   return (
     <Dialog open={abierto} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto font-sans p-6">
-        <DialogHeader className="border-b border-slate-200 pb-4">
+        <DialogHeader className="border-b border-border pb-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-black bg-slate-900 text-white px-2 py-0.5 rounded">
+                <span className="text-xs font-mono font-black bg-foreground text-background px-2 py-0.5 rounded">
                   {requisicion.folio || `REQ-${requisicion.id.substring(0, 6)}`}
                 </span>
-                <DialogTitle className="text-base font-bold text-slate-900">
+                <DialogTitle className="text-base font-bold text-foreground">
                   {requisicion.descripcion}
                 </DialogTitle>
               </div>
-              <DialogDescription className="text-xs text-slate-500 mt-0.5">
-                Solicitado por <span className="font-bold text-slate-700">{requisicion.solicitante}</span> · {requisicion.departamento || requisicion.empresa || 'Taller'}
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                Solicitado por <span className="font-bold text-foreground">{requisicion.solicitante}</span> · {requisicion.departamento || requisicion.empresa || 'Taller'}
               </DialogDescription>
             </div>
 
@@ -306,8 +308,8 @@ export default function DetalleRequisicionModal({
 
         <div className="space-y-6 pt-2">
           {/* STEPPER TIMELINE PROCESO DE COMPRAS */}
-          <div className="bg-slate-900 text-white p-4 rounded-xl shadow-xs">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+          <div className="bg-foreground text-background p-4 rounded-xl shadow-xs">
+            <h3 className="text-xs font-bold text-background/60 uppercase tracking-wider mb-3">
               Flujo de Trazabilidad End-to-End
             </h3>
             <div className="grid grid-cols-5 gap-2 text-center text-xs font-sans">
@@ -320,15 +322,15 @@ export default function DetalleRequisicionModal({
                       className={[
                         'mx-auto w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs transition-all',
                         actual
-                          ? 'bg-amber-400 text-slate-950 ring-4 ring-amber-400/30 font-black'
+                          ? 'bg-amber-400 text-foreground ring-4 ring-amber-400/30 font-black'
                           : alcanzado
                           ? 'bg-emerald-500 text-white'
-                          : 'bg-slate-800 text-slate-500 border border-slate-700',
+                          : 'bg-background/15 text-background/50 border border-background/20',
                       ].join(' ')}
                     >
-                      {alcanzado ? '✓' : idx + 1}
+                      {alcanzado ? <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> : idx + 1}
                     </div>
-                    <p className={`text-[11px] font-bold ${actual ? 'text-amber-300' : alcanzado ? 'text-slate-200' : 'text-slate-500'}`}>
+                    <p className={`text-[11px] font-bold ${actual ? 'text-amber-300' : alcanzado ? 'text-background/80' : 'text-background/40'}`}>
                       {paso.label}
                     </p>
                   </div>
@@ -339,20 +341,20 @@ export default function DetalleRequisicionModal({
 
           {/* DETALLES Y JUSTIFICACIÓN */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div className="sm:col-span-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
-              <span className="font-bold text-slate-700 block uppercase text-[10px] tracking-wider">
+            <ModuleSurface className="sm:col-span-2 p-3.5 space-y-1">
+              <span className="font-bold text-foreground block uppercase text-[10px] tracking-wider">
                 Motivo / Justificación Taller
               </span>
-              <p className="text-slate-800 leading-relaxed font-medium">
+              <p className="text-foreground leading-relaxed font-medium">
                 {requisicion.motivoJustificacion || requisicion.nota || 'Sin justificación detallada dada.'}
               </p>
-            </div>
+            </ModuleSurface>
 
-            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
-              <span className="font-bold text-slate-700 block uppercase text-[10px] tracking-wider">
+            <ModuleSurface className="p-3.5 space-y-1">
+              <span className="font-bold text-foreground block uppercase text-[10px] tracking-wider">
                 Aprobación de Compra
               </span>
-              <p className="text-slate-800 font-semibold flex items-center gap-1.5">
+              <p className="text-foreground font-semibold flex items-center gap-1.5">
                 <ShieldCheck className="h-4 w-4 text-purple-600" />
                 {requisicion.aprobador || 'Sin asignar'}
               </p>
@@ -367,17 +369,17 @@ export default function DetalleRequisicionModal({
               >
                 Estatus: {requisicion.estatusAprobacion?.toUpperCase() || 'PENDIENTE'}
               </span>
-            </div>
+            </ModuleSurface>
           </div>
 
           {/* DESGLOSE DE ÍTEMS REQUERIDOS */}
           <div className="space-y-2">
-            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
               Ítems y Herramientas Solicitadas ({requisicion.items?.length || 1})
             </h3>
-            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+            <ModuleSurface>
               <Table className="w-full text-left text-xs font-sans">
-                <TableHeader className="bg-slate-100 text-slate-600 font-bold text-[10px] uppercase">
+                <TableHeader className="bg-muted text-muted-foreground font-bold text-[10px] uppercase">
                   <TableRow>
                     <TableHead className="px-3 py-2">Descripción</TableHead>
                     <TableHead className="px-3 py-2">Categoría</TableHead>
@@ -386,7 +388,7 @@ export default function DetalleRequisicionModal({
                     <TableHead className="px-3 py-2">Proveedor Sugerido</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody className="divide-y divide-slate-200 bg-white">
+                <TableBody className="divide-y divide-border bg-card">
                   {(requisicion.items && requisicion.items.length > 0
                     ? requisicion.items
                     : [
@@ -402,13 +404,13 @@ export default function DetalleRequisicionModal({
                         },
                       ]
                   ).map((it, idx) => (
-                    <TableRow key={idx} className="hover:bg-slate-50">
-                      <TableCell className="px-3 py-2 font-bold text-slate-900">{it.descripcion}</TableCell>
-                      <TableCell className="px-3 py-2 uppercase font-mono text-[11px] text-slate-600">{it.categoria}</TableCell>
-                      <TableCell className="px-3 py-2 font-mono font-bold text-slate-900">
+                    <TableRow key={idx} className="hover:bg-muted">
+                      <TableCell className="px-3 py-2 font-bold text-foreground">{it.descripcion}</TableCell>
+                      <TableCell className="px-3 py-2 uppercase font-mono text-[11px] text-muted-foreground">{it.categoria}</TableCell>
+                      <TableCell className="px-3 py-2 font-mono font-bold text-foreground">
                         {it.cantidad} {it.unidad}
                       </TableCell>
-                      <TableCell className="px-3 py-2 text-slate-600 font-mono text-[11px]">
+                      <TableCell className="px-3 py-2 text-muted-foreground font-mono text-[11px]">
                         {it.marcaPreferida || 'Cualquiera'} {it.especificacion ? `(${it.especificacion})` : ''}
                       </TableCell>
                       <TableCell className="px-3 py-2 text-primary font-bold">
@@ -418,18 +420,18 @@ export default function DetalleRequisicionModal({
                   ))}
                 </TableBody>
               </Table>
-            </div>
+            </ModuleSurface>
           </div>
 
           {/* MATRIZ DE COMPARACIÓN DE COTIZACIONES */}
-          <div className="space-y-3 pt-2 border-t border-slate-200">
+          <div className="space-y-3 pt-2 border-t border-border">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
                   <Sparkles className="h-4 w-4 text-amber-500" />
                   Comparador Multicriterio de Cotizaciones ({cotizaciones.length})
                 </h3>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-muted-foreground">
                   Compara precio, lead time y scoring histórico de proveedores para seleccionar el mejor postor.
                 </p>
               </div>
@@ -456,7 +458,7 @@ export default function DetalleRequisicionModal({
                 </div>
 
                 {alertaPrecioMsg && (
-                  <div className="flex items-start gap-2 p-2.5 rounded-lg bg-white border border-amber-300 text-amber-900">
+                  <div className="flex items-start gap-2 p-2.5 rounded-lg bg-card border border-amber-300 text-amber-900">
                     <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                     <span className="font-semibold">{alertaPrecioMsg}</span>
                   </div>
@@ -464,12 +466,12 @@ export default function DetalleRequisicionModal({
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="font-bold text-slate-700 block mb-1">Proveedor (Catálogo)</label>
+                    <label className="font-bold text-foreground block mb-1">Proveedor (Catálogo)</label>
                     <select
                       required
                       value={provCotId}
                       onChange={(e) => setProvCotId(e.target.value)}
-                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white font-medium"
+                      className="w-full px-2.5 py-1.5 border border-input rounded-lg bg-card font-medium"
                     >
                       <option value="">-- Selecciona Proveedor --</option>
                       {todosProveedores.map((p) => (
@@ -481,7 +483,7 @@ export default function DetalleRequisicionModal({
                   </div>
 
                   <div>
-                    <label className="font-bold text-slate-700 block mb-1">Subtotal Moneda</label>
+                    <label className="font-bold text-foreground block mb-1">Subtotal Moneda</label>
                     <div className="flex gap-1">
                       <input
                         type="number"
@@ -489,12 +491,12 @@ export default function DetalleRequisicionModal({
                         step="0.01"
                         value={subtotalCot}
                         onChange={(e) => setSubtotalCot(Number(e.target.value))}
-                        className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-mono font-bold"
+                        className="w-full px-2.5 py-1.5 border border-input rounded-lg font-mono font-bold"
                       />
                       <select
                         value={monedaCot}
                         onChange={(e) => setMonedaCot(e.target.value as 'USD' | 'MXN')}
-                        className="px-2 py-1.5 border border-slate-300 rounded-lg font-bold bg-white"
+                        className="px-2 py-1.5 border border-input rounded-lg font-bold bg-card"
                       >
                         <option value="USD">USD</option>
                         <option value="MXN">MXN</option>
@@ -503,37 +505,37 @@ export default function DetalleRequisicionModal({
                   </div>
 
                   <div>
-                    <label className="font-bold text-slate-700 block mb-1">Lead Time (Días hábiles)</label>
+                    <label className="font-bold text-foreground block mb-1">Lead Time (Días hábiles)</label>
                     <input
                       type="number"
                       min={1}
                       value={leadTimeCot}
                       onChange={(e) => setLeadTimeCot(Number(e.target.value))}
-                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-mono font-bold"
+                      className="w-full px-2.5 py-1.5 border border-input rounded-lg font-mono font-bold"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="font-semibold text-slate-700 block mb-1">Condiciones de Pago</label>
+                    <label className="font-semibold text-foreground block mb-1">Condiciones de Pago</label>
                     <input
                       type="text"
                       value={condicionesCot}
                       onChange={(e) => setCondicionesCot(e.target.value)}
                       placeholder="Net 30 / Tarjeta de Crédito"
-                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white"
+                      className="w-full px-2.5 py-1.5 border border-input rounded-lg bg-card"
                     />
                   </div>
 
                   <div>
-                    <label className="font-semibold text-slate-700 block mb-1">Notas / Envío a Laredo</label>
+                    <label className="font-semibold text-foreground block mb-1">Notas / Envío a Laredo</label>
                     <input
                       type="text"
                       value={obsCot}
                       onChange={(e) => setObsCot(e.target.value)}
                       placeholder="Stock inmediato FedEx Express"
-                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white"
+                      className="w-full px-2.5 py-1.5 border border-input rounded-lg bg-card"
                     />
                   </div>
                 </div>
@@ -575,7 +577,7 @@ export default function DetalleRequisicionModal({
 
             {/* TARJETAS DE COTIZACIÓN EN COMPARADOR */}
             {cargandoCot ? (
-              <p className="text-xs text-slate-500 py-4">Cargando cotizaciones...</p>
+              <p className="text-xs text-muted-foreground py-4">Cargando cotizaciones...</p>
             ) : errorCot ? (
               <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-center text-xs text-red-700 space-y-2">
                 <p>{errorCot}</p>
@@ -588,9 +590,9 @@ export default function DetalleRequisicionModal({
                 </button>
               </div>
             ) : rankingCotizaciones.length === 0 ? (
-              <div className="p-6 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-center text-xs text-slate-500">
+              <ModuleSurface className="border-dashed p-6 text-center text-xs text-muted-foreground shadow-none">
                 Aún no hay cotizaciones registradas para esta requisición. Haz clic en <strong>+ Capturar Cotización</strong> para comparar proveedores.
-              </div>
+              </ModuleSurface>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {rankingCotizaciones.map((cot) => (
@@ -602,7 +604,7 @@ export default function DetalleRequisicionModal({
                         ? 'bg-emerald-50/80 border-emerald-400 ring-2 ring-emerald-400/20'
                         : cot.esMejorBalance
                         ? 'bg-sky-50/70 border-sky-300'
-                        : 'bg-white border-slate-200',
+                        : 'bg-card border-border',
                     ].join(' ')}
                   >
                     {cot.ganadora && (
@@ -614,45 +616,45 @@ export default function DetalleRequisicionModal({
                     <div className="flex flex-wrap items-center gap-1">
                       {cot.esMejorBalance && (
                         <span className="bg-emerald-600 text-white text-[10px] font-bold font-mono px-2 py-0.5 rounded flex items-center gap-1">
-                          <Zap className="h-3 w-3" /> #1 Mejor Balance ⭐
+                          <Zap className="h-3 w-3" aria-hidden /> #1 Mejor Balance
                         </span>
                       )}
                       {cot.esMejorPrecio && (
-                        <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold font-mono px-2 py-0.5 rounded">
-                          💰 Mejor Precio
+                        <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold font-mono px-2 py-0.5 rounded inline-flex items-center gap-1">
+                          <DollarSign className="h-3 w-3" aria-hidden /> Mejor Precio
                         </span>
                       )}
                       {cot.esMasRapido && (
-                        <span className="bg-sky-100 text-primary border border-sky-300 text-[10px] font-bold font-mono px-2 py-0.5 rounded">
-                          ⚡ Más Rápido
+                        <span className="bg-sky-100 text-primary border border-sky-300 text-[10px] font-bold font-mono px-2 py-0.5 rounded inline-flex items-center gap-1">
+                          <Zap className="h-3 w-3" aria-hidden /> Más Rápido
                         </span>
                       )}
                     </div>
 
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className="text-sm font-bold text-slate-900">{cot.proveedorNombre}</h4>
-                        <p className="text-[11px] text-slate-500 font-mono">Pago: {cot.condicionesPago}</p>
+                        <h4 className="text-sm font-bold text-foreground">{cot.proveedorNombre}</h4>
+                        <p className="text-[11px] text-muted-foreground font-mono">Pago: {cot.condicionesPago}</p>
                       </div>
 
                       <div className="text-right">
-                        <span className="text-base font-black text-slate-900 block font-mono">
+                        <span className="text-base font-black text-foreground block font-mono">
                           ${cot.total.toFixed(2)} {cot.moneda}
                         </span>
-                        <span className="text-[11px] text-slate-500 font-mono">{cot.leadTimeDias} días lead time</span>
+                        <span className="text-[11px] text-muted-foreground font-mono">{cot.leadTimeDias} días lead time</span>
                       </div>
                     </div>
 
                     {cot.observaciones && (
-                      <p className="text-[11px] text-slate-600 bg-white p-2 rounded border border-slate-200 font-sans leading-snug">
+                      <p className="text-[11px] text-muted-foreground bg-card p-2 rounded border border-border font-sans leading-snug">
                         {cot.observaciones}
                       </p>
                     )}
 
                     {!cot.ganadora && (
-                      <div className="pt-2 border-t border-slate-200">
+                      <div className="pt-2 border-t border-border">
                         {cotizacionSeleccionando?.id === cot.id ? (
-                          <div className="space-y-2 bg-white p-2.5 rounded-lg border border-amber-300">
+                          <div className="space-y-2 bg-card p-2.5 rounded-lg border border-amber-300">
                             <label className="text-[11px] font-bold text-amber-900 block">
                               Motivo de elección de este proveedor:
                             </label>
@@ -661,13 +663,13 @@ export default function DetalleRequisicionModal({
                               value={motivoGanador}
                               onChange={(e) => setMotivoGanador(e.target.value)}
                               placeholder="Ej. Precio 25% menor y entrega en Laredo TX."
-                              className="w-full px-2 py-1 text-xs border border-slate-300 rounded"
+                              className="w-full px-2 py-1 text-xs border border-input rounded"
                             />
                             <div className="flex gap-2 justify-end">
                               <button
                                 type="button"
                                 onClick={() => setCotizacionSeleccionando(null)}
-                                className="px-2 py-1 text-[11px] font-semibold text-slate-600 hover:underline"
+                                className="px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:underline"
                               >
                                 Cancelar
                               </button>
@@ -688,7 +690,7 @@ export default function DetalleRequisicionModal({
                               setCotizacionSeleccionando(cot)
                               setMotivoGanador(`Seleccionado por ${cot.esMejorPrecio ? 'mejor precio' : 'lead time más rápido'}.`)
                             }}
-                            className="w-full py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                            className="w-full py-1.5 bg-foreground hover:bg-foreground/90 text-background text-xs font-bold rounded-lg shadow-xs transition-colors flex items-center justify-center gap-1.5"
                           >
                             <Award className="h-3.5 w-3.5 text-amber-400" /> Seleccionar Proveedor Ganador
                           </button>
@@ -720,7 +722,7 @@ export default function DetalleRequisicionModal({
                     type="button"
                     disabled={generandoOCState}
                     onClick={handleGenerarOCClick}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-400 hover:bg-emerald-300 text-slate-950 text-xs font-black rounded-lg shadow-lg transition-transform active:scale-95 disabled:opacity-50"
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-400 hover:bg-emerald-300 text-foreground text-xs font-black rounded-lg shadow-lg transition-transform active:scale-95 disabled:opacity-50"
                   >
                     <Send className="h-4 w-4" />
                     {generandoOCState ? 'Generando Orden...' : 'Emitir Orden de Compra (OC)'}

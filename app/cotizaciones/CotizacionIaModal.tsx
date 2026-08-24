@@ -777,7 +777,7 @@ export default function CotizacionIaModal({
                             partidas.length > 0 && partidas.every((p) => p.seleccionada)
                           }
                           onChange={(e) => handleToggleSeleccionarTodas(e.target.checked)}
-                          className="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-ring"
+                          className="h-3.5 w-3.5 rounded border-input text-primary focus:ring-ring"
                           aria-label="Seleccionar todas las partidas"
                         />
                       </TableHead>
@@ -809,7 +809,7 @@ export default function CotizacionIaModal({
                             type="checkbox"
                             checked={item.seleccionada}
                             onChange={() => handleToggleItem(item.idTemp)}
-                            className="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-ring"
+                            className="h-3.5 w-3.5 rounded border-input text-primary focus:ring-ring"
                           />
                         </TableCell>
                         <TableCell className="px-2 py-1">

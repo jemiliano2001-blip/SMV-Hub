@@ -56,6 +56,7 @@ import type {
   EstadoStockEndmill,
   ReordenarMedidaItem,
 } from "@/lib/schemas"
+import ModuleSurface from "@/components/layout/ModuleSurface"
 import ModalCrearEndmill from "@/app/endmills/components/ModalCrearEndmill"
 import ModalDetalleEndmill from "@/app/endmills/components/ModalDetalleEndmill"
 
@@ -234,19 +235,19 @@ export default function InventarioEndmills({
 
   if (loading && medidas.length === 0) {
     return (
-      <div className="space-y-2 rounded-xl border bg-white p-4">
+      <ModuleSurface className="space-y-2 p-4">
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-64 w-full" />
-      </div>
+      </ModuleSurface>
     )
   }
 
   return (
-    <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+    <ModuleSurface className="space-y-3 p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative w-full max-w-md">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               value={busqueda}
               onChange={(event) => setBusqueda(event.target.value)}
@@ -259,7 +260,7 @@ export default function InventarioEndmills({
               <Button
                 size="sm"
                 onClick={() => setModalCrearAbierto(true)}
-                className="bg-sky-700 hover:bg-sky-800 text-white font-semibold shrink-0"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shrink-0"
               >
                 <Plus className="h-4 w-4" /> Agregar Endmill
               </Button>
@@ -293,7 +294,7 @@ export default function InventarioEndmills({
                     size="sm"
                     variant="outline"
                     onClick={iniciarModoConteo}
-                    className="text-slate-700"
+                    className="text-foreground"
                   >
                     <Edit3 className="h-4 w-4" /> Conteo rápido inline
                   </Button>
@@ -315,8 +316,8 @@ export default function InventarioEndmills({
                 onClick={() => setCategoria(item.id)}
                 className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${
                   categoria === item.id
-                    ? "border-sky-700 bg-sky-700 text-white"
-                    : "border-slate-200 bg-white text-slate-600 hover:border-sky-300"
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card text-muted-foreground hover:border-primary/40"
                 }`}
               >
                 {item.label} · {cantidad}
@@ -349,7 +350,7 @@ export default function InventarioEndmills({
                 setErrorOrden(null)
               }}
               disabled={guardandoOrden}
-              className="border-emerald-300 bg-white text-emerald-900 hover:bg-emerald-100"
+              className="border-emerald-300 bg-card text-emerald-900 hover:bg-emerald-50"
             >
               Restablecer
             </Button>
@@ -374,7 +375,7 @@ export default function InventarioEndmills({
             variant="outline"
             onClick={refrescarBaseConteo}
             disabled={guardandoConteo}
-            className="shrink-0 border-rose-300 bg-white text-rose-900 hover:bg-rose-100"
+            className="shrink-0 border-rose-300 bg-card text-rose-900 hover:bg-rose-100"
           >
             <RefreshCw className="h-4 w-4" /> Usar mi conteo de todas formas
           </Button>
@@ -386,14 +387,14 @@ export default function InventarioEndmills({
           <span>
             Filtrando por estado: <strong>{ETIQUETA_ESTADO[filtroEstadoExterno]}</strong>
           </span>
-          <span className="font-semibold text-sky-700">
+          <span className="font-semibold text-primary">
             {listaAMostrar.length === 1 ? "1 medida encontrada" : `${listaAMostrar.length} medidas encontradas`}
           </span>
         </div>
       )}
 
       {medidas.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
+        <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
           No hay endmills registrados en el catálogo. Usa el botón &quot;Agregar Endmill&quot; para registrar la primera medida.
         </div>
       ) : (
@@ -444,7 +445,7 @@ export default function InventarioEndmills({
                         <TableCell className="w-16 py-1 text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-1">
                             <GripVertical
-                              className="h-4 w-4 cursor-grab text-slate-400 hover:text-slate-700 active:cursor-grabbing"
+                              className="h-4 w-4 cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
                               aria-label="Arrastra para mover de posición (Grab & Place)"
                             />
                             <div className="flex flex-col">
@@ -452,7 +453,7 @@ export default function InventarioEndmills({
                                 type="button"
                                 disabled={index === 0}
                                 onClick={() => moverPosicion(index, index - 1)}
-                                className="text-slate-400 hover:text-slate-800 disabled:opacity-20 cursor-pointer"
+                                className="text-muted-foreground hover:text-foreground disabled:opacity-20 cursor-pointer"
                                 title="Mover arriba"
                               >
                                 <ArrowUp className="h-3 w-3" />
@@ -461,7 +462,7 @@ export default function InventarioEndmills({
                                 type="button"
                                 disabled={index === listaAMostrar.length - 1}
                                 onClick={() => moverPosicion(index, index + 1)}
-                                className="text-slate-400 hover:text-slate-800 disabled:opacity-20 cursor-pointer"
+                                className="text-muted-foreground hover:text-foreground disabled:opacity-20 cursor-pointer"
                                 title="Mover abajo"
                               >
                                 <ArrowDown className="h-3 w-3" />
@@ -470,15 +471,15 @@ export default function InventarioEndmills({
                           </div>
                         </TableCell>
                       )}
-                      <TableCell className="font-mono font-bold text-slate-900">
+                      <TableCell className="font-mono font-bold text-foreground">
                         {medida.medidaPulgadas}&quot;
                       </TableCell>
                       <TableCell className="max-w-md whitespace-normal">
-                        <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+                        <div className="flex items-center gap-1.5 font-semibold text-foreground">
                           {medida.requiereConfirmacion && <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />}
                           {medida.descripcion}
                         </div>
-                        <div className="mt-0.5 truncate font-mono text-[10px] text-slate-500">
+                        <div className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
                           {medida.specPropuesta}
                         </div>
                       </TableCell>
@@ -586,7 +587,7 @@ export default function InventarioEndmills({
 
                     <ContextMenuSub>
                       <ContextMenuSubTrigger>
-                        <Copy className="text-slate-500" />
+                        <Copy className="text-muted-foreground" />
                         <span>Copiar información</span>
                       </ContextMenuSubTrigger>
                       <ContextMenuSubContent className="w-48">
@@ -643,13 +644,13 @@ export default function InventarioEndmills({
           onCrearMedida={onCrearMedida}
         />
       )}
-    </section>
+    </ModuleSurface>
   )
 }
 
 function EstadoBadge({ estado }: { estado: EstadoStockEndmill }) {
   const className = {
-    sin_base: "border-slate-200 bg-slate-100 text-slate-700",
+    sin_base: "border-border bg-muted text-muted-foreground",
     critico: "border-rose-200 bg-rose-50 text-rose-700",
     bajo: "border-amber-200 bg-amber-50 text-amber-800",
     ok: "border-emerald-200 bg-emerald-50 text-emerald-700",

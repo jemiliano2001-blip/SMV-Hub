@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import StepperAbastecimiento from '@/components/abastecimiento/StepperAbastecimiento'
 import ModalRecibirOrdenAlmacen from '@/components/abastecimiento/ModalRecibirOrdenAlmacen'
 import { derivarPasosAbastecimiento } from '@/lib/abastecimiento'
+import ModuleSurface from '@/components/layout/ModuleSurface'
 import {
   Table,
   TableBody,
@@ -112,9 +113,9 @@ export default function OrdenDetallesModal({
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           
           {/* Trazabilidad Stepper */}
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <ModuleSurface className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-muted p-4">
             <div>
-              <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold">Trazabilidad de Abastecimiento</p>
+              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider font-semibold">Trazabilidad de Abastecimiento</p>
               <div className="mt-2">
                 <StepperAbastecimiento pasos={pasosAbastecimiento} />
               </div>
@@ -131,47 +132,48 @@ export default function OrdenDetallesModal({
                 Recibir en Almacén
               </Button>
             ) : (
-              <div className="text-right text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 font-medium shrink-0">
-                ✓ Recibido en Almacén ({orden.recibidoPor || 'Almacén'})
+              <div className="text-right text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 font-medium shrink-0 inline-flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Recibido en Almacén ({orden.recibidoPor || 'Almacén'})
               </div>
             )}
-          </div>
+          </ModuleSurface>
 
           {/* Status & Provider Header Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-slate-50/70 p-4 rounded-xl border border-slate-100">
-              <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold">Proveedor y Estado</p>
-              <h3 className="text-sm font-bold text-slate-900 mt-1 truncate" title={orden.proveedor}>{orden.proveedor}</h3>
+            <ModuleSurface className="bg-muted/70 p-4">
+              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider font-semibold">Proveedor y Estado</p>
+              <h3 className="text-sm font-bold text-foreground mt-1 truncate" title={orden.proveedor}>{orden.proveedor}</h3>
               <div className="mt-2 flex items-center gap-2">
                 <OrdenBadgeEstado estado={orden.estado} />
               </div>
-            </div>
+            </ModuleSurface>
 
-            <div className="bg-slate-50/70 p-4 rounded-xl border border-slate-100">
-              <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold">Requisitor e Info</p>
-              <p className="text-xs text-slate-700 mt-1"><strong>Requisitor:</strong> {orden.requisitor || '—'}</p>
-              <p className="text-xs text-slate-700 mt-0.5"><strong>Empresa:</strong> {orden.empresa || '—'}</p>
-            </div>
+            <ModuleSurface className="bg-muted/70 p-4">
+              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider font-semibold">Requisitor e Info</p>
+              <p className="text-xs text-foreground mt-1"><strong>Requisitor:</strong> {orden.requisitor || '—'}</p>
+              <p className="text-xs text-foreground mt-0.5"><strong>Empresa:</strong> {orden.empresa || '—'}</p>
+            </ModuleSurface>
 
-            <div className="bg-slate-50/70 p-4 rounded-xl border border-slate-100">
-              <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold">Orden y Total</p>
-              <p className="text-xs text-slate-700 mt-1"><strong>Orden de Trabajo:</strong> {orden.ordenTrabajo || '—'}</p>
-              <p className="text-xs font-bold text-slate-900 mt-0.5">Total: <span className="font-mono text-primary">{formatPrecio(orden.total, orden.moneda)}</span></p>
-            </div>
+            <ModuleSurface className="bg-muted/70 p-4">
+              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider font-semibold">Orden y Total</p>
+              <p className="text-xs text-foreground mt-1"><strong>Orden de Trabajo:</strong> {orden.ordenTrabajo || '—'}</p>
+              <p className="text-xs font-bold text-foreground mt-0.5">Total: <span className="font-mono text-primary">{formatPrecio(orden.total, orden.moneda)}</span></p>
+            </ModuleSurface>
           </div>
 
           {/* Billing & Deliveries Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 border-b border-slate-200 pb-1">Facturación</h3>
-              <div className="space-y-1.5 text-xs text-slate-600">
+              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-1">Facturación</h3>
+              <div className="space-y-1.5 text-xs text-muted-foreground">
                 <div className="flex justify-between">
                   <span>N° Factura:</span>
-                  <span className="font-mono text-slate-900 font-bold">{orden.numeroFactura || '—'}</span>
+                  <span className="font-mono text-foreground font-bold">{orden.numeroFactura || '—'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Fecha Factura:</span>
-                  <span className="font-mono text-slate-900">{orden.fechaFactura || '—'}</span>
+                  <span className="font-mono text-foreground">{orden.fechaFactura || '—'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
@@ -185,7 +187,7 @@ export default function OrdenDetallesModal({
                   <span>Impuestos (Tax):</span>
                   <span className="font-mono">{formatPrecio(orden.impuestos, orden.moneda)}</span>
                 </div>
-                <div className="flex justify-between pt-1 border-t border-slate-100 font-bold text-slate-900">
+                <div className="flex justify-between pt-1 border-t border-border font-bold text-foreground">
                   <span>Total:</span>
                   <span className="font-mono text-primary">{formatPrecio(orden.total, orden.moneda)}</span>
                 </div>
@@ -193,16 +195,16 @@ export default function OrdenDetallesModal({
             </div>
 
             <div className="space-y-2.5">
-              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 border-b border-slate-200 pb-1">Entregas y Enlaces</h3>
+              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-1">Entregas y Enlaces</h3>
               <div className="space-y-2 text-xs">
                 {orden.fechaEntrega && (
-                  <div className="flex items-center gap-2 text-slate-800 bg-sky-50/60 p-2 rounded-lg border border-sky-200">
+                  <div className="flex items-center gap-2 text-foreground bg-sky-50/60 p-2 rounded-lg border border-sky-200">
                     <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
                     <span className="font-mono"><strong>Fecha de Entrega:</strong> {orden.fechaEntrega}</span>
                   </div>
                 )}
                 {linkNorm && (
-                  <div className="flex items-center gap-2 text-slate-800 bg-slate-50 p-2 rounded-lg border border-slate-200">
+                  <div className="flex items-center gap-2 text-foreground bg-muted p-2 rounded-lg border border-border">
                     <ExternalLink className="h-3.5 w-3.5 text-primary shrink-0" />
                     <span className="truncate flex-1">
                       <strong>Link Proveedor:</strong>{' '}
@@ -218,7 +220,7 @@ export default function OrdenDetallesModal({
                   </div>
                 )}
                 {!orden.fechaEntrega && !linkNorm && (
-                  <p className="text-slate-400 italic text-xs font-mono">No hay información adicional de entrega o proveedor.</p>
+                  <p className="text-muted-foreground italic text-xs font-mono">No hay información adicional de entrega o proveedor.</p>
                 )}
               </div>
             </div>
@@ -227,10 +229,10 @@ export default function OrdenDetallesModal({
           {/* Items List */}
           {orden.items && orden.items.length > 0 && (
             <div className="space-y-2">
-              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 border-b border-slate-200 pb-1">Ítems de la Factura</h3>
-              <div className="overflow-hidden rounded-lg border border-border">
-                <Table className="text-xs text-left text-slate-600">
-                  <TableHeader className="text-[11px] font-mono text-slate-700 uppercase bg-slate-50 border-b border-slate-200">
+              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-1">Ítems de la Factura</h3>
+              <ModuleSurface>
+                <Table className="text-xs text-left text-muted-foreground">
+                  <TableHeader className="text-[11px] font-mono text-muted-foreground uppercase bg-muted border-b border-border">
                     <TableRow>
                       <TableHead className="px-3 py-2 font-bold">Descripción</TableHead>
                       <TableHead className="px-3 py-2 font-bold">Clave SAT</TableHead>
@@ -242,40 +244,40 @@ export default function OrdenDetallesModal({
                       <TableHead className="px-3 py-2 font-bold text-right">Total</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody className="divide-y divide-slate-100 font-mono">
+                  <TableBody className="divide-y divide-border font-mono">
                     {orden.items.map((item, index) => (
-                      <TableRow key={index} className="hover:bg-slate-50">
-                        <TableCell className="px-3 py-2 text-slate-900 font-sans font-medium">{item.descripcion}</TableCell>
+                      <TableRow key={index} className="hover:bg-muted">
+                        <TableCell className="px-3 py-2 text-foreground font-sans font-medium">{item.descripcion}</TableCell>
                         <TableCell className="px-3 py-2">
                           {normalizarClaveProdServ(item.claveProdServ) ? (
-                            <span className="text-slate-800">{item.claveProdServ}</span>
+                            <span className="text-foreground">{item.claveProdServ}</span>
                           ) : itemSatPendiente(item) ? (
                             <span className="text-[10px] text-amber-800 font-bold bg-amber-100 px-1.5 py-0.2 rounded border border-amber-200">
                               Sin clave SAT
                             </span>
                           ) : (
-                            <span className="text-slate-400">—</span>
+                            <span className="text-muted-foreground">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="px-3 py-2 text-slate-600 font-sans">{item.empresa || orden.empresa || '—'}</TableCell>
-                        <TableCell className="px-3 py-2 text-slate-600 font-sans">{item.cuentaCargo || orden.cuentaCargo || '—'}</TableCell>
-                        <TableCell className="px-3 py-2 text-slate-600 font-sans">{item.requisitor || orden.requisitor || '—'}</TableCell>
+                        <TableCell className="px-3 py-2 text-muted-foreground font-sans">{item.empresa || orden.empresa || '—'}</TableCell>
+                        <TableCell className="px-3 py-2 text-muted-foreground font-sans">{item.cuentaCargo || orden.cuentaCargo || '—'}</TableCell>
+                        <TableCell className="px-3 py-2 text-muted-foreground font-sans">{item.requisitor || orden.requisitor || '—'}</TableCell>
                         <TableCell className="px-3 py-2 text-center">{item.cantidad ?? '-'}</TableCell>
                         <TableCell className="px-3 py-2 text-right">{formatPrecio(item.precioUnitario, orden.moneda)}</TableCell>
-                        <TableCell className="px-3 py-2 text-right font-bold text-slate-900">{formatPrecio(item.total, orden.moneda)}</TableCell>
+                        <TableCell className="px-3 py-2 text-right font-bold text-foreground">{formatPrecio(item.total, orden.moneda)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              </div>
+              </ModuleSurface>
             </div>
           )}
 
           {/* Invoice Image */}
           {orden.imagenUrl && (
             <div className="space-y-2">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-1">
-                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700">Comprobante / Screenshot de Compra</h3>
+              <div className="flex items-center justify-between border-b border-border pb-1">
+                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground">Comprobante / Screenshot de Compra</h3>
                 <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                   Se copiará al notificar
                 </span>
@@ -284,7 +286,7 @@ export default function OrdenDetallesModal({
                 href={orden.imagenUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block relative group overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2"
+                className="block relative group overflow-hidden rounded-xl border border-border bg-muted p-2"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -292,8 +294,8 @@ export default function OrdenDetallesModal({
                   alt="Comprobante Factura"
                   className="max-h-80 w-full object-contain mx-auto transition-transform duration-200 group-hover:scale-[1.01]"
                 />
-                <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-mono font-bold transition-opacity duration-200">
-                  Abrir comprobante completo ↗
+                <div className="absolute inset-0 bg-foreground/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 text-background text-xs font-mono font-bold transition-opacity duration-200">
+                  Abrir comprobante completo <ExternalLink className="h-3.5 w-3.5" />
                 </div>
               </a>
             </div>
@@ -301,10 +303,10 @@ export default function OrdenDetallesModal({
         </div>
 
         {/* Footer */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-5 py-3.5 bg-slate-50 rounded-b-xl shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-5 py-3.5 bg-muted rounded-b-xl shrink-0">
           <button
             onClick={onDelete}
-            className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50 transition-colors"
+            className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-card px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50 transition-colors"
           >
             <Trash2 className="h-3.5 w-3.5" /> Eliminar
           </button>
@@ -330,7 +332,7 @@ export default function OrdenDetallesModal({
             {orden.estado !== 'aprobada' && (
               <button
                 onClick={onApprove}
-                className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition-colors"
+                className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-card px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition-colors"
               >
                 <CheckCircle2 className="h-3.5 w-3.5" /> Aprobar
               </button>
@@ -338,14 +340,14 @@ export default function OrdenDetallesModal({
             {orden.estado !== 'rechazada' && (
               <button
                 onClick={onReject}
-                className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50 transition-colors"
+                className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-card px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50 transition-colors"
               >
                 <XCircle className="h-3.5 w-3.5" /> Rechazar
               </button>
             )}
             <button
               onClick={onClose}
-              className="rounded-lg bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-slate-800 transition-colors"
+              className="rounded-lg bg-foreground px-3.5 py-1.5 text-xs font-bold text-background hover:bg-foreground/90 transition-colors"
             >
               Cerrar
             </button>
@@ -374,7 +376,7 @@ export default function OrdenDetallesModal({
                     href={estadoWhatsApp.comprobanteUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-md border border-amber-400 bg-white px-2.5 py-1 font-semibold hover:bg-amber-100"
+                    className="rounded-md border border-amber-400 bg-card px-2.5 py-1 font-semibold hover:bg-amber-100"
                   >
                     Abrir comprobante
                   </a>

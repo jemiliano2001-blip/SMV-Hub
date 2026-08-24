@@ -48,7 +48,7 @@ const AREA_COLORS: Record<Area, string> = {
   diseno: 'bg-purple-50 text-purple-700 border-purple-200',
   automatizacion: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   cnc: 'bg-amber-50 text-amber-700 border-amber-200',
-  limpieza: 'bg-gray-50 text-gray-600 border-gray-200',
+  limpieza: 'bg-muted text-muted-foreground border-border',
   administracion: 'bg-rose-50 text-rose-700 border-rose-200',
 }
 
@@ -90,7 +90,7 @@ function OperadorCard({
               type="text"
               value={nombreEditado}
               onChange={(e) => onNombreEditadoChange(e.target.value)}
-              className="w-full min-w-0 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-primary"
+              className="w-full min-w-0 px-2 py-1 text-sm border border-input rounded focus:outline-none focus:border-primary"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') onGuardarEdicion()
@@ -103,7 +103,7 @@ function OperadorCard({
         ) : (
           <div className="min-w-0 flex-1">
             <p
-              className="font-medium text-gray-900 truncate cursor-pointer hover:text-primary"
+              className="font-medium text-foreground truncate cursor-pointer hover:text-primary"
               onClick={onEmpezarEdicion}
               title="Clic para editar"
             >
@@ -126,13 +126,13 @@ function OperadorCard({
                   {correoVinculado}
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-400 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 text-[10px] font-mono text-muted-foreground bg-muted border border-border px-1.5 py-0.5 rounded-full">
                   Sin correo
                 </span>
               )}
             </div>
             {!departamentoDesdeArea(op.area) && (
-              <p className="mt-0.5 text-[10px] text-gray-400" title={SIN_HORAS_EXTRA_TITULO}>
+              <p className="mt-0.5 text-[10px] text-muted-foreground" title={SIN_HORAS_EXTRA_TITULO}>
                 No aplica a horas extra
               </p>
             )}
@@ -142,7 +142,7 @@ function OperadorCard({
       <button
         onClick={onToggle}
         className={`shrink-0 inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${
-          op.activo ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+          op.activo ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-muted text-muted-foreground hover:bg-muted'
         }`}
         title={op.activo ? 'Clic para desactivar' : 'Clic para activar'}
       >
@@ -309,18 +309,18 @@ export default function OperadoresList() {
       {/* Resumen + Controles */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-500">
-            <strong className="text-gray-900">{totalActivos}</strong> activos
+          <span className="text-sm text-muted-foreground">
+            <strong className="text-foreground">{totalActivos}</strong> activos
             {totalInactivos > 0 && (
-              <span className="ml-2 text-gray-400">· {totalInactivos} inactivos</span>
+              <span className="ml-2 text-muted-foreground">· {totalInactivos} inactivos</span>
             )}
           </span>
-          <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
             <input
               type="checkbox"
               checked={mostrarInactivos}
               onChange={(e) => setMostrarInactivos(e.target.checked)}
-              className="rounded border-gray-300 text-primary focus:ring-ring"
+              className="rounded border-input text-primary focus:ring-ring"
             />
             Mostrar inactivos
           </label>
@@ -331,7 +331,7 @@ export default function OperadoresList() {
           <select
             value={filtroArea}
             onChange={(e) => setFiltroArea(e.target.value as Area | 'todas')}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-primary"
+            className="text-sm border border-border rounded-lg px-3 py-2 bg-card focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-primary"
           >
             <option value="todas">Todas las áreas</option>
             {AREAS.map((a) => (
@@ -341,19 +341,19 @@ export default function OperadoresList() {
 
           {/* Búsqueda */}
           <div className="relative flex-1 sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Buscar por nombre o correo…"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-primary"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-primary"
             />
           </div>
           <button
             onClick={exportarCSV}
             disabled={filtrados.length === 0}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors h-[38px]"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium bg-card border border-border text-foreground rounded-lg hover:bg-muted disabled:opacity-50 transition-colors h-[38px]"
             title="Exportar a CSV"
           >
             <Download className="h-4 w-4" />
@@ -363,24 +363,24 @@ export default function OperadoresList() {
       </div>
 
       {/* Formulario para agregar */}
-      <form onSubmit={handleAgregar} className="flex items-end gap-3 bg-white border border-gray-200 rounded-xl p-4">
+      <form onSubmit={handleAgregar} className="flex items-end gap-3 bg-card border border-border rounded-xl p-4">
         <div className="flex-1">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Nombre</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Nombre</label>
           <input
             type="text"
             value={nuevoNombre}
             onChange={(e) => { setNuevoNombre(e.target.value); setErrorForm(null) }}
             placeholder="Nombre del operador…"
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-primary"
+            className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-primary"
             disabled={agregando}
           />
         </div>
         <div className="w-48">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Área</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Área</label>
           <select
             value={nuevaArea}
             onChange={(e) => setNuevaArea(e.target.value as Area)}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-primary"
+            className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-primary"
             disabled={agregando}
           >
             {AREAS.map((a) => (
@@ -405,9 +405,9 @@ export default function OperadoresList() {
       )}
 
       {/* Tarjetas (celular) */}
-      <div className="md:hidden bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
+      <div className="md:hidden bg-card border border-border rounded-xl divide-y divide-border">
         {filtrados.length === 0 ? (
-          <div className="text-center py-12 text-gray-400 text-sm">
+          <div className="text-center py-12 text-muted-foreground text-sm">
             {busqueda ? 'Sin resultados para la búsqueda' : 'No hay operadores registrados'}
           </div>
         ) : (
@@ -434,17 +434,17 @@ export default function OperadoresList() {
         <ModuleSurface>
         <Table className="text-sm">
           <TableHeader>
-            <TableRow className="bg-gray-50 border-b border-gray-200">
-              <TableHead className="text-left px-4 py-3 font-medium text-gray-500">Nombre</TableHead>
-              <TableHead className="text-left px-4 py-3 font-medium text-gray-500">Área</TableHead>
-              <TableHead className="text-left px-4 py-3 font-medium text-gray-500">Correo Vinculado</TableHead>
-              <TableHead className="text-center px-4 py-3 font-medium text-gray-500">Estado</TableHead>
+            <TableRow className="bg-muted border-b border-border">
+              <TableHead className="text-left px-4 py-3 font-medium text-muted-foreground">Nombre</TableHead>
+              <TableHead className="text-left px-4 py-3 font-medium text-muted-foreground">Área</TableHead>
+              <TableHead className="text-left px-4 py-3 font-medium text-muted-foreground">Correo Vinculado</TableHead>
+              <TableHead className="text-center px-4 py-3 font-medium text-muted-foreground">Estado</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="divide-y divide-gray-100">
+          <TableBody className="divide-y divide-border">
             {filtrados.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-12 text-gray-400">
+                <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
                   {busqueda ? 'Sin resultados para la búsqueda' : 'No hay operadores registrados'}
                 </TableCell>
               </TableRow>
@@ -455,7 +455,7 @@ export default function OperadoresList() {
                   <ContextMenu key={op.id}>
                     <ContextMenuTrigger asChild>
                       <TableRow
-                        className={`hover:bg-gray-50 transition-colors cursor-pointer select-none ${!op.activo ? 'opacity-50' : ''}`}
+                        className={`hover:bg-muted transition-colors cursor-pointer select-none ${!op.activo ? 'opacity-50' : ''}`}
                         onDoubleClick={() => {
                           setEditandoId(op.id)
                           setNombreEditado(op.nombre)
@@ -472,7 +472,7 @@ export default function OperadoresList() {
                                   type="text"
                                   value={nombreEditado}
                                   onChange={(e) => setNombreEditado(e.target.value)}
-                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-primary"
+                                  className="w-full px-2 py-1 text-sm border border-input rounded focus:outline-none focus:border-primary"
                                   autoFocus
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') guardarEdicion(op.id)
@@ -484,7 +484,7 @@ export default function OperadoresList() {
                               </div>
                             ) : (
                               <span 
-                                className="font-medium text-gray-900 cursor-pointer hover:text-primary hover:underline"
+                                className="font-medium text-foreground cursor-pointer hover:text-primary hover:underline"
                                 onClick={() => { setEditandoId(op.id); setNombreEditado(op.nombre); }}
                                 title="Clic para editar"
                               >
@@ -504,7 +504,7 @@ export default function OperadoresList() {
                             ))}
                           </select>
                           {!departamentoDesdeArea(op.area) && (
-                            <p className="mt-0.5 text-[10px] text-gray-400" title={SIN_HORAS_EXTRA_TITULO}>
+                            <p className="mt-0.5 text-[10px] text-muted-foreground" title={SIN_HORAS_EXTRA_TITULO}>
                               No aplica a horas extra
                             </p>
                           )}
@@ -516,7 +516,7 @@ export default function OperadoresList() {
                               {correo}
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-xs font-mono text-slate-400 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
+                            <span className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground bg-muted border border-border px-2 py-0.5 rounded-full">
                               Sin correo
                             </span>
                           )}
@@ -527,7 +527,7 @@ export default function OperadoresList() {
                             className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full transition-colors cursor-pointer ${
                               op.activo
                                 ? 'bg-green-50 text-green-700 hover:bg-green-100'
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                : 'bg-muted text-muted-foreground hover:bg-muted'
                             }`}
                             title={op.activo ? 'Clic para desactivar' : 'Clic para activar'}
                           >
@@ -590,7 +590,7 @@ export default function OperadoresList() {
 
                       <ContextMenuSub>
                         <ContextMenuSubTrigger>
-                          <Copy className="text-slate-500" />
+                          <Copy className="text-muted-foreground" />
                           <span>Copiar información</span>
                         </ContextMenuSubTrigger>
                         <ContextMenuSubContent className="w-48">

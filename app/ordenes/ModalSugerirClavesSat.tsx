@@ -3,6 +3,7 @@
 import { useState, useEffect, Fragment } from 'react'
 import { Loader2, Search, Check, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import ModuleSurface from '@/components/layout/ModuleSurface'
 import {
   Dialog,
   DialogContent,
@@ -324,20 +325,20 @@ export default function ModalSugerirClavesSat({
 
         <div className="p-6 overflow-y-auto flex-1">
           {error && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 flex items-start gap-2">
+            <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
               {error}
             </div>
           )}
 
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-500">
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
               <Loader2 className="mb-3 h-8 w-8 animate-spin text-primary" />
               <p className="text-sm">Generando sugerencias…</p>
             </div>
           ) : error ? (
             <div className="text-center py-12 space-y-3">
-              <p className="text-sm text-gray-600">No se pudieron generar sugerencias automáticas.</p>
+              <p className="text-sm text-muted-foreground">No se pudieron generar sugerencias automáticas.</p>
               <button
                 type="button"
                 onClick={() => {
@@ -350,13 +351,13 @@ export default function ModalSugerirClavesSat({
               </button>
             </div>
           ) : filas.length === 0 ? (
-            <p className="text-center text-gray-500 py-12 text-sm">
+            <p className="text-center text-muted-foreground py-12 text-sm">
               No hay ítems pendientes de clave SAT en las órdenes seleccionadas.
             </p>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-gray-200">
+            <ModuleSurface className="overflow-x-auto">
               <Table className="w-full text-sm text-left">
-                <TableHeader className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
+                <TableHeader className="text-xs text-muted-foreground uppercase bg-muted border-b border-border">
                   <TableRow>
                     <TableHead className="px-3 py-2 w-10">✓</TableHead>
                     <TableHead className="px-3 py-2">Proveedor</TableHead>
@@ -368,20 +369,20 @@ export default function ModalSugerirClavesSat({
                     <TableHead className="px-3 py-2 w-36">Buscar</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody className="divide-y divide-gray-100">
+                <TableBody className="divide-y divide-border">
                   {filas.map((fila, index) => (
                     <Fragment key={`${fila.ordenId}-${fila.itemIndex}`}>
-                      <TableRow className="hover:bg-gray-50">
+                      <TableRow className="hover:bg-muted">
                         <TableCell className="px-3 py-2">
                           <input
                             type="checkbox"
                             checked={fila.aplicar}
                             onChange={(e) => actualizarFila(index, { aplicar: e.target.checked })}
-                            className="rounded border-gray-300 text-primary"
+                            className="rounded border-input text-primary"
                           />
                         </TableCell>
-                        <TableCell className="px-3 py-2 text-gray-700 whitespace-nowrap">{fila.ordenProveedor}</TableCell>
-                        <TableCell className="px-3 py-2 text-gray-900 max-w-[200px]">
+                        <TableCell className="px-3 py-2 text-muted-foreground whitespace-nowrap">{fila.ordenProveedor}</TableCell>
+                        <TableCell className="px-3 py-2 text-foreground max-w-[200px]">
                           <div className="truncate" title={fila.descripcion}>
                             {fila.descripcion}
                           </div>
@@ -402,10 +403,10 @@ export default function ModalSugerirClavesSat({
                               })
                             }}
                             placeholder="8 dígitos"
-                            className="w-full rounded border border-gray-300 px-2 py-1 text-xs font-mono focus:border-primary focus:outline-none"
+                            className="w-full rounded border border-input bg-card px-2 py-1 text-xs font-mono text-foreground focus:border-primary focus:outline-none"
                           />
                         </TableCell>
-                        <TableCell className="px-3 py-2 text-gray-600 text-xs max-w-[180px] truncate" title={fila.descripcionSat ?? ''}>
+                        <TableCell className="px-3 py-2 text-muted-foreground text-xs max-w-[180px] truncate" title={fila.descripcionSat ?? ''}>
                           {fila.descripcionSat ?? '—'}
                         </TableCell>
                         <TableCell className="px-3 py-2">
@@ -413,7 +414,7 @@ export default function ModalSugerirClavesSat({
                             {fila.confianza}
                           </span>
                         </TableCell>
-                        <TableCell className="px-3 py-2 text-xs text-gray-500 max-w-[160px]">
+                        <TableCell className="px-3 py-2 text-xs text-muted-foreground max-w-[160px]">
                           <div className="truncate" title={fila.motivo}>
                             {fila.motivo}
                           </div>
@@ -423,7 +424,7 @@ export default function ModalSugerirClavesSat({
                               onClick={() =>
                                 actualizarFila(index, { mostrarAlternativas: !fila.mostrarAlternativas })
                               }
-                              className="mt-1 flex items-center gap-0.5 text-primary hover:text-primary text-[10px] font-semibold"
+                              className="mt-1 flex items-center gap-0.5 text-primary hover:text-primary/80 text-[10px] font-semibold"
                             >
                               {fila.mostrarAlternativas ? (
                                 <ChevronUp className="h-3 w-3" />
@@ -448,12 +449,12 @@ export default function ModalSugerirClavesSat({
                               key={`q-${fila.terminosBusqueda || fila.descripcion}`}
                               placeholder="Buscar…"
                               defaultValue={fila.terminosBusqueda || fila.descripcion.slice(0, 40)}
-                              className="flex-1 min-w-0 rounded border border-gray-300 px-1.5 py-1 text-xs focus:border-primary focus:outline-none"
+                              className="flex-1 min-w-0 rounded border border-input bg-card px-1.5 py-1 text-xs text-foreground focus:border-primary focus:outline-none"
                             />
                             <button
                               type="submit"
                               disabled={fila.buscando}
-                              className="p-1 text-primary hover:bg-blue-50 rounded disabled:opacity-50"
+                              className="p-1 text-primary hover:bg-muted rounded disabled:opacity-50"
                               title="Buscar en catálogo"
                             >
                               {fila.buscando ? (
@@ -466,7 +467,7 @@ export default function ModalSugerirClavesSat({
                         </TableCell>
                       </TableRow>
                       {fila.mostrarAlternativas && fila.alternativas.length > 0 && (
-                        <TableRow className="bg-blue-50/50">
+                        <TableRow className="bg-sky-50/50">
                           <TableCell colSpan={8} className="px-3 py-2">
                             <div className="flex flex-wrap gap-2">
                               {fila.alternativas.map((alt) => (
@@ -474,10 +475,10 @@ export default function ModalSugerirClavesSat({
                                   key={alt.clave}
                                   type="button"
                                   onClick={() => aplicarAlternativa(index, alt)}
-                                  className="text-left rounded border border-blue-200 bg-white px-2 py-1 text-xs hover:border-blue-400 hover:bg-blue-50"
+                                  className="text-left rounded border border-sky-200 bg-card px-2 py-1 text-xs hover:border-sky-400 hover:bg-sky-50"
                                 >
-                                  <span className="font-mono font-semibold text-blue-800">{alt.clave}</span>
-                                  <span className="text-gray-600 ml-1.5">{alt.descripcionSat}</span>
+                                  <span className="font-mono font-semibold text-sky-800">{alt.clave}</span>
+                                  <span className="text-muted-foreground ml-1.5">{alt.descripcionSat}</span>
                                 </button>
                               ))}
                             </div>
@@ -488,7 +489,7 @@ export default function ModalSugerirClavesSat({
                   ))}
                 </TableBody>
               </Table>
-            </div>
+            </ModuleSurface>
           )}
         </div>
 

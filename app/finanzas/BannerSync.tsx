@@ -41,7 +41,7 @@ export default function BannerSync({ estadoSync, onSincronizado }: Props) {
     <button
       onClick={handleSincronizar}
       disabled={sincronizando}
-      className="flex items-center gap-1.5 rounded-lg bg-white border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 print:hidden"
+      className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50 print:hidden"
     >
       <RefreshCw className={`h-3.5 w-3.5 ${sincronizando ? "animate-spin" : ""}`} />
       {sincronizando ? "Sincronizando…" : "Sincronizar ahora"}
@@ -74,7 +74,7 @@ export default function BannerSync({ estadoSync, onSincronizado }: Props) {
   if (!estadoSync?.ultimaCorridaEn) {
     return (
       <div className="flex flex-wrap items-center gap-3">
-        <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-600 print:hidden">
+        <div className="rounded-lg border border-border bg-muted px-4 py-2 text-sm text-muted-foreground print:hidden">
           Todavía no hay una sincronización con Odoo registrada.
         </div>
         {boton}
@@ -84,7 +84,7 @@ export default function BannerSync({ estadoSync, onSincronizado }: Props) {
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <p className="text-xs text-gray-400 print:hidden">Sincronizado con Odoo {hace(estadoSync.ultimaCorridaEn)}</p>
+      <p className="text-xs text-muted-foreground print:hidden">Sincronizado con Odoo {hace(estadoSync.ultimaCorridaEn)}</p>
       {boton}
     </div>
   )

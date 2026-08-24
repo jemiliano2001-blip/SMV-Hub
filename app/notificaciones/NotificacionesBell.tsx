@@ -95,20 +95,20 @@ export default function NotificacionesBell() {
         aria-label={noLeidas > 0 ? `Notificaciones (${noLeidas} sin leer)` : 'Notificaciones'}
         aria-expanded={abierto}
         onClick={() => setAbierto((v) => !v)}
-        className="relative flex items-center justify-center rounded-md p-2 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="relative flex items-center justify-center rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Bell className="h-4 w-4" />
         {noLeidas > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">
+          <span className="absolute -top-0.5 -right-0.5 inline-flex h-[1.1rem] min-w-[1.1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
             {noLeidas > 99 ? '99+' : noLeidas}
           </span>
         )}
       </button>
 
       {abierto && (
-        <div className="absolute right-0 mt-1.5 w-80 rounded-lg border border-slate-200 bg-white shadow-md z-50 animate-in fade-in-50 zoom-in-95 duration-100">
-          <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between">
-            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
+        <div className="absolute right-0 z-50 mt-1.5 w-80 animate-in fade-in-50 zoom-in-95 overflow-hidden rounded-lg border border-border bg-card shadow-md duration-100">
+          <div className="flex items-center justify-between border-b border-border px-3 py-2">
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               Notificaciones
             </span>
             {noLeidas > 0 && (
@@ -134,17 +134,17 @@ export default function NotificacionesBell() {
 
           <div className="max-h-80 overflow-y-auto">
             {cargando && (
-              <p className="px-3 py-4 text-xs text-slate-500">Cargando…</p>
+              <p className="px-3 py-4 text-xs text-muted-foreground">Cargando…</p>
             )}
             {!cargando && paraDropdown.length === 0 && (
-              <p className="px-3 py-4 text-xs text-slate-500">No hay avisos por ahora.</p>
+              <p className="px-3 py-4 text-xs text-muted-foreground">No hay avisos por ahora.</p>
             )}
             {paraDropdown.map((n) => (
               <button
                 key={n.id}
                 type="button"
                 onClick={() => void onClickItem(n.id, n.href, n.leida)}
-                className={`w-full text-left px-3 py-2.5 border-b border-slate-50 hover:bg-slate-50 transition-colors ${
+                className={`w-full border-b border-border px-3 py-2.5 text-left transition-colors hover:bg-muted ${
                   n.leida ? 'opacity-70' : 'bg-sky-50/40'
                 }`}
               >
@@ -153,9 +153,9 @@ export default function NotificacionesBell() {
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-slate-900 truncate">{n.titulo}</p>
-                    <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">{n.cuerpo}</p>
-                    <p className="text-[10px] text-slate-400 mt-1 font-mono">
+                    <p className="truncate text-xs font-semibold text-foreground">{n.titulo}</p>
+                    <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{n.cuerpo}</p>
+                    <p className="mt-1 font-mono text-[10px] text-muted-foreground">
                       {formatearRelativo(n.creadoEn)}
                     </p>
                   </div>
@@ -167,7 +167,7 @@ export default function NotificacionesBell() {
           <Link
             href="/notificaciones"
             onClick={() => setAbierto(false)}
-            className="block px-3 py-2.5 text-center text-xs font-bold text-primary hover:bg-sky-50 border-t border-slate-100"
+            className="block border-t border-border px-3 py-2.5 text-center text-xs font-bold text-primary hover:bg-muted"
           >
             Ver todas
           </Link>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Loader2, Plus, Trash2, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import ModuleSurface from '@/components/layout/ModuleSurface'
 import {
   Dialog,
   DialogContent,
@@ -242,7 +243,7 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
 
         <div className="p-6 overflow-y-auto flex-1">
           {error && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           )}
@@ -250,13 +251,13 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
           <form id="orden-form" onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Proveedor *</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Proveedor *</label>
                 <input
                   required
                   list="catalogo-proveedores-orden"
                   value={formData.proveedor}
                   onChange={e => setFormData({ ...formData, proveedor: e.target.value })}
-                  className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                  className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
                 />
                 <datalist id="catalogo-proveedores-orden">
                   {catalogoProveedores.map((p) => (
@@ -265,16 +266,16 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
                 </datalist>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Estado</label>
-                <select value={formData.estado} onChange={e => setFormData({ ...formData, estado: e.target.value as EstadoOrden })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none">
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
+                <select value={formData.estado} onChange={e => setFormData({ ...formData, estado: e.target.value as EstadoOrden })} className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none">
                   <option value="pendiente">Pendiente</option>
                   <option value="aprobada">Aprobada</option>
                   <option value="rechazada">Rechazada</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Moneda</label>
-                <select value={formData.moneda} onChange={e => setFormData({ ...formData, moneda: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none">
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Moneda</label>
+                <select value={formData.moneda} onChange={e => setFormData({ ...formData, moneda: e.target.value })} className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none">
                   <option value="USD">USD</option>
                   <option value="MXN">MXN</option>
                 </select>
@@ -283,79 +284,79 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
 
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Subtotal</label>
-                <input type="number" step="any" value={formData.subtotal} onChange={e => setFormData({ ...formData, subtotal: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Subtotal</label>
+                <input type="number" step="any" value={formData.subtotal} onChange={e => setFormData({ ...formData, subtotal: e.target.value })} className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Envío</label>
-                <input type="number" step="any" value={formData.envio} onChange={e => setFormData({ ...formData, envio: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Envío</label>
+                <input type="number" step="any" value={formData.envio} onChange={e => setFormData({ ...formData, envio: e.target.value })} className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Impuestos</label>
-                <input type="number" step="any" value={formData.impuestos} onChange={e => setFormData({ ...formData, impuestos: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Impuestos</label>
+                <input type="number" step="any" value={formData.impuestos} onChange={e => setFormData({ ...formData, impuestos: e.target.value })} className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Total</label>
-                <input type="number" step="any" value={formData.total} onChange={e => setFormData({ ...formData, total: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Total</label>
+                <input type="number" step="any" value={formData.total} onChange={e => setFormData({ ...formData, total: e.target.value })} className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">N° Factura</label>
-                <input value={formData.numeroFactura} onChange={e => setFormData({ ...formData, numeroFactura: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">N° Factura</label>
+                <input value={formData.numeroFactura} onChange={e => setFormData({ ...formData, numeroFactura: e.target.value })} className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Fecha Factura</label>
-                <input type="date" value={formData.fechaFactura} onChange={e => setFormData({ ...formData, fechaFactura: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Fecha Factura</label>
+                <input type="date" value={formData.fechaFactura} onChange={e => setFormData({ ...formData, fechaFactura: e.target.value })} className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Fecha Entrega</label>
-                <input type="date" value={formData.fechaEntrega} onChange={e => setFormData({ ...formData, fechaEntrega: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Fecha Entrega</label>
+                <input type="date" value={formData.fechaEntrega} onChange={e => setFormData({ ...formData, fechaEntrega: e.target.value })} className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Link Proveedor</label>
-                <input type="url" value={formData.linkProveedor} onChange={e => setFormData({ ...formData, linkProveedor: e.target.value })} placeholder="https://" className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Link Proveedor</label>
+                <input type="url" value={formData.linkProveedor} onChange={e => setFormData({ ...formData, linkProveedor: e.target.value })} placeholder="https://" className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" />
               </div>
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-900 border-b border-gray-100 pb-1">Ítems</h3>
-                <button type="button" onClick={handleAddItem} className="text-xs font-semibold text-primary hover:text-blue-800 flex items-center gap-1">
+                <h3 className="text-sm font-semibold text-foreground border-b border-border pb-1">Ítems</h3>
+                <button type="button" onClick={handleAddItem} className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-1">
                   <Plus className="h-3 w-3" /> Añadir Ítem
                 </button>
               </div>
               {formData.items.map((item, index) => (
-                <div key={index} className="flex gap-2 items-start bg-gray-50/50 p-3 rounded-xl border border-gray-100 mb-3">
+                <ModuleSurface key={index} className="mb-3 flex gap-2 items-start bg-muted/50 p-3">
                   <div className="flex-1 space-y-2">
                     <div className="flex gap-2">
-                      <input type="url" placeholder="URL del producto para auto-completar (opcional)" value={item.url} onChange={e => handleItemChange(index, 'url', e.target.value)} className="flex-1 rounded-lg border border-input bg-card px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
+                      <input type="url" placeholder="URL del producto para auto-completar (opcional)" value={item.url} onChange={e => handleItemChange(index, 'url', e.target.value)} className="flex-1 rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none" />
                       <button type="button" onClick={() => handleScrape(index)} disabled={scrapingIndex === index || !item.url} className="px-3 py-1.5 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 transition-colors">
                         {scrapingIndex === index ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
                         Auto-llenar
                       </button>
                     </div>
-                    <input placeholder="Descripción" value={item.descripcion} onChange={e => handleItemChange(index, 'descripcion', e.target.value)} className="w-full rounded-lg border border-input bg-card px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
+                    <input placeholder="Descripción" value={item.descripcion} onChange={e => handleItemChange(index, 'descripcion', e.target.value)} className="w-full rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none" />
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                      <input required placeholder="Empresa *" value={item.empresa} onChange={e => handleItemChange(index, 'empresa', e.target.value)} className="rounded-lg border border-input bg-card px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
-                      <input placeholder="Cuenta cargo" value={item.cuentaCargo} onChange={e => handleItemChange(index, 'cuentaCargo', e.target.value)} className="rounded-lg border border-input bg-card px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
-                      <input required placeholder="Requisitor *" value={item.requisitor} onChange={e => handleItemChange(index, 'requisitor', e.target.value)} className="rounded-lg border border-input bg-card px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
-                      <input placeholder="OT" value={item.ordenTrabajo} onChange={e => handleItemChange(index, 'ordenTrabajo', e.target.value)} className="rounded-lg border border-input bg-card px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
+                      <input required placeholder="Empresa *" value={item.empresa} onChange={e => handleItemChange(index, 'empresa', e.target.value)} className="rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none" />
+                      <input placeholder="Cuenta cargo" value={item.cuentaCargo} onChange={e => handleItemChange(index, 'cuentaCargo', e.target.value)} className="rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none" />
+                      <input required placeholder="Requisitor *" value={item.requisitor} onChange={e => handleItemChange(index, 'requisitor', e.target.value)} className="rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none" />
+                      <input placeholder="OT" value={item.ordenTrabajo} onChange={e => handleItemChange(index, 'ordenTrabajo', e.target.value)} className="rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none" />
                     </div>
                     <div className="flex gap-2">
-                      <input type="number" step="any" placeholder="Cant." value={item.cantidad} onChange={e => handleItemChange(index, 'cantidad', e.target.value)} className="w-1/4 rounded-lg border border-input bg-card px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
-                      <input type="number" step="any" placeholder="P.Unit." value={item.precioUnitario} onChange={e => handleItemChange(index, 'precioUnitario', e.target.value)} className="w-1/4 rounded-lg border border-input bg-card px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
-                      <input type="number" step="any" placeholder="Total" value={item.total} onChange={e => handleItemChange(index, 'total', e.target.value)} className="w-1/4 rounded-lg border border-input bg-card px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
-                      <input placeholder="Clave SAT (8 díg.)" value={item.claveProdServ} onChange={e => handleItemChange(index, 'claveProdServ', e.target.value)} className="w-1/4 rounded-lg border border-gray-300 px-2 py-1.5 text-sm font-mono focus:border-primary focus:outline-none bg-white" />
+                      <input type="number" step="any" placeholder="Cant." value={item.cantidad} onChange={e => handleItemChange(index, 'cantidad', e.target.value)} className="w-1/4 rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none" />
+                      <input type="number" step="any" placeholder="P.Unit." value={item.precioUnitario} onChange={e => handleItemChange(index, 'precioUnitario', e.target.value)} className="w-1/4 rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none" />
+                      <input type="number" step="any" placeholder="Total" value={item.total} onChange={e => handleItemChange(index, 'total', e.target.value)} className="w-1/4 rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none" />
+                      <input placeholder="Clave SAT (8 díg.)" value={item.claveProdServ} onChange={e => handleItemChange(index, 'claveProdServ', e.target.value)} className="w-1/4 rounded-lg border border-input bg-card px-2 py-1.5 text-sm font-mono text-foreground focus:border-primary focus:outline-none" />
                     </div>
                   </div>
                   {formData.items.length > 1 && (
-                    <button type="button" onClick={() => handleRemoveItem(index)} className="p-1.5 text-red-400 hover:text-red-600 rounded mt-1 bg-white border border-gray-200">
+                    <button type="button" onClick={() => handleRemoveItem(index)} className="p-1.5 text-destructive/70 hover:text-destructive rounded mt-1 bg-card border border-border">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   )}
-                </div>
+                </ModuleSurface>
               ))}
             </div>
           </form>

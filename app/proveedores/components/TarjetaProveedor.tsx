@@ -112,7 +112,7 @@ export default function TarjetaProveedor({
         </ContextMenuItem>
 
         <ContextMenuItem onClick={() => onEdit(proveedor)}>
-          <Edit2 className="text-slate-600" />
+          <Edit2 className="text-muted-foreground" />
           <span>Editar proveedor</span>
         </ContextMenuItem>
 
@@ -120,7 +120,7 @@ export default function TarjetaProveedor({
 
         <ContextMenuSub>
           <ContextMenuSubTrigger>
-            <Copy className="text-slate-500" />
+            <Copy className="text-muted-foreground" />
             <span>Copiar información</span>
           </ContextMenuSubTrigger>
           <ContextMenuSubContent className="w-48">

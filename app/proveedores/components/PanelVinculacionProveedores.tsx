@@ -31,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import ModuleSurface from '@/components/layout/ModuleSurface'
 
 interface Props {
   proveedores: Proveedor[]
@@ -99,16 +100,16 @@ export default function PanelVinculacionProveedores({ proveedores }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-5">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+    <ModuleSurface className="space-y-5 p-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="p-1.5 rounded-lg bg-violet-50 text-violet-700 border border-violet-200">
               <Ghost className="w-5 h-5" />
             </span>
-            <h2 className="text-lg font-bold text-slate-900">Vincular histórico al catálogo</h2>
+            <h2 className="text-lg font-bold text-foreground">Vincular histórico al catálogo</h2>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Analiza órdenes y cotizaciones con proveedor como texto libre. Sólo un superadministrador
             puede aplicar vínculos y la coincidencia automática exige el nombre idéntico normalizado.
           </p>
@@ -159,17 +160,17 @@ export default function PanelVinculacionProveedores({ proveedores }: Props) {
       )}
 
       <div className="space-y-2">
-        <h3 className="text-xs font-bold text-slate-700">Nombres que requieren decisión manual</h3>
+        <h3 className="text-xs font-bold text-foreground">Nombres que requieren decisión manual</h3>
         {!previsualizacion && (
-          <p className="text-xs text-slate-500 py-2">Primero analiza el histórico; no se modifica nada durante ese paso.</p>
+          <p className="text-xs text-muted-foreground py-2">Primero analiza el histórico; no se modifica nada durante ese paso.</p>
         )}
         {previsualizacion?.fantasmas.length === 0 && (
-          <p className="text-xs text-slate-500 py-2">No quedan proveedores sin correspondencia exacta.</p>
+          <p className="text-xs text-muted-foreground py-2">No quedan proveedores sin correspondencia exacta.</p>
         )}
         {previsualizacion && previsualizacion.fantasmas.length > 0 && (
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <div className="overflow-x-auto rounded-xl border border-border">
             <Table className="w-full text-left text-xs">
-              <TableHeader className="bg-slate-50 border-b border-slate-200 font-bold uppercase tracking-wider text-slate-500">
+              <TableHeader className="bg-muted border-b border-border font-bold uppercase tracking-wider text-muted-foreground">
                 <TableRow>
                   <TableHead className="p-2">Nombre libre</TableHead>
                   <TableHead className="p-2">Origen</TableHead>
@@ -177,20 +178,20 @@ export default function PanelVinculacionProveedores({ proveedores }: Props) {
                   <TableHead className="p-2">Vincular a</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className="divide-y divide-slate-100">
+              <TableBody className="divide-y divide-border">
                 {previsualizacion.fantasmas.map((fantasma) => {
                   const clave = `${fantasma.origen}-${fantasma.nombreLibre}`
                   return (
                     <TableRow key={clave}>
-                      <TableCell className="p-2 font-bold text-slate-900">{fantasma.nombreLibre}</TableCell>
-                      <TableCell className="p-2 text-slate-500">{fantasma.origen === 'orden' ? 'Órdenes' : 'Cotizaciones'}</TableCell>
+                      <TableCell className="p-2 font-bold text-foreground">{fantasma.nombreLibre}</TableCell>
+                      <TableCell className="p-2 text-muted-foreground">{fantasma.origen === 'orden' ? 'Órdenes' : 'Cotizaciones'}</TableCell>
                       <TableCell className="p-2 text-center font-mono">{fantasma.cantidadDocs}</TableCell>
                       <TableCell className="p-2">
                         <select
                           defaultValue={fantasma.sugerenciaCatalogo?.id ?? ''}
                           disabled={vinculando === clave || analizando || aplicando}
                           onChange={(event) => void handleVincularManual(fantasma, event.target.value)}
-                          className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                          className="w-full rounded-lg border border-border bg-card px-2 py-1 text-xs text-foreground"
                         >
                           <option value="">Seleccionar proveedor…</option>
                           {proveedores.map((proveedor) => (
@@ -225,7 +226,7 @@ export default function PanelVinculacionProveedores({ proveedores }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </ModuleSurface>
   )
 }
 
@@ -241,8 +242,8 @@ function Resumen({
   const clases = color === 'emerald' ? 'bg-emerald-50 border-emerald-100' : 'bg-sky-50 border-sky-100'
   return (
     <div className={`rounded-lg border p-3 ${clases}`}>
-      <p className="font-bold text-slate-800">{titulo}</p>
-      <p className="text-slate-600">
+      <p className="font-bold text-foreground">{titulo}</p>
+      <p className="text-muted-foreground">
         {resultado.vinculados} seguras · {resultado.sinMatch} manuales · {resultado.yaTenianId} ya vinculadas
       </p>
     </div>

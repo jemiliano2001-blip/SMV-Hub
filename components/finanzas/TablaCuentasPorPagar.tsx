@@ -4,6 +4,7 @@ import { useState } from "react"
 import type { FacturaProveedor } from "@/lib/schemas"
 import { formatPrecio, fechaHoyLocal } from "@/lib/format"
 import { Search } from "lucide-react"
+import ModuleSurface from "@/components/layout/ModuleSurface"
 import {
   Table,
   TableBody,
@@ -36,48 +37,50 @@ export function TablaCuentasPorPagar({ facturas }: TablaCuentasPorPagarProps) {
     )
   })
 
+  const chipInactivo = "border-border bg-card text-muted-foreground hover:bg-muted"
+
   return (
     <div className="space-y-4">
       {/* Filtros */}
-      <div className="flex flex-col sm:flex-row gap-3 justify-between items-center">
+      <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
         <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Buscar por folio, proveedor u orden..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
+            className="w-full rounded-lg border border-border bg-card py-1.5 pl-9 pr-3 text-xs text-foreground placeholder:text-muted-foreground transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 
         <div className="flex gap-2 self-end sm:self-auto">
           <button
             onClick={() => setFiltroEstado("pendientes")}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors border ${
+            className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
               filtroEstado === "pendientes"
-                ? "bg-amber-50 text-amber-800 border-amber-300 shadow-2xs"
-                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                ? "border-amber-300 bg-amber-50 text-amber-800 shadow-2xs"
+                : chipInactivo
             }`}
           >
             Pendientes por Pagar
           </button>
           <button
             onClick={() => setFiltroEstado("pagadas")}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors border ${
+            className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
               filtroEstado === "pagadas"
-                ? "bg-emerald-50 text-emerald-800 border-emerald-300 shadow-2xs"
-                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                ? "border-emerald-300 bg-emerald-50 text-emerald-800 shadow-2xs"
+                : chipInactivo
             }`}
           >
             Pagadas
           </button>
           <button
             onClick={() => setFiltroEstado("todas")}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors border ${
+            className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
               filtroEstado === "todas"
-                ? "bg-sky-50 text-sky-800 border-sky-300 shadow-2xs"
-                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                ? "border-sky-300 bg-sky-50 text-sky-800 shadow-2xs"
+                : chipInactivo
             }`}
           >
             Todas ({facturas.length})
@@ -86,9 +89,9 @@ export function TablaCuentasPorPagar({ facturas }: TablaCuentasPorPagarProps) {
       </div>
 
       {/* Tabla */}
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <ModuleSurface className="overflow-x-auto">
         <Table className="w-full text-left text-xs">
-          <TableHeader className="bg-slate-50 border-b border-slate-200 text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500">
+          <TableHeader className="border-b border-border bg-muted text-[11px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
             <TableRow>
               <TableHead className="px-4 py-3">Factura / Folio</TableHead>
               <TableHead className="px-4 py-3">Proveedor</TableHead>
@@ -99,10 +102,10 @@ export function TablaCuentasPorPagar({ facturas }: TablaCuentasPorPagarProps) {
               <TableHead className="px-4 py-3 text-center">Estado Pago</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="divide-y divide-slate-100">
+          <TableBody className="divide-y divide-border">
             {facturasFiltradas.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="px-4 py-8 text-center text-slate-500 font-mono text-xs">
+                <TableCell colSpan={7} className="px-4 py-8 text-center font-mono text-xs text-muted-foreground">
                   No se encontraron facturas de proveedor con los criterios seleccionados.
                 </TableCell>
               </TableRow>
@@ -111,25 +114,25 @@ export function TablaCuentasPorPagar({ facturas }: TablaCuentasPorPagarProps) {
                 const esVencida = f.saldoPendiente > 0 && f.fechaVencimiento && f.fechaVencimiento < hoyStr
 
                 return (
-                  <TableRow key={f.id} className="hover:bg-slate-50/80 transition-colors">
-                    <TableCell className="px-4 py-3 font-mono font-semibold text-slate-900">
+                  <TableRow key={f.id} className="transition-colors hover:bg-muted/80">
+                    <TableCell className="px-4 py-3 font-mono font-semibold text-foreground">
                       {f.numeroFactura}
                       {f.origenPo && (
-                        <div className="text-[11px] text-slate-500 font-normal font-sans">PO: {f.origenPo}</div>
+                        <div className="font-sans text-[11px] font-normal text-muted-foreground">PO: {f.origenPo}</div>
                       )}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-slate-700 font-medium">{f.proveedorNombre || "N/A"}</TableCell>
-                    <TableCell className="px-4 py-3 text-slate-500 font-mono text-[11px]">{f.fechaFactura || "—"}</TableCell>
+                    <TableCell className="px-4 py-3 font-medium text-foreground">{f.proveedorNombre || "N/A"}</TableCell>
+                    <TableCell className="px-4 py-3 font-mono text-[11px] text-muted-foreground">{f.fechaFactura || "—"}</TableCell>
                     <TableCell className="px-4 py-3 font-mono text-[11px]">
                       {f.fechaVencimiento ? (
-                        <span className={esVencida ? "text-rose-600 font-bold" : "text-slate-600"}>
+                        <span className={esVencida ? "font-bold text-rose-600" : "text-muted-foreground"}>
                           {f.fechaVencimiento} {esVencida && "(Vencida)"}
                         </span>
                       ) : (
-                        <span className="text-slate-400">—</span>
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-right font-mono font-bold text-slate-900 tabular-nums">
+                    <TableCell className="px-4 py-3 text-right font-mono font-bold text-foreground tabular-nums">
                       {formatPrecio(f.total, f.moneda)}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-right font-mono font-bold text-amber-700 tabular-nums">
@@ -137,15 +140,15 @@ export function TablaCuentasPorPagar({ facturas }: TablaCuentasPorPagarProps) {
                     </TableCell>
                     <TableCell className="px-4 py-3 text-center">
                       {f.saldoPendiente <= 0 ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        <span className="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-800">
                           Pagada
                         </span>
                       ) : esVencida ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-rose-50 text-rose-800 border border-rose-200">
+                        <span className="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-mono font-bold text-rose-800">
                           Vencida
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                        <span className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-mono font-bold text-amber-800">
                           Pendiente
                         </span>
                       )}
@@ -156,7 +159,7 @@ export function TablaCuentasPorPagar({ facturas }: TablaCuentasPorPagarProps) {
             )}
           </TableBody>
         </Table>
-      </div>
+      </ModuleSurface>
     </div>
   )
 }

@@ -23,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import ModuleSurface from "@/components/layout/ModuleSurface"
 import { listarPartidasPedidoEndmills } from "@/lib/endmills"
 import { fechaHoyLocal, formatPrecio } from "@/lib/format"
 import type {
@@ -45,20 +46,20 @@ export default function HistorialPedidosEndmills({
   const [seleccionado, setSeleccionado] = useState<PedidoEndmills | null>(null)
 
   if (loading && pedidos.length === 0) {
-    return <div className="rounded-xl border bg-white p-4"><Skeleton className="h-48 w-full" /></div>
+    return <ModuleSurface className="p-4"><Skeleton className="h-48 w-full" /></ModuleSurface>
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+    <ModuleSurface className="p-4">
       {pedidos.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-8 text-center text-sm text-slate-500">Todavía no hay ciclos de compra registrados.</div>
+        <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">Todavía no hay ciclos de compra registrados.</div>
       ) : (
         <Table>
           <TableHeader><TableRow><TableHead>Fecha / folio</TableHead><TableHead>Proveedor</TableHead><TableHead>Estado</TableHead><TableHead>Lead time</TableHead><TableHead className="text-right">Piezas</TableHead><TableHead className="text-right">Artículos</TableHead><TableHead className="text-right">Total USD</TableHead><TableHead><span className="sr-only">Acciones</span></TableHead></TableRow></TableHeader>
           <TableBody>
             {pedidos.map((pedido) => (
               <TableRow key={pedido.id}>
-                <TableCell><div className="font-semibold">{pedido.fecha}</div><div className="text-[10px] text-slate-500">{pedido.numeroProveedor || "Sin folio"}</div></TableCell>
+                <TableCell><div className="font-semibold">{pedido.fecha}</div><div className="text-[10px] text-muted-foreground">{pedido.numeroProveedor || "Sin folio"}</div></TableCell>
                 <TableCell>{pedido.proveedor.nombre}</TableCell>
                 <TableCell><EstadoPedido estado={pedido.estado} /></TableCell>
                 <TableCell>
@@ -68,7 +69,7 @@ export default function HistorialPedidosEndmills({
                       {pedido.diasLeadTime} días
                     </span>
                   ) : (
-                    <span className="text-xs text-slate-400">—</span>
+                    <span className="text-xs text-muted-foreground">—</span>
                   )}
                 </TableCell>
                 <TableCell className="text-right font-bold">{pedido.numeroPiezas}</TableCell>
@@ -76,7 +77,7 @@ export default function HistorialPedidosEndmills({
                 <TableCell className="text-right font-black text-emerald-700">
                   {formatPrecio(pedido.totalUSD, "USD")}
                   {pedido.tipoCambioUSD && (
-                    <div className="text-[10px] font-normal text-slate-500">
+                    <div className="text-[10px] font-normal text-muted-foreground">
                       (~{formatPrecio(pedido.totalUSD * pedido.tipoCambioUSD, "MXN")})
                     </div>
                   )}
@@ -96,7 +97,7 @@ export default function HistorialPedidosEndmills({
           onCancelar={onCancelar}
         />
       )}
-    </section>
+    </ModuleSurface>
   )
 }
 
@@ -181,15 +182,15 @@ function DetallePedido({
           <DialogDescription>{pedido.proveedor.nombre} · {formatPrecio(pedido.totalUSD, "USD")}</DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-2 rounded-lg bg-slate-50 p-3 text-sm sm:grid-cols-4">
-          <div><span className="text-xs text-slate-500">Artículos</span><div className="font-bold">{formatPrecio(pedido.costoItemsUSD, "USD")}</div></div>
-          <div><span className="text-xs text-slate-500">Ali Cost</span><div className="font-bold">{formatPrecio(pedido.aliCostUSD, "USD")}</div></div>
-          <div><span className="text-xs text-slate-500">Shipping</span><div className="font-bold">{formatPrecio(pedido.shippingUSD, "USD")}</div></div>
+        <div className="grid gap-2 rounded-lg bg-muted p-3 text-sm sm:grid-cols-4">
+          <div><span className="text-xs text-muted-foreground">Artículos</span><div className="font-bold">{formatPrecio(pedido.costoItemsUSD, "USD")}</div></div>
+          <div><span className="text-xs text-muted-foreground">Ali Cost</span><div className="font-bold">{formatPrecio(pedido.aliCostUSD, "USD")}</div></div>
+          <div><span className="text-xs text-muted-foreground">Shipping</span><div className="font-bold">{formatPrecio(pedido.shippingUSD, "USD")}</div></div>
           <div>
-            <span className="text-xs text-slate-500">Total</span>
+            <span className="text-xs text-muted-foreground">Total</span>
             <div className="font-black text-emerald-700">{formatPrecio(pedido.totalUSD, "USD")}</div>
             {pedido.tipoCambioUSD && (
-              <div className="text-[10px] text-slate-600">
+              <div className="text-[10px] text-muted-foreground">
                 (~{formatPrecio(pedido.totalUSD * pedido.tipoCambioUSD, "MXN")})
               </div>
             )}
@@ -199,7 +200,7 @@ function DetallePedido({
         {pedido.estado === "confirmado" && (
           <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
             <Label htmlFor="fecha-recepcion" className="text-xs font-bold text-sky-900">Fecha de recepción parcial o total</Label>
-            <Input id="fecha-recepcion" type="date" value={fechaRecepcion} onChange={(e) => setFechaRecepcion(e.target.value)} className="mt-1 max-w-xs bg-white text-xs" />
+            <Input id="fecha-recepcion" type="date" value={fechaRecepcion} onChange={(e) => setFechaRecepcion(e.target.value)} className="mt-1 max-w-xs bg-card text-xs" />
           </div>
         )}
 

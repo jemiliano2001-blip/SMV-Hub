@@ -1,10 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type KeyboardEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
-import { Copy, ExternalLink, Check } from 'lucide-react'
+import { Bell, Copy, ExternalLink, Check } from 'lucide-react'
+import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
+import ModuleFilterChips from '@/components/layout/ModuleFilterChips'
+import ModuleSurface from '@/components/layout/ModuleSurface'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
 import { useSolicitudesBorradoBanosPendientes } from '@/lib/hooks/useBanosSolicitudesBorrado'
@@ -153,7 +156,7 @@ export default function NotificacionesView() {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
         <p className="font-semibold">No se pudieron cargar las notificaciones</p>
-        <p className="text-xs mt-1">{error}</p>
+        <p className="mt-1 text-xs">{error}</p>
         <button
           type="button"
           onClick={reintentar}
@@ -167,84 +170,73 @@ export default function NotificacionesView() {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2 justify-between">
-        <div className="flex flex-wrap gap-1.5">
-          {FILTROS_ORIGEN.map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={origen === value}
-              onClick={() => setOrigen(value)}
-              className={`rounded-md px-2.5 py-1 text-[11px] font-semibold border transition-colors ${
-                origen === value
-                  ? 'bg-primary text-white border-primary'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-          <span className="w-px h-6 bg-slate-200 mx-1 self-center" />
-          {(
-            [
-              ['todas', `Todas ${listaOrigen.length}`],
-              ['no_leidas', `No leídas ${noLeidasOrigen}`],
-              ['leidas', `Leídas ${leidasOrigen}`],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={leida === value}
-              onClick={() => setLeida(value)}
-              className={`rounded-md px-2.5 py-1 text-[11px] font-semibold border transition-colors ${
-                leida === value
-                  ? 'bg-slate-800 text-white border-slate-800'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+      <ModuleSurface className="flex flex-wrap items-center justify-between gap-3 p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <ModuleFilterChips
+            ariaLabel="Filtrar por origen"
+            value={origen}
+            onValueChange={(value) => setOrigen(value as FiltroOrigen)}
+            options={FILTROS_ORIGEN.map(([value, label]) => ({ value, label }))}
+          />
+          <span className="hidden h-6 w-px self-center bg-border sm:block" aria-hidden />
+          <ModuleFilterChips
+            ariaLabel="Filtrar por estado de lectura"
+            value={leida}
+            onValueChange={(value) => setLeida(value as FiltroLeida)}
+            options={[
+              { value: 'todas', label: `Todas ${listaOrigen.length}` },
+              { value: 'no_leidas', label: `No leídas ${noLeidasOrigen}` },
+              { value: 'leidas', label: `Leídas ${leidasOrigen}` },
+            ]}
+          />
         </div>
 
         <button
           type="button"
           disabled={noLeidas === 0 || marcando}
           onClick={() => void onMarcarTodas()}
-          className="text-[11px] font-bold text-primary disabled:opacity-40 hover:underline"
+          className="text-[11px] font-bold text-primary hover:underline disabled:opacity-40"
         >
           {marcando ? 'Marcando…' : 'Marcar todas como leídas'}
         </button>
-      </div>
+      </ModuleSurface>
 
       {esSuperAdmin && solicitudesPendientes.length > 0 && (
-        <section className="rounded-xl border border-amber-200 bg-amber-50/60 p-3.5">
-          <div className="flex items-center justify-between gap-2 mb-2">
+        <ModuleSurface className="border-amber-200 bg-amber-50/60 p-3.5">
+          <div className="mb-2 flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold text-amber-900">
               Solicitudes de borrado pendientes ({solicitudesPendientes.length})
             </h2>
-            <span className="text-[10px] text-amber-700">Disponibles aunque el aviso ya no esté en el feed</span>
+            <span className="text-[10px] text-amber-700">
+              Disponibles aunque el aviso ya no esté en el feed
+            </span>
           </div>
           <ul className="space-y-2">
             {solicitudesPendientes.map((solicitud) => (
-              <li key={solicitud.id} className="rounded-lg border border-amber-200 bg-white p-3">
+              <li
+                key={solicitud.id}
+                className="rounded-lg border border-amber-200 bg-card p-3"
+              >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="min-w-0 text-xs text-slate-700">
-                    <p className="font-semibold text-slate-900">
-                      {solicitud.registroResumen.operador} · {solicitud.registroResumen.bano} ({solicitud.registroResumen.fecha})
+                  <div className="min-w-0 text-xs text-foreground">
+                    <p className="font-semibold text-foreground">
+                      {solicitud.registroResumen.operador} · {solicitud.registroResumen.bano} (
+                      {solicitud.registroResumen.fecha})
                     </p>
-                    <p className="mt-0.5">Motivo: {solicitud.motivo}{solicitud.nota ? ` · ${solicitud.nota}` : ''}</p>
-                    <p className="mt-0.5 text-[10px] text-slate-400">
+                    <p className="mt-0.5 text-muted-foreground">
+                      Motivo: {solicitud.motivo}
+                      {solicitud.nota ? ` · ${solicitud.nota}` : ''}
+                    </p>
+                    <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
                       {solicitud.solicitadoPorNombre} · {formatearFecha(solicitud.creadoEn)}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex shrink-0 items-center gap-2">
                     <button
                       type="button"
                       disabled={resolviendoId === solicitud.id}
                       onClick={() => void onResolverSolicitud(solicitud.id, 'aprobar')}
-                      className="text-[11px] font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-2.5 py-1 rounded-md disabled:opacity-50"
+                      className="rounded-md bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-200 disabled:opacity-50"
                     >
                       Aprobar
                     </button>
@@ -252,7 +244,7 @@ export default function NotificacionesView() {
                       type="button"
                       disabled={resolviendoId === solicitud.id}
                       onClick={() => void onResolverSolicitud(solicitud.id, 'rechazar')}
-                      className="text-[11px] font-semibold bg-red-100 text-red-700 hover:bg-red-200 px-2.5 py-1 rounded-md disabled:opacity-50"
+                      className="rounded-md bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700 hover:bg-red-200 disabled:opacity-50"
                     >
                       Rechazar
                     </button>
@@ -261,20 +253,21 @@ export default function NotificacionesView() {
               </li>
             ))}
           </ul>
-        </section>
+        </ModuleSurface>
       )}
 
       {cargando && (
-        <p className="text-sm text-slate-500 py-8 text-center">Cargando notificaciones…</p>
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          Cargando notificaciones…
+        </p>
       )}
 
       {!cargando && lista.length === 0 && (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center">
-          <p className="text-sm font-semibold text-slate-700">Sin avisos</p>
-          <p className="text-xs text-slate-500 mt-1">
-            Los avisos nuevos de los módulos que operas aparecerán aquí.
-          </p>
-        </div>
+        <ModuleEmptyState
+          icon={Bell}
+          title="Sin avisos"
+          description="Los avisos nuevos de los módulos que operas aparecerán aquí."
+        />
       )}
 
       <ul className="space-y-2">
@@ -286,43 +279,49 @@ export default function NotificacionesView() {
                   role="button"
                   tabIndex={0}
                   onClick={() => void onClickFila(n.id, n.href, n.leida)}
-                  onKeyDown={(e) => {
+                  onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
                     if (e.target !== e.currentTarget) return
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
                       void onClickFila(n.id, n.href, n.leida)
                     }
                   }}
-                  className={`w-full text-left rounded-xl border p-3.5 transition-colors hover:border-primary/40 cursor-pointer select-none ${
+                  className={`w-full cursor-pointer select-none overflow-hidden rounded-xl border p-3.5 text-left shadow-xs transition-colors hover:border-primary/40 ${
                     n.leida
-                      ? 'bg-white border-slate-200'
-                      : 'bg-sky-50/60 border-sky-200'
+                      ? 'border-border bg-card'
+                      : 'border-sky-200 bg-sky-50/60'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold text-slate-900">{n.titulo}</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold text-foreground">{n.titulo}</span>
                         {!n.leida && (
-                          <Badge variant="outline" className="text-[10px] bg-white border-sky-300 text-primary">
+                          <Badge
+                            variant="outline"
+                            className="border-sky-300 bg-card text-[10px] text-primary"
+                          >
                             Nueva
                           </Badge>
                         )}
-                        <Badge variant="outline" className="text-[10px] font-mono">
+                        <Badge variant="outline" className="font-mono text-[10px]">
                           {ETIQUETAS_ORIGEN[n.origenModulo]}
                         </Badge>
                       </div>
-                      <p className="text-xs text-slate-600 mt-1">{n.cuerpo}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{n.cuerpo}</p>
                       {n.origenModulo === 'banos' &&
                         n.tipo === 'banos_solicitud_creada' &&
                         esSuperAdmin &&
                         pendientesBanos.has(n.origenId) && (
-                          <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                          <div
+                            className="mt-2 flex items-center gap-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <button
                               type="button"
                               disabled={resolviendoId === n.origenId}
                               onClick={() => void onResolverSolicitud(n.origenId, 'aprobar')}
-                              className="text-[11px] font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-2.5 py-1 rounded-md disabled:opacity-50 cursor-pointer"
+                              className="cursor-pointer rounded-md bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-200 disabled:opacity-50"
                             >
                               Aprobar
                             </button>
@@ -330,13 +329,13 @@ export default function NotificacionesView() {
                               type="button"
                               disabled={resolviendoId === n.origenId}
                               onClick={() => void onResolverSolicitud(n.origenId, 'rechazar')}
-                              className="text-[11px] font-semibold bg-red-100 text-red-700 hover:bg-red-200 px-2.5 py-1 rounded-md disabled:opacity-50 cursor-pointer"
+                              className="cursor-pointer rounded-md bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700 hover:bg-red-200 disabled:opacity-50"
                             >
                               Rechazar
                             </button>
                           </div>
                         )}
-                      <p className="text-[10px] text-slate-400 font-mono mt-2">
+                      <p className="mt-2 font-mono text-[10px] text-muted-foreground">
                         {formatearFecha(n.creadoEn)}
                         {n.creadoPorNombre ? ` · ${n.creadoPorNombre}` : ''}
                       </p>
@@ -349,7 +348,7 @@ export default function NotificacionesView() {
                           e.stopPropagation()
                           void onMarcarUna(n.id)
                         }}
-                        className="shrink-0 rounded-md border border-sky-200 bg-white px-2 py-1 text-[10px] font-bold text-primary hover:bg-sky-50 disabled:opacity-50 cursor-pointer"
+                        className="shrink-0 cursor-pointer rounded-md border border-sky-200 bg-card px-2 py-1 text-[10px] font-bold text-primary hover:bg-sky-50 disabled:opacity-50"
                       >
                         {marcandoId === n.id ? 'Marcando…' : 'Marcar leída'}
                       </button>
@@ -376,7 +375,7 @@ export default function NotificacionesView() {
 
                 <ContextMenuSub>
                   <ContextMenuSubTrigger>
-                    <Copy className="text-slate-500" />
+                    <Copy className="text-muted-foreground" />
                     <span>Copiar información</span>
                   </ContextMenuSubTrigger>
                   <ContextMenuSubContent className="w-48">

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useBanos } from '@/lib/hooks/useBanos'
 import { Clock, Search, Download } from 'lucide-react'
 import { fechaHoyLocal } from '@/lib/format'
+import ModuleSurface from '@/components/layout/ModuleSurface'
 import {
   Table,
   TableBody,
@@ -71,40 +72,40 @@ export default function ResumenMensual() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Controles */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
+      <ModuleSurface className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4">
         <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-gray-700">Mes a consultar:</label>
+          <label className="text-sm font-medium text-foreground">Mes a consultar:</label>
           <input
             type="month"
             value={mes}
             onChange={(e) => setMes(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
+            className="px-3 py-1.5 text-sm border border-input bg-card text-foreground rounded-md focus:outline-none focus:border-primary"
           />
         </div>
         
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Buscar operador..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-primary"
+              className="w-full pl-9 pr-3 py-1.5 text-sm border border-input bg-card text-foreground rounded-md focus:outline-none focus:border-primary"
             />
           </div>
 
           <button
             onClick={exportarCSV}
             disabled={resumenFiltrado.length === 0}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-white border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-card border border-border text-foreground rounded-md hover:bg-muted disabled:opacity-50 transition-colors"
             title="Exportar a CSV"
           >
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Exportar</span>
           </button>
         </div>
-      </div>
+      </ModuleSurface>
 
       {!loading && resumenFiltrado.length > 0 && (
         <div className="flex items-center gap-2 text-sm bg-primary/10 text-primary px-4 py-2 rounded-lg font-medium w-fit ml-auto">
@@ -114,15 +115,15 @@ export default function ResumenMensual() {
       )}
 
       {loading ? (
-        <div className="animate-pulse h-64 bg-gray-100 rounded-lg"></div>
+        <div className="animate-pulse h-64 bg-muted rounded-lg"></div>
       ) : resumen.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 bg-gray-50 border border-gray-200 rounded-lg border-dashed">
+        <div className="text-center py-12 text-muted-foreground bg-muted/50 border border-border rounded-lg border-dashed">
           No hay tiempos registrados en este mes
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+        <ModuleSurface>
           <Table className="w-full text-sm text-left">
-            <TableHeader className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+            <TableHeader className="bg-muted text-muted-foreground font-medium border-b border-border">
               <TableRow>
                 <TableHead className="px-6 py-4">Operador</TableHead>
                 <TableHead className="px-6 py-4 text-right w-48">Total Minutos</TableHead>
@@ -130,29 +131,29 @@ export default function ResumenMensual() {
                 <TableHead className="px-6 py-4 w-32"></TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="divide-y divide-gray-100">
+            <TableBody className="divide-y divide-border">
               {resumenFiltrado.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                  <TableCell colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
                     No se encontraron resultados para la búsqueda
                   </TableCell>
                 </TableRow>
               ) : (
                 resumenFiltrado.map((item, index) => (
-                  <TableRow key={item.operador} className="hover:bg-gray-50 transition-colors">
-                    <TableCell className="px-6 py-3 font-medium text-gray-900 flex items-center gap-3">
-                      <span className="w-6 text-xs text-gray-400 text-right">{index + 1}.</span>
+                  <TableRow key={item.operador} className="hover:bg-muted transition-colors">
+                    <TableCell className="px-6 py-3 font-medium text-foreground flex items-center gap-3">
+                      <span className="w-6 text-xs text-muted-foreground text-right">{index + 1}.</span>
                       {item.operador}
                     </TableCell>
                     <TableCell className="px-6 py-3 text-right font-medium text-primary">
                       {item.minutos} m
                     </TableCell>
-                    <TableCell className="px-6 py-3 text-right text-gray-600 font-mono tracking-tight">
+                    <TableCell className="px-6 py-3 text-right text-muted-foreground font-mono tracking-tight">
                       {item.formatoHoras}
                     </TableCell>
                     <TableCell className="px-6 py-3">
                       {/* Visual bar relative to the max */}
-                      <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                      <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                         <div 
                           className="bg-primary h-full rounded-full opacity-70"
                           style={{ width: `${Math.max(2, (item.minutos / resumen[0].minutos) * 100)}%` }}
@@ -164,7 +165,7 @@ export default function ResumenMensual() {
               )}
             </TableBody>
           </Table>
-        </div>
+        </ModuleSurface>
       )}
     </div>
   )

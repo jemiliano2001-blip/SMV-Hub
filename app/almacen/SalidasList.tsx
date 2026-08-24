@@ -39,19 +39,19 @@ function SalidaCard({ s, onEliminar }: SalidaCardProps) {
     <div className="p-4 space-y-2.5">
       <div className="flex justify-between items-start gap-3">
         <div className="min-w-0">
-          <p className="text-xs text-gray-500">{s.fecha}</p>
-          <p className="text-sm font-semibold text-gray-900 break-words">{s.herramienta}</p>
+          <p className="text-xs text-muted-foreground">{s.fecha}</p>
+          <p className="text-sm font-semibold text-foreground break-words">{s.herramienta}</p>
         </div>
-        <span className="shrink-0 text-sm font-semibold text-gray-900">x{s.cantidad}</span>
+        <span className="shrink-0 text-sm font-semibold text-foreground">x{s.cantidad}</span>
       </div>
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs text-gray-600">
-          <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center font-medium text-gray-600">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center font-medium text-muted-foreground">
             {s.operador.charAt(0).toUpperCase()}
           </div>
           {s.operador}
         </div>
-        <button onClick={() => onEliminar(s.id, s.herramienta)} className="p-1.5 text-gray-400 hover:text-red-500" title="Eliminar">
+        <button onClick={() => onEliminar(s.id, s.herramienta)} className="p-1.5 text-muted-foreground hover:text-red-500" title="Eliminar">
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
@@ -119,7 +119,7 @@ export default function SalidasList() {
   }
 
   if (loadingSalidas || loadingOps) {
-    return <div className="animate-pulse h-64 bg-gray-100 rounded-lg"></div>
+    return <div className="animate-pulse h-64 bg-muted rounded-lg"></div>
   }
 
   if (error) {
@@ -136,58 +136,58 @@ export default function SalidasList() {
       {/* Search */}
       <div className="flex items-center justify-between">
         <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Buscar por herramienta u operador..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600"
+            className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600"
           />
         </div>
       </div>
 
       {/* Add Form */}
-      <form onSubmit={handleAgregar} className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex flex-wrap items-end gap-3">
+      <form onSubmit={handleAgregar} className="bg-muted border border-border rounded-lg p-4 flex flex-wrap items-end gap-3">
         <div className="w-32">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Fecha</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Fecha</label>
           <input
             type="date"
             required
             value={fecha}
             onChange={(e) => setFecha(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-emerald-600"
+            className="w-full px-3 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:border-emerald-600"
           />
         </div>
         <div className="flex-1 min-w-[200px]">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Herramienta</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Herramienta</label>
           <input
             type="text"
             required
             placeholder="Ej. Machuelo 1/4-20"
             value={herramienta}
             onChange={(e) => setHerramienta(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-emerald-600"
+            className="w-full px-3 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:border-emerald-600"
           />
         </div>
         <div className="w-24">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Cantidad</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Cantidad</label>
           <input
             type="number"
             required
             min="1"
             value={cantidad}
             onChange={(e) => setCantidad(parseInt(e.target.value) || 1)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-emerald-600"
+            className="w-full px-3 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:border-emerald-600"
           />
         </div>
         <div className="w-48">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Operador</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Operador</label>
           <select
             required
             value={operador}
             onChange={(e) => setOperador(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:border-emerald-600"
+            className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card focus:outline-none focus:border-emerald-600"
           >
             <option value="" disabled>Seleccionar...</option>
             {operadoresActivos.map(op => (
@@ -262,7 +262,7 @@ export default function SalidasList() {
 
                       <ContextMenuSub>
                         <ContextMenuSubTrigger>
-                          <Copy className="text-slate-500" />
+                          <Copy className="text-muted-foreground" />
                           <span>Copiar información</span>
                         </ContextMenuSubTrigger>
                         <ContextMenuSubContent className="w-48">
@@ -320,9 +320,9 @@ export default function SalidasList() {
       </div>
 
       {/* Cards (mobile) */}
-      <div className="md:hidden border border-gray-200 rounded-lg divide-y divide-gray-100">
+      <div className="md:hidden border border-border rounded-lg divide-y divide-border">
         {filtradas.length === 0 ? (
-          <div className="px-4 py-8 text-center text-gray-500 text-sm">
+          <div className="px-4 py-8 text-center text-muted-foreground text-sm">
             {busqueda ? 'No se encontraron salidas' : 'No hay salidas registradas'}
           </div>
         ) : (

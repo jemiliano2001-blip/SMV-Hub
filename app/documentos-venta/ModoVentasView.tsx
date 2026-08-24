@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Plus, MessageSquare, CheckCircle, Copy, Play, XCircle } from 'lucide-react'
+import { Plus, MessageSquare, CheckCircle, Copy, Play, XCircle, Inbox } from 'lucide-react'
 import { toast } from 'sonner'
 import type {
   EstadoSolicitudDocumento,
@@ -26,6 +26,7 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
+import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
 import DetalleVentasSimple from './DetalleVentasSimple'
 import NuevaSolicitudPanel from './NuevaSolicitudPanel'
 
@@ -118,9 +119,9 @@ export default function ModoVentasView({
       <button
         type="button"
         onClick={() => setTab(tab === 'nueva' ? 'pendientes' : 'nueva')}
-        className={`w-full inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-4 text-base font-bold border-2 transition-colors ${
+        className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl border-2 px-4 py-4 text-base font-bold transition-colors ${
           tab === 'nueva'
-            ? 'border-slate-300 bg-white text-slate-700'
+            ? 'border-border bg-card text-foreground'
             : 'border-sky-600 bg-sky-600 text-white hover:bg-sky-700'
         }`}
       >
@@ -166,10 +167,10 @@ export default function ModoVentasView({
                 key={t.id}
                 type="button"
                 onClick={() => setTab(t.id)}
-                className={`rounded-2xl px-4 py-4 text-base font-bold border-2 ${
+                className={`rounded-2xl border-2 px-4 py-4 text-base font-bold ${
                   tab === t.id
                     ? 'border-sky-600 bg-sky-50 text-sky-900'
-                    : 'border-slate-200 bg-white text-slate-600'
+                    : 'border-border bg-card text-muted-foreground'
                 }`}
               >
                 {t.label}
@@ -180,22 +181,30 @@ export default function ModoVentasView({
             ))}
           </div>
 
-          <label className="block text-sm font-semibold text-slate-600">
+          <label className="block text-sm font-semibold text-muted-foreground">
             Buscar
             <input
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-base"
+              className="mt-1 w-full rounded-xl border border-input bg-card px-4 py-3 text-base text-foreground placeholder:text-muted-foreground"
               placeholder="Cliente, orden de compra o SO…"
             />
           </label>
 
           {lista.length === 0 ? (
-            <p className="text-base text-slate-500 bg-white border border-slate-200 rounded-2xl px-4 py-10 text-center">
-              {tab === 'pendientes'
-                ? 'No hay solicitudes por atender.'
-                : 'Aún no hay solicitudes hechas.'}
-            </p>
+            <ModuleEmptyState
+              icon={Inbox}
+              title={
+                tab === 'pendientes'
+                  ? 'Sin solicitudes por atender'
+                  : 'Sin solicitudes hechas'
+              }
+              description={
+                tab === 'pendientes'
+                  ? 'No hay solicitudes por atender.'
+                  : 'Aún no hay solicitudes hechas.'
+              }
+            />
           ) : (
             <ul className="space-y-3">
               {lista.map((s) => {
@@ -207,26 +216,26 @@ export default function ModoVentasView({
                         <button
                           type="button"
                           onClick={() => onAbrir(s.id)}
-                          className="w-full text-left bg-white border-2 border-slate-200 rounded-2xl px-4 py-4 hover:border-sky-400 transition-colors cursor-pointer select-none"
+                          className="w-full cursor-pointer select-none rounded-2xl border-2 border-border bg-card px-4 py-4 text-left transition-colors hover:border-sky-400"
                         >
                           <div className="flex items-start justify-between gap-2">
-                            <p className="text-base font-bold text-slate-900">
+                            <p className="text-base font-bold text-foreground">
                               {s.tipo === 'factura' ? 'Factura' : 'Remisión'} ·{' '}
                               {s.partnerName}
                             </p>
-                            <span className="text-xs font-bold uppercase tracking-wide text-slate-500 shrink-0">
+                            <span className="shrink-0 text-xs font-bold uppercase tracking-wide text-muted-foreground">
                               {etiquetaEstadoSolicitudDocumento(s.estado)}
                             </span>
                           </div>
-                          <p className="text-sm text-slate-600 mt-1">
+                          <p className="mt-1 text-sm text-muted-foreground">
                             {oc ? `Orden de compra ${oc}` : 'Sin orden de compra'} · SO{' '}
                             {s.odooSoName}
                           </p>
-                          <p className="text-sm text-slate-400 mt-0.5">
+                          <p className="mt-0.5 text-sm text-muted-foreground">
                             Pidió {s.solicitadoPorNombre}
                           </p>
                           {s.atendidoPorNombre && (
-                            <p className="text-xs text-slate-500 mt-0.5">
+                            <p className="mt-0.5 text-xs text-muted-foreground">
                               Atiende {s.atendidoPorNombre}
                             </p>
                           )}
@@ -282,7 +291,7 @@ export default function ModoVentasView({
 
                         <ContextMenuSub>
                           <ContextMenuSubTrigger>
-                            <Copy className="text-slate-500" />
+                            <Copy className="text-muted-foreground" />
                             <span>Copiar información</span>
                           </ContextMenuSubTrigger>
                           <ContextMenuSubContent className="w-48">
