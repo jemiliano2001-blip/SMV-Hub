@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { useHorasExtra } from '@/lib/hooks/useHorasExtra'
 import { useOperadores } from '@/lib/hooks/useOperadores'
 import { areaCorrespondeDepartamento } from '@/lib/operadores-departamento'
@@ -38,6 +38,15 @@ export default function VistaHoy({ departamento, semanaInicio, puedeEditar }: Pr
   const [errorCargarEquipo, setErrorCargarEquipo] = useState<string | null>(null)
   const debounceRefs = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
   const guardandoRefs = useRef<Record<string, boolean>>({})
+
+  useEffect(() => {
+    const timers = debounceRefs.current
+    return () => {
+      for (const timer of Object.values(timers)) {
+        clearTimeout(timer)
+      }
+    }
+  }, [])
 
   const operadoresDept = useMemo(
     () =>

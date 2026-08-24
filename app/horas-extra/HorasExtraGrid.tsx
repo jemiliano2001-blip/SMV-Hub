@@ -92,6 +92,14 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
+    }
+  }, [])
+
   const [celdaCopiada, setCeldaCopiada] = useState<string | null>(null)
 
   const operadoresDept = operadores.filter(
