@@ -107,13 +107,85 @@ export function calcularLeadTimePromedio(
   return Math.round(suma / conLeadTime.length)
 }
 
+export function parsearFraccionPulgadas(medida: string): number {
+  const limpia = medida.replace(/["' ]/g, "").trim()
+  if (!limpia) return 0
+  if (limpia.includes("/")) {
+    const [num, den] = limpia.split("/").map(Number)
+    if (den && !Number.isNaN(num) && !Number.isNaN(den)) return num / den
+  }
+  const decimal = parseFloat(limpia)
+  return Number.isNaN(decimal) ? 0 : decimal
+}
+
+/**
+ * Precios de referencia de mercado de herramientas de carburo sólido en EE.UU. (McMaster / MSC / Shars)
+ * para calcular el benchmark de ahorro real de SMV al importar directamente de China.
+ */
+export function obtenerPrecioEstimadoUSA(medidaPulgadas: string, categoria?: string): number {
+  const diametro = parsearFraccionPulgadas(medidaPulgadas)
+  let baseUSD = 28.0
+
+  if (diametro <= 0.035) baseUSD = 32.0 // Micro endmills (0.015", 1/32")
+  else if (diametro <= 0.065) baseUSD = 24.0 // 1/16"
+  else if (diametro <= 0.10) baseUSD = 22.0 // 3/32"
+  else if (diametro <= 0.13) baseUSD = 22.0 // 1/8"
+  else if (diametro <= 0.19) baseUSD = 26.0 // 3/16"
+  else if (diametro <= 0.26) baseUSD = 32.0 // 1/4"
+  else if (diametro <= 0.32) baseUSD = 42.0 // 5/16"
+  else if (diametro <= 0.38) baseUSD = 52.0 // 3/8"
+  else if (diametro <= 0.51) baseUSD = 82.0 // 1/2"
+  else if (diametro <= 0.63) baseUSD = 125.0 // 5/8"
+  else if (diametro <= 0.76) baseUSD = 185.0 // 3/4"
+  else baseUSD = 310.0 // 1" o superior
+
+  const cat = (categoria || "").toUpperCase()
+  let factor = 1.0
+  if (cat.includes("BALL") || cat.includes("BOLA")) factor *= 1.2
+  if (cat.includes("LARGO") || cat.includes("LONG")) factor *= 1.4
+  if (cat.includes("EXTRA")) factor *= 1.6
+  if (cat.includes("RUPA") || cat.includes("CARBURO") || cat.includes("ROUGHER")) factor *= 1.3
+
+  return redondearUSD(baseUSD * factor)
+}
+
+export interface ResultadoAhorroUSA {
+  totalChinaUSD: number
+  totalUSAUSD: number
+  ahorroUSD: number
+  porcentajeAhorro: number
+}
+
+export function calcularAhorroPedidoUSA(
+  partidas: readonly {
+    medidaPulgadas: string
+    categoria?: string
+    cantidad: number
+    precioUnitarioUSD: number
+  }[]
+): ResultadoAhorroUSA {
+  const incluidas = partidas.filter((p) => p.cantidad > 0)
+  const totalChina = redondearUSD(
+    incluidas.reduce((acc, p) => acc + p.cantidad * p.precioUnitarioUSD, 0)
+  )
+  const totalUSA = redondearUSD(
+    incluidas.reduce((acc, p) => acc + p.cantidad * obtenerPrecioEstimadoUSA(p.medidaPulgadas, p.categoria), 0)
+  )
+  const ahorroUSD = redondearUSD(Math.max(0, totalUSA - totalChina))
+  const porcentajeAhorro = totalUSA > 0 ? Math.round((ahorroUSD / totalUSA) * 100) : 0
+
+  return {
+    totalChinaUSD: totalChina,
+    totalUSAUSD: totalUSA,
+    ahorroUSD,
+    porcentajeAhorro,
+  }
+}
+
 export function generarTextoWeChat(
   seleccionadas: readonly EndmillMedida[],
   filas: Record<string, { cantidad: number; precio: number }>
 ): string {
-  // Solo las partidas con cantidad real: numerarlas y contarlas sobre la
-  // selección completa dejaría huecos (1, 3, 4) y un total de artículos que no
-  // corresponde a lo que se le está pidiendo al proveedor.
   const incluidas = seleccionadas
     .map((medida) => ({ medida, fila: filas[medida.id] }))
     .filter((item) => item.fila && item.fila.cantidad > 0)
@@ -137,5 +209,76 @@ export function generarTextoWeChat(
     `Estimated Total: $${redondearUSD(totalUSD).toFixed(2)} USD`,
     "Thank you! - SMV Maquinados",
   ].join("\n")
+}
+
+export function generarTextoWhatsApp(
+  seleccionadas: readonly EndmillMedida[],
+  filas: Record<string, { cantidad: number; precio: number }>,
+  shippingUSD = 0,
+  aliCostUSD = 0
+): string {
+  const incluidas = seleccionadas
+    .map((medida) => ({ medida, fila: filas[medida.id] }))
+    .filter((item) => item.fila && item.fila.cantidad > 0)
+
+  const totalPiezas = incluidas.reduce((total, { fila }) => total + fila.cantidad, 0)
+  const itemsUSD = incluidas.reduce(
+    (total, { fila }) => total + redondearUSD(fila.cantidad * fila.precio),
+    0
+  )
+  const totalFinalUSD = redondearUSD(itemsUSD + (shippingUSD || 0) + (aliCostUSD || 0))
+
+  const lineasPartidas = incluidas.map(
+    ({ medida, fila }, index) =>
+      `🔹 *${index + 1}.* \`${medida.medidaPulgadas}"\` ${medida.descripcion}\n   ▫️ *Qty:* ${fila.cantidad} pcs  |  *Unit:* $${fila.precio.toFixed(2)} USD  |  *Sub:* $${redondearUSD(fila.cantidad * fila.precio).toFixed(2)} USD\n   ▫️ *Spec:* _${medida.specPropuesta}_`
+  )
+
+  const lineas = [
+    `📦 *PURCHASE ORDER - SMV MAQUINADOS*`,
+    `To: *Rita / ChangZhou North Alloy Tool Co.*`,
+    `Date: *${new Date().toISOString().slice(0, 10)}*`,
+    ``,
+    `Hello Rita, please confirm stock and lead time for this order:`,
+    ``,
+    ...lineasPartidas,
+    ``,
+    `───────────────`,
+    `📊 *Items Total:* $${redondearUSD(itemsUSD).toFixed(2)} USD (${incluidas.length} items / ${totalPiezas} pcs)`,
+  ]
+
+  if (shippingUSD > 0) {
+    lineas.push(`✈️ *Estimated Shipping (DHL/FedEx):* $${shippingUSD.toFixed(2)} USD`)
+  }
+  if (aliCostUSD > 0) {
+    lineas.push(`💳 *Alibaba / Platform Fee:* $${aliCostUSD.toFixed(2)} USD`)
+  }
+  lineas.push(
+    `💰 *TOTAL USD:* *$${totalFinalUSD.toFixed(2)} USD*`,
+    `───────────────`,
+    `Please prepare proforma invoice. Thank you! 🙏`
+  )
+
+  return lineas.join("\n")
+}
+
+export function generarEmailPedidoEndmills(
+  seleccionadas: readonly EndmillMedida[],
+  filas: Record<string, { cantidad: number; precio: number }>,
+  proveedor: { nombre: string; contacto: string; email: string },
+  shippingUSD = 0,
+  aliCostUSD = 0,
+  folioProveedor?: string
+): { asunto: string; cuerpo: string; mailtoUrl: string } {
+  const fechaHoy = new Date().toISOString().slice(0, 10)
+  const asunto = `Purchase Order - SMV Maquinados / ChangZhou North Alloy Tool Co. - ${fechaHoy}${folioProveedor ? ` (Ref: ${folioProveedor})` : ""}`
+  const textoMensaje = generarTextoWhatsApp(seleccionadas, filas, shippingUSD, aliCostUSD)
+
+  const mailtoUrl = `mailto:${proveedor.email}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(textoMensaje)}`
+
+  return {
+    asunto,
+    cuerpo: textoMensaje,
+    mailtoUrl,
+  }
 }
 

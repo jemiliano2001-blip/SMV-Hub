@@ -1,7 +1,20 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { ClipboardCopy, Download, MessageSquare, Mail, Search, ShieldCheck, Sparkles } from "lucide-react"
+import * as XLSX from "xlsx"
+import {
+  ClipboardCopy,
+  MessageSquare,
+  Mail,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Zap,
+  DollarSign,
+  Printer,
+  FileSpreadsheet,
+} from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -23,19 +36,26 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
+  calcularAhorroPedidoUSA,
   calcularCantidadSugerida,
   calcularTotalesPedidoEndmills,
+  generarEmailPedidoEndmills,
   generarTextoWeChat,
+  generarTextoWhatsApp,
+  redondearUSD,
 } from "@/lib/endmills-calculos"
 import { fechaHoyLocal, formatPrecio } from "@/lib/format"
 import type { ItemExtraidoEndmill } from "@/lib/endmills-extraer-ia"
 import type { ActorEndmills } from "@/lib/endmills"
 import type {
+  CrearEndmillMedidaInput,
   EndmillMedida,
   PedidoEndmills,
   RegistrarPedidoEndmillsInput,
 } from "@/lib/schemas"
-import ModalImportadorIA from "@/app/endmills/components/ModalImportadorIA"
+import ModalImportadorIA, {
+  type OpcionesAplicarImportados,
+} from "@/app/endmills/components/ModalImportadorIA"
 
 interface FilaBorrador {
   cantidad: number
@@ -55,12 +75,14 @@ export default function RevisionPedidoEndmills({
   ultimoPedido,
   actor,
   onRegistrar,
+  onCrearMedida,
   onClose,
 }: {
   medidas: EndmillMedida[]
   ultimoPedido: PedidoEndmills | null
   actor: ActorEndmills
   onRegistrar: (input: RegistrarPedidoEndmillsInput, actor: ActorEndmills) => Promise<string>
+  onCrearMedida?: (input: CrearEndmillMedidaInput) => Promise<string>
   onClose: () => void
 }) {
   const [filas, setFilas] = useState<Record<string, FilaBorrador>>(() =>
@@ -111,6 +133,17 @@ export default function RevisionPedidoEndmills({
     [seleccionadas, filas, aliCost, shipping]
   )
 
+  const ahorroBenchmarkUSA = useMemo(() => {
+    return calcularAhorroPedidoUSA(
+      seleccionadas.map((medida) => ({
+        medidaPulgadas: medida.medidaPulgadas,
+        categoria: medida.categoria,
+        cantidad: filas[medida.id].cantidad,
+        precioUnitarioUSD: filas[medida.id].precio,
+      }))
+    )
+  }, [seleccionadas, filas])
+
   const totalMXNEstimado = useMemo(() => {
     const tc = Number(tipoCambio)
     if (!tc || tc <= 0 || !adicionalesConfirmados) return null
@@ -130,7 +163,10 @@ export default function RevisionPedidoEndmills({
     })
   }, [medidas, filas, vistaItems, busquedaInterna])
 
-  function aplicarImportadosAlPedido(items: ItemExtraidoEndmill[]) {
+  function aplicarImportadosAlPedido(
+    items: ItemExtraidoEndmill[],
+    opciones?: OpcionesAplicarImportados
+  ) {
     const nuevasFilas = { ...filas }
     let aplicados = 0
 
@@ -150,7 +186,39 @@ export default function RevisionPedidoEndmills({
 
     setFilas(nuevasFilas)
     setVistaItems("solicitados")
+
+    if (opciones?.shippingUSD !== undefined && opciones.shippingUSD > 0) {
+      setShipping(String(opciones.shippingUSD))
+    }
+    if (opciones?.aliCostUSD !== undefined && opciones.aliCostUSD > 0) {
+      setAliCost(String(opciones.aliCostUSD))
+    }
+    if (opciones?.folioCotizacion) {
+      setNumeroProveedor(opciones.folioCotizacion)
+    }
+
     setMensaje(`Se importaron y aplicaron ${aplicados} partidas al pedido.`)
+    toast.success(`Cargadas ${aplicados} partidas de la cotización con éxito`)
+  }
+
+  function cargarSugeridosStockBajo() {
+    const nuevas = { ...filas }
+    let cargados = 0
+
+    for (const m of medidas) {
+      const sug = calcularCantidadSugerida(m.objetivoPar, m.stockActual)
+      if (sug !== null && sug > 0) {
+        nuevas[m.id] = {
+          ...nuevas[m.id],
+          cantidad: sug,
+        }
+        cargados++
+      }
+    }
+
+    setFilas(nuevas)
+    setVistaItems("solicitados")
+    toast.success(`Cargadas ${cargados} herramientas con necesidad de reabastecimiento PAR`)
   }
 
   function actualizarFila(id: string, cambios: Partial<FilaBorrador>) {
@@ -181,33 +249,73 @@ export default function RevisionPedidoEndmills({
 
   async function copiarTabla() {
     await navigator.clipboard.writeText(tablaTexto("\t"))
-    setMensaje("Tabla copiada al portapapeles.")
+    toast.info("Tabla copiada al portapapeles en formato TSV")
+  }
+
+  async function copiarWhatsApp() {
+    const texto = generarTextoWhatsApp(
+      seleccionadas,
+      filas,
+      Number(shipping) || 0,
+      Number(aliCost) || 0
+    )
+    await navigator.clipboard.writeText(texto)
+    toast.success("Mensaje para WhatsApp copiado con emojis y desglose en USD")
   }
 
   async function copiarWeChat() {
     const texto = generarTextoWeChat(seleccionadas, filas)
     await navigator.clipboard.writeText(texto)
-    setMensaje("Texto para WeChat / WhatsApp copiado.")
+    toast.success("Texto formateado para WeChat copiado")
   }
 
-  function descargarCsv() {
-    const blob = new Blob(["\uFEFF" + tablaTexto(",")], { type: "text/csv;charset=utf-8" })
-    const url = URL.createObjectURL(blob)
-    const enlace = document.createElement("a")
-    enlace.href = url
-    enlace.download = `endmills-${fecha}.csv`
-    enlace.click()
-    URL.revokeObjectURL(url)
+  function descargarExcelPO() {
+    const wsData = [
+      ["SMV MAQUINADOS - PURCHASE ORDER"],
+      [`Supplier: ${PROVEEDOR.nombre}`],
+      [`Contact: ${PROVEEDOR.contacto} (${PROVEEDOR.email})`],
+      [`Date: ${fecha}`, `Supplier Ref / Folio: ${numeroProveedor || "N/A"}`],
+      [],
+      ["Item", "Size (Inch)", "Description", "Spec", "Quantity (pcs)", "Unit Price (USD)", "Subtotal (USD)"],
+      ...seleccionadas.map((m, idx) => {
+        const fila = filas[m.id]
+        return [
+          idx + 1,
+          m.medidaPulgadas,
+          m.descripcion,
+          m.specPropuesta,
+          fila.cantidad,
+          fila.precio,
+          redondearUSD(fila.cantidad * fila.precio),
+        ]
+      }),
+      [],
+      ["", "", "", "", "", "Items Subtotal:", totales.costoItemsUSD],
+      ["", "", "", "", "", "Shipping (DHL/FedEx):", Number(shipping) || 0],
+      ["", "", "", "", "", "Alibaba / Fee:", Number(aliCost) || 0],
+      ["", "", "", "", "", "TOTAL USD:", totales.totalUSD],
+    ]
+    const ws = XLSX.utils.aoa_to_sheet(wsData)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Purchase Order")
+    XLSX.writeFile(wb, `PO_SMV_Endmills_${fecha}_${numeroProveedor || "Rita"}.xlsx`)
+    toast.success("Orden de compra descargada en Excel (.xlsx)")
   }
 
   function abrirCorreo() {
-    const asunto = encodeURIComponent(`SMV Maquinados · Endmills ${fecha}`)
-    const cuerpo = encodeURIComponent(
-      `Hello Rita,\n\nPlease quote the following end mills:\n\n${tablaTexto(
-        "\t"
-      )}\n\nItems total reference: ${formatPrecio(totales.costoItemsUSD, "USD")}`
+    const { mailtoUrl } = generarEmailPedidoEndmills(
+      seleccionadas,
+      filas,
+      PROVEEDOR,
+      Number(shipping) || 0,
+      Number(aliCost) || 0,
+      numeroProveedor || undefined
     )
-    window.location.href = `mailto:${PROVEEDOR.email}?subject=${asunto}&body=${cuerpo}`
+    window.location.href = mailtoUrl
+  }
+
+  function imprimirPO() {
+    window.print()
   }
 
   async function registrar() {
@@ -260,56 +368,70 @@ export default function RevisionPedidoEndmills({
   return (
     <>
       <Dialog open onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="max-h-[94vh] overflow-hidden p-0 sm:max-w-6xl">
-          <DialogHeader className="border-b px-5 py-4">
+        <DialogContent className="max-h-[94vh] overflow-hidden p-0 sm:max-w-6xl print:max-h-none print:overflow-visible print:border-0 print:p-0">
+          <DialogHeader className="border-b px-5 py-4 print:hidden">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <DialogTitle className="text-lg">Revisar pedido de Endmills</DialogTitle>
+                <DialogTitle className="text-lg">Revisar pedido de Endmills China</DialogTitle>
                 <DialogDescription>
-                  Las cantidades son editables. Nada se registra hasta confirmar al final.
+                  Las cantidades y precios son editables. Exporta a WhatsApp/Email para Rita o confirma el registro.
                 </DialogDescription>
               </div>
-              <Button
-                onClick={() => {
-                  setError(null)
-                  setModalImportarAbierto(true)
-                }}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-xs shrink-0"
-              >
-                <Sparkles className="h-4 w-4 mr-1.5 animate-pulse" aria-hidden /> Importar Solicitud (IA / Excel)
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={cargarSugeridosStockBajo}
+                  className="font-bold text-xs gap-1.5 border-amber-300 bg-amber-50/50 text-amber-900 hover:bg-amber-100"
+                >
+                  <Zap className="h-3.5 w-3.5 text-amber-600" /> Cargar sugeridos PAR
+                </Button>
+                <Button
+                  onClick={() => {
+                    setError(null)
+                    setModalImportarAbierto(true)
+                  }}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-xs shrink-0 gap-1.5"
+                >
+                  <Sparkles className="h-4 w-4 animate-pulse" aria-hidden /> Importar Solicitud (IA / Excel)
+                </Button>
+              </div>
             </div>
           </DialogHeader>
 
-          <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto px-5 pb-5 lg:grid-cols-[1fr_260px]">
+          <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto px-5 pb-5 lg:grid-cols-[1fr_280px] print:block print:p-6 print:overflow-visible">
             <div className="min-w-0 space-y-3">
-              <div className="grid gap-3 pt-1 sm:grid-cols-3">
+              {/* Encabezado formal de la Orden de Compra (Visible en pantalla y print) */}
+              <div className="grid gap-3 pt-1 sm:grid-cols-3 print:grid-cols-3 print:border-b print:pb-4">
                 <div>
-                  <Label htmlFor="pedido-fecha">Fecha</Label>
+                  <Label htmlFor="pedido-fecha" className="text-xs">Fecha del Pedido</Label>
                   <Input
                     id="pedido-fecha"
                     type="date"
                     value={fecha}
                     onChange={(e) => setFecha(e.target.value)}
+                    className="h-8 text-xs"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="pedido-numero">Folio proveedor</Label>
+                  <Label htmlFor="pedido-numero" className="text-xs">Folio / Proforma Proveedor</Label>
                   <Input
                     id="pedido-numero"
                     value={numeroProveedor}
                     onChange={(e) => setNumeroProveedor(e.target.value)}
-                    placeholder="Opcional"
+                    placeholder="e.g. PI-2026-CH88"
+                    className="h-8 text-xs font-mono"
                   />
                 </div>
-                <div className="rounded-lg border bg-muted px-3 py-2 text-xs">
-                  <span className="text-muted-foreground">Proveedor</span>
-                  <div className="font-bold">Rita · ChangZhou</div>
+                <div className="rounded-lg border bg-muted px-3 py-1.5 text-xs">
+                  <span className="text-muted-foreground text-[10px]">Proveedor Internacional</span>
+                  <div className="font-bold text-foreground">Rita · ChangZhou North Alloy Tool</div>
+                  <div className="text-[10px] text-muted-foreground">{PROVEEDOR.email}</div>
                 </div>
               </div>
 
               {/* Barra de herramientas de vista y búsqueda interna del pedido */}
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-lg border bg-muted p-2 text-xs">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-lg border bg-muted p-2 text-xs print:hidden">
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
@@ -345,23 +467,24 @@ export default function RevisionPedidoEndmills({
                 </div>
               </div>
 
-              <div className="max-h-[50vh] overflow-auto rounded-lg border">
+              <div className="max-h-[50vh] overflow-auto rounded-lg border print:max-h-none print:border-black">
                 <Table>
-                  <TableHeader className="sticky top-0 z-10 bg-card">
-                    <TableRow>
-                      <TableHead>Medida / spec</TableHead>
-                      <TableHead className="w-24 text-right">Stock</TableHead>
-                      <TableHead className="w-28 text-right">Cantidad</TableHead>
-                      <TableHead className="w-32 text-right">Precio USD</TableHead>
-                      <TableHead className="w-24">Confirmación</TableHead>
+                  <TableHeader className="sticky top-0 z-10 bg-card print:static">
+                    <TableRow className="bg-muted/70">
+                      <TableHead>Medida / Descripción / Spec</TableHead>
+                      <TableHead className="w-20 text-right print:hidden">Stock</TableHead>
+                      <TableHead className="w-24 text-right">Cantidad</TableHead>
+                      <TableHead className="w-28 text-right">Precio USD</TableHead>
+                      <TableHead className="w-28 text-right">Subtotal USD</TableHead>
+                      <TableHead className="w-24 print:hidden">Estado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {medidasVisibles.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="p-8 text-center text-xs text-muted-foreground">
+                        <TableCell colSpan={6} className="p-8 text-center text-xs text-muted-foreground">
                           {vistaItems === "solicitados"
-                            ? "No hay partidas con cantidad > 0. Usa el botón 'Importar Solicitud (IA / Excel)' o cambia a 'Ver Todo el Catálogo'."
+                            ? "No hay partidas con cantidad > 0. Usa el botón 'Importar Solicitud (IA / Excel)' o presiona 'Cargar sugeridos PAR'."
                             : "No se encontraron medidas que coincidan con la búsqueda."}
                         </TableCell>
                       </TableRow>
@@ -369,25 +492,27 @@ export default function RevisionPedidoEndmills({
                       medidasVisibles.map((medida) => {
                         const fila = filas[medida.id]
                         const sinBase = medida.objetivoPar === null
+                        const subtotalFila = redondearUSD(fila.cantidad * fila.precio)
+
                         return (
                           <TableRow
                             key={medida.id}
-                            className={medida.requiereConfirmacion ? "bg-amber-50" : ""}
+                            className={medida.requiereConfirmacion ? "bg-amber-50/50" : ""}
                           >
                             <TableCell className="max-w-sm whitespace-normal">
-                              <div className="font-semibold">
+                              <div className="font-semibold text-foreground">
                                 {medida.medidaPulgadas}&quot; · {medida.descripcion}
                               </div>
                               <div className="truncate font-mono text-[10px] text-muted-foreground">
                                 {medida.specPropuesta}
                               </div>
                               {sinBase && (
-                                <div className="text-[10px] font-bold text-muted-foreground">
-                                  Definir manualmente · sin base histórica
+                                <div className="text-[10px] font-bold text-muted-foreground print:hidden">
+                                  Sin base histórica PAR
                                 </div>
                               )}
                             </TableCell>
-                            <TableCell className="text-right font-bold">
+                            <TableCell className="text-right font-bold text-muted-foreground print:hidden">
                               {medida.stockActual}
                             </TableCell>
                             <TableCell>
@@ -402,7 +527,7 @@ export default function RevisionPedidoEndmills({
                                     cantidad: Math.max(0, Math.trunc(Number(e.target.value) || 0)),
                                   })
                                 }
-                                className="text-right font-bold"
+                                className="h-7 w-20 text-right font-black font-mono"
                               />
                             </TableCell>
                             <TableCell>
@@ -417,22 +542,27 @@ export default function RevisionPedidoEndmills({
                                     precio: Math.max(0, Number(e.target.value) || 0),
                                   })
                                 }
-                                className="text-right font-semibold text-emerald-700"
+                                className="h-7 w-24 text-right font-bold text-emerald-700 font-mono"
                               />
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="text-right font-mono font-bold text-foreground">
+                              ${subtotalFila.toFixed(2)}
+                            </TableCell>
+                            <TableCell className="print:hidden">
                               {medida.requiereConfirmacion ? (
-                                <label className="flex items-center gap-2 text-xs font-semibold text-amber-800">
+                                <label className="flex items-center gap-1.5 text-xs font-semibold text-amber-800 cursor-pointer">
                                   <Checkbox
                                     checked={fila.confirmada}
                                     onCheckedChange={(checked) =>
                                       actualizarFila(medida.id, { confirmada: checked === true })
                                     }
                                   />{" "}
-                                  Confirmado
+                                  Confirmar
                                 </label>
                               ) : (
-                                <span className="text-xs text-emerald-700 font-semibold">Lista</span>
+                                <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                                  Lista
+                                </span>
                               )}
                             </TableCell>
                           </TableRow>
@@ -444,29 +574,45 @@ export default function RevisionPedidoEndmills({
               </div>
             </div>
 
-            <aside className="space-y-3 lg:pt-1">
-              <div className="rounded-xl border bg-muted p-3">
-                <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  Comparación
+            {/* Panel Lateral: Totales, Ahorro y Acciones de Comunicación */}
+            <aside className="space-y-3 lg:pt-1 print:hidden">
+              {/* Widget de Ahorro China vs USA */}
+              {totales.costoItemsUSD > 0 && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 text-xs">
+                  <div className="flex items-center justify-between font-bold text-emerald-950">
+                    <span className="flex items-center gap-1">
+                      <DollarSign className="h-3.5 w-3.5 text-emerald-700" /> Ahorro vs USA
+                    </span>
+                    <span className="rounded bg-emerald-200 px-1.5 py-0.5 font-mono text-[10px] font-black text-emerald-900">
+                      -{ahorroBenchmarkUSA.porcentajeAhorro}%
+                    </span>
+                  </div>
+                  <div className="mt-2 space-y-1 text-emerald-900">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Cotizado China:</span>
+                      <strong className="font-mono">${ahorroBenchmarkUSA.totalChinaUSD.toFixed(2)}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Ref. USA (McMaster):</span>
+                      <span className="font-mono line-through text-muted-foreground">
+                        ${ahorroBenchmarkUSA.totalUSAUSD.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t border-emerald-200 pt-1 font-bold">
+                      <span>Ahorro estimado:</span>
+                      <span className="font-mono text-emerald-700">
+                        +${ahorroBenchmarkUSA.ahorroUSD.toFixed(2)} USD
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-2 flex justify-between text-sm">
-                  <span>Artículos pedido anterior</span>
-                  <strong>
-                    {ultimoPedido ? formatPrecio(ultimoPedido.costoItemsUSD, "USD") : "—"}
-                  </strong>
-                </div>
-                <div className="mt-1 flex justify-between text-sm">
-                  <span>Artículos actuales</span>
-                  <strong>{formatPrecio(totales.costoItemsUSD, "USD")}</strong>
-                </div>
-                <div className="mt-1 flex justify-between text-sm">
-                  <span>Piezas</span>
-                  <strong>{totales.numeroPiezas}</strong>
-                </div>
-              </div>
-              <div className="space-y-2 rounded-xl border p-3">
+              )}
+
+              {/* Resumen de Costos Landed */}
+              <div className="space-y-2 rounded-xl border border-border bg-card p-3 text-xs">
+                <div className="font-bold text-foreground">Desglose de Costos</div>
                 <div>
-                  <Label htmlFor="ali-cost">Ali Cost USD</Label>
+                  <Label htmlFor="ali-cost" className="text-[11px]">Ali Cost USD</Label>
                   <Input
                     id="ali-cost"
                     type="number"
@@ -474,10 +620,11 @@ export default function RevisionPedidoEndmills({
                     step="0.01"
                     value={aliCost}
                     onChange={(e) => setAliCost(e.target.value)}
+                    className="h-8 text-xs font-mono"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="shipping">Shipping USD</Label>
+                  <Label htmlFor="shipping" className="text-[11px]">Shipping USD (DHL/FedEx)</Label>
                   <Input
                     id="shipping"
                     type="number"
@@ -485,10 +632,11 @@ export default function RevisionPedidoEndmills({
                     step="0.01"
                     value={shipping}
                     onChange={(e) => setShipping(e.target.value)}
+                    className="h-8 text-xs font-mono font-bold text-emerald-700"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="tipo-cambio">Tipo de cambio USD/MXN</Label>
+                  <Label htmlFor="tipo-cambio" className="text-[11px]">Tipo de cambio USD/MXN</Label>
                   <Input
                     id="tipo-cambio"
                     type="number"
@@ -497,83 +645,119 @@ export default function RevisionPedidoEndmills({
                     value={tipoCambio}
                     onChange={(e) => setTipoCambio(e.target.value)}
                     placeholder="Opcional (ej. 18.50)"
+                    className="h-8 text-xs font-mono"
                   />
                 </div>
-                <label className="flex items-start gap-2 text-xs">
+                <label className="flex items-start gap-2 text-xs pt-1 cursor-pointer">
                   <Checkbox
                     checked={adicionalesConfirmados}
                     onCheckedChange={(checked) => setAdicionalesConfirmados(checked === true)}
                   />{" "}
-                  Costos adicionales confirmados
+                  <span>Costos adicionales confirmados</span>
                 </label>
-                <div className="border-t pt-2">
-                  <div className="text-xs text-muted-foreground">Total landed</div>
-                  {adicionalesConfirmados ? (
-                    <div>
-                      <div className="text-xl font-black text-emerald-700">
-                        {formatPrecio(totales.totalUSD, "USD")}
-                      </div>
-                      {totalMXNEstimado !== null && (
-                        <div className="text-xs font-semibold text-muted-foreground">
-                          (~{formatPrecio(totalMXNEstimado, "MXN")})
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="mt-1 text-xs font-semibold text-muted-foreground">
-                      Confirma Ali Cost y shipping para mostrarlo.
+
+                <div className="border-t border-border pt-2">
+                  <div className="text-[10px] uppercase font-bold text-muted-foreground">Total Landed</div>
+                  <div className="text-xl font-black text-emerald-700 font-mono">
+                    {formatPrecio(totales.totalUSD, "USD")}
+                  </div>
+                  {totalMXNEstimado !== null && (
+                    <div className="text-xs font-semibold text-muted-foreground font-mono">
+                      (~{formatPrecio(totalMXNEstimado, "MXN")})
                     </div>
                   )}
                 </div>
               </div>
-              <div className="grid grid-cols-4 gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void copiarTabla()}
-                  title="Copiar tabla"
-                >
-                  <ClipboardCopy className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void copiarWeChat()}
-                  title="Copiar para WeChat / WhatsApp"
-                >
-                  <MessageSquare className="h-4 w-4 text-emerald-700" />
-                </Button>
-                <Button variant="outline" size="sm" onClick={descargarCsv} title="Descargar CSV">
-                  <Download className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm" onClick={abrirCorreo} title="Preparar correo">
-                  <Mail className="h-4 w-4" />
-                </Button>
+
+              {/* Botones de Comunicación Multicanal & Exportación */}
+              <div className="space-y-1.5 rounded-xl border border-border bg-muted/40 p-2.5">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Comunicación con Proveedor
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void copiarWhatsApp()}
+                    className="h-8 text-xs font-semibold gap-1.5 bg-emerald-50 text-emerald-900 border-emerald-300 hover:bg-emerald-100"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5 text-emerald-600" /> WhatsApp
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void copiarWeChat()}
+                    className="h-8 text-xs font-semibold gap-1.5"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5 text-sky-600" /> WeChat
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={abrirCorreo}
+                    className="h-8 text-xs font-semibold gap-1.5"
+                  >
+                    <Mail className="h-3.5 w-3.5 text-rose-600" /> Email Rita
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={descargarExcelPO}
+                    className="h-8 text-xs font-semibold gap-1.5"
+                  >
+                    <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-700" /> Excel PO
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void copiarTabla()}
+                    className="h-8 text-xs font-semibold gap-1.5"
+                  >
+                    <ClipboardCopy className="h-3.5 w-3.5 text-primary" /> Copiar TSV
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={imprimirPO}
+                    className="h-8 text-xs font-semibold gap-1.5"
+                  >
+                    <Printer className="h-3.5 w-3.5" /> PDF / Imprimir
+                  </Button>
+                </div>
+                {ultimoPedido && (
+                  <div className="pt-1 text-[10px] text-muted-foreground text-center">
+                    Último pedido registrado: <strong>{ultimoPedido.fecha}</strong> ({formatPrecio(ultimoPedido.totalUSD, "USD")})
+                  </div>
+                )}
               </div>
-              <label className="flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-950">
+
+              <label className="flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-950 cursor-pointer">
                 <Checkbox
                   checked={revisionHumana}
                   onCheckedChange={(checked) => setRevisionHumana(checked === true)}
                 />
                 <span>
-                  <strong>Revisión humana:</strong> confirmé cantidades, precios y specs.
+                  <strong>Revisión humana:</strong> confirmé cantidades, precios y especificaciones.
                 </span>
               </label>
+
               {mensaje && <p className="text-xs text-emerald-700 font-medium">{mensaje}</p>}
               {error && <p className="rounded-lg bg-rose-50 p-2 text-xs text-rose-700">{error}</p>}
             </aside>
           </div>
 
-          <DialogFooter className="border-t px-5 py-4">
+          <DialogFooter className="border-t px-5 py-4 print:hidden">
             <Button variant="outline" onClick={onClose}>
               Cancelar
             </Button>
             <Button
               onClick={() => void registrar()}
               disabled={guardando || !revisionHumana}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold gap-2"
             >
-              <ShieldCheck /> {guardando ? "Registrando..." : "Registrar pedido"}
+              <ShieldCheck className="h-4 w-4" /> {guardando ? "Registrando..." : "Registrar pedido"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -586,6 +770,7 @@ export default function RevisionPedidoEndmills({
           onClose={() => setModalImportarAbierto(false)}
           medidas={medidas}
           onAplicarImportados={aplicarImportadosAlPedido}
+          onCrearMedida={onCrearMedida}
         />
       )}
     </>

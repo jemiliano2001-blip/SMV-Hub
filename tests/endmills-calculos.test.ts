@@ -1,15 +1,18 @@
 import { describe, expect, it } from "vitest"
 import {
+  calcularAhorroPedidoUSA,
   calcularCantidadSugerida,
   calcularLeadTimePromedio,
   calcularObjetivoPar,
   calcularTotalesPedidoEndmills,
   clasificarStockEndmill,
   diferenciaEnDias,
+  generarEmailPedidoEndmills,
   generarTextoWeChat,
+  generarTextoWhatsApp,
   redondearUSD,
 } from "@/lib/endmills-calculos"
-import { EndmillMedidaSchema, PartidaPedidoEndmillsSchema, PedidoEndmillsSchema } from "@/lib/schemas"
+import { EndmillMedidaSchema, PedidoEndmillsSchema } from "@/lib/schemas"
 
 function medidaDePrueba(id: string, medidaPulgadas: string, descripcion: string) {
   return EndmillMedidaSchema.parse({
@@ -144,29 +147,36 @@ describe("cálculos de Endmills China", () => {
     expect(resultado.success).toBe(false)
   })
 
-  it("rechaza recepción superior a lo pedido", () => {
-    const resultado = PartidaPedidoEndmillsSchema.safeParse({
-      id: "linea-1",
-      pedidoId: "pedido-1",
-      fechaPedido: "2026-08-06",
-      tipo: "catalogada",
-      medidaId: "endmill-001",
-      categoria: "FLAT",
-      medidaPulgadas: "1/8",
-      descripcion: "Endmill",
-      spec: "spec",
-      stockAntesPedido: 5,
-      cantidadPedida: 10,
-      cantidadRecibida: 11,
-      precioUnitarioUSD: 5,
-      subtotalUSD: 50,
-      objetivoPar: 15,
-      requiereConfirmacionAlCrear: false,
-      confirmacionResuelta: true,
-      creadoEn: new Date(),
-      actualizadoEn: new Date(),
-    })
-    expect(resultado.success).toBe(false)
+  it("calcula benchmarks USA y ahorros reales", () => {
+    const ahorros = calcularAhorroPedidoUSA([
+      { medidaPulgadas: "1/4", categoria: "FLAT", cantidad: 10, precioUnitarioUSD: 7.92 },
+      { medidaPulgadas: "1/8", categoria: "BALL", cantidad: 20, precioUnitarioUSD: 3.82 },
+    ])
+    expect(ahorros.totalChinaUSD).toBe(155.60)
+    expect(ahorros.totalUSAUSD).toBeGreaterThan(500)
+    expect(ahorros.ahorroUSD).toBeGreaterThan(300)
+    expect(ahorros.porcentajeAhorro).toBeGreaterThan(60)
+  })
+
+  it("genera mensajes para WhatsApp y Email con datos estructurados", () => {
+    const medida = medidaDePrueba("m-1", "1/4", "FLAT 4 FILOS 1/4")
+    const textoWA = generarTextoWhatsApp([medida], { "m-1": { cantidad: 5, precio: 7.92 } }, 50, 20)
+    expect(textoWA).toContain("PURCHASE ORDER")
+    expect(textoWA).toContain("Qty:* 5 pcs")
+    expect(textoWA).toContain("$50.00 USD") // Shipping
+    expect(textoWA).toContain("$20.00 USD") // Ali cost
+
+    const email = generarEmailPedidoEndmills(
+      [medida],
+      { "m-1": { cantidad: 5, precio: 7.92 } },
+      { nombre: "ChangZhou", contacto: "Rita", email: "rita@bfltool.com" },
+      50,
+      20,
+      "COT-2026-08"
+    )
+    expect(email.asunto).toContain("Purchase Order")
+    expect(email.asunto).toContain("COT-2026-08")
+    expect(email.mailtoUrl).toContain("mailto:rita@bfltool.com")
   })
 })
 

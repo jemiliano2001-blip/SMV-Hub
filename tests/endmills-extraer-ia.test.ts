@@ -1,7 +1,9 @@
+import * as XLSX from "xlsx"
 import { describe, expect, it } from "vitest"
 import {
   buscarCoincidenciaCatalogo,
   parsearTextoExcelEndmills,
+  parsearArchivoExcelEndmills,
 } from "@/lib/endmills-extraer-ia"
 import type { EndmillMedida } from "@/lib/schemas"
 
@@ -109,5 +111,31 @@ describe("endmills-extraer-ia (Parser & Matching)", () => {
     expect(items).toHaveLength(1)
     expect(items[0].cantidadPedida).toBe(12)
     expect(items[0].precioUnitarioUSD).toBe(7.92)
+  })
+
+  it("parsea un buffer binario de archivo Excel (.xlsx)", () => {
+    const wsData = [
+      ["PROFORMA INVOICE: PI-2026-CH88"],
+      ["Description", "Spec", "Qty", "Price USD", "Amount"],
+      ["FLAT 4 FILOS 1/4 x 2-1/2\"", "D1/4*FL3/4*2-1/2", 15, 8.10, 121.50],
+      ["BALL 2 FILOS 1/8 x 1-1/2\"", "D1/8*FL1/2*1-1/2", 30, 5.50, 165.00],
+      ["SHIPPING DHL: 75.00"],
+      ["ALI COST: 15.00"],
+    ]
+    const ws = XLSX.utils.aoa_to_sheet(wsData)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Order")
+    const buffer = XLSX.write(wb, { type: "array", bookType: "xlsx" })
+
+    const resultado = parsearArchivoExcelEndmills(buffer, CATALOGO_MOCK)
+    expect(resultado.origen).toBe("excel_archivo")
+    expect(resultado.folioCotizacion).toBe("PI-2026-CH88")
+    expect(resultado.shippingUSD).toBe(75)
+    expect(resultado.aliCostUSD).toBe(15)
+    expect(resultado.items).toHaveLength(2)
+    expect(resultado.items[0].medidaIdCoincidencia).toBe("m-1")
+    expect(resultado.items[0].cantidadPedida).toBe(15)
+    expect(resultado.items[0].precioUnitarioUSD).toBe(8.10)
+    expect(resultado.items[0].diferenciaPrecio).toBe(0.18) // 8.10 - 7.92 = 0.18
   })
 })

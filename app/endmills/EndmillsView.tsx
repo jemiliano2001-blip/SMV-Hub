@@ -1,7 +1,15 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { AlertTriangle, Boxes, ClipboardList, Clock, PackageCheck, RefreshCw } from "lucide-react"
+import {
+  AlertTriangle,
+  Boxes,
+  ClipboardList,
+  Clock,
+  PackageCheck,
+  RefreshCw,
+  Tag,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import PageHeader from "@/components/layout/PageHeader"
 import PageShell from "@/components/layout/PageShell"
@@ -13,12 +21,14 @@ import type { EstadoStockEndmill } from "@/lib/schemas"
 import InventarioEndmills from "@/app/endmills/InventarioEndmills"
 import RevisionPedidoEndmills from "@/app/endmills/RevisionPedidoEndmills"
 import HistorialPedidosEndmills from "@/app/endmills/HistorialPedidosEndmills"
+import ModalEtiquetasEndmills from "@/app/endmills/components/ModalEtiquetasEndmills"
 import { cn } from "@/lib/utils"
 
 export default function EndmillsView() {
   const { usuario } = useUsuario()
   const endmills = useEndmills()
   const [revisionAbierta, setRevisionAbierta] = useState(false)
+  const [etiquetasAbiertas, setEtiquetasAbiertas] = useState(false)
   const [tab, setTab] = useState<"inventario" | "pedidos">("inventario")
   const [filtroEstado, setFiltroEstado] = useState<EstadoStockEndmill | "todas" | "confirmar">("todas")
 
@@ -64,11 +74,22 @@ export default function EndmillsView() {
               </span>
             ) : null}
             <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEtiquetasAbiertas(true)}
+              disabled={endmills.medidas.length === 0}
+              className="gap-1.5 font-semibold text-xs text-foreground"
+            >
+              <Tag className="h-3.5 w-3.5 text-primary" />
+              Etiquetas Gavetero
+            </Button>
+            <Button
               size="sm"
               onClick={() => setRevisionAbierta(true)}
               disabled={endmills.medidas.length === 0 || !usuario}
+              className="gap-1.5 font-bold text-xs"
             >
-              <ClipboardList data-icon="inline-start" />
+              <ClipboardList className="h-3.5 w-3.5" data-icon="inline-start" />
               Preparar pedido
             </Button>
           </div>
@@ -152,7 +173,7 @@ export default function EndmillsView() {
               size="sm"
               onClick={() => setRevisionAbierta(true)}
               disabled={!usuario}
-              className="h-7 gap-1 bg-rose-600 text-xs text-white hover:bg-rose-500"
+              className="h-7 gap-1 bg-rose-600 text-xs text-white hover:bg-rose-500 font-bold"
             >
               <ClipboardList className="h-3 w-3" />
               Preparar pedido
@@ -163,7 +184,7 @@ export default function EndmillsView() {
 
       <ModuleTabs
         value={tab}
-        onValueChange={(v) => setTab(v as "inventario" | "pedidos")}
+        onValueChange={(val) => setTab(val as "inventario" | "pedidos")}
         items={[
           {
             value: "inventario",
@@ -212,7 +233,16 @@ export default function EndmillsView() {
           ultimoPedido={endmills.pedidos.find((pedido) => pedido.estado !== "cancelado") ?? null}
           actor={actor}
           onRegistrar={endmills.registrarPedido}
+          onCrearMedida={endmills.crearMedida}
           onClose={() => setRevisionAbierta(false)}
+        />
+      )}
+
+      {etiquetasAbiertas && (
+        <ModalEtiquetasEndmills
+          abierto={etiquetasAbiertas}
+          onClose={() => setEtiquetasAbiertas(false)}
+          medidas={endmills.medidas}
         />
       )}
     </PageShell>
