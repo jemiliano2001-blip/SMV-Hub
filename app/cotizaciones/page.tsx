@@ -13,7 +13,7 @@ export default function CotizacionesPage() {
           title="Cotizaciones"
           badge="Histórico MX / USA"
           icon={FileSpreadsheet}
-          description="Base de piezas cotizadas previamente para comparar costos."
+          description="Piezas cotizadas y compras americanas ya hechas, para buscar un precio viejo."
         />
         <CotizacionesTabs />
       </PageShell>

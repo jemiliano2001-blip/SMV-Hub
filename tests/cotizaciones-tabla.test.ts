@@ -127,6 +127,44 @@ describe("filtrarCotizaciones", () => {
     expect(r).toHaveLength(1)
     expect(r[0].solicitante).toBe("Edgar")
   })
+
+  it("busca por folio de factura en notas", () => {
+    const r = filtrarCotizaciones(
+      [
+        ...base,
+        makeCotizacion({
+          id: "c-compra",
+          descripcion: "End mill 1/4",
+          notas: "Compra INV-8891",
+          origen: "compra",
+        }),
+      ],
+      { busqueda: "inv-8891", ubicacion: "todas", estatus: "todos" }
+    )
+    expect(r).toHaveLength(1)
+    expect(r[0].id).toBe("c-compra")
+  })
+
+  it("filtra origen compra vs cotización (legacy sin origen cuenta como cotización)", () => {
+    const rows = [
+      makeCotizacion({ id: "quote" }),
+      makeCotizacion({ id: "bought", origen: "compra", descripcion: "End mill" }),
+    ]
+    const compradas = filtrarCotizaciones(rows, {
+      busqueda: "",
+      ubicacion: "todas",
+      estatus: "todos",
+      origen: "compra",
+    })
+    const cotizadas = filtrarCotizaciones(rows, {
+      busqueda: "",
+      ubicacion: "todas",
+      estatus: "todos",
+      origen: "cotizacion",
+    })
+    expect(compradas.map((c) => c.id)).toEqual(["bought"])
+    expect(cotizadas.map((c) => c.id)).toEqual(["quote"])
+  })
 })
 
 describe("puntuacionRelevancia", () => {

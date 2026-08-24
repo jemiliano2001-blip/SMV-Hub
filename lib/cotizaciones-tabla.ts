@@ -3,11 +3,13 @@ import { normalizar } from "@/lib/format"
 
 export type FiltroUbicacion = "todas" | "MX" | "USA"
 export type FiltroEstatus = "todos" | EstatusCotizacion
+export type FiltroOrigenCotizacion = "todas" | "cotizacion" | "compra"
 
 export type FiltrosCotizacion = {
   busqueda: string
   ubicacion: FiltroUbicacion
   estatus: FiltroEstatus
+  origen?: FiltroOrigenCotizacion
 }
 
 export type ColumnaOrdenCotizacion =
@@ -34,7 +36,7 @@ export type ResultadoPaginacion<T> = {
 
 export const TAMANO_PAGINA_COTIZACIONES = 50
 
-const CAMPOS_BUSQUEDA = ["descripcion", "numeroParte", "proveedor", "solicitante"] as const
+const CAMPOS_BUSQUEDA = ["descripcion", "numeroParte", "proveedor", "solicitante", "notas"] as const
 
 const ORDEN_ESTATUS: Record<EstatusCotizacion, number> = {
   cotizado: 0,
@@ -79,6 +81,10 @@ export function filtrarCotizaciones(
   return cotizaciones.filter((c) => {
     if (filtros.ubicacion !== "todas" && c.ubicacion !== filtros.ubicacion) return false
     if (filtros.estatus !== "todos" && c.estatus !== filtros.estatus) return false
+    if (filtros.origen && filtros.origen !== "todas") {
+      const origen = c.origen === "compra" ? "compra" : "cotizacion"
+      if (origen !== filtros.origen) return false
+    }
 
     if (tokens.length === 0) return true
 

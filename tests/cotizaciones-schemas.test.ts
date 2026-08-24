@@ -79,6 +79,16 @@ describe("CotizacionSchema", () => {
     expect(r.success).toBe(true)
   })
 
+  it("acepta origen compra y ordenIdOrigen opcionales", () => {
+    const r = CotizacionSchema.safeParse({
+      ...OK,
+      origen: "compra",
+      ordenIdOrigen: "ord-99",
+      claveUpsertCompra: "mcmaster carr|REAMER|",
+    })
+    expect(r.success).toBe(true)
+  })
+
   it("acepta una cotización en MXN (ubicación MX)", () => {
     const r = CotizacionSchema.safeParse({
       ...OK,

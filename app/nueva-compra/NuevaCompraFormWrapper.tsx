@@ -7,6 +7,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { subirImagenOrden } from '@/lib/storage'
 import { crearOrden } from '@/lib/ordenes'
+import { upsertCotizacionesDesdeOrden } from '@/lib/cotizaciones'
 import { marcarPedidoAlmacenComprado } from '@/lib/pedidos-almacen'
 import type { NuevaCompraForm as FormData } from '@/lib/schemas'
 import { sincronizarCamposLegacyOrden } from '@/lib/schemas'
@@ -60,6 +61,23 @@ export default function NuevaCompraFormWrapper({
             : {}),
         })
       )
+
+      try {
+        await upsertCotizacionesDesdeOrden({
+          id: ordenId,
+          proveedor: data.proveedor,
+          proveedorId: proveedorId ?? null,
+          numeroFactura: data.numeroFactura,
+          fechaFactura: data.fechaFactura,
+          moneda: data.moneda,
+          linkProveedor: data.linkProveedor,
+          items: data.items,
+          requisitor: data.requisitor,
+          creadoEn: new Date(),
+        })
+      } catch (err) {
+        console.error("[nueva-compra] no se pudo indexar la compra en cotizaciones:", err)
+      }
 
       if (pedidoId) {
         // Best-effort: la orden ya se guardó, que es lo importante — si esto

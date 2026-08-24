@@ -1,6 +1,7 @@
 import {
   getDocs,
   query,
+  where,
   orderBy,
   limit,
   startAfter,
@@ -10,6 +11,13 @@ import {
 import type { Cotizacion } from "@/lib/schemas"
 import { crearRepositorio } from "@/lib/repositorio"
 import { generarLlavePieza } from "@/lib/pieza-matching"
+import {
+  debeActualizarCompraExistente,
+  generarClaveUpsertCompra,
+  payloadsCotizacionDesdeOrden,
+  type OrdenParaCotizacion,
+  type PayloadCotizacionDesdeOrden,
+} from "@/lib/cotizaciones-desde-ordenes"
 
 const repo = crearRepositorio<Cotizacion>({ coleccion: "cotizaciones" })
 
@@ -19,13 +27,24 @@ const repo = crearRepositorio<Cotizacion>({ coleccion: "cotizaciones" })
 // asigna Firestore / esta capa). Listo para la captura manual de la Fase 2.
 export type NuevaCotizacionPayload = Omit<Cotizacion, "id" | "creadoEn" | "actualizadoEn">
 
-export async function crearCotizacion(payload: NuevaCotizacionPayload): Promise<string> {
+function conClavesPieza(payload: NuevaCotizacionPayload): NuevaCotizacionPayload {
   const llavePieza =
     payload.llavePieza || generarLlavePieza(payload.numeroParte, payload.descripcion)
-  return repo.crear(
-    { ...payload, llavePieza },
-    `Creó cotización de ${payload.proveedor}`
-  )
+  if (payload.origen !== "compra") {
+    return { ...payload, llavePieza }
+  }
+  const claveUpsertCompra =
+    payload.claveUpsertCompra ||
+    generarClaveUpsertCompra({
+      proveedor: payload.proveedor,
+      numeroParte: payload.numeroParte,
+      descripcion: payload.descripcion,
+    })
+  return { ...payload, llavePieza, claveUpsertCompra }
+}
+
+export async function crearCotizacion(payload: NuevaCotizacionPayload): Promise<string> {
+  return repo.crear(conClavesPieza(payload), `Creó cotización de ${payload.proveedor}`)
 }
 
 // Inserta muchas cotizaciones con writeBatch (atómico por lote, ≤500 escrituras).
@@ -34,10 +53,7 @@ export async function crearCotizacionesLote(
   payloads: NuevaCotizacionPayload[],
   onProgreso?: (completadas: number, total: number) => void
 ): Promise<number> {
-  const conLlave = payloads.map((p) => ({
-    ...p,
-    llavePieza: p.llavePieza || generarLlavePieza(p.numeroParte, p.descripcion),
-  }))
+  const conLlave = payloads.map((p) => conClavesPieza(p))
   return repo.crearEnLote(
     conLlave as Record<string, unknown>[],
     `Creó ${payloads.length} cotizaciones`,
@@ -122,4 +138,60 @@ export function claveDedupCotizacion(c: {
 export async function clavesExistentes(): Promise<Set<string>> {
   const snap = await getDocs(repo.ref())
   return new Set(snap.docs.map((d) => claveDedupCotizacion(d.data())))
+}
+
+export async function buscarCotizacionPorClaveUpsert(
+  clave: string
+): Promise<Cotizacion | null> {
+  if (!clave) return null
+  const snap = await getDocs(
+    query(repo.ref(), where("claveUpsertCompra", "==", clave), limit(1))
+  )
+  const documento = snap.docs[0]
+  return documento ? documento.data() : null
+}
+
+export async function upsertCotizacionesDesdeOrden(
+  orden: OrdenParaCotizacion
+): Promise<{ creadas: number; actualizadas: number; omitidas: number }> {
+  const payloads = payloadsCotizacionDesdeOrden(orden)
+  let creadas = 0
+  let actualizadas = 0
+  let omitidas = 0
+
+  for (const payload of payloads) {
+    const existente = await buscarCotizacionPorClaveUpsert(payload.claveUpsertCompra)
+    if (!existente) {
+      await crearCotizacion(payload)
+      creadas += 1
+      continue
+    }
+    if (!debeActualizarCompraExistente(existente.fecha, payload.fecha)) {
+      omitidas += 1
+      continue
+    }
+    await actualizarCotizacion(existente.id, cambiosDesdeCompra(payload))
+    actualizadas += 1
+  }
+
+  return { creadas, actualizadas, omitidas }
+}
+
+function cambiosDesdeCompra(
+  payload: PayloadCotizacionDesdeOrden
+): Partial<Omit<Cotizacion, "id" | "creadoEn">> {
+  return {
+    fecha: payload.fecha,
+    precioUnitario: payload.precioUnitario,
+    cantidad: payload.cantidad,
+    total: payload.total,
+    moneda: payload.moneda,
+    origen: "compra",
+    ordenIdOrigen: payload.ordenIdOrigen,
+    notas: payload.notas,
+    claveUpsertCompra: payload.claveUpsertCompra,
+    llavePieza: payload.llavePieza,
+    solicitante: payload.solicitante,
+    ...(payload.link ? { link: payload.link } : {}),
+  }
 }

@@ -197,6 +197,15 @@ export const CotizacionSchema = z.object({
   diasHabiles: z.string().nullable(),             // texto libre: "3 dias", "20-30 dias"
   link: z.string().nullable(),                    // sanitizada http/https en el import
   notas: z.string().nullable(),
+  /**
+   * `compra` = nació (o se actualizó) desde una orden americana.
+   * Ausente en docs legacy = cotización.
+   */
+  origen: z.enum(["cotizacion", "compra"]).optional(),
+  /** FK a `ordenes/{id}` cuando origen es compra. */
+  ordenIdOrigen: z.string().nullable().optional(),
+  /** Proveedor + pieza, sin fecha. Sirve para upsert de compras. */
+  claveUpsertCompra: z.string().nullable().optional(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 })

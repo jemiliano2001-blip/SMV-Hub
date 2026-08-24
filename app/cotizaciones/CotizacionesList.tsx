@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback } from 'react'
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Loader2,
@@ -16,6 +16,7 @@ import {
   ShoppingCart,
   Copy,
   PlusCircle,
+  Package,
 } from 'lucide-react'
 
 import type { Cotizacion, EstatusCotizacion } from '@/lib/schemas'
@@ -33,7 +34,9 @@ import {
   type DireccionOrden,
   type FiltroUbicacion,
   type FiltroEstatus,
+  type FiltroOrigenCotizacion,
 } from '@/lib/cotizaciones-tabla'
+import { esCotizacionComprada } from '@/lib/cotizaciones-desde-ordenes'
 import { useCotizaciones } from '@/lib/hooks/useCotizaciones'
 import CotizacionFormModal from './CotizacionFormModal'
 import CotizacionIaModal from './CotizacionIaModal'
@@ -62,6 +65,15 @@ const ESTATUS_BADGE: Record<EstatusCotizacion, string> = {
   cotizado: 'bg-green-50 text-green-700 ring-green-600/20',
   cancelado: 'bg-red-50 text-red-700 ring-red-600/20',
   revisar: 'bg-yellow-50 text-yellow-800 ring-yellow-600/20',
+}
+
+function BadgeComprada() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-800 ring-1 ring-inset ring-sky-600/20 dark:bg-sky-950/40 dark:text-sky-300">
+      <Package className="h-2.5 w-2.5" />
+      Comprada
+    </span>
+  )
 }
 
 type CotizacionCardProps = {
@@ -103,6 +115,11 @@ function CotizacionCard({
           {c.estatus}
         </span>
       </div>
+      {esCotizacionComprada(c.origen) && (
+        <div className="pl-[26px]">
+          <BadgeComprada />
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-2 text-xs pl-[26px]">
         <div className="min-w-0">
@@ -208,6 +225,8 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
   const [busqueda, setBusqueda] = useState('')
   const [filtroUbicacion, setFiltroUbicacion] = useState<FiltroUbicacion>('todas')
   const [filtroEstatus, setFiltroEstatus] = useState<FiltroEstatus>('todos')
+  const [filtroOrigen, setFiltroOrigen] = useState<FiltroOrigenCotizacion>('todas')
+  const avisoHistorial = useRef(false)
 
   const [columnaOrden, setColumnaOrden] = useState<ColumnaOrdenCotizacion>('fecha')
   const [direccionOrden, setDireccionOrden] = useState<DireccionOrden>('desc')
@@ -303,13 +322,28 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
     }
   }, [handleGlobalPaste])
 
+  const necesitaHistorialCompleto = hayTokens(busqueda) || filtroOrigen !== 'todas'
+
+  useEffect(() => {
+    if (!necesitaHistorialCompleto || coleccionCompleta || loading || cargandoCompleto) return
+    const t = window.setTimeout(() => {
+      if (!avisoHistorial.current) {
+        avisoHistorial.current = true
+        toast.info('Cargando el historial completo para buscar compras viejas…')
+      }
+      void cargarTodas().catch(() => undefined)
+    }, 400)
+    return () => window.clearTimeout(t)
+  }, [necesitaHistorialCompleto, coleccionCompleta, loading, cargandoCompleto, cargarTodas])
+
   const filtros = useMemo(
     () => ({
       busqueda,
       ubicacion: filtroUbicacion,
       estatus: filtroEstatus,
+      origen: filtroOrigen,
     }),
-    [busqueda, filtroUbicacion, filtroEstatus]
+    [busqueda, filtroUbicacion, filtroEstatus, filtroOrigen]
   )
 
   const filtradas = useMemo(
@@ -515,12 +549,26 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
               setBusqueda(e.target.value)
               resetPaginaYSeleccion()
             }}
-            placeholder="Buscar por descripción, no. de parte o proveedor…"
+            placeholder="Buscar por descripción, no. de parte, proveedor o folio de factura…"
             className="pl-9"
-            aria-label="Buscar cotizaciones"
+            aria-label="Buscar cotizaciones y compras"
           />
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <span className="text-xs font-semibold text-muted-foreground">Origen:</span>
+          <ModuleFilterChips
+            ariaLabel="Filtrar por origen"
+            value={filtroOrigen}
+            onValueChange={(value) => {
+              setFiltroOrigen(value as FiltroOrigenCotizacion)
+              resetPaginaYSeleccion()
+            }}
+            options={[
+              { value: 'todas', label: 'Todas' },
+              { value: 'compra', label: 'Compradas' },
+              { value: 'cotizacion', label: 'Solo cotizadas' },
+            ]}
+          />
           <span className="text-xs font-semibold text-muted-foreground">Ubicación:</span>
           <ModuleFilterChips
             ariaLabel="Filtrar por ubicación"
@@ -720,13 +768,16 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
                             {formatPrecio(c.total, c.moneda)}
                           </TableCell>
                           <TableCell className="px-4 py-3">
-                            <span
-                              className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ring-1 ring-inset ${
-                                ESTATUS_BADGE[c.estatus]
-                              }`}
-                            >
-                              {c.estatus}
-                            </span>
+                            <div className="flex flex-col items-start gap-1">
+                              <span
+                                className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ring-1 ring-inset ${
+                                  ESTATUS_BADGE[c.estatus]
+                                }`}
+                              >
+                                {c.estatus}
+                              </span>
+                              {esCotizacionComprada(c.origen) && <BadgeComprada />}
+                            </div>
                           </TableCell>
                           <TableCell className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                             {c.link && /^https?:\/\//i.test(c.link) ? (
@@ -794,6 +845,13 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
                           <ShoppingCart className="mr-2 h-4 w-4 text-emerald-600" />
                           Comprar en USA (/nueva-compra)
                         </ContextMenuItem>
+                        {c.ordenIdOrigen && (
+                          <ContextMenuItem onClick={() => router.push('/ordenes')}>
+                            <Package className="mr-2 h-4 w-4 text-sky-700" />
+                            Ir a órdenes
+                            {c.notas ? ` (${c.notas})` : ''}
+                          </ContextMenuItem>
+                        )}
                         <ContextMenuItem onClick={() => handleCrearOdoo(c)}>
                           <PlusCircle className="mr-2 h-4 w-4 text-indigo-600" />
                           Crear RFQ en Odoo (/compras-odoo)

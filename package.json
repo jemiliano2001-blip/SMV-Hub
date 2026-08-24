@@ -19,6 +19,7 @@
     "endmills:import": "node scripts/importar-endmills.mjs",
     "endmills:verify:dev": "node scripts/verificar-endmills-dev.mjs",
     "endmills:assign-module": "node scripts/asignar-endmills-modulo.mjs",
+    "cotizaciones:backfill-ordenes": "npx --yes tsx scripts/backfill-cotizaciones-desde-ordenes.ts",
     "verify:firebase-ssr": "node scripts/verificar-bundle-firebase.mjs",
     "deploy:hosting": "node scripts/firebase-deploy.mjs deploy --project smv-brain --only hosting:smv-hub",
     "firebase:deploy": "node scripts/firebase-deploy.mjs"
