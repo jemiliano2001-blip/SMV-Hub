@@ -20,6 +20,13 @@ import {
 import { extraerEntradasHistorialSat } from "@/lib/sat/extraer-historial-ordenes"
 import { Loader2, AlertCircle, FileSpreadsheet, Printer, Sparkles, CheckCircle2, History, RefreshCw, Copy, ExternalLink } from "lucide-react"
 import { listarLotesContables, crearLoteContable, type ReporteContableLote } from "@/lib/reportes-contables"
+import {
+  armarFilasExcelContable,
+  generarBufferExcelContable,
+  nombreArchivoExcelContable,
+  subtituloContablePrint,
+  tituloPdfContable,
+} from "@/lib/reportes-contables-export"
 import { useConfirmDialog } from "@/components/ConfirmDialogProvider"
 import { toast } from "sonner"
 import {
@@ -101,21 +108,33 @@ export default function ReporteContableView() {
   const cargar = useCallback(async () => {
     setCargando(true)
     setError(null)
-    try {
-      const hasta = new Date()
-      const desde = new Date()
-      desde.setFullYear(desde.getFullYear() - 1)
-      const [ords, lts] = await Promise.all([
-        listarOrdenesEnRango(desde, hasta),
-        listarLotesContables()
-      ])
-      setOrdenes(ords)
-      setLotes(lts)
-    } catch {
+    const hasta = new Date()
+    const desde = new Date()
+    desde.setFullYear(desde.getFullYear() - 1)
+
+    // Cargas independientes: un fallo en lotes no debe tumbar las órdenes pendientes.
+    const [ordsResult, ltsResult] = await Promise.allSettled([
+      listarOrdenesEnRango(desde, hasta),
+      listarLotesContables(),
+    ])
+
+    if (ordsResult.status === "fulfilled") {
+      setOrdenes(ordsResult.value)
+    } else {
+      console.error("ReporteContable: fallo al listar órdenes", ordsResult.reason)
       setError(MSG_ERROR)
-    } finally {
-      setCargando(false)
     }
+
+    if (ltsResult.status === "fulfilled") {
+      setLotes(ltsResult.value)
+    } else {
+      console.error("ReporteContable: fallo al listar lotes contables", ltsResult.reason)
+      if (ordsResult.status === "fulfilled") {
+        toast.error("No se pudieron cargar los lotes históricos. Las órdenes pendientes sí están disponibles.")
+      }
+    }
+
+    setCargando(false)
   }, [])
 
   const seleccionarLote = useCallback(async (id: string) => {
@@ -391,28 +410,41 @@ export default function ReporteContableView() {
   }
 
   const exportarExcel = async () => {
-    const XLSX = await import("xlsx")
-    const filas = lineas.map(l => ({
-      "Fecha": l.dia ? l.dia.toISOString().split("T")[0] : "",
-      "Proveedor": l.proveedor,
-      "Descripción Simplificada": l.descripcionSimplificada || l.descripcion,
-      "Clave SAT": l.claveProdServ || "",
-      "Descripción Clave SAT": satDict[l.claveProdServ || ""] || "",
-      "Cantidad": l.cantidad || 0,
-      "Precio Unitario": l.precioUnitario || 0,
-      "Total": l.total,
-    }))
-
-    const worksheet = XLSX.utils.json_to_sheet(filas)
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte Contable")
-    
-    const nombre = tab === "pendientes" ? "reporte_contable_pendientes.xlsx" : `reporte_contable_${loteSeleccionado}.xlsx`
-    XLSX.writeFile(workbook, nombre)
+    try {
+      const filas = armarFilasExcelContable(lineas, satDict, monedaActiva)
+      const buffer = await generarBufferExcelContable({
+        filas,
+        moneda: monedaActiva,
+        subtitulo: subtituloContablePrint(tab, loteSeleccionado),
+      })
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = nombreArchivoExcelContable({
+        tab,
+        loteId: loteSeleccionado,
+        moneda: monedaActiva,
+      })
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error("ReporteContable: fallo al exportar Excel", error)
+      toast.error("No se pudo generar el Excel. Intenta de nuevo.")
+    }
   }
 
   const imprimirPDF = () => {
+    const tituloOriginal = document.title
+    document.title = tituloPdfContable({
+      tab,
+      loteId: loteSeleccionado,
+      moneda: monedaActiva,
+    })
     window.print()
+    document.title = tituloOriginal
   }
 
   if (cargando && ordenes.length === 0) {
@@ -439,6 +471,14 @@ export default function ReporteContableView() {
   const lineasConFaltantes = lineasTodas.filter(
     (linea) => !linea.descripcionSimplificada?.trim() || !linea.claveProdServ
   ).length
+
+  const subtituloPrint = subtituloContablePrint(tab, loteSeleccionado)
+  const generadoEl = new Date().toLocaleDateString("es-MX", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  })
+  const totalMoneda = lineas.reduce((acc, curr) => acc + curr.total, 0)
 
   return (
     <div className="w-full">
@@ -584,213 +624,270 @@ export default function ReporteContableView() {
               </div>
             )}
 
-            <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm print:rounded-none print:border-0 print:shadow-none print:overflow-visible">
-              <div className="overflow-x-auto print:overflow-visible">
-                <Table className="w-full text-left text-sm text-gray-600">
-                  <TableHeader className="bg-gray-50 text-xs font-semibold uppercase text-gray-500 print:bg-white print:text-black print:border-b-2 print:border-black">
-                    <TableRow>
-                      <TableHead className="px-4 py-3">Fecha</TableHead>
-                      <TableHead className="px-4 py-3">Proveedor / Factura</TableHead>
-                      <TableHead className="px-4 py-3">Descripción Simplificada</TableHead>
-                      <TableHead className="px-4 py-3">Clave SAT</TableHead>
-                      <TableHead className="px-4 py-3 text-right">Cant.</TableHead>
-                      <TableHead className="px-4 py-3 text-right">Precio U.</TableHead>
-                      <TableHead className="px-4 py-3 text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody className="divide-y divide-gray-100 print:divide-gray-300">
-                    {lineas.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="px-4 py-12 text-center">
-                          {tab === "pendientes" ? (
-                            <div className="text-gray-500">
-                              <CheckCircle2 className="h-12 w-12 mx-auto text-emerald-400 mb-3" />
-                              <p className="text-lg font-medium text-gray-900">¡Todo al día!</p>
-                              <p>No hay compras pendientes por enviar a la contadora en los últimos 12 meses.</p>
-                            </div>
-                          ) : (
-                            <p className="text-gray-500">Selecciona un lote del historial para ver sus compras.</p>
-                          )}
-                        </TableCell>
+            <div className="reporte-document">
+              <div className="mb-3 hidden print:flex print:items-center print:justify-between print:bg-[#111111] print:px-3 print:py-2.5 print:text-white">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-widest">SMV Maquinados</p>
+                  <p className="mt-0.5 text-[8px] tracking-wide text-gray-400">S.A. de C.V.</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[12.5px] font-semibold uppercase tracking-wide">Cierre contable</p>
+                  <p className="mt-1 text-[8.5px] text-gray-400">{subtituloPrint}</p>
+                </div>
+                <div className="text-right text-[8px] leading-relaxed text-gray-400">
+                  <p>{monedaActiva} · {lineas.length} líneas</p>
+                  <p>Generado el {generadoEl}</p>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm print:overflow-visible print:rounded-none print:border-0 print:shadow-none">
+                <div className="overflow-x-auto print:overflow-visible">
+                  <Table className="w-full border-collapse text-left text-sm text-gray-600 print:min-w-0 print:text-[9px]">
+                    <TableHeader className="bg-gray-50 text-xs font-semibold uppercase text-gray-500 print:bg-[#111111]">
+                      <TableRow className="print:border-b-0">
+                        <TableHead className="px-4 py-3 print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">
+                          Fecha
+                        </TableHead>
+                        <TableHead className="hidden print:table-cell print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">
+                          Factura
+                        </TableHead>
+                        <TableHead className="px-4 py-3 print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">
+                          Proveedor
+                          <span className="print:hidden"> / Factura</span>
+                        </TableHead>
+                        <TableHead className="px-4 py-3 print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">
+                          Descripción Simplificada
+                        </TableHead>
+                        <TableHead className="px-4 py-3 print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">
+                          Clave SAT
+                        </TableHead>
+                        <TableHead className="px-4 py-3 text-right print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">
+                          Cant.
+                        </TableHead>
+                        <TableHead className="px-4 py-3 text-right print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">
+                          Precio U.
+                        </TableHead>
+                        <TableHead className="px-4 py-3 text-right print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">
+                          Total
+                        </TableHead>
                       </TableRow>
-                    ) : (
-                      lineas.map((l, i) => {
-                        const totalFormateado = new Intl.NumberFormat("es-MX", { style: "currency", currency: monedaActiva }).format(l.total)
-                        const descFinal = l.descripcionSimplificada || l.descripcion
+                    </TableHeader>
+                    <TableBody className="divide-y divide-gray-100 print:divide-gray-300">
+                      {lineas.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="px-4 py-12 text-center">
+                            {tab === "pendientes" ? (
+                              <div className="text-gray-500">
+                                <CheckCircle2 className="mx-auto mb-3 h-12 w-12 text-emerald-400" />
+                                <p className="text-lg font-medium text-gray-900">¡Todo al día!</p>
+                                <p>No hay compras pendientes por enviar a la contadora en los últimos 12 meses.</p>
+                              </div>
+                            ) : (
+                              <p className="text-gray-500">Selecciona un lote del historial para ver sus compras.</p>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        lineas.map((l, i) => {
+                          const totalFormateado = new Intl.NumberFormat("es-MX", { style: "currency", currency: monedaActiva }).format(l.total)
+                          const descFinal = l.descripcionSimplificada || l.descripcion
 
-                        return (
-                          <ContextMenu key={`${l.ordenId}-${i}`}>
-                            <ContextMenuTrigger asChild>
-                              <TableRow className="hover:bg-gray-50 print:hover:bg-transparent cursor-pointer select-none">
-                                <TableCell className="px-4 py-3 whitespace-nowrap">
-                                  {l.dia ? l.dia.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" }) : "-"}
-                                </TableCell>
-                                <TableCell className="px-4 py-3">
-                                  <div className="font-medium text-gray-900">{l.proveedor}</div>
-                                  <div className="text-xs text-gray-400">Ref: {l.referencia}</div>
-                                </TableCell>
-                                <TableCell className="px-4 py-3 max-w-xs">
-                                  {l.descripcionSimplificada ? (
-                                    <span className="font-medium text-gray-900">{l.descripcionSimplificada}</span>
-                                  ) : (
-                                    <span className="text-gray-400 italic" title={l.descripcion}>
-                                      {l.descripcion.length > 50 ? l.descripcion.substring(0, 50) + "..." : l.descripcion}
-                                    </span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="px-4 py-3 max-w-xs">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="font-medium text-gray-900">{l.claveProdServ || "—"}</span>
-                                    {l.itemIndex >= 0 && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleResugerir(l)}
-                                        disabled={resugieriendo.has(`${l.ordenId}-${l.itemIndex}`)}
-                                        title="Volver a sugerir la clave SAT para esta línea"
-                                        className="text-gray-400 hover:text-primary disabled:opacity-50 no-print cursor-pointer"
-                                      >
-                                        <RefreshCw
-                                          className={`h-3.5 w-3.5 ${resugieriendo.has(`${l.ordenId}-${l.itemIndex}`) ? "animate-spin" : ""}`}
-                                        />
-                                      </button>
-                                    )}
-                                  </div>
-                                  {!l.claveProdServ && (
-                                    <span className="mt-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 print:hidden">
-                                      Revisar
-                                    </span>
-                                  )}
-                                  <div className="text-xs text-gray-500 truncate" title={satDict[l.claveProdServ || ""]}>
-                                    {cargandoSat && l.claveProdServ && !satDict[l.claveProdServ]
-                                      ? "Cargando..."
-                                      : satDict[l.claveProdServ || ""] || ""}
-                                  </div>
-                                  {(altsPorLinea[`${l.ordenId}-${l.itemIndex}`]?.length ?? 0) > 0 && (
-                                    <div className="mt-1.5 flex flex-wrap gap-1 no-print">
-                                      {altsPorLinea[`${l.ordenId}-${l.itemIndex}`].map((alt) => (
-                                        <button
-                                          key={alt.clave}
-                                          type="button"
-                                          title={alt.descripcionSat}
-                                          onClick={() => void aplicarClaveLinea(l, alt.clave, altsPorLinea[`${l.ordenId}-${l.itemIndex}`])}
-                                          className="rounded border border-blue-200 bg-white px-1.5 py-0.5 text-[10px] font-mono text-blue-800 hover:bg-blue-50 cursor-pointer"
-                                        >
-                                          {alt.clave}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  )}
-                                </TableCell>
-                                <TableCell className="px-4 py-3 text-right font-medium">
-                                  {l.cantidad !== null ? l.cantidad : "—"}
-                                </TableCell>
-                                <TableCell className="px-4 py-3 text-right">
-                                  {l.precioUnitario !== null 
-                                    ? new Intl.NumberFormat("es-MX", { style: "currency", currency: monedaActiva }).format(l.precioUnitario) 
-                                    : "—"}
-                                </TableCell>
-                                <TableCell className="px-4 py-3 text-right font-semibold text-gray-900">
-                                  {totalFormateado}
-                                </TableCell>
-                              </TableRow>
-                            </ContextMenuTrigger>
-
-                            <ContextMenuContent className="w-56">
-                              {l.itemIndex >= 0 && (
-                                <ContextMenuItem
-                                  onClick={() => handleResugerir(l)}
-                                  disabled={resugieriendo.has(`${l.ordenId}-${l.itemIndex}`)}
+                          return (
+                            <ContextMenu key={`${l.ordenId}-${i}`}>
+                              <ContextMenuTrigger asChild>
+                                <TableRow
+                                  className={`grupo-linea cursor-pointer select-none hover:bg-gray-50 print:hover:bg-transparent ${i % 2 === 1 ? "print:bg-[#fafafa]" : ""}`}
                                 >
-                                  <Sparkles className="text-amber-500" />
-                                  <span>Re-sugerir Clave SAT (IA)</span>
-                                  <ContextMenuShortcut>↵</ContextMenuShortcut>
+                                  <TableCell className="whitespace-nowrap px-4 py-3 print:px-2 print:py-1 print:font-mono print:text-[8.5px]">
+                                    {l.dia ? l.dia.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" }) : "-"}
+                                  </TableCell>
+                                  <TableCell className="hidden print:table-cell print:px-2 print:py-1 print:font-mono print:text-[8.5px] print:text-gray-600">
+                                    {l.referencia || "—"}
+                                  </TableCell>
+                                  <TableCell className="px-4 py-3 print:px-2 print:py-1 print:text-[8.5px]">
+                                    <div className="font-medium text-gray-900 print:font-semibold print:text-black">{l.proveedor}</div>
+                                    <div className="text-xs text-gray-400 print:hidden">Ref: {l.referencia}</div>
+                                  </TableCell>
+                                  <TableCell className="max-w-xs px-4 py-3 print:max-w-[200px] print:px-2 print:py-1 print:text-[8.5px]" title={descFinal}>
+                                    {l.descripcionSimplificada ? (
+                                      <span className="font-medium text-gray-900 print:font-normal print:text-black">{l.descripcionSimplificada}</span>
+                                    ) : (
+                                      <span className="italic text-gray-400" title={l.descripcion}>
+                                        {l.descripcion.length > 50 ? `${l.descripcion.substring(0, 50)}...` : l.descripcion}
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="max-w-xs px-4 py-3 print:max-w-[140px] print:px-2 print:py-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-medium text-gray-900 print:font-mono print:text-[8.5px] print:text-black">
+                                        {l.claveProdServ || "—"}
+                                      </span>
+                                      {l.itemIndex >= 0 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleResugerir(l)}
+                                          disabled={resugieriendo.has(`${l.ordenId}-${l.itemIndex}`)}
+                                          title="Volver a sugerir la clave SAT para esta línea"
+                                          className="cursor-pointer text-gray-400 hover:text-primary no-print disabled:opacity-50"
+                                        >
+                                          <RefreshCw
+                                            className={`h-3.5 w-3.5 ${resugieriendo.has(`${l.ordenId}-${l.itemIndex}`) ? "animate-spin" : ""}`}
+                                          />
+                                        </button>
+                                      )}
+                                    </div>
+                                    {!l.claveProdServ && (
+                                      <span className="mt-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 print:hidden">
+                                        Revisar
+                                      </span>
+                                    )}
+                                    <div
+                                      className="truncate text-xs text-gray-500 print:text-[7.5px] print:leading-tight print:text-gray-600"
+                                      title={satDict[l.claveProdServ || ""]}
+                                    >
+                                      {cargandoSat && l.claveProdServ && !satDict[l.claveProdServ]
+                                        ? "Cargando..."
+                                        : satDict[l.claveProdServ || ""] || ""}
+                                    </div>
+                                    {(altsPorLinea[`${l.ordenId}-${l.itemIndex}`]?.length ?? 0) > 0 && (
+                                      <div className="mt-1.5 flex flex-wrap gap-1 no-print">
+                                        {altsPorLinea[`${l.ordenId}-${l.itemIndex}`].map((alt) => (
+                                          <button
+                                            key={alt.clave}
+                                            type="button"
+                                            title={alt.descripcionSat}
+                                            onClick={() => void aplicarClaveLinea(l, alt.clave, altsPorLinea[`${l.ordenId}-${l.itemIndex}`])}
+                                            className="cursor-pointer rounded border border-blue-200 bg-white px-1.5 py-0.5 font-mono text-[10px] text-blue-800 hover:bg-blue-50"
+                                          >
+                                            {alt.clave}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="px-4 py-3 text-right font-medium print:px-2 print:py-1 print:font-mono print:text-[8.5px]">
+                                    {l.cantidad !== null ? l.cantidad : "—"}
+                                  </TableCell>
+                                  <TableCell className="px-4 py-3 text-right print:px-2 print:py-1 print:font-mono print:text-[8.5px]">
+                                    {l.precioUnitario !== null
+                                      ? new Intl.NumberFormat("es-MX", { style: "currency", currency: monedaActiva }).format(l.precioUnitario)
+                                      : "—"}
+                                  </TableCell>
+                                  <TableCell className="px-4 py-3 text-right font-semibold text-gray-900 print:px-2 print:py-1 print:font-mono print:text-[9px] print:font-semibold print:text-black">
+                                    {totalFormateado}
+                                  </TableCell>
+                                </TableRow>
+                              </ContextMenuTrigger>
+
+                              <ContextMenuContent className="w-56">
+                                {l.itemIndex >= 0 && (
+                                  <ContextMenuItem
+                                    onClick={() => handleResugerir(l)}
+                                    disabled={resugieriendo.has(`${l.ordenId}-${l.itemIndex}`)}
+                                  >
+                                    <Sparkles className="text-amber-500" />
+                                    <span>Re-sugerir Clave SAT (IA)</span>
+                                    <ContextMenuShortcut>↵</ContextMenuShortcut>
+                                  </ContextMenuItem>
+                                )}
+
+                                <ContextMenuItem
+                                  onClick={() => {
+                                    window.location.href = `/ordenes`
+                                  }}
+                                >
+                                  <ExternalLink className="text-sky-600" />
+                                  <span>Ver orden en Compras</span>
                                 </ContextMenuItem>
-                              )}
 
-                              <ContextMenuItem
-                                onClick={() => {
-                                  window.location.href = `/ordenes`
-                                }}
-                              >
-                                <ExternalLink className="text-sky-600" />
-                                <span>Ver orden en Compras</span>
-                              </ContextMenuItem>
+                                <ContextMenuSeparator />
 
-                              <ContextMenuSeparator />
-
-                              <ContextMenuSub>
-                                <ContextMenuSubTrigger>
-                                  <Copy className="text-slate-500" />
-                                  <span>Copiar información</span>
-                                </ContextMenuSubTrigger>
-                                <ContextMenuSubContent className="w-48">
-                                  {l.claveProdServ && (
+                                <ContextMenuSub>
+                                  <ContextMenuSubTrigger>
+                                    <Copy className="text-slate-500" />
+                                    <span>Copiar información</span>
+                                  </ContextMenuSubTrigger>
+                                  <ContextMenuSubContent className="w-48">
+                                    {l.claveProdServ && (
+                                      <ContextMenuItem
+                                        onClick={() => {
+                                          void navigator.clipboard.writeText(l.claveProdServ || '')
+                                          toast.success('Clave SAT copiada')
+                                        }}
+                                      >
+                                        <span>Clave SAT ({l.claveProdServ})</span>
+                                      </ContextMenuItem>
+                                    )}
                                     <ContextMenuItem
                                       onClick={() => {
-                                        void navigator.clipboard.writeText(l.claveProdServ || '')
-                                        toast.success('Clave SAT copiada')
+                                        void navigator.clipboard.writeText(l.proveedor)
+                                        toast.success('Proveedor copiado')
                                       }}
                                     >
-                                      <span>Clave SAT ({l.claveProdServ})</span>
+                                      <span>Proveedor ({l.proveedor})</span>
                                     </ContextMenuItem>
-                                  )}
-                                  <ContextMenuItem
-                                    onClick={() => {
-                                      void navigator.clipboard.writeText(l.proveedor)
-                                      toast.success('Proveedor copiado')
-                                    }}
-                                  >
-                                    <span>Proveedor ({l.proveedor})</span>
-                                  </ContextMenuItem>
-                                  <ContextMenuItem
-                                    onClick={() => {
-                                      void navigator.clipboard.writeText(descFinal)
-                                      toast.success('Descripción copiada')
-                                    }}
-                                  >
-                                    <span>Descripción</span>
-                                  </ContextMenuItem>
-                                  {l.referencia && (
                                     <ContextMenuItem
                                       onClick={() => {
-                                        void navigator.clipboard.writeText(l.referencia)
-                                        toast.success('Referencia / Factura copiada')
+                                        void navigator.clipboard.writeText(descFinal)
+                                        toast.success('Descripción copiada')
                                       }}
                                     >
-                                      <span>Ref. Factura ({l.referencia})</span>
+                                      <span>Descripción</span>
                                     </ContextMenuItem>
-                                  )}
-                                  <ContextMenuItem
-                                    onClick={() => {
-                                      void navigator.clipboard.writeText(totalFormateado)
-                                      toast.success('Total copiado', { description: totalFormateado })
-                                    }}
-                                  >
-                                    <span>Total ({totalFormateado})</span>
-                                  </ContextMenuItem>
-                                </ContextMenuSubContent>
-                              </ContextMenuSub>
-                            </ContextMenuContent>
-                          </ContextMenu>
-                        )
-                      })
+                                    {l.referencia && (
+                                      <ContextMenuItem
+                                        onClick={() => {
+                                          void navigator.clipboard.writeText(l.referencia)
+                                          toast.success('Referencia / Factura copiada')
+                                        }}
+                                      >
+                                        <span>Ref. Factura ({l.referencia})</span>
+                                      </ContextMenuItem>
+                                    )}
+                                    <ContextMenuItem
+                                      onClick={() => {
+                                        void navigator.clipboard.writeText(totalFormateado)
+                                        toast.success('Total copiado', { description: totalFormateado })
+                                      }}
+                                    >
+                                      <span>Total ({totalFormateado})</span>
+                                    </ContextMenuItem>
+                                  </ContextMenuSubContent>
+                                </ContextMenuSub>
+                              </ContextMenuContent>
+                            </ContextMenu>
+                          )
+                        })
+                      )}
+                    </TableBody>
+                    {lineas.length > 0 && (
+                      <TableFooter className="bg-gray-50 font-bold text-gray-900 print:border-t-[3px] print:border-double print:border-black print:bg-white">
+                        <TableRow className="total-general">
+                          <TableCell
+                            colSpan={6}
+                            className="px-4 py-3 text-right text-xs uppercase text-gray-500 print:hidden"
+                          >
+                            Total ({monedaActiva})
+                          </TableCell>
+                          <TableCell
+                            colSpan={7}
+                            className="hidden px-2 py-2 text-right text-[10.5px] font-bold uppercase text-black print:table-cell"
+                          >
+                            Total ({monedaActiva})
+                          </TableCell>
+                          <TableCell className="px-4 py-3 text-right text-base print:px-2 print:py-2 print:font-mono print:text-[13px] print:text-black">
+                            {new Intl.NumberFormat("es-MX", { style: "currency", currency: monedaActiva }).format(totalMoneda)}
+                          </TableCell>
+                        </TableRow>
+                      </TableFooter>
                     )}
-                  </TableBody>
-                  {lineas.length > 0 && (
-                    <TableFooter className="bg-gray-50 font-bold text-gray-900 print:bg-white print:border-t-2 print:border-black">
-                      <TableRow>
-                        <TableCell colSpan={6} className="px-4 py-3 text-right uppercase text-xs text-gray-500 print:text-black">
-                          Total ({monedaActiva})
-                        </TableCell>
-                        <TableCell className="px-4 py-3 text-right text-base">
-                          {new Intl.NumberFormat("es-MX", { style: "currency", currency: monedaActiva }).format(
-                            lineas.reduce((acc, curr) => acc + curr.total, 0)
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    </TableFooter>
-                  )}
-                </Table>
+                  </Table>
+                </div>
+              </div>
+
+              <div className="mt-3 hidden justify-between border-t border-gray-200 pt-2 text-[7.5px] tracking-wide text-gray-400 print:flex">
+                <span>SMV Hub · Cierre contable SAT</span>
+                <span>{subtituloPrint} · {monedaActiva}</span>
               </div>
             </div>
             

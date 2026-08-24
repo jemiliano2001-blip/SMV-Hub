@@ -9,6 +9,7 @@ export default function ReporteContablePage() {
     <AuthGuard>
       <PageShell maxWidth="7xl" printClassName="print:bg-white">
         <PageHeader
+          className="no-print"
           title="Cierre contable"
           badge="SAT · lotes"
           icon={FileSpreadsheet}

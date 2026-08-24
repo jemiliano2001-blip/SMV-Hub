@@ -889,8 +889,12 @@ service cloud.firestore {
     }
 
     match /reportes_contables/{reporteId} {
-      allow read: if esUsuarioAutorizado() && tieneModulo('reportes');
-      allow create: if esUsuarioAutorizado() && tieneModulo('reportes')
+      // Break-glass / super-admin sin doc en usuarios (mismo patrón que caja-chica,
+      // almacen, finanzas). El cliente ya concede módulo reportes al break-glass.
+      allow read: if esUsuarioAutorizado()
+                  && (esCorreoBreakGlass() || tieneModulo('reportes') || esSuperAdminDoc());
+      allow create: if esUsuarioAutorizado()
+                    && (esCorreoBreakGlass() || tieneModulo('reportes') || esSuperAdminDoc())
                     && reporteContableValido(request.resource.data);
       allow update, delete: if false;
     }

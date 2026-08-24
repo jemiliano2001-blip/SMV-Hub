@@ -128,7 +128,7 @@ export default function NavBar() {
   if (pathname === '/login') return null
 
   return (
-    <header ref={navRef} className="bg-white border-b border-slate-200 sticky top-0 z-40 font-sans shadow-2xs">
+    <header ref={navRef} className="no-print bg-white border-b border-slate-200 sticky top-0 z-40 font-sans shadow-2xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-14">
           <Link href="/" className="flex items-center gap-2.5 transition-opacity hover:opacity-90">

@@ -173,11 +173,15 @@ describe("reglas de alcance para almacén y solicitudes de venta", () => {
     expect(bloque).toMatch(/allow create: if false;/)
   })
 
-  it("exige reportes para los lotes contables", () => {
+  it("exige reportes (o break-glass/super-admin) para los lotes contables", () => {
     const reglas = readFileSync(resolve(raiz, "firestore.rules"), "utf8")
     const bloque = reglas.match(/match \/reportes_contables\/\{reporteId\} \{([\s\S]*?)\n    \}/)?.[1]
-    expect(bloque).toMatch(/allow read: if esUsuarioAutorizado\(\) && tieneModulo\('reportes'\);/)
-    expect(bloque).toMatch(/allow create: if esUsuarioAutorizado\(\) && tieneModulo\('reportes'\)/)
+    expect(bloque).toMatch(
+      /allow read: if esUsuarioAutorizado\(\)\s*&& \(esCorreoBreakGlass\(\) \|\| tieneModulo\('reportes'\) \|\| esSuperAdminDoc\(\)\);/
+    )
+    expect(bloque).toMatch(
+      /allow create: if esUsuarioAutorizado\(\)\s*&& \(esCorreoBreakGlass\(\) \|\| tieneModulo\('reportes'\) \|\| esSuperAdminDoc\(\)\)/
+    )
   })
 
   it("alinea Storage con los módulos de almacén", () => {
