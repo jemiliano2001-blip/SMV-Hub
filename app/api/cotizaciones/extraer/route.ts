@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { verificarUsuarioAutorizado } from "@/lib/api-auth"
+import { verificarModulo } from "@/lib/api-auth"
 import { extraerCotizacionesMultiplesIA } from "@/lib/cotizaciones-extraer-ia"
 import { ErrorIA, esMediaTypeValido, type MediaTypeFactura } from "@/lib/extraer-ia"
 
@@ -16,7 +16,7 @@ const ExtraerCotizacionSchema = z.object({
 })
 
 export async function POST(req: NextRequest) {
-  const auth = await verificarUsuarioAutorizado(req)
+  const auth = await verificarModulo(req, ["cotizaciones"], "No tienes acceso al modulo de cotizaciones")
   if (!auth.ok) {
     return auth.response
   }

@@ -6,7 +6,7 @@ import { useUsuarios } from '@/lib/hooks/useUsuarios'
 import { departamentoDesdeArea } from '@/lib/operadores-departamento'
 import type { Area, Operador } from '@/lib/schemas'
 import { Plus, Search, UserCheck, UserX, Download, Check, X, Mail, Copy, Edit2, Layers } from 'lucide-react'
-import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import ModuleSurface from '@/components/layout/ModuleSurface'
 import {
   ContextMenu,
@@ -596,16 +596,14 @@ export default function OperadoresList() {
                         <ContextMenuSubContent className="w-48">
                           <ContextMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(op.nombre)
-                              toast.success('Nombre copiado')
+                              void copiarAlPortapapeles(op.nombre, 'Nombre copiado')
                             }}
                           >
                             <span>Nombre ({op.nombre})</span>
                           </ContextMenuItem>
                           <ContextMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(op.area)
-                              toast.success('Área copiada')
+                              void copiarAlPortapapeles(op.area, 'Área copiada')
                             }}
                           >
                             <span>Área ({op.area})</span>
@@ -613,8 +611,7 @@ export default function OperadoresList() {
                           {correo && (
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(correo)
-                                toast.success('Correo copiado')
+                                void copiarAlPortapapeles(correo, 'Correo copiado')
                               }}
                             >
                               <span>Correo ({correo})</span>

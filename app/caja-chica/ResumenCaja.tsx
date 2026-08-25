@@ -67,7 +67,7 @@ export default function ResumenCaja() {
     }
   }, [modoFiltro, periodo, corteIdSel])
 
-  const { movimientos, loading, realizarCorteCaja } = useCajaChica(filtroActual)
+  const { movimientos, loading, error, recargar, realizarCorteCaja } = useCajaChica(filtroActual)
 
   const { totalEntradas, totalSalidas, saldo, gastosPorCategoria } = useMemo(() => {
     let totalEntradas = 0
@@ -133,6 +133,21 @@ export default function ResumenCaja() {
 
   return (
     <div className="space-y-4 font-sans">
+      {/* Sin este banner, un fallo de Firestore deja los saldos en $0.00 y el
+          usuario no distingue "caja vacía" de "no cargó". */}
+      {error && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 print:hidden">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => void recargar()}
+            className="cursor-pointer rounded-md border border-rose-300 bg-card px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
       <ModuleSurface className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center p-4">
         <div>
           <h2 className="text-sm font-bold text-foreground tracking-tight">Resumen Ejecutivo del Ciclo</h2>

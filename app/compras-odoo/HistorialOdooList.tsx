@@ -15,7 +15,7 @@ import {
   Copy,
   ShoppingCart,
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -430,16 +430,14 @@ export default function HistorialOdooList() {
                           <ContextMenuSubContent className="w-48">
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(r.odooName)
-                                toast.success('Folio Odoo copiado')
+                                void copiarAlPortapapeles(r.odooName, 'Folio Odoo copiado')
                               }}
                             >
                               <span>Folio ({r.odooName})</span>
                             </ContextMenuItem>
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(r.proveedor)
-                                toast.success('Proveedor copiado')
+                                void copiarAlPortapapeles(r.proveedor, 'Proveedor copiado')
                               }}
                             >
                               <span>Proveedor ({r.proveedor})</span>
@@ -447,8 +445,7 @@ export default function HistorialOdooList() {
                             {r.referenciaProveedor && (
                               <ContextMenuItem
                                 onClick={() => {
-                                  void navigator.clipboard.writeText(r.referenciaProveedor || '')
-                                  toast.success('Referencia copiada')
+                                  void copiarAlPortapapeles(r.referenciaProveedor || '', 'Referencia copiada')
                                 }}
                               >
                                 <span>Ref. Proveedor</span>
@@ -457,8 +454,7 @@ export default function HistorialOdooList() {
                             <ContextMenuItem
                               onClick={() => {
                                 const totTxt = `$${formatMoney(r.total)} ${r.moneda}`
-                                void navigator.clipboard.writeText(totTxt)
-                                toast.success('Total copiado', { description: totTxt })
+                                void copiarAlPortapapeles(totTxt, 'Total copiado', totTxt)
                               }}
                             >
                               <span>Total ({`$${formatMoney(r.total)} ${r.moneda}`})</span>

@@ -569,11 +569,14 @@ async function sincronizarComprasOdoo(options: {
     billsMapped.map((f) => f.id),
     billsRaw.length === 0
   )
+  // Los ítems se hidratan desde las líneas de POs y facturas: si Odoo devolvió
+  // documentos pero no salió ni un ítem, la hidratación falló y podar borraría la
+  // colección entera. Tratamos ese caso como "vacío desde Odoo" para omitir el prune.
   huerfanos += await podarHuerfanos(
     "compras_odoo_items",
     [...itemCreado.keys()],
     items.map((i) => i.id),
-    items.length === 0 && (posRaw.length > 0 || billsRaw.length > 0) ? false : items.length === 0
+    items.length === 0
   )
 
   // Seed categorías (idempotente)

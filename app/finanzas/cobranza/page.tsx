@@ -15,7 +15,7 @@ import {
   Mail,
   Edit3,
 } from "lucide-react"
-import { toast } from "sonner"
+import { copiarAlPortapapeles } from "@/lib/portapapeles"
 import { useUsuario } from "@/lib/auth"
 import { useFinanzasFacturas } from "@/lib/hooks/useFinanzasFacturas"
 import { useSeguimientoCobranza } from "@/lib/hooks/useSeguimientoCobranza"
@@ -634,16 +634,14 @@ function Cobranza() {
                             <ContextMenuSubContent className="w-52">
                               <ContextMenuItem
                                 onClick={() => {
-                                  void navigator.clipboard.writeText(factura.cliente)
-                                  toast.success('Cliente copiado')
+                                  void copiarAlPortapapeles(factura.cliente, 'Cliente copiado')
                                 }}
                               >
                                 <span>Cliente ({factura.cliente})</span>
                               </ContextMenuItem>
                               <ContextMenuItem
                                 onClick={() => {
-                                  void navigator.clipboard.writeText(factura.numeroFactura)
-                                  toast.success('Factura copiada')
+                                  void copiarAlPortapapeles(factura.numeroFactura, 'Factura copiada')
                                 }}
                               >
                                 <span>No. Factura ({factura.numeroFactura})</span>
@@ -651,8 +649,7 @@ function Cobranza() {
                               <ContextMenuItem
                                 onClick={() => {
                                   const saldoTxt = formatPrecio(factura.saldoPendiente, moneda)
-                                  void navigator.clipboard.writeText(saldoTxt)
-                                  toast.success('Saldo pendiente copiado', { description: saldoTxt })
+                                  void copiarAlPortapapeles(saldoTxt, 'Saldo pendiente copiado', saldoTxt)
                                 }}
                               >
                                 <span>Saldo ({formatPrecio(factura.saldoPendiente, moneda)})</span>
@@ -660,8 +657,7 @@ function Cobranza() {
                               <ContextMenuItem
                                 onClick={() => {
                                   const totalTxt = formatPrecio(factura.total, moneda)
-                                  void navigator.clipboard.writeText(totalTxt)
-                                  toast.success('Total copiado', { description: totalTxt })
+                                  void copiarAlPortapapeles(totalTxt, 'Total copiado', totalTxt)
                                 }}
                               >
                                 <span>Total ({formatPrecio(factura.total, moneda)})</span>
@@ -672,8 +668,7 @@ function Cobranza() {
                           <ContextMenuItem
                             onClick={() => {
                               const plantilla = `Estimado cliente ${factura.cliente},\n\nLe enviamos un cordial recordatorio sobre el saldo pendiente de ${formatPrecio(factura.saldoPendiente, moneda)} correspondiente a la factura ${factura.numeroFactura} con fecha de vencimiento ${formatFecha(factura.fechaVencimiento)}.\n\nAgradecemos su apoyo con el comprobante de pago o fecha estimada de liquidación.\n\nSaludos cordiales,\nDepartamento de Cobranza - SMV`
-                              void navigator.clipboard.writeText(plantilla)
-                              toast.success('Plantilla de cobranza copiada al portapapeles')
+                              void copiarAlPortapapeles(plantilla, 'Plantilla de cobranza copiada al portapapeles')
                             }}
                           >
                             <Mail className="text-sky-600" />

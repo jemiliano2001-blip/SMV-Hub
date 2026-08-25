@@ -1,4 +1,5 @@
 import type { EndmillMedida, EstadoStockEndmill } from "@/lib/schemas"
+import { fechaHoyLocal } from "@/lib/format"
 
 export const UMBRAL_CRITICO_ENDMILLS = 0.25
 
@@ -236,7 +237,7 @@ export function generarTextoWhatsApp(
   const lineas = [
     `📦 *PURCHASE ORDER - SMV MAQUINADOS*`,
     `To: *Rita / ChangZhou North Alloy Tool Co.*`,
-    `Date: *${new Date().toISOString().slice(0, 10)}*`,
+    `Date: *${fechaHoyLocal()}*`,
     ``,
     `Hello Rita, please confirm stock and lead time for this order:`,
     ``,
@@ -269,7 +270,7 @@ export function generarEmailPedidoEndmills(
   aliCostUSD = 0,
   folioProveedor?: string
 ): { asunto: string; cuerpo: string; mailtoUrl: string } {
-  const fechaHoy = new Date().toISOString().slice(0, 10)
+  const fechaHoy = fechaHoyLocal()
   const asunto = `Purchase Order - SMV Maquinados / ChangZhou North Alloy Tool Co. - ${fechaHoy}${folioProveedor ? ` (Ref: ${folioProveedor})` : ""}`
   const textoMensaje = generarTextoWhatsApp(seleccionadas, filas, shippingUSD, aliCostUSD)
 

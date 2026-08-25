@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { Plus, MessageSquare, CheckCircle, Copy, Play, XCircle, Inbox } from 'lucide-react'
-import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import type {
   EstadoSolicitudDocumento,
   MensajeSolicitudDocumento,
@@ -216,29 +216,71 @@ export default function ModoVentasView({
                         <button
                           type="button"
                           onClick={() => onAbrir(s.id)}
-                          className="w-full cursor-pointer select-none rounded-2xl border-2 border-border bg-card px-4 py-4 text-left transition-colors hover:border-sky-400"
+                          className="w-full cursor-pointer select-none rounded-2xl border-2 border-border bg-card p-4 text-left shadow-xs transition-all hover:border-sky-500 hover:shadow-sm"
                         >
                           <div className="flex items-start justify-between gap-2">
-                            <p className="text-base font-bold text-foreground">
-                              {s.tipo === 'factura' ? 'Factura' : 'Remisión'} ·{' '}
-                              {s.partnerName}
-                            </p>
-                            <span className="shrink-0 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={`rounded-md px-2 py-0.5 text-xs font-bold ${
+                                  s.tipo === 'factura'
+                                    ? 'bg-sky-100 text-sky-800'
+                                    : 'bg-indigo-100 text-indigo-800'
+                                }`}
+                              >
+                                {s.tipo === 'factura' ? 'Factura' : 'Remisión'}
+                              </span>
+                              <p className="text-base font-bold text-foreground">
+                                {s.partnerName}
+                              </p>
+                            </div>
+                            <span
+                              className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                                s.estado === 'completada'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : s.estado === 'en_proceso'
+                                    ? 'bg-sky-100 text-sky-800'
+                                    : s.estado === 'rechazada'
+                                      ? 'bg-red-100 text-destructive'
+                                      : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
                               {etiquetaEstadoSolicitudDocumento(s.estado)}
                             </span>
                           </div>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {oc ? `Orden de compra ${oc}` : 'Sin orden de compra'} · SO{' '}
-                            {s.odooSoName}
-                          </p>
-                          <p className="mt-0.5 text-sm text-muted-foreground">
-                            Pidió {s.solicitadoPorNombre}
-                          </p>
-                          {s.atendidoPorNombre && (
-                            <p className="mt-0.5 text-xs text-muted-foreground">
-                              Atiende {s.atendidoPorNombre}
-                            </p>
-                          )}
+
+                          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                            <span>
+                              SO <strong className="text-foreground">{s.odooSoName}</strong>
+                            </span>
+                            <span>·</span>
+                            <span>
+                              {oc ? (
+                                <>Orden de compra: <strong className="text-foreground">{oc}</strong></>
+                              ) : (
+                                'Sin orden de compra'
+                              )}
+                            </span>
+                            <span>·</span>
+                            <span>Pidió: <strong className="text-foreground">{s.solicitadoPorNombre}</strong></span>
+                            {s.atendidoPorNombre && (
+                              <>
+                                <span>·</span>
+                                <span>Atiende: <strong className="text-foreground">{s.atendidoPorNombre}</strong></span>
+                              </>
+                            )}
+                          </div>
+
+                          <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-2 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1 text-primary font-semibold">
+                              <MessageSquare className="h-3.5 w-3.5" />
+                              Ver detalle y chat
+                            </span>
+                            {s.folioOdoo && (
+                              <span className="font-mono font-semibold text-emerald-600">
+                                Folio: {s.folioOdoo}
+                              </span>
+                            )}
+                          </div>
                         </button>
                       </ContextMenuTrigger>
 
@@ -297,8 +339,7 @@ export default function ModoVentasView({
                           <ContextMenuSubContent className="w-48">
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(s.partnerName)
-                                toast.success('Cliente copiado')
+                                void copiarAlPortapapeles(s.partnerName, 'Cliente copiado')
                               }}
                             >
                               <span>Cliente ({s.partnerName})</span>
@@ -306,8 +347,7 @@ export default function ModoVentasView({
                             {oc && (
                               <ContextMenuItem
                                 onClick={() => {
-                                  void navigator.clipboard.writeText(oc)
-                                  toast.success('Orden de compra copiada')
+                                  void copiarAlPortapapeles(oc, 'Orden de compra copiada')
                                 }}
                               >
                                 <span>Orden Compra ({oc})</span>
@@ -315,16 +355,14 @@ export default function ModoVentasView({
                             )}
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(s.odooSoName)
-                                toast.success('Folio SO copiado')
+                                void copiarAlPortapapeles(s.odooSoName, 'Folio SO copiado')
                               }}
                             >
                               <span>Folio SO ({s.odooSoName})</span>
                             </ContextMenuItem>
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(s.solicitadoPorNombre)
-                                toast.success('Solicitante copiado')
+                                void copiarAlPortapapeles(s.solicitadoPorNombre, 'Solicitante copiado')
                               }}
                             >
                               <span>Solicitante ({s.solicitadoPorNombre})</span>

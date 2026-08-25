@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server"
-import { verificarUsuarioAutorizado } from "@/lib/api-auth"
+import { verificarModulo } from "@/lib/api-auth"
 import {
   extraerRegistros,
   esMediaTypeValido,
@@ -17,7 +17,7 @@ const MAX_BYTES_IMAGEN = 10 * 1024 * 1024
 const MAX_BYTES_LOTE = 50 * 1024 * 1024
 
 export async function POST(req: NextRequest) {
-  const auth = await verificarUsuarioAutorizado(req)
+  const auth = await verificarModulo(req, ["nueva-compra", "ordenes"], "No tienes acceso a la captura de compras")
   if (!auth.ok) return auth.response
 
   const formData = await req.formData()

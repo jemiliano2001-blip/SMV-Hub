@@ -218,13 +218,19 @@ export async function actualizarOrdenesEstadoLote(
 
 // Busca órdenes existentes por combinación numeroFactura+proveedor para deduplicación.
 // Solo evalúa facturas con numeroFactura no nulo. Divide en chunks de 30 (límite Firestore `in`).
+/**
+ * Órdenes existentes que comparten número de factura con los pares dados.
+ *
+ * Incluye el `id` para que quien edite una orden pueda excluirse a sí misma del
+ * chequeo de duplicados (`OrdenFormModal`); `esOrdenDuplicada` ignora el campo.
+ */
 export async function buscarPorFacturaYProveedor(
   pares: Array<{ numeroFactura: string; proveedor: string }>
-): Promise<Array<{ numeroFactura: string | null; proveedor: string }>> {
+): Promise<Array<{ id: string; numeroFactura: string | null; proveedor: string }>> {
   if (pares.length === 0) return []
 
   const CHUNK = 30
-  const resultados: Array<{ numeroFactura: string | null; proveedor: string }> = []
+  const resultados: Array<{ id: string; numeroFactura: string | null; proveedor: string }> = []
 
   for (let i = 0; i < pares.length; i += CHUNK) {
     const facturas = pares.slice(i, i + CHUNK).map((p) => p.numeroFactura)
@@ -234,6 +240,7 @@ export async function buscarPorFacturaYProveedor(
     snap.docs.forEach((d) => {
       const data = d.data() as { numeroFactura?: string | null; proveedor?: string }
       resultados.push({
+        id: d.id,
         numeroFactura: data.numeroFactura ?? null,
         proveedor: data.proveedor ?? "",
       })

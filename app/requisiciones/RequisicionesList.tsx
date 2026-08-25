@@ -47,6 +47,7 @@ import NuevaRequisicionModal from './NuevaRequisicionModal'
 import DetalleRequisicionModal from './DetalleRequisicionModal'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import ModuleFilterChips from '@/components/layout/ModuleFilterChips'
 import ModuleSurface from '@/components/layout/ModuleSurface'
 import ModuleTabs from '@/components/layout/ModuleTabs'
@@ -427,6 +428,9 @@ export default function RequisicionesList() {
       setScrapeError(null)
     } catch (err) {
       console.error('Error al guardar requisición:', err)
+      toast.error('No se pudo guardar la requisición', {
+        description: err instanceof Error ? err.message : 'Intenta de nuevo.',
+      })
     } finally {
       setSaving(false)
     }
@@ -464,7 +468,14 @@ export default function RequisicionesList() {
   }
 
   async function handleCambioEstado(id: string, estado: EstatusRequisicion) {
-    await actualizarEstado(id, estado)
+    try {
+      await actualizarEstado(id, estado)
+    } catch (err) {
+      console.error('Error al cambiar estado de requisición:', err)
+      toast.error('No se pudo cambiar el estado', {
+        description: err instanceof Error ? err.message : 'Intenta de nuevo.',
+      })
+    }
   }
 
   async function handleCampoInline(
@@ -473,7 +484,14 @@ export default function RequisicionesList() {
     valor: string
   ) {
     const normalizado = valor.trim() || null
-    await editarRequisicion(id, { [campo]: normalizado })
+    try {
+      await editarRequisicion(id, { [campo]: normalizado })
+    } catch (err) {
+      console.error('Error al editar requisición:', err)
+      toast.error('No se pudo guardar el cambio', {
+        description: err instanceof Error ? err.message : 'Intenta de nuevo.',
+      })
+    }
   }
 
   async function handleEliminar(id: string, desc: string) {
@@ -1344,8 +1362,7 @@ export default function RequisicionesList() {
                           <ContextMenuSubContent className="w-48">
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(r.descripcion)
-                                toast.success('Descripción copiada')
+                                void copiarAlPortapapeles(r.descripcion, 'Descripción copiada')
                               }}
                             >
                               <span>Descripción</span>
@@ -1353,8 +1370,7 @@ export default function RequisicionesList() {
                             {r.link && (
                               <ContextMenuItem
                                 onClick={() => {
-                                  void navigator.clipboard.writeText(r.link || '')
-                                  toast.success('Enlace copiado')
+                                  void copiarAlPortapapeles(r.link || '', 'Enlace copiado')
                                 }}
                               >
                                 <span>Enlace de compra</span>
@@ -1363,8 +1379,7 @@ export default function RequisicionesList() {
                             {r.parteNumero && (
                               <ContextMenuItem
                                 onClick={() => {
-                                  void navigator.clipboard.writeText(r.parteNumero || '')
-                                  toast.success('No. parte copiado')
+                                  void copiarAlPortapapeles(r.parteNumero || '', 'No. parte copiado')
                                 }}
                               >
                                 <span>Parte # ({r.parteNumero})</span>
@@ -1373,8 +1388,7 @@ export default function RequisicionesList() {
                             {r.nota && (
                               <ContextMenuItem
                                 onClick={() => {
-                                  void navigator.clipboard.writeText(r.nota || '')
-                                  toast.success('Nota copiada')
+                                  void copiarAlPortapapeles(r.nota || '', 'Nota copiada')
                                 }}
                               >
                                 <span>Nota</span>

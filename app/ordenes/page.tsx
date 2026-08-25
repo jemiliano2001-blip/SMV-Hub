@@ -7,7 +7,16 @@ import PageHeader from '@/components/layout/PageHeader'
 import PageShell from '@/components/layout/PageShell'
 import { Button } from '@/components/ui/button'
 
-export default function OrdenesPage() {
+/** `q` siembra el buscador: /claves-sat enlaza aquí con la clave seleccionada. */
+type SearchParams = Promise<{ q?: string }>
+
+export default async function OrdenesPage({
+  searchParams,
+}: {
+  searchParams: SearchParams
+}) {
+  const { q } = await searchParams
+
   return (
     <AuthGuard>
       <PageShell>
@@ -25,7 +34,7 @@ export default function OrdenesPage() {
             </Button>
           }
         />
-        <OrdenesList />
+        <OrdenesList busquedaInicial={q} />
       </PageShell>
     </AuthGuard>
   )

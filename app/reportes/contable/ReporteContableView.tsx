@@ -30,6 +30,7 @@ import {
 import { useConfirmDialog } from "@/components/ConfirmDialogProvider"
 import ModuleSurface from "@/components/layout/ModuleSurface"
 import { toast } from "sonner"
+import { copiarAlPortapapeles } from "@/lib/portapapeles"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -812,8 +813,7 @@ export default function ReporteContableView() {
                                     {l.claveProdServ && (
                                       <ContextMenuItem
                                         onClick={() => {
-                                          void navigator.clipboard.writeText(l.claveProdServ || '')
-                                          toast.success('Clave SAT copiada')
+                                          void copiarAlPortapapeles(l.claveProdServ || '', 'Clave SAT copiada')
                                         }}
                                       >
                                         <span>Clave SAT ({l.claveProdServ})</span>
@@ -821,16 +821,14 @@ export default function ReporteContableView() {
                                     )}
                                     <ContextMenuItem
                                       onClick={() => {
-                                        void navigator.clipboard.writeText(l.proveedor)
-                                        toast.success('Proveedor copiado')
+                                        void copiarAlPortapapeles(l.proveedor, 'Proveedor copiado')
                                       }}
                                     >
                                       <span>Proveedor ({l.proveedor})</span>
                                     </ContextMenuItem>
                                     <ContextMenuItem
                                       onClick={() => {
-                                        void navigator.clipboard.writeText(descFinal)
-                                        toast.success('Descripción copiada')
+                                        void copiarAlPortapapeles(descFinal, 'Descripción copiada')
                                       }}
                                     >
                                       <span>Descripción</span>
@@ -838,8 +836,7 @@ export default function ReporteContableView() {
                                     {l.referencia && (
                                       <ContextMenuItem
                                         onClick={() => {
-                                          void navigator.clipboard.writeText(l.referencia)
-                                          toast.success('Referencia / Factura copiada')
+                                          void copiarAlPortapapeles(l.referencia, 'Referencia / Factura copiada')
                                         }}
                                       >
                                         <span>Ref. Factura ({l.referencia})</span>
@@ -847,8 +844,7 @@ export default function ReporteContableView() {
                                     )}
                                     <ContextMenuItem
                                       onClick={() => {
-                                        void navigator.clipboard.writeText(totalFormateado)
-                                        toast.success('Total copiado', { description: totalFormateado })
+                                        void copiarAlPortapapeles(totalFormateado, 'Total copiado', totalFormateado)
                                       }}
                                     >
                                       <span>Total ({totalFormateado})</span>

@@ -1,7 +1,7 @@
 import { Fragment } from "react"
 import type { Grupo } from "@/lib/reportes"
 import { Copy, ExternalLink } from "lucide-react"
-import { toast } from "sonner"
+import { copiarAlPortapapeles } from "@/lib/portapapeles"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -124,32 +124,28 @@ export default function TablaReporte({ grupos, totalGeneral, moneda }: Props) {
                         <ContextMenuSubContent className="w-48">
                           <ContextMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(linea.descripcion)
-                              toast.success('Descripción copiada')
+                              void copiarAlPortapapeles(linea.descripcion, 'Descripción copiada')
                             }}
                           >
                             <span>Descripción</span>
                           </ContextMenuItem>
                           <ContextMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(linea.proveedor)
-                              toast.success('Proveedor copiado')
+                              void copiarAlPortapapeles(linea.proveedor, 'Proveedor copiado')
                             }}
                           >
                             <span>Proveedor ({linea.proveedor})</span>
                           </ContextMenuItem>
                           <ContextMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(totalStr)
-                              toast.success('Total copiado', { description: totalStr })
+                              void copiarAlPortapapeles(totalStr, 'Total copiado', totalStr)
                             }}
                           >
                             <span>Total ({totalStr})</span>
                           </ContextMenuItem>
                           <ContextMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(subtotalStr)
-                              toast.success('Subtotal copiado')
+                              void copiarAlPortapapeles(subtotalStr, 'Subtotal copiado')
                             }}
                           >
                             <span>Subtotal ({subtotalStr})</span>
@@ -157,8 +153,7 @@ export default function TablaReporte({ grupos, totalGeneral, moneda }: Props) {
                           {linea.referencia && (
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(linea.referencia)
-                                toast.success('Referencia copiada')
+                                void copiarAlPortapapeles(linea.referencia, 'Referencia copiada')
                               }}
                             >
                               <span>Referencia ({linea.referencia})</span>
@@ -167,8 +162,7 @@ export default function TablaReporte({ grupos, totalGeneral, moneda }: Props) {
                           {linea.requisitor && (
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(linea.requisitor)
-                                toast.success('Requisitor copiado')
+                                void copiarAlPortapapeles(linea.requisitor, 'Requisitor copiado')
                               }}
                             >
                               <span>Requisitor ({linea.requisitor})</span>
@@ -178,8 +172,7 @@ export default function TablaReporte({ grupos, totalGeneral, moneda }: Props) {
                             <ContextMenuItem
                               onClick={() => {
                                 const ccDest = [linea.cuentaCargo, linea.destino].filter(Boolean).join(' / ')
-                                void navigator.clipboard.writeText(ccDest)
-                                toast.success('Cuenta / Destino copiado')
+                                void copiarAlPortapapeles(ccDest, 'Cuenta / Destino copiado')
                               }}
                             >
                               <span>Cuenta / Destino</span>

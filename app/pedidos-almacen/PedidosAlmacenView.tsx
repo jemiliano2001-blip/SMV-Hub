@@ -17,6 +17,7 @@ import {
   Eye,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import { Badge } from '@/components/ui/badge'
 import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
 import ModuleFilterChips from '@/components/layout/ModuleFilterChips'
@@ -286,16 +287,14 @@ export default function PedidosAlmacenView() {
             <ContextMenuSubContent className="w-48">
               <ContextMenuItem
                 onClick={() => {
-                  void navigator.clipboard.writeText(pedido.descripcion)
-                  toast.success('Descripción copiada')
+                  void copiarAlPortapapeles(pedido.descripcion, 'Descripción copiada')
                 }}
               >
                 <span>Descripción</span>
               </ContextMenuItem>
               <ContextMenuItem
                 onClick={() => {
-                  void navigator.clipboard.writeText(pedido.solicitadoPorNombre)
-                  toast.success('Solicitante copiado')
+                  void copiarAlPortapapeles(pedido.solicitadoPorNombre, 'Solicitante copiado')
                 }}
               >
                 <span>Solicitante ({pedido.solicitadoPorNombre})</span>
@@ -303,8 +302,7 @@ export default function PedidosAlmacenView() {
               {pedido.imagenUrl && (
                 <ContextMenuItem
                   onClick={() => {
-                    void navigator.clipboard.writeText(pedido.imagenUrl || '')
-                    toast.success('Enlace de imagen copiado')
+                    void copiarAlPortapapeles(pedido.imagenUrl || '', 'Enlace de imagen copiado')
                   }}
                 >
                   <span>Enlace de foto</span>

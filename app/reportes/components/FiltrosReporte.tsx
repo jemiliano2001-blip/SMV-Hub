@@ -1,6 +1,7 @@
 'use client'
 
 import type { CriterioAgrupacion } from "@/lib/reportes"
+import { fechaHoyLocal } from "@/lib/format"
 
 type PresetTipo = "semana" | "mes" | "personalizado"
 
@@ -19,8 +20,10 @@ type Props = {
   ocultarAgrupar?: boolean
 }
 
+// Zona local, no UTC: con `toISOString()` un `hasta` a las 23:59:59 se corría al
+// día siguiente en el input, porque en México (UTC-6) cruza la medianoche.
 function toInputDate(d: Date): string {
-  return d.toISOString().split("T")[0]
+  return fechaHoyLocal(d)
 }
 
 export default function FiltrosReporte({

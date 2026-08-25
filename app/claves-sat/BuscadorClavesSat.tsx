@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { AlertCircle, Check, Copy, Loader2, Search, ExternalLink, ShoppingCart } from "lucide-react"
-import { toast } from "sonner"
+import { copiarAlPortapapeles } from "@/lib/portapapeles"
 import { getClienteAuth } from "@/lib/firebase"
 import {
   ContextMenu,
@@ -217,8 +217,7 @@ export default function BuscadorClavesSat() {
 
                   <ContextMenuItem
                     onClick={() => {
-                      void navigator.clipboard.writeText(entry.descripcion)
-                      toast.success('Descripción SAT copiada')
+                      void copiarAlPortapapeles(entry.descripcion, 'Descripción SAT copiada')
                     }}
                   >
                     <Copy className="text-muted-foreground" />

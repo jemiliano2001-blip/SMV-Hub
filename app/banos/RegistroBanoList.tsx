@@ -12,7 +12,7 @@ import {
 import { resolverOperadorActivo } from '@/lib/banos-captura'
 import { MOTIVOS_SOLICITUD_BORRADO_BANO } from '@/lib/banos-solicitudes-borrado'
 import { Plus, Trash2, Check, Search, Pencil, Clock, Copy, CheckCircle } from 'lucide-react'
-import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { Button } from '@/components/ui/button'
 import ModuleSurface from '@/components/layout/ModuleSurface'
@@ -495,8 +495,7 @@ export default function RegistroBanoList() {
 
                         <ContextMenuItem
                           onClick={() => {
-                            void navigator.clipboard.writeText(r.operador)
-                            toast.success('Nombre copiado', { description: r.operador })
+                            void copiarAlPortapapeles(r.operador, 'Nombre copiado', r.operador)
                           }}
                         >
                           <Copy className="text-muted-foreground" />
@@ -640,8 +639,7 @@ export default function RegistroBanoList() {
 
                         <ContextMenuItem
                           onClick={() => {
-                            void navigator.clipboard.writeText(r.operador)
-                            toast.success('Nombre copiado', { description: r.operador })
+                            void copiarAlPortapapeles(r.operador, 'Nombre copiado', r.operador)
                           }}
                         >
                           <Copy className="text-muted-foreground" />

@@ -24,8 +24,53 @@ import {
 } from '@/components/ui/command'
 import { Badge } from '@/components/ui/badge'
 import { getClienteAuth } from '@/lib/firebase'
-import { formatPrecio } from '@/lib/format'
+import { formatPrecio, normalizar } from '@/lib/format'
 import type { ResultadoBusquedaSemantica } from '@/lib/busqueda-semantica-catalogo'
+
+/**
+ * Catálogo navegable de módulos para la búsqueda por texto.
+ *
+ * El menú estático de atajos solo se muestra mientras la consulta es corta, así que
+ * al escribir el tercer carácter desaparecía y quedaban únicamente los resultados
+ * semánticos — que solo indexan órdenes y proveedores. Buscar "baños", "horas
+ * extra" o "caja chica" devolvía "sin coincidencias" aunque el módulo existiera.
+ */
+const MODULOS_NAVEGABLES: ReadonlyArray<{
+  href: string
+  label: string
+  claves: string
+}> = [
+  { href: '/nueva-compra', label: 'Nueva compra', claves: 'nueva compra captura factura alta' },
+  { href: '/ordenes', label: 'Órdenes de compra', claves: 'ordenes oc historial compras' },
+  { href: '/cotizaciones', label: 'Cotizaciones', claves: 'cotizaciones cotizar precios' },
+  { href: '/requisiciones', label: 'Requisiciones', claves: 'requisiciones requis solicitudes' },
+  { href: '/proveedores', label: 'Proveedores', claves: 'proveedores catalogo comparador usa mexico' },
+  { href: '/compras-odoo', label: 'Compras Odoo', claves: 'compras odoo po rfq' },
+  { href: '/almacen', label: 'Almacén', claves: 'almacen entradas salidas materiales herramientas' },
+  { href: '/pedidos-almacen', label: 'Pedidos de almacén', claves: 'pedidos almacen piso' },
+  { href: '/endmills', label: 'Endmills China', claves: 'endmills fresas china inventario' },
+  { href: '/reportes', label: 'Reportes', claves: 'reportes kpis dashboard' },
+  { href: '/reportes/contable', label: 'Cierre contable', claves: 'contable cierre sat lotes' },
+  { href: '/claves-sat', label: 'Claves SAT', claves: 'claves sat unspsc clasificacion' },
+  { href: '/finanzas', label: 'Finanzas', claves: 'finanzas facturacion cobranza odoo' },
+  { href: '/caja-chica', label: 'Caja chica', claves: 'caja chica arqueo efectivo movimientos' },
+  { href: '/documentos-venta', label: 'Documentos de venta', claves: 'documentos venta factura remision so' },
+  { href: '/banos', label: 'Baños', claves: 'banos registro tiempos conteo' },
+  { href: '/horas-extra', label: 'Horas extra', claves: 'horas extra overtime semanal' },
+  { href: '/operadores', label: 'Operadores', claves: 'operadores personal catalogo' },
+  { href: '/gafetes', label: 'Gafetes', claves: 'gafetes credenciales badge' },
+  { href: '/notificaciones', label: 'Notificaciones', claves: 'notificaciones avisos alertas' },
+  { href: '/auditoria', label: 'Auditoría', claves: 'auditoria bitacora log' },
+  { href: '/usuarios', label: 'Usuarios y roles', claves: 'usuarios roles permisos accesos modulos' },
+]
+
+function modulosQueCoinciden(consulta: string) {
+  const q = normalizar(consulta.trim())
+  if (!q) return []
+  return MODULOS_NAVEGABLES.filter(
+    (m) => normalizar(m.label).includes(q) || normalizar(m.claves).includes(q)
+  ).slice(0, 6)
+}
 
 interface ResultadoSemanticoUI {
   item: ResultadoBusquedaSemantica
@@ -144,6 +189,7 @@ export default function BuscadorGlobalCommand() {
   }
 
   const consultaLarga = query.trim().length >= 3
+  const modulosCoincidentes = consultaLarga ? modulosQueCoinciden(query) : []
 
   return (
     <>
@@ -187,11 +233,35 @@ export default function BuscadorGlobalCommand() {
             </p>
           )}
 
-          {consultaLarga && !buscandoSemantico && !errorSemantico && resultadosSemanticos.length === 0 && (
-            <div className="mx-2 mt-2 px-3 py-2 text-xs text-slate-500 border border-dashed border-slate-200 rounded-lg">
-              La búsqueda inteligente no encontró coincidencias para &quot;{query.trim()}&quot;.
-            </div>
+          {/* Los módulos siguen alcanzables mientras se escribe: la búsqueda
+              semántica solo indexa órdenes y proveedores. */}
+          {consultaLarga && modulosCoincidentes.length > 0 && (
+            <>
+              <CommandGroup heading="Ir al módulo">
+                {modulosCoincidentes.map((m) => (
+                  <CommandItem
+                    key={m.href}
+                    onSelect={() => runCommand(() => router.push(m.href))}
+                  >
+                    <Search className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <span>{m.label}</span>
+                    <CommandShortcut>{m.href}</CommandShortcut>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+              <CommandSeparator />
+            </>
           )}
+
+          {consultaLarga &&
+            !buscandoSemantico &&
+            !errorSemantico &&
+            resultadosSemanticos.length === 0 &&
+            modulosCoincidentes.length === 0 && (
+              <div className="mx-2 mt-2 px-3 py-2 text-xs text-slate-500 border border-dashed border-slate-200 rounded-lg">
+                La búsqueda inteligente no encontró coincidencias para &quot;{query.trim()}&quot;.
+              </div>
+            )}
 
           {errorSemantico && (
             <div className="flex items-center justify-between gap-2 mx-2 mt-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">

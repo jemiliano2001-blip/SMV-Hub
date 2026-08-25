@@ -37,7 +37,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Search, Filter, RefreshCw, UserCheck, Layers, Tag, Copy, User, Folder } from 'lucide-react'
-import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 
 interface LogAuditoria {
   id: string
@@ -435,8 +435,7 @@ export default function AuditoriaPage() {
                             {log.idDoc && (
                               <ContextMenuItem
                                 onClick={() => {
-                                  void navigator.clipboard.writeText(log.idDoc!)
-                                  toast.success('ID de documento copiado')
+                                  void copiarAlPortapapeles(log.idDoc!, 'ID de documento copiado')
                                 }}
                               >
                                 <span>ID Doc ({log.idDoc})</span>
@@ -445,8 +444,7 @@ export default function AuditoriaPage() {
                             {log.resumen && (
                               <ContextMenuItem
                                 onClick={() => {
-                                  void navigator.clipboard.writeText(log.resumen!)
-                                  toast.success('Resumen copiado')
+                                  void copiarAlPortapapeles(log.resumen!, 'Resumen copiado')
                                 }}
                               >
                                 <span>Resumen</span>
@@ -455,8 +453,7 @@ export default function AuditoriaPage() {
                             {log.emailUsuario && (
                               <ContextMenuItem
                                 onClick={() => {
-                                  void navigator.clipboard.writeText(log.emailUsuario!)
-                                  toast.success('Usuario copiado')
+                                  void copiarAlPortapapeles(log.emailUsuario!, 'Usuario copiado')
                                 }}
                               >
                                 <span>Usuario ({log.emailUsuario})</span>
@@ -465,8 +462,7 @@ export default function AuditoriaPage() {
                             {fechaTexto && (
                               <ContextMenuItem
                                 onClick={() => {
-                                  void navigator.clipboard.writeText(fechaTexto)
-                                  toast.success('Fecha y hora copiada')
+                                  void copiarAlPortapapeles(fechaTexto, 'Fecha y hora copiada')
                                 }}
                               >
                                 <span>Fecha y hora</span>

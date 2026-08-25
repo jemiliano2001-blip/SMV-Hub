@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Bell } from 'lucide-react'
+import { Bell, Monitor, Volume2, VolumeX } from 'lucide-react'
 import { toast } from 'sonner'
 import { useNotificaciones } from '@/lib/hooks/useNotificaciones'
+import { useDesktopNotificaciones } from '@/lib/hooks/useDesktopNotificaciones'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
 import { hrefSeguroNotificacion } from '@/lib/notificaciones'
@@ -27,6 +28,7 @@ export default function NotificacionesBell() {
   )
   const visible = authBypassActivo() || puedeVerNotificaciones(modulos)
   const {
+    items,
     paraDropdown,
     noLeidas,
     marcarLeida,
@@ -41,6 +43,18 @@ export default function NotificacionesBell() {
     esSuperAdmin,
     atiendeDocumentosVenta,
   })
+
+  const {
+    permiso,
+    sonidoActivo,
+    toggleSonido,
+    solicitarPermiso,
+  } = useDesktopNotificaciones({
+    items,
+    noLeidas,
+    enabled: visible && !cargandoPermisos,
+  })
+
   const [abierto, setAbierto] = useState(false)
   const [marcandoTodas, setMarcandoTodas] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -88,6 +102,15 @@ export default function NotificacionesBell() {
     }
   }
 
+  async function onActivarEscritorio() {
+    const res = await solicitarPermiso()
+    if (res === 'granted') {
+      toast.success('Avisos de escritorio activados para Windows / PC')
+    } else if (res === 'denied') {
+      toast.error('Permiso denegado en el navegador. Habilítalo en la barra de direcciones.')
+    }
+  }
+
   return (
     <div ref={ref} className="relative">
       <button
@@ -108,9 +131,23 @@ export default function NotificacionesBell() {
       {abierto && (
         <div className="absolute right-0 z-50 mt-1.5 w-80 animate-in fade-in-50 zoom-in-95 overflow-hidden rounded-lg border border-border bg-card shadow-md duration-100">
           <div className="flex items-center justify-between border-b border-border px-3 py-2">
-            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Notificaciones
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Notificaciones
+              </span>
+              <button
+                type="button"
+                onClick={toggleSonido}
+                title={sonidoActivo ? 'Silenciar sonido' : 'Activar sonido'}
+                className="cursor-pointer rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                {sonidoActivo ? (
+                  <Volume2 className="h-3.5 w-3.5 text-primary" />
+                ) : (
+                  <VolumeX className="h-3.5 w-3.5 text-muted-foreground/60" />
+                )}
+              </button>
+            </div>
             {noLeidas > 0 && (
               <button
                 type="button"
@@ -122,6 +159,22 @@ export default function NotificacionesBell() {
               </button>
             )}
           </div>
+
+          {permiso === 'default' && (
+            <div className="flex items-center justify-between gap-2 border-b border-sky-200 bg-sky-50/70 px-3 py-2 text-[11px] text-sky-900">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Monitor className="h-3.5 w-3.5 shrink-0 text-sky-600" />
+                <span className="truncate">¿Activar avisos en Windows?</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => void onActivarEscritorio()}
+                className="shrink-0 cursor-pointer rounded bg-sky-600 px-2 py-0.5 text-[10px] font-bold text-white hover:bg-sky-700"
+              >
+                Activar
+              </button>
+            </div>
+          )}
 
           {error && (
             <div className="flex items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-3 py-2 text-[10px] text-amber-800">

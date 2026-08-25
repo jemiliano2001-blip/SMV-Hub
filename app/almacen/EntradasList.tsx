@@ -5,6 +5,7 @@ import type { EntradaAlmacen } from '@/lib/schemas'
 import { fechaHoyLocal } from '@/lib/format'
 import { Plus, Trash2, Search, Copy, CheckCircle2, Clock, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { Button } from '@/components/ui/button'
 import ModuleSurface from '@/components/layout/ModuleSurface'
@@ -134,6 +135,9 @@ export default function EntradasList() {
       setCantidad('')
     } catch (err) {
       console.error('Error agregando entrada:', err)
+      toast.error('No se pudo agregar la entrada', {
+        description: err instanceof Error ? err.message : 'Intenta de nuevo.',
+      })
     } finally {
       setAgregando(false)
     }
@@ -151,6 +155,9 @@ export default function EntradasList() {
       await borrarEntrada(id)
     } catch (err) {
       console.error('Error eliminando entrada:', err)
+      toast.error('No se pudo eliminar la entrada', {
+        description: err instanceof Error ? err.message : 'Intenta de nuevo.',
+      })
     }
   }
 
@@ -159,6 +166,9 @@ export default function EntradasList() {
       await editarEntrada(id, { estatus: ESTATUS_NEXT[actual] })
     } catch (err) {
       console.error('Error cambiando estatus:', err)
+      toast.error('No se pudo cambiar el estatus', {
+        description: err instanceof Error ? err.message : 'Intenta de nuevo.',
+      })
     }
   }
 
@@ -350,32 +360,28 @@ export default function EntradasList() {
                         <ContextMenuSubContent className="w-48">
                           <ContextMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(e.descripcion)
-                              toast.success('Descripción copiada')
+                              void copiarAlPortapapeles(e.descripcion, 'Descripción copiada')
                             }}
                           >
                             <span>Descripción</span>
                           </ContextMenuItem>
                           <ContextMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(e.cantidad)
-                              toast.success('Cantidad copiada')
+                              void copiarAlPortapapeles(e.cantidad, 'Cantidad copiada')
                             }}
                           >
                             <span>Cantidad ({e.cantidad})</span>
                           </ContextMenuItem>
                           <ContextMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(e.cargoA)
-                              toast.success('Cargo / Stock copiado')
+                              void copiarAlPortapapeles(e.cargoA, 'Cargo / Stock copiado')
                             }}
                           >
                             <span>Cargo a ({e.cargoA})</span>
                           </ContextMenuItem>
                           <ContextMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(e.recibio)
-                              toast.success('Recibió copiado')
+                              void copiarAlPortapapeles(e.recibio, 'Recibió copiado')
                             }}
                           >
                             <span>Recibió ({e.recibio})</span>

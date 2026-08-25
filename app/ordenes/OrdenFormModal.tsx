@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Loader2, Plus, Trash2, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import ModuleSurface from '@/components/layout/ModuleSurface'
@@ -14,7 +14,8 @@ import {
 import type { OrdenCompra, EstadoOrden, ItemFactura, Proveedor } from '@/lib/schemas'
 import { sincronizarCamposLegacyOrden } from '@/lib/schemas'
 import type { NuevaOrdenPayload } from '@/lib/ordenes'
-import { crearOrden, actualizarOrden } from '@/lib/ordenes'
+import { crearOrden, actualizarOrden, buscarPorFacturaYProveedor } from '@/lib/ordenes'
+import { esOrdenDuplicada } from '@/lib/importar'
 import { getClienteAuth } from '@/lib/firebase'
 import { obtenerProveedores } from '@/lib/proveedores'
 
@@ -114,6 +115,48 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
     return catalogoProveedores.find((p) => p.nombre === formData.proveedor)?.id ?? null
   }, [formData.proveedor, catalogoProveedores, nombreProveedorInicial, ordenBase])
 
+  // Misma regla de negocio que /nueva-compra: duplicado = numeroFactura + proveedor
+  // (case-insensitive). Este modal es el segundo camino de creación de órdenes y
+  // durante mucho tiempo no la aplicaba, así que se podía capturar la misma
+  // factura dos veces. Al editar se ignora la propia orden.
+  const [duplicadoDetectado, setDuplicadoDetectado] = useState<string | null>(null)
+  const [verificandoDuplicado, setVerificandoDuplicado] = useState(false)
+
+  const verificarDuplicado = useCallback(
+    async (proveedor: string, numeroFactura: string) => {
+      const nf = numeroFactura.trim()
+      const prov = proveedor.trim()
+      if (!nf || !prov) {
+        setDuplicadoDetectado(null)
+        return
+      }
+      setVerificandoDuplicado(true)
+      try {
+        const existentes = await buscarPorFacturaYProveedor([
+          { numeroFactura: nf, proveedor: prov },
+        ])
+        const ajenas = existentes.filter((o) => o.id !== ordenBase?.id)
+        setDuplicadoDetectado(
+          esOrdenDuplicada(nf, prov, ajenas) ? `${prov} / factura ${nf}` : null
+        )
+      } catch (err) {
+        // Un fallo de red no debe bloquear la captura: se registra y se deja pasar.
+        console.error('Error verificando factura duplicada:', err)
+        setDuplicadoDetectado(null)
+      } finally {
+        setVerificandoDuplicado(false)
+      }
+    },
+    [ordenBase?.id]
+  )
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void verificarDuplicado(formData.proveedor, formData.numeroFactura)
+    }, 400)
+    return () => window.clearTimeout(timer)
+  }, [formData.proveedor, formData.numeroFactura, verificarDuplicado])
+
   const handleScrape = async (index: number) => {
     const url = formData.items[index].url
     if (!url) {
@@ -170,6 +213,12 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (duplicadoDetectado) {
+      setError(
+        `Ya existe una orden de ${duplicadoDetectado}. Corrige el número de factura o el proveedor.`
+      )
+      return
+    }
     setLoading(true)
     setError(null)
 
@@ -302,6 +351,14 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">N° Factura</label>
                 <input value={formData.numeroFactura} onChange={e => setFormData({ ...formData, numeroFactura: e.target.value })} className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" />
+                {duplicadoDetectado && (
+                  <p className="mt-1 text-xs font-semibold text-destructive">
+                    Ya existe una orden de {duplicadoDetectado}.
+                  </p>
+                )}
+                {verificandoDuplicado && !duplicadoDetectado && (
+                  <p className="mt-1 text-xs text-muted-foreground">Verificando duplicados…</p>
+                )}
               </div>
             </div>
 
@@ -366,7 +423,7 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
           <Button variant="outline" onClick={onClose} type="button">
             Cancelar
           </Button>
-          <Button type="submit" form="orden-form" disabled={loading}>
+          <Button type="submit" form="orden-form" disabled={loading || duplicadoDetectado !== null}>
             {loading ? <Loader2 className="animate-spin" data-icon="inline-start" /> : null}
             {ordenBase ? 'Guardar cambios' : 'Crear orden'}
           </Button>

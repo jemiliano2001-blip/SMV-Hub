@@ -22,7 +22,7 @@ import OrdenDetallesModal from './components/OrdenDetallesModal'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { toast } from 'sonner'
 
-export default function OrdenesList() {
+export default function OrdenesList({ busquedaInicial }: { busquedaInicial?: string } = {}) {
   const confirmar = useConfirmDialog()
   const {
     ordenes,
@@ -45,7 +45,7 @@ export default function OrdenesList() {
   const [selectedOrden, setSelectedOrden] = useState<OrdenCompra | null>(null)
   
   // States para búsqueda y filtrado
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(busquedaInicial ?? '')
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoOrden | 'todos'>('todos')
 
   const [colFiltros, setColFiltros] = useState({

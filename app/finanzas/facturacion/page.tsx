@@ -6,7 +6,7 @@ import PageShell from "@/components/layout/PageShell"
 import ModuleSurface from "@/components/layout/ModuleSurface"
 import { useMemo, useState } from "react"
 import { Loader2, AlertCircle, Copy, ExternalLink } from "lucide-react"
-import { toast } from "sonner"
+import { copiarAlPortapapeles } from "@/lib/portapapeles"
 import { useFinanzasFacturas } from "@/lib/hooks/useFinanzasFacturas"
 import {
   monedasPresentes,
@@ -201,40 +201,35 @@ function FacturacionPorCliente() {
                           <ContextMenuSubContent className="w-48">
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(g.cliente)
-                                toast.success('Cliente copiado')
+                                void copiarAlPortapapeles(g.cliente, 'Cliente copiado')
                               }}
                             >
                               <span>Cliente ({g.cliente})</span>
                             </ContextMenuItem>
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(totalStr)
-                                toast.success('Total facturado copiado', { description: totalStr })
+                                void copiarAlPortapapeles(totalStr, 'Total facturado copiado', totalStr)
                               }}
                             >
                               <span>Total ({totalStr})</span>
                             </ContextMenuItem>
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(subtotalStr)
-                                toast.success('Subtotal copiado')
+                                void copiarAlPortapapeles(subtotalStr, 'Subtotal copiado')
                               }}
                             >
                               <span>Subtotal ({subtotalStr})</span>
                             </ContextMenuItem>
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(`${g.facturas.length} facturas`)
-                                toast.success('Cantidad de facturas copiada')
+                                void copiarAlPortapapeles(`${g.facturas.length} facturas`, 'Cantidad de facturas copiada')
                               }}
                             >
                               <span>No. Facturas ({g.facturas.length})</span>
                             </ContextMenuItem>
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(pctStr)
-                                toast.success('Porcentaje copiado')
+                                void copiarAlPortapapeles(pctStr, 'Porcentaje copiado')
                               }}
                             >
                               <span>Porcentaje ({pctStr})</span>

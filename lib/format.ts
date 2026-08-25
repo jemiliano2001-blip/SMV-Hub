@@ -45,6 +45,20 @@ export function fechaHoyLocal(date: Date = new Date()): string {
   return `${y}-${m}-${d}`
 }
 
+/**
+ * Inverso de `fechaHoyLocal`: convierte YYYY-MM-DD a un Date a medianoche **local**.
+ *
+ * `new Date("2026-08-01")` interpreta el string como medianoche UTC, que en México
+ * (UTC-6) cae el 31 de julio a las 18:00 — un día antes. Eso saca la orden del
+ * reporte de su propio mes. Devuelve null si el string no tiene el formato esperado.
+ */
+export function parseFechaLocal(fecha: string | null | undefined): Date | null {
+  if (!fecha) return null
+  const m = fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!m) return null
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+}
+
 /** HH:mm en zona local del cliente. */
 export function horaAhoraLocal(date: Date = new Date()): string {
   const h = String(date.getHours()).padStart(2, "0")

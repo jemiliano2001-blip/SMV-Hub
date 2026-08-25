@@ -203,3 +203,47 @@ describe("reglas de firestore para el índice de búsqueda semántica", () => {
     expect(syncState).toMatch(/allow read, write: if false;/)
   })
 })
+
+describe("reglas de alcance por módulo en colecciones operativas", () => {
+  const reglas = () => readFileSync(resolve(raiz, "firestore.rules"), "utf8")
+
+  const bloque = (patron: RegExp) => reglas().match(patron)?.[1]
+
+  it("expone tieneAlgunModulo respetando documentos legacy sin modulos[]", () => {
+    const fn = reglas().match(/function tieneAlgunModulo\(modulos\) \{([\s\S]*?)\n    \}/)?.[1]
+    expect(fn).toBeTruthy()
+    expect(fn).toMatch(/docUsuario\(\)\.modulos\.hasAny\(modulos\)/)
+    // Un usuario aún no migrado no debe quedar bloqueado por el corte.
+    expect(fn).toMatch(/!docUsuario\(\)\.keys\(\)\.hasAny\(\['modulos'\]\)/)
+  })
+
+  it("cierra la lectura de órdenes a los módulos que realmente las consumen", () => {
+    const ordenes = bloque(/match \/ordenes\/\{ordenId\} \{([\s\S]*?)\n    \}/)
+    expect(ordenes).toBeTruthy()
+    expect(ordenes).not.toMatch(/allow read: if esUsuarioAutorizado\(\);/)
+    expect(ordenes).toMatch(/allow read:[\s\S]*?tieneAlgunModulo\(\[/)
+    // requisiciones genera OC pero no lee la colección.
+    expect(ordenes).toMatch(/allow create:[\s\S]*?'requisiciones'/)
+  })
+
+  it("cierra la lectura de cotizaciones, requisiciones, operadores y baños", () => {
+    for (const patron of [
+      /match \/cotizaciones\/\{cotizacionId\} \{([\s\S]*?)\n    \}/,
+      /match \/requisiciones\/\{requisicionId\} \{([\s\S]*?)\n    \}/,
+      /match \/operadores\/\{operadorId\} \{([\s\S]*?)\n    \}/,
+      /match \/registros-bano\/\{banoId\} \{([\s\S]*?)\n    \}/,
+    ]) {
+      const b = bloque(patron)
+      expect(b).toBeTruthy()
+      expect(b).not.toMatch(/allow read: if esUsuarioAutorizado\(\);/)
+      expect(b).toMatch(/allow read:[\s\S]*?tieneAlgunModulo\(\[/)
+    }
+  })
+
+  it("conserva la lectura abierta de horas extra (solo la escritura está acotada)", () => {
+    // Regla de negocio explícita: diseño y todos los demás son solo lectura,
+    // pero sí pueden leer. No convertir esto en un gate por módulo.
+    const b = bloque(/match \/horas-extra\/\{horaId\} \{([\s\S]*?)\n    \}/)
+    expect(b).toMatch(/allow read: if esUsuarioAutorizado\(\);/)
+  })
+})

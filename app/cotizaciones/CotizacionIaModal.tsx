@@ -43,7 +43,7 @@ import {
 } from '@/lib/cotizaciones'
 import type { Cotizacion, EstatusCotizacion, Proveedor, Ubicacion } from '@/lib/schemas'
 import type { CotizacionExtraidaItem, ExtraccionCotizacionMulti } from '@/lib/cotizaciones-extraer-ia'
-import { formatPrecio } from '@/lib/format'
+import { fechaHoyLocal, formatPrecio } from '@/lib/format'
 
 interface CotizacionIaModalProps {
   open: boolean
@@ -92,7 +92,7 @@ export default function CotizacionIaModal({
   // Metadatos generales
   const [generalData, setGeneralData] = useState(() => ({
     solicitante: obtenerSolicitanteInicial(),
-    fecha: new Date().toISOString().slice(0, 10),
+    fecha: fechaHoyLocal(),
     estatus: 'cotizado' as EstatusCotizacion,
     ubicacion: 'USA' as Ubicacion,
     moneda: 'USD' as 'USD' | 'MXN',
@@ -421,7 +421,7 @@ export default function CotizacionIaModal({
       const payloads: NuevaCotizacionPayload[] = partidasSeleccionadas.map((p) => {
         return {
           solicitante: generalData.solicitante.trim() || 'General',
-          fecha: generalData.fecha || new Date().toISOString().slice(0, 10),
+          fecha: generalData.fecha || fechaHoyLocal(),
           estatus: generalData.estatus,
           ubicacion: generalData.ubicacion,
           moneda: generalData.moneda,
@@ -438,24 +438,36 @@ export default function CotizacionIaModal({
         }
       })
 
-      // Verificar duplicados
+      // Verificar duplicados. Antes solo se bloqueaba el caso de una sola partida
+      // (`payloads.length === 1`), así que re-procesar un screenshot multi-partida
+      // creaba N cotizaciones duplicadas sin ningún aviso. Ahora se descartan las
+      // repetidas y se guardan únicamente las nuevas.
       const duplicados = payloads.filter((pay) => existentes.has(claveDedupCotizacion(pay)))
-      if (duplicados.length === payloads.length && payloads.length === 1) {
-        setError('Ya existe una cotización idéntica con el mismo proveedor, descripción y fecha.')
+      const nuevos = payloads.filter((pay) => !existentes.has(claveDedupCotizacion(pay)))
+
+      if (nuevos.length === 0) {
+        setError(
+          payloads.length === 1
+            ? 'Ya existe una cotización idéntica con el mismo proveedor, descripción y fecha.'
+            : `Las ${payloads.length} partidas ya existen con el mismo proveedor, descripción y fecha.`
+        )
         setGuardando(false)
         return
       }
 
-      await crearCotizacionesLote(payloads)
+      await crearCotizacionesLote(nuevos)
       toast.success(
-        payloads.length === 1
+        nuevos.length === 1
           ? 'Cotización guardada exitosamente'
-          : `¡${payloads.length} cotizaciones guardadas exitosamente!`
+          : `¡${nuevos.length} cotizaciones guardadas exitosamente!`,
+        duplicados.length > 0
+          ? { description: `Se omitieron ${duplicados.length} por estar duplicadas.` }
+          : undefined
       )
 
       // Emitir evento con el primer item creado para refrescar vistas
       const cotizacionRetorno: Cotizacion = {
-        ...payloads[0],
+        ...nuevos[0],
         id: `gen-${Date.now()}`,
         llavePieza: null,
         creadoEn: new Date(),

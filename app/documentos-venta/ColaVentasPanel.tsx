@@ -3,7 +3,7 @@
 import type { SolicitudDocumento } from '@/lib/schemas'
 import { ordenCompraSolicitud } from '@/lib/documentos-venta-helpers'
 import { Inbox, MessageSquare, Copy } from 'lucide-react'
-import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -98,8 +98,7 @@ export default function ColaVentasPanel({
                     <ContextMenuSubContent className="w-48">
                       <ContextMenuItem
                         onClick={() => {
-                          void navigator.clipboard.writeText(s.partnerName)
-                          toast.success('Cliente copiado')
+                          void copiarAlPortapapeles(s.partnerName, 'Cliente copiado')
                         }}
                       >
                         <span>Cliente ({s.partnerName})</span>
@@ -107,8 +106,7 @@ export default function ColaVentasPanel({
                       {oc && (
                         <ContextMenuItem
                           onClick={() => {
-                            void navigator.clipboard.writeText(oc)
-                            toast.success('Orden de compra copiada')
+                            void copiarAlPortapapeles(oc, 'Orden de compra copiada')
                           }}
                         >
                           <span>Orden Compra ({oc})</span>
@@ -116,16 +114,14 @@ export default function ColaVentasPanel({
                       )}
                       <ContextMenuItem
                         onClick={() => {
-                          void navigator.clipboard.writeText(s.odooSoName)
-                          toast.success('Folio SO copiado')
+                          void copiarAlPortapapeles(s.odooSoName, 'Folio SO copiado')
                         }}
                       >
                         <span>Folio SO ({s.odooSoName})</span>
                       </ContextMenuItem>
                       <ContextMenuItem
                         onClick={() => {
-                          void navigator.clipboard.writeText(s.solicitadoPorNombre)
-                          toast.success('Solicitante copiado')
+                          void copiarAlPortapapeles(s.solicitadoPorNombre, 'Solicitante copiado')
                         }}
                       >
                         <span>Solicitante ({s.solicitadoPorNombre})</span>

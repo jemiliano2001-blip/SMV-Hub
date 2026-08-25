@@ -19,7 +19,7 @@ import {
   Sparkles,
   Filter,
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import AuthGuard from '../AuthGuard'
 import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
 import ModuleFilterChips from '@/components/layout/ModuleFilterChips'
@@ -1225,24 +1225,21 @@ function UsuariosContent() {
                             <ContextMenuSubContent className="w-48">
                               <ContextMenuItem
                                 onClick={() => {
-                                  void navigator.clipboard.writeText(u.email)
-                                  toast.success('Correo copiado')
+                                  void copiarAlPortapapeles(u.email, 'Correo copiado')
                                 }}
                               >
                                 <span>Correo ({u.email})</span>
                               </ContextMenuItem>
                               <ContextMenuItem
                                 onClick={() => {
-                                  void navigator.clipboard.writeText(u.id)
-                                  toast.success('UID copiado')
+                                  void copiarAlPortapapeles(u.id, 'UID copiado')
                                 }}
                               >
                                 <span>UID ({u.id})</span>
                               </ContextMenuItem>
                               <ContextMenuItem
                                 onClick={() => {
-                                  void navigator.clipboard.writeText(u.plantilla)
-                                  toast.success('Plantilla copiada')
+                                  void copiarAlPortapapeles(u.plantilla, 'Plantilla copiada')
                                 }}
                               >
                                 <span>Plantilla ({u.plantilla})</span>
@@ -1250,8 +1247,7 @@ function UsuariosContent() {
                               {u.operadorNombre && (
                                 <ContextMenuItem
                                   onClick={() => {
-                                    void navigator.clipboard.writeText(u.operadorNombre || '')
-                                    toast.success('Operador copiado')
+                                    void copiarAlPortapapeles(u.operadorNombre || '', 'Operador copiado')
                                   }}
                                 >
                                   <span>Operador ({u.operadorNombre})</span>

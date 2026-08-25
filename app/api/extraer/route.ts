@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server"
-import { verificarUsuarioAutorizado } from "@/lib/api-auth"
+import { verificarModulo } from "@/lib/api-auth"
 import { extraerFactura, esMediaTypeValido, ErrorIA } from "@/lib/extraer-ia"
 
 export const runtime = "nodejs"
@@ -9,7 +9,7 @@ export const maxDuration = 120
 const MAX_BYTES_IMAGEN = 10 * 1024 * 1024
 
 export async function POST(req: NextRequest) {
-  const auth = await verificarUsuarioAutorizado(req)
+  const auth = await verificarModulo(req, ["nueva-compra", "ordenes"], "No tienes acceso a la captura de compras")
   if (!auth.ok) return auth.response
 
   // 1. Leer la imagen del form

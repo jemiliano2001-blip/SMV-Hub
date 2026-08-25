@@ -8,6 +8,8 @@ const { mockExtraerFactura, mockVerificarUsuarioAutorizado } = vi.hoisted(() => 
 
 vi.mock("@/lib/api-auth", () => ({
   verificarUsuarioAutorizado: mockVerificarUsuarioAutorizado,
+  // La ruta ahora exige módulo; el mock cubre ambas puertas de entrada.
+  verificarModulo: mockVerificarUsuarioAutorizado,
 }))
 
 vi.mock("@/lib/extraer-ia", async (importOriginal) => {

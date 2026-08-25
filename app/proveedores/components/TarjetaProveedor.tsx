@@ -8,7 +8,7 @@ import {
   Copy,
   Eye,
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { Proveedor } from '@/lib/schemas'
@@ -126,8 +126,7 @@ export default function TarjetaProveedor({
           <ContextMenuSubContent className="w-48">
             <ContextMenuItem
               onClick={() => {
-                void navigator.clipboard.writeText(proveedor.nombre)
-                toast.success('Nombre copiado')
+                void copiarAlPortapapeles(proveedor.nombre, 'Nombre copiado')
               }}
             >
               <span>Nombre ({proveedor.nombre})</span>
@@ -135,8 +134,7 @@ export default function TarjetaProveedor({
             {proveedor.email && (
               <ContextMenuItem
                 onClick={() => {
-                  void navigator.clipboard.writeText(proveedor.email || '')
-                  toast.success('Email copiado')
+                  void copiarAlPortapapeles(proveedor.email || '', 'Email copiado')
                 }}
               >
                 <span>Email ({proveedor.email})</span>
@@ -145,8 +143,7 @@ export default function TarjetaProveedor({
             {proveedor.telefono && (
               <ContextMenuItem
                 onClick={() => {
-                  void navigator.clipboard.writeText(proveedor.telefono || '')
-                  toast.success('Teléfono copiado')
+                  void copiarAlPortapapeles(proveedor.telefono || '', 'Teléfono copiado')
                 }}
               >
                 <span>Teléfono ({proveedor.telefono})</span>

@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { verificarUsuarioAutorizado } from "@/lib/api-auth"
+import { verificarModulo } from "@/lib/api-auth"
 import { extraerOrdenCompraClienteIA } from "@/lib/documentos-venta-lector-ia"
 import { ErrorIA } from "@/lib/extraer-ia"
 
 export const runtime = "nodejs"
+// Alineado con `frameworksBackend` de Hosting (1GiB, 120s) igual que las demás
+// rutas de extracción con IA: sin esto, un PDF pesado revienta con "Failed to fetch".
+export const maxDuration = 120
 
 const ExtraerPoBodySchema = z.object({
   base64: z.string().min(1, "El archivo en base64 no puede estar vacío"),
@@ -18,7 +21,7 @@ const ExtraerPoBodySchema = z.object({
 })
 
 export async function POST(req: NextRequest) {
-  const auth = await verificarUsuarioAutorizado(req)
+  const auth = await verificarModulo(req, ["documentos-venta"], "No tienes acceso a documentos de venta")
   if (!auth.ok) {
     return auth.response
   }

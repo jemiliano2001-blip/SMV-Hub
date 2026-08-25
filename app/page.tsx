@@ -46,7 +46,7 @@ import {
   Copy,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -450,8 +450,7 @@ function TarjetaAcceso({
         <ContextMenuItem
           onClick={() => {
             const urlCompleta = esExterna ? href : `${window.location.origin}${href}`
-            void navigator.clipboard.writeText(urlCompleta)
-            toast.success('Enlace directo copiado', { description: urlCompleta })
+            void copiarAlPortapapeles(urlCompleta, 'Enlace directo copiado', urlCompleta)
           }}
         >
           <Copy className="text-muted-foreground" />
@@ -460,8 +459,7 @@ function TarjetaAcceso({
 
         <ContextMenuItem
           onClick={() => {
-            void navigator.clipboard.writeText(label)
-            toast.success('Nombre del módulo copiado', { description: label })
+            void copiarAlPortapapeles(label, 'Nombre del módulo copiado', label)
           }}
         >
           <Copy className="text-muted-foreground" />

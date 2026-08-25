@@ -21,6 +21,7 @@ import ModalMovimientoCaja from './ModalMovimientoCaja'
 import type { MovimientoCajaChica } from '@/lib/schemas'
 import { listarCortesCaja, type CorteCaja, type ModoFiltroCaja } from '@/lib/caja-chica'
 import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import { Button } from '@/components/ui/button'
 import ModuleSurface from '@/components/layout/ModuleSurface'
 import {
@@ -184,8 +185,7 @@ function MovimientoRow({ m, onVerificar, onEditar, onBorrar }: AccionesMovimient
           <ContextMenuSubContent className="w-48">
             <ContextMenuItem
               onClick={() => {
-                void navigator.clipboard.writeText(m.descripcion)
-                toast.success('Descripción copiada')
+                void copiarAlPortapapeles(m.descripcion, 'Descripción copiada')
               }}
             >
               <span>Descripción</span>
@@ -193,16 +193,14 @@ function MovimientoRow({ m, onVerificar, onEditar, onBorrar }: AccionesMovimient
             <ContextMenuItem
               onClick={() => {
                 const montoTxt = formatearDinero(m.monto)
-                void navigator.clipboard.writeText(montoTxt)
-                toast.success('Monto copiado', { description: montoTxt })
+                void copiarAlPortapapeles(montoTxt, 'Monto copiado', montoTxt)
               }}
             >
               <span>Monto ({formatearDinero(m.monto)})</span>
             </ContextMenuItem>
             <ContextMenuItem
               onClick={() => {
-                void navigator.clipboard.writeText(m.solicitante)
-                toast.success('Solicitante copiado')
+                void copiarAlPortapapeles(m.solicitante, 'Solicitante copiado')
               }}
             >
               <span>Solicitante ({m.solicitante})</span>
@@ -210,8 +208,7 @@ function MovimientoRow({ m, onVerificar, onEditar, onBorrar }: AccionesMovimient
             {m.proveedor && (
               <ContextMenuItem
                 onClick={() => {
-                  void navigator.clipboard.writeText(m.proveedor || '')
-                  toast.success('Proveedor copiado')
+                  void copiarAlPortapapeles(m.proveedor || '', 'Proveedor copiado')
                 }}
               >
                 <span>Proveedor ({m.proveedor})</span>

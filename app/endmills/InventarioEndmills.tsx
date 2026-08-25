@@ -20,6 +20,7 @@ import {
   Package,
 } from "lucide-react"
 import { toast } from "sonner"
+import { copiarAlPortapapeles } from "@/lib/portapapeles"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -593,24 +594,21 @@ export default function InventarioEndmills({
                       <ContextMenuSubContent className="w-48">
                         <ContextMenuItem
                           onClick={() => {
-                            void navigator.clipboard.writeText(`${medida.medidaPulgadas}"`)
-                            toast.success('Medida copiada')
+                            void copiarAlPortapapeles(`${medida.medidaPulgadas}"`, 'Medida copiada')
                           }}
                         >
                           <span>Medida ({medida.medidaPulgadas}&quot;)</span>
                         </ContextMenuItem>
                         <ContextMenuItem
                           onClick={() => {
-                            void navigator.clipboard.writeText(medida.descripcion)
-                            toast.success('Descripción copiada')
+                            void copiarAlPortapapeles(medida.descripcion, 'Descripción copiada')
                           }}
                         >
                           <span>Descripción</span>
                         </ContextMenuItem>
                         <ContextMenuItem
                           onClick={() => {
-                            void navigator.clipboard.writeText(medida.specPropuesta)
-                            toast.success('Spec propuesta copiada')
+                            void copiarAlPortapapeles(medida.specPropuesta, 'Spec propuesta copiada')
                           }}
                         >
                           <span>Especificación</span>

@@ -9,6 +9,7 @@ import {
   detalleSemanasCsv,
 } from '@/lib/horas-extra-resumen'
 import type { Departamento } from '@/lib/schemas'
+import { fechaHoyLocal } from '@/lib/format'
 import { Clock, Search, Download, Printer } from 'lucide-react'
 import {
   Table,
@@ -31,7 +32,7 @@ interface Props {
 }
 
 export default function ResumenMensual({ departamento }: Props) {
-  const [mes, setMes] = useState(() => new Date().toISOString().slice(0, 7))
+  const [mes, setMes] = useState(() => fechaHoyLocal().slice(0, 7))
   const [busqueda, setBusqueda] = useState('')
 
   const { registros, loading, error } = useHorasExtraMensual(mes, departamento)

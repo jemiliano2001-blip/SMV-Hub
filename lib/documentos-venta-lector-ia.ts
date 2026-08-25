@@ -268,7 +268,13 @@ export function emparejarConVentasOdoo(
           partidasSugeridas.push({
             odooLineId: lineaSo.odooLineId,
             productName: lineaSo.productName,
-            qtySolicitada: Math.min(partCliente.cantidad, lineaSo.qtyPending || partCliente.cantidad),
+            // `qtyPending || cantidad` caía al fallback cuando la línea ya está
+            // totalmente facturada (qtyPending === 0), sugiriendo una cantidad
+            // que después `validarPartidasRemision` rechaza por exceder el max.
+            qtySolicitada:
+              lineaSo.qtyPending > 0
+                ? Math.min(partCliente.cantidad, lineaSo.qtyPending)
+                : 0,
           })
           break
         }

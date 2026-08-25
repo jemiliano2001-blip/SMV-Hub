@@ -95,12 +95,24 @@ describe("filtrarPorRango", () => {
   })
 
   it("incluye órdenes exactamente en los límites del rango (inclusive)", () => {
-    const desde = new Date("2026-06-01")
-    const hasta = new Date("2026-06-30")
+    // Límites construidos en zona local, igual que `periodoPreset` y el selector
+    // de fechas de la UI. `new Date("2026-06-01")` sería medianoche UTC.
+    const desde = new Date(2026, 5, 1)
+    const hasta = new Date(2026, 5, 30)
     const ordenInicio = makeOrden({ id: "a", fechaFactura: "2026-06-01" })
     const ordenFin = makeOrden({ id: "b", fechaFactura: "2026-06-30" })
     const resultado = filtrarPorRango([ordenInicio, ordenFin], desde, hasta)
     expect(resultado).toHaveLength(2)
+  })
+
+  it("no pierde la factura del primer día del mes por zona horaria", () => {
+    // Regresión: `new Date("2026-08-01")` es medianoche UTC = 31/jul 18:00 en
+    // México, así que la orden caía antes del inicio de agosto y desaparecía
+    // del reporte de su propio mes.
+    const desde = new Date(2026, 7, 1)
+    const hasta = new Date(2026, 7, 31)
+    const orden = makeOrden({ id: "ago", fechaFactura: "2026-08-01" })
+    expect(filtrarPorRango([orden], desde, hasta)).toHaveLength(1)
   })
 })
 

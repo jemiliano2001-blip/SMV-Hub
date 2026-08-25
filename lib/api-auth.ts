@@ -1,5 +1,6 @@
 import { adminAuth } from "@/lib/firebase-admin"
 import { obtenerUsuarioAdmin } from "@/lib/usuarios-admin"
+import type { ModuloId } from "@/lib/roles"
 
 type ResultadoAuth =
   | {
@@ -108,4 +109,36 @@ export async function verificarSuperAdmin(request: Request): Promise<ResultadoAu
 /** @deprecated Usar verificarSuperAdmin. */
 export async function verificarAdmin(request: Request): Promise<ResultadoAuth> {
   return verificarSuperAdmin(request)
+}
+
+/**
+ * Exige sesión válida **y** al menos uno de los módulos indicados.
+ *
+ * Un super-admin siempre pasa. Se usa en las rutas que gastan cuota de Gemini o
+ * tocan datos de un módulo concreto: sin esto, cualquier usuario activo —aunque
+ * la UI le oculte la sección— podía invocarlas directamente con su propio token.
+ */
+export async function verificarModulo(
+  request: Request,
+  modulos: readonly ModuloId[],
+  mensaje = "No tienes acceso a esta función"
+): Promise<ResultadoAuth> {
+  const base = await verificarUsuarioAutorizado(request)
+  if (!base.ok) return base
+
+  try {
+    const info = await obtenerUsuarioAdmin(base.uid, base.email)
+    if (!info?.activo) {
+      return { ok: false, response: respuestaError(403, "Tu acceso está inactivo") }
+    }
+    if (!info.esSuperAdmin && !modulos.some((m) => info.modulos.includes(m))) {
+      return { ok: false, response: respuestaError(403, mensaje) }
+    }
+    return base
+  } catch {
+    return {
+      ok: false,
+      response: respuestaError(500, "No se pudo verificar el acceso, intenta de nuevo"),
+    }
+  }
 }

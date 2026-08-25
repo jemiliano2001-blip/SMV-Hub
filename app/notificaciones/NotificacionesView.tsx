@@ -3,8 +3,9 @@
 import { useState, type KeyboardEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import { Badge } from '@/components/ui/badge'
-import { Bell, Copy, ExternalLink, Check } from 'lucide-react'
+import { Bell, Copy, ExternalLink, Check, Monitor, Volume2, VolumeX, BellRing, CheckCircle2, AlertCircle } from 'lucide-react'
 import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
 import ModuleFilterChips from '@/components/layout/ModuleFilterChips'
 import ModuleSurface from '@/components/layout/ModuleSurface'
@@ -16,6 +17,7 @@ import {
   type FiltroLeida,
   type FiltroOrigen,
 } from '@/lib/hooks/useNotificaciones'
+import { useDesktopNotificaciones } from '@/lib/hooks/useDesktopNotificaciones'
 import { hrefSeguroNotificacion } from '@/lib/notificaciones'
 import type { OrigenModuloNotificacion } from '@/lib/schemas'
 import {
@@ -63,6 +65,7 @@ export default function NotificacionesView() {
     authBypassActivo() ? null : usuario
   )
   const {
+    items,
     filtrar,
     noLeidas,
     cargando,
@@ -77,6 +80,21 @@ export default function NotificacionesView() {
     esSuperAdmin,
     atiendeDocumentosVenta,
   })
+
+  const {
+    soportado: soportaEscritorio,
+    permiso: permisoEscritorio,
+    sonidoActivo,
+    solicitarPermiso,
+    toggleSonido,
+    probarTimbre,
+    probarNotificacion,
+  } = useDesktopNotificaciones({
+    items,
+    noLeidas,
+    enabled: !cargandoPermisos,
+  })
+
   const [origen, setOrigen] = useState<FiltroOrigen>('todos')
   const [leida, setLeida] = useState<FiltroLeida>('todas')
   const [marcando, setMarcando] = useState(false)
@@ -91,6 +109,16 @@ export default function NotificacionesView() {
   const noLeidasOrigen = listaOrigen.filter((item) => !item.leida).length
   const leidasOrigen = listaOrigen.length - noLeidasOrigen
   const solicitudesPendientes = Array.from(pendientesBanos.values())
+
+  async function onActivarEscritorio() {
+    const res = await solicitarPermiso()
+    if (res === 'granted') {
+      toast.success('Notificaciones de escritorio activadas para Windows y PC')
+      void probarNotificacion()
+    } else if (res === 'denied') {
+      toast.error('Permiso denegado por el navegador. Habilítalo en los ajustes del sitio.')
+    }
+  }
 
   async function onResolverSolicitud(solicitudId: string, decision: 'aprobar' | 'rechazar') {
     setResolviendoId(solicitudId)
@@ -170,6 +198,67 @@ export default function NotificacionesView() {
 
   return (
     <div className="space-y-3">
+      {/* Barra de Notificaciones de Escritorio y Sonido */}
+      {soportaEscritorio && (
+        <ModuleSurface className="flex flex-wrap items-center justify-between gap-3 border-border bg-card/60 p-3 text-xs">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center gap-1.5 font-medium text-foreground">
+              <Monitor className="h-4 w-4 text-primary" />
+              <span>Avisos en Windows / PC:</span>
+            </div>
+            {permisoEscritorio === 'granted' ? (
+              <span className="inline-flex items-center gap-1 font-semibold text-emerald-600">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Activas
+              </span>
+            ) : permisoEscritorio === 'denied' ? (
+              <span className="inline-flex items-center gap-1 font-semibold text-destructive">
+                <AlertCircle className="h-3.5 w-3.5" />
+                Bloqueadas en navegador
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void onActivarEscritorio()}
+                className="cursor-pointer rounded-lg bg-sky-600 px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-sky-700"
+              >
+                Activar en esta computadora
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleSonido}
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-muted"
+            >
+              {sonidoActivo ? (
+                <>
+                  <Volume2 className="h-3.5 w-3.5 text-primary" />
+                  <span>Timbre activo</span>
+                </>
+              ) : (
+                <>
+                  <VolumeX className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>Timbre silenciado</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={probarTimbre}
+              title="Escuchar el sonido de notificación"
+              className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <BellRing className="h-3.5 w-3.5" />
+              <span>Probar timbre</span>
+            </button>
+          </div>
+        </ModuleSurface>
+      )}
+
       <ModuleSurface className="flex flex-wrap items-center justify-between gap-3 p-4">
         <div className="flex flex-wrap items-center gap-3">
           <ModuleFilterChips
@@ -381,16 +470,14 @@ export default function NotificacionesView() {
                   <ContextMenuSubContent className="w-48">
                     <ContextMenuItem
                       onClick={() => {
-                        void navigator.clipboard.writeText(n.titulo)
-                        toast.success('Título copiado')
+                        void copiarAlPortapapeles(n.titulo, 'Título copiado')
                       }}
                     >
                       <span>Título ({n.titulo})</span>
                     </ContextMenuItem>
                     <ContextMenuItem
                       onClick={() => {
-                        void navigator.clipboard.writeText(n.cuerpo)
-                        toast.success('Cuerpo copiado')
+                        void copiarAlPortapapeles(n.cuerpo, 'Cuerpo copiado')
                       }}
                     >
                       <span>Mensaje completo</span>
@@ -398,8 +485,7 @@ export default function NotificacionesView() {
                     <ContextMenuItem
                       onClick={() => {
                         const urlCompleta = `${window.location.origin}${hrefSeguroNotificacion(n.href)}`
-                        void navigator.clipboard.writeText(urlCompleta)
-                        toast.success('Enlace copiado', { description: urlCompleta })
+                        void copiarAlPortapapeles(urlCompleta, 'Enlace copiado', urlCompleta)
                       }}
                     >
                       <span>Enlace directo</span>

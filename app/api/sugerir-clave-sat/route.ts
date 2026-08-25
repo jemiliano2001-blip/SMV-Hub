@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server"
 import { z } from "zod"
-import { verificarUsuarioAutorizado } from "@/lib/api-auth"
+import { verificarModulo } from "@/lib/api-auth"
 import {
   construirHistorialSat,
   construirHistorialSatDesdeEntradas,
@@ -31,7 +31,7 @@ const RequestSchema = z.object({
 })
 
 export async function POST(req: NextRequest) {
-  const auth = await verificarUsuarioAutorizado(req)
+  const auth = await verificarModulo(req, ["nueva-compra", "ordenes", "reportes", "claves-sat", "cotizaciones"], "No tienes acceso a la clasificacion SAT")
   if (!auth.ok) return auth.response
 
   let body: unknown

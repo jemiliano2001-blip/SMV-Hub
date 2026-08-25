@@ -19,6 +19,7 @@ type SearchParams = Promise<{
   requisitor?: string
   moneda?: string
   cotizacionId?: string
+  claveSat?: string
 }>
 
 export default async function NuevaCompraPage({
@@ -39,6 +40,7 @@ export default async function NuevaCompraPage({
     requisitor,
     moneda,
     cotizacionId,
+    claveSat,
   } = await searchParams
 
   const cantNum = cantidad ? parseFloat(cantidad) : null
@@ -58,6 +60,7 @@ export default async function NuevaCompraPage({
           requisitor,
           moneda: moneda === 'MXN' ? ('MXN' as const) : ('USD' as const),
           cotizacionId,
+          claveSat,
         }
       : undefined
 

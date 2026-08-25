@@ -2,12 +2,16 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Inbox, RefreshCw } from 'lucide-react'
+import { Inbox, MessageSquare, RefreshCw } from 'lucide-react'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
 import { puedeAtenderDocumentosVenta } from '@/lib/roles'
 import { useDocumentosVenta } from '@/lib/hooks/useDocumentosVenta'
-import { filtrarSoPorTexto, ordenCompraSolicitud } from '@/lib/documentos-venta-helpers'
+import {
+  etiquetaEstadoSolicitudDocumento,
+  filtrarSoPorTexto,
+  ordenCompraSolicitud,
+} from '@/lib/documentos-venta-helpers'
 import type { SolicitudDocumento, VentaOdooSo } from '@/lib/schemas'
 import NuevaSolicitudPanel from './NuevaSolicitudPanel'
 import SolicitudDetalleModal from './SolicitudDetalleModal'
@@ -252,31 +256,83 @@ function ListaSolicitudes({
     )
   }
   return (
-    <ul className="space-y-2">
-      {items.map((s) => (
-        <li key={s.id}>
-          <button
-            type="button"
-            onClick={() => onAbrir(s.id)}
-            className="w-full cursor-pointer rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors hover:border-primary/40"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-foreground">
-                {s.tipo === 'factura' ? 'Factura' : 'Remisión'} · {s.odooSoName}
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                {s.estado.replace('_', ' ')}
-              </span>
-            </div>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {s.partnerName}
-              {ordenCompraSolicitud(s)
-                ? ` · Orden de compra ${ordenCompraSolicitud(s)}`
-                : ' · Sin orden de compra'}
-            </p>
-          </button>
-        </li>
-      ))}
+    <ul className="space-y-3">
+      {items.map((s) => {
+        const oc = ordenCompraSolicitud(s)
+        return (
+          <li key={s.id}>
+            <button
+              type="button"
+              onClick={() => onAbrir(s.id)}
+              className="w-full cursor-pointer rounded-2xl border-2 border-border bg-card p-4 text-left shadow-xs transition-all hover:border-sky-500 hover:shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`rounded-md px-2 py-0.5 text-xs font-bold ${
+                      s.tipo === 'factura'
+                        ? 'bg-sky-100 text-sky-800'
+                        : 'bg-indigo-100 text-indigo-800'
+                    }`}
+                  >
+                    {s.tipo === 'factura' ? 'Factura' : 'Remisión'}
+                  </span>
+                  <p className="text-base font-bold text-foreground">
+                    {s.odooSoName} · {s.partnerName}
+                  </p>
+                </div>
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                    s.estado === 'completada'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : s.estado === 'en_proceso'
+                        ? 'bg-sky-100 text-sky-800'
+                        : s.estado === 'rechazada'
+                          ? 'bg-red-100 text-destructive'
+                          : 'bg-amber-100 text-amber-800'
+                  }`}
+                >
+                  {etiquetaEstadoSolicitudDocumento(s.estado)}
+                </span>
+              </div>
+
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <span>
+                  {oc ? (
+                    <>Orden de compra: <strong className="text-foreground">{oc}</strong></>
+                  ) : (
+                    'Sin orden de compra'
+                  )}
+                </span>
+                {s.atendidoPorNombre && (
+                  <>
+                    <span>·</span>
+                    <span>Atiende: <strong className="text-foreground">{s.atendidoPorNombre}</strong></span>
+                  </>
+                )}
+                {s.folioOdoo && (
+                  <>
+                    <span>·</span>
+                    <span className="font-mono font-semibold text-emerald-600">
+                      Folio Odoo: {s.folioOdoo}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1 text-primary font-semibold">
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  Abrir chat e indicaciones
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  {s.partidas.length} {s.partidas.length === 1 ? 'partida' : 'partidas'}
+                </span>
+              </div>
+            </button>
+          </li>
+        )
+      })}
     </ul>
   )
 }

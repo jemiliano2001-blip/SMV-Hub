@@ -190,7 +190,7 @@ export default function ModalMovimientoCaja({
     setLoading(true)
 
     const montoNum = parseFloat(monto)
-    if (isNaN(montoNum) || montoNum < 0) {
+    if (isNaN(montoNum) || montoNum <= 0) {
       setError("El monto debe ser un número válido mayor a 0.")
       setLoading(false)
       return

@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 import ModuleSurface from '@/components/layout/ModuleSurface'
 
 export default function ArqueoCaja() {
-  const { movimientos, loading } = useCajaChica() // Sin periodo para traer todo el histórico
+  const { movimientos, loading, error, recargar } = useCajaChica() // Sin periodo para traer todo el histórico
   const [efectivoReal, setEfectivoReal] = useState<string>('')
   const [guardando, setGuardando] = useState(false)
   const [historial, setHistorial] = useState<ArqueoCajaRegistro[]>([])
@@ -79,6 +79,25 @@ export default function ArqueoCaja() {
           <div className="animate-pulse space-y-4">
             <div className="h-12 bg-muted rounded"></div>
             <div className="h-12 bg-muted rounded"></div>
+          </div>
+        ) : error ? (
+          // Si los movimientos no cargaron, el saldo teórico sería $0.00 y el
+          // arqueo compararía el efectivo real contra un total falso. Mejor no
+          // dejar arquear que dejar arquear con un número inventado.
+          <div className="space-y-3 text-center">
+            <AlertTriangle className="mx-auto h-8 w-8 text-rose-500" />
+            <p className="font-medium text-foreground">No se pudieron cargar los movimientos</p>
+            <p className="text-sm text-muted-foreground">
+              No se puede arquear sin el saldo teórico: quedaría comparado contra $0.00.
+            </p>
+            <p className="text-xs text-muted-foreground">{error}</p>
+            <button
+              type="button"
+              onClick={() => void recargar()}
+              className="cursor-pointer rounded-md border border-input bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted"
+            >
+              Reintentar
+            </button>
           </div>
         ) : (
           <>

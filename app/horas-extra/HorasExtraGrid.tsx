@@ -27,8 +27,10 @@ import {
   Zap,
   ArrowRight,
   ClipboardCheck,
+  AlertCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import ModuleSurface from '@/components/layout/ModuleSurface'
 import {
@@ -108,8 +110,15 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
 
   const aplicarValorACelda = async (rowId: string, dia: DiaSemana, val: string | null) => {
     if (!puedeEditar) return
-    await editarDias(rowId, { [dia]: val })
-    toast.success(`Asignado "${val ?? '0'}" para ${etiquetaDia(dia)}`)
+    try {
+      await editarDias(rowId, { [dia]: val })
+      toast.success(`Asignado "${val ?? '0'}" para ${etiquetaDia(dia)}`)
+    } catch (err) {
+      // Sin esto la celda quedaba igual y el usuario creía que sí guardó.
+      toast.error('No se pudo guardar', {
+        description: err instanceof Error ? err.message : 'Intenta de nuevo.',
+      })
+    }
   }
 
   /** Pide confirmación solo cuando la acción masiva pisa horas ya capturadas. */
@@ -205,8 +214,13 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
         setTimeout(() => {
           setSaveStatus((s) => ({ ...s, [rowId]: 'idle' }))
         }, 1500)
-      } catch {
+      } catch (err) {
         setSaveStatus((s) => ({ ...s, [rowId]: 'error' }))
+        // El indicador de la celda no basta: sin toast, un write rechazado por
+        // Firestore pasaba totalmente desapercibido.
+        toast.error('No se pudo guardar la celda', {
+          description: err instanceof Error ? err.message : 'Intenta de nuevo.',
+        })
       }
     },
     [registros, editarDias]
@@ -524,14 +538,19 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                               {status === 'saved' && (
                                 <Check className="h-3 w-3 text-emerald-500" />
                               )}
+                              {status === 'error' && (
+                                <AlertCircle
+                                  className="h-3 w-3 text-destructive"
+                                  aria-label="No se guardó"
+                                />
+                              )}
                             </div>
                           </div>
                         </ContextMenuTrigger>
                         <ContextMenuContent className="w-56">
                           <ContextMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(r.empleado)
-                              toast.success('Nombre copiado', { description: r.empleado })
+                              void copiarAlPortapapeles(r.empleado, 'Nombre copiado', r.empleado)
                             }}
                           >
                             <Copy className="text-muted-foreground" />
@@ -689,8 +708,7 @@ export default function HorasExtraGrid({ departamento, semanaInicio, puedeEditar
                                   <ContextMenuItem
                                     onClick={() => {
                                       setCeldaCopiada(valorCelda ?? '')
-                                      void navigator.clipboard.writeText(valorCelda ?? '')
-                                      toast.success('Valor de celda copiado')
+                                      void copiarAlPortapapeles(valorCelda ?? '', 'Valor de celda copiado')
                                     }}
                                   >
                                     <Copy className="text-muted-foreground" />

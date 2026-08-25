@@ -76,7 +76,7 @@ export function useEndmills() {
       console.error("Error cargando pedidos endmills:", error)
       setErrorPedidos("No se pudo cargar el historial. Intenta de nuevo.")
     } finally {
-      setLoadingMedidas(false)
+      setLoadingPedidos(false)
     }
   }, [])
 

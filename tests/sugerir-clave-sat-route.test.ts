@@ -12,6 +12,8 @@ const {
 
 vi.mock("@/lib/api-auth", () => ({
   verificarUsuarioAutorizado: mockVerificarUsuarioAutorizado,
+  // La ruta ahora exige módulo; el mock cubre ambas puertas de entrada.
+  verificarModulo: mockVerificarUsuarioAutorizado,
 }))
 
 vi.mock("@/lib/sat/cargar-mapeos-firestore", () => ({

@@ -1,5 +1,6 @@
 import type { OrdenCompra } from "@/lib/schemas"
 import { resolverCampoItem, resolverDestinoItem } from "@/lib/schemas"
+import { parseFechaLocal } from "@/lib/format"
 
 export type CriterioAgrupacion = "proveedor" | "destino" | "requisitor"
 
@@ -51,6 +52,17 @@ function endOfDay(d: Date): Date {
   return r
 }
 
+/**
+ * Fecha efectiva de una orden para reportes, siempre en zona **local**.
+ *
+ * `fechaFactura` es un string YYYY-MM-DD; parsearlo con `new Date()` lo trataría
+ * como medianoche UTC y en México lo correría un día hacia atrás. Cuando no hay
+ * factura se usa `creadoEn`, que ya es un timestamp real.
+ */
+function fechaEfectivaOrden(orden: OrdenCompra): Date {
+  return parseFechaLocal(orden.fechaFactura) ?? new Date(orden.creadoEn)
+}
+
 export function filtrarPorRango(
   ordenes: OrdenCompra[],
   desde: Date,
@@ -59,7 +71,7 @@ export function filtrarPorRango(
   const ini = startOfDay(desde)
   const fin = endOfDay(hasta)
   return ordenes.filter((o) => {
-    const f = o.fechaFactura ? new Date(o.fechaFactura) : new Date(o.creadoEn)
+    const f = fechaEfectivaOrden(o)
     return f >= ini && f <= fin
   })
 }
@@ -69,7 +81,7 @@ export function aplanarLineas(ordenes: OrdenCompra[]): Linea[] {
 
   for (const orden of ordenes) {
     const ref = orden.numeroFactura ?? orden.id
-    const dia = orden.fechaFactura ? new Date(orden.fechaFactura) : new Date(orden.creadoEn)
+    const dia = fechaEfectivaOrden(orden)
     const baseOrden = {
       ordenId: orden.id,
       referencia: ref,

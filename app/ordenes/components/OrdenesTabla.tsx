@@ -34,7 +34,7 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
-import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import {
   Table,
   TableBody,
@@ -337,8 +337,7 @@ export default function OrdenesTabla({
                       {orden.numeroFactura && (
                         <ContextMenuItem
                           onClick={() => {
-                            void navigator.clipboard.writeText(orden.numeroFactura || '')
-                            toast.success('Factura copiada', { description: orden.numeroFactura })
+                            void copiarAlPortapapeles(orden.numeroFactura || '', 'Factura copiada', orden.numeroFactura)
                           }}
                         >
                           <span>No. Factura ({orden.numeroFactura})</span>
@@ -346,8 +345,7 @@ export default function OrdenesTabla({
                       )}
                       <ContextMenuItem
                         onClick={() => {
-                          void navigator.clipboard.writeText(orden.proveedor || '')
-                          toast.success('Proveedor copiado', { description: orden.proveedor })
+                          void copiarAlPortapapeles(orden.proveedor || '', 'Proveedor copiado', orden.proveedor)
                         }}
                       >
                         <span>Proveedor ({orden.proveedor})</span>
@@ -355,16 +353,14 @@ export default function OrdenesTabla({
                       <ContextMenuItem
                         onClick={() => {
                           const totalTxt = formatPrecio(orden.total, orden.moneda)
-                          void navigator.clipboard.writeText(totalTxt)
-                          toast.success('Total copiado', { description: totalTxt })
+                          void copiarAlPortapapeles(totalTxt, 'Total copiado', totalTxt)
                         }}
                       >
                         <span>Total ({formatPrecio(orden.total, orden.moneda)})</span>
                       </ContextMenuItem>
                       <ContextMenuItem
                         onClick={() => {
-                          void navigator.clipboard.writeText(orden.id)
-                          toast.success('ID de orden copiado', { description: orden.id })
+                          void copiarAlPortapapeles(orden.id, 'ID de orden copiado', orden.id)
                         }}
                       >
                         <span>ID interno</span>

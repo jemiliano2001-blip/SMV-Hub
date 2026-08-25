@@ -15,7 +15,7 @@ import {
   CheckSquare,
   Square,
 } from "lucide-react"
-import { toast } from "sonner"
+import { copiarAlPortapapeles } from "@/lib/portapapeles"
 import { authBypassActivo, useUsuario } from "@/lib/auth"
 import { usePermisos } from "@/lib/hooks/useRol"
 import { useOperadores } from "@/lib/hooks/useOperadores"
@@ -512,16 +512,14 @@ export default function GafetesView() {
                         <ContextMenuSubContent className="w-48">
                           <ContextMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(operador.nombre)
-                              toast.success("Nombre copiado")
+                              void copiarAlPortapapeles(operador.nombre, "Nombre copiado")
                             }}
                           >
                             <span>Nombre ({operador.nombre})</span>
                           </ContextMenuItem>
                           <ContextMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(areaTexto(operador.area))
-                              toast.success("Área copiada")
+                              void copiarAlPortapapeles(areaTexto(operador.area), "Área copiada")
                             }}
                           >
                             <span>Área ({areaTexto(operador.area)})</span>
@@ -529,8 +527,7 @@ export default function GafetesView() {
                           {perfil?.cargo && (
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(perfil.cargo)
-                                toast.success("Cargo copiado")
+                                void copiarAlPortapapeles(perfil.cargo, "Cargo copiado")
                               }}
                             >
                               <span>Cargo ({perfil.cargo})</span>
@@ -539,8 +536,7 @@ export default function GafetesView() {
                           {perfil?.rfc && (
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(perfil.rfc)
-                                toast.success("RFC copiado")
+                                void copiarAlPortapapeles(perfil.rfc, "RFC copiado")
                               }}
                             >
                               <span>RFC ({perfil.rfc})</span>
@@ -549,8 +545,7 @@ export default function GafetesView() {
                           {perfil?.nss && (
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(perfil.nss)
-                                toast.success("NSS copiado")
+                                void copiarAlPortapapeles(perfil.nss, "NSS copiado")
                               }}
                             >
                               <span>NSS ({perfil.nss})</span>

@@ -13,7 +13,7 @@ import {
   Eye,
   Edit2,
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -355,8 +355,7 @@ export default function DirectorioProveedores({
                         <ContextMenuSubContent className="w-48">
                           <ContextMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(prov.nombre)
-                              toast.success('Nombre copiado')
+                              void copiarAlPortapapeles(prov.nombre, 'Nombre copiado')
                             }}
                           >
                             <span>Nombre ({prov.nombre})</span>
@@ -364,8 +363,7 @@ export default function DirectorioProveedores({
                           {prov.email && (
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(prov.email || '')
-                                toast.success('Email copiado')
+                                void copiarAlPortapapeles(prov.email || '', 'Email copiado')
                               }}
                             >
                               <span>Email ({prov.email})</span>
@@ -374,8 +372,7 @@ export default function DirectorioProveedores({
                           {prov.telefono && (
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(prov.telefono || '')
-                                toast.success('Teléfono copiado')
+                                void copiarAlPortapapeles(prov.telefono || '', 'Teléfono copiado')
                               }}
                             >
                               <span>Teléfono ({prov.telefono})</span>

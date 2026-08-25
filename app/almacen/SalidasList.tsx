@@ -3,6 +3,7 @@ import { useSalidas } from '@/lib/hooks/useAlmacen'
 import { useOperadores } from '@/lib/hooks/useOperadores'
 import { Plus, Trash2, Search, Copy, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import type { SalidaAlmacen } from '@/lib/schemas'
 import { fechaHoyLocal } from '@/lib/format'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
@@ -98,6 +99,9 @@ export default function SalidasList() {
       setCantidad(1)
     } catch (err) {
       console.error('Error agregando salida:', err)
+      toast.error('No se pudo agregar la salida', {
+        description: err instanceof Error ? err.message : 'Intenta de nuevo.',
+      })
     } finally {
       setAgregando(false)
     }
@@ -115,6 +119,9 @@ export default function SalidasList() {
       await borrarSalida(id)
     } catch (err) {
       console.error('Error eliminando salida:', err)
+      toast.error('No se pudo eliminar la salida', {
+        description: err instanceof Error ? err.message : 'Intenta de nuevo.',
+      })
     }
   }
 
@@ -268,32 +275,28 @@ export default function SalidasList() {
                         <ContextMenuSubContent className="w-48">
                           <ContextMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(s.herramienta)
-                              toast.success('Herramienta copiada')
+                              void copiarAlPortapapeles(s.herramienta, 'Herramienta copiada')
                             }}
                           >
                             <span>Herramienta</span>
                           </ContextMenuItem>
                           <ContextMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(String(s.cantidad))
-                              toast.success('Cantidad copiada')
+                              void copiarAlPortapapeles(String(s.cantidad), 'Cantidad copiada')
                             }}
                           >
                             <span>Cantidad ({s.cantidad})</span>
                           </ContextMenuItem>
                           <ContextMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(s.operador)
-                              toast.success('Operador copiado')
+                              void copiarAlPortapapeles(s.operador, 'Operador copiado')
                             }}
                           >
                             <span>Operador ({s.operador})</span>
                           </ContextMenuItem>
                           <ContextMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(s.fecha)
-                              toast.success('Fecha copiada')
+                              void copiarAlPortapapeles(s.fecha, 'Fecha copiada')
                             }}
                           >
                             <span>Fecha ({s.fecha})</span>

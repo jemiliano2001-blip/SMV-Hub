@@ -75,6 +75,8 @@ export interface InitialDataCompra {
   requisitor?: string
   moneda?: 'USD' | 'MXN'
   cotizacionId?: string
+  /** Clave SAT precargada desde el buscador de /claves-sat. */
+  claveSat?: string
 }
 
 export default function NuevaCompraForm({
@@ -144,6 +146,7 @@ export default function NuevaCompraForm({
           cantidad: initialCant,
           precioUnitario: initialPrecioUnit,
           total: initialTot,
+          claveProdServ: initialData?.claveSat ?? ITEM_VACIO.claveProdServ,
         },
       ],
       requisitor: initialData?.requisitor ?? '',

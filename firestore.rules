@@ -67,6 +67,22 @@ service cloud.firestore {
         );
     }
 
+    // Igual que tieneModulo pero contra una lista: una colección suele alimentar a
+    // varios módulos (p. ej. `ordenes` se lee desde /ordenes, /reportes,
+    // /nueva-compra, /proveedores y /almacen), así que exigir uno solo dejaría
+    // fuera a usuarios legítimos.
+    //
+    // Los documentos legacy sin `modulos[]` conservan el acceso previo: el corte
+    // duro se aplica solo a usuarios ya migrados. Corre
+    // `scripts/backfill-modulos-usuarios.mjs` antes de endurecer esto más.
+    function tieneAlgunModulo(modulos) {
+      return exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
+        (
+          !docUsuario().keys().hasAny(['modulos']) ||
+          docUsuario().modulos.hasAny(modulos)
+        );
+    }
+
     function esSuperAdminDoc() {
       // Si el documento ya trae el campo explícito, manda sobre el fallback legado
       // (permite revocar super-admin a un usuario con rol/plantilla "admin").
@@ -165,9 +181,20 @@ service cloud.firestore {
     // ── Órdenes de compra ────────────────────────────────────────────────────
 
     match /ordenes/{ordenId} {
-      allow read: if esUsuarioAutorizado();
+      // Montos y proveedores: solo módulos que realmente consumen órdenes.
+      // Deja fuera a la plantilla diseño (cotizaciones/requisiciones/horas-extra),
+      // que antes podía leer la colección completa desde la consola del navegador.
+      allow read: if esUsuarioAutorizado()
+                  && (esCorreoBreakGlass() || esSuperAdminDoc()
+                      || tieneAlgunModulo(['ordenes', 'nueva-compra', 'reportes',
+                                           'proveedores', 'almacen', 'compras-odoo',
+                                           'finanzas', 'auditoria']));
 
+      // `requisiciones` también crea (generar OC desde el comparador) aunque no lea.
       allow create: if esUsuarioAutorizado()
+                    && (esCorreoBreakGlass() || esSuperAdminDoc()
+                        || tieneAlgunModulo(['ordenes', 'nueva-compra', 'requisiciones',
+                                             'proveedores', 'compras-odoo']))
                     && ordenValida(request.resource.data);
 
       // En la actualización, el audit trail es inmutable: la fecha de creación
@@ -197,7 +224,11 @@ service cloud.firestore {
     // ── Cotizaciones (base de datos histórica buscable) ──────────────────────
 
     match /cotizaciones/{cotizacionId} {
-      allow read: if esUsuarioAutorizado();
+      allow read: if esUsuarioAutorizado()
+                  && (esCorreoBreakGlass() || esSuperAdminDoc()
+                      || tieneAlgunModulo(['cotizaciones', 'requisiciones', 'nueva-compra',
+                                           'proveedores', 'compras-odoo', 'reportes',
+                                           'auditoria']));
 
       allow create: if esUsuarioAutorizado()
                     && cotizacionValida(request.resource.data);
@@ -237,7 +268,10 @@ service cloud.firestore {
     // ── Requisiciones (seguimiento de pedidos por solicitante) ───────────────
 
     match /requisiciones/{requisicionId} {
-      allow read: if esUsuarioAutorizado();
+      allow read: if esUsuarioAutorizado()
+                  && (esCorreoBreakGlass() || esSuperAdminDoc()
+                      || tieneAlgunModulo(['requisiciones', 'nueva-compra', 'proveedores',
+                                           'compras-odoo', 'auditoria']));
 
       allow create: if esUsuarioAutorizado()
                     && requisicionValida(request.resource.data);
@@ -263,7 +297,10 @@ service cloud.firestore {
     }
 
     match /operadores/{operadorId} {
-      allow read: if esUsuarioAutorizado();
+      allow read: if esUsuarioAutorizado()
+                  && (esCorreoBreakGlass() || esSuperAdminDoc()
+                      || tieneAlgunModulo(['operadores', 'banos', 'horas-extra', 'almacen',
+                                           'pedidos-almacen', 'usuarios', 'auditoria']));
 
       allow create: if esUsuarioAutorizado()
                     && operadorValido(request.resource.data);
@@ -713,7 +750,9 @@ service cloud.firestore {
     }
 
     match /registros-bano/{banoId} {
-      allow read: if esUsuarioAutorizado();
+      allow read: if esUsuarioAutorizado()
+                  && (esCorreoBreakGlass() || esSuperAdminDoc()
+                      || tieneAlgunModulo(['banos', 'operadores', 'auditoria']));
 
       allow create: if esUsuarioAutorizado()
                     && registroBanoValido(request.resource.data);
@@ -765,6 +804,9 @@ service cloud.firestore {
     }
 
     match /horas-extra/{horaId} {
+      // Lectura abierta a propósito: la regla de negocio es "compras, contabilidad
+      // y automatización editan; diseño y todos los demás son solo lectura"
+      // (ver puedeEditarHorasExtra y tests/firestore-security.test.ts).
       allow read: if esUsuarioAutorizado();
 
       allow create: if puedeEditarHorasExtra()

@@ -11,7 +11,7 @@ import {
   Copy,
   FileText,
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -279,8 +279,7 @@ export default function OrdenesPorRecibir({
                           <ContextMenuSubContent className="w-48">
                             <ContextMenuItem
                               onClick={() => {
-                                void navigator.clipboard.writeText(orden.proveedor || '')
-                                toast.success('Proveedor copiado')
+                                void copiarAlPortapapeles(orden.proveedor || '', 'Proveedor copiado')
                               }}
                             >
                               <span>Proveedor ({orden.proveedor})</span>
@@ -288,8 +287,7 @@ export default function OrdenesPorRecibir({
                             {orden.numeroFactura && (
                               <ContextMenuItem
                                 onClick={() => {
-                                  void navigator.clipboard.writeText(orden.numeroFactura || '')
-                                  toast.success('Factura copiada')
+                                  void copiarAlPortapapeles(orden.numeroFactura || '', 'Factura copiada')
                                 }}
                               >
                                 <span>No. Factura ({orden.numeroFactura})</span>
@@ -298,8 +296,7 @@ export default function OrdenesPorRecibir({
                             {orden.requisicionId && (
                               <ContextMenuItem
                                 onClick={() => {
-                                  void navigator.clipboard.writeText(orden.requisicionId || '')
-                                  toast.success('ID de requisición copiado')
+                                  void copiarAlPortapapeles(orden.requisicionId || '', 'ID de requisición copiado')
                                 }}
                               >
                                 <span>ID Requisición</span>

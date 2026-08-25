@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { toast } from 'sonner'
 import { fechaHoyLocal } from '@/lib/format'
 import {
   CheckCircle2,
@@ -241,6 +242,9 @@ export default function DetalleRequisicionModal({
       setMostrarFormCot(false)
     } catch (err) {
       console.error(err)
+      toast.error('No se pudo agregar la cotización', {
+        description: err instanceof Error ? err.message : 'Intenta de nuevo.',
+      })
     }
   }
 
@@ -255,6 +259,9 @@ export default function DetalleRequisicionModal({
       setCotizaciones(renovadas)
     } catch (err) {
       console.error(err)
+      toast.error('No se pudo seleccionar el proveedor ganador', {
+        description: err instanceof Error ? err.message : 'Intenta de nuevo.',
+      })
     } finally {
       setProcesandoGanador(false)
     }
@@ -274,6 +281,11 @@ export default function DetalleRequisicionModal({
       setOcGeneradaExito(res)
     } catch (err) {
       console.error(err)
+      // Este flujo convierte una requisición en dinero comprometido: si falla,
+      // el usuario tiene que saberlo, no quedarse viendo el spinner apagarse.
+      toast.error('No se pudo generar la orden de compra', {
+        description: err instanceof Error ? err.message : 'Intenta de nuevo.',
+      })
     } finally {
       setGenerandoOCState(false)
     }
