@@ -33,7 +33,8 @@ export default function ModalEnviarEmailPO({
 
   if (!orden) return null
 
-  const asunto = `Purchase Order ${orden.folio} - SMV Industrial`
+  const buyerCompany = orden.empresa?.trim() || 'RGV Metal and Plastics CO.'
+  const asunto = `Purchase Order ${orden.folio} - ${buyerCompany}`
   
   const lineasItems = orden.items
     .map(
@@ -48,11 +49,11 @@ Please find attached / detailed our Purchase Order ${orden.folio}:
 
 PO Number: ${orden.folio}
 Date: ${orden.fechaPedido}
-${orden.referenciaProveedor ? `Quote / Reference #: ${orden.referenciaProveedor}\n` : ''}Payment Terms: ${orden.terminosPago || 'Net 30'}
+${orden.referenciaProveedor ? `Quote / Reference #: ${orden.referenciaProveedor}\n` : ''}Payment Terms: ${orden.terminosPago || 'Credit (Net 30)'}
 Shipping Method: ${orden.metodoEnvio || 'UPS Ground'}
 
 Ship To Address:
-SMV Logistics / Warehouse
+${buyerCompany}
 ${orden.shippingAddressUSA || '5423 Lovers Ln Brownsville, Texas 78526'}
 
 Order Items:
@@ -63,11 +64,11 @@ Subtotal: ${formatearMoneda(orden.subtotal, orden.moneda)}
 ${orden.envio > 0 ? `Shipping: ${formatearMoneda(orden.envio, orden.moneda)}\n` : ''}${orden.impuestos > 0 ? `Tax: ${formatearMoneda(orden.impuestos, orden.moneda)}\n` : ''}Total: ${formatearMoneda(orden.total, orden.moneda)}
 
 Notes & Instructions:
-${orden.notas || 'Please confirm receipt and expected delivery date.'}
+${orden.notas || 'Please confirm receipt, order acknowledgment, and expected delivery date.'}
 
 Best regards,
-${orden.comprador || 'SMV Purchasing Team'}
-SMV Industrial & Machining`
+${orden.comprador || 'Purchasing Team'}
+${buyerCompany}`
 
   const mailtoUrl = `mailto:${encodeURIComponent(destinatario)}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`
 

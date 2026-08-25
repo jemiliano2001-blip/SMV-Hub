@@ -28,7 +28,10 @@ import {
   registrarPOEnBitacoraOrdenes,
   calcularTotalesPO,
   generarSiguienteFolioPO,
+  EMPRESA_USA_DEFAULT,
   DIRECCION_USA_DEFAULT,
+  TERMINOS_PAGO_USA_OPCIONES,
+  TERMINOS_PAGO_DEFAULT,
 } from '@/lib/ordenes-compra-usa'
 import { extraerPOUsaDesdeArchivo } from '@/lib/ordenes-compra-ia'
 import { type MediaTypeFactura } from '@/lib/extraer-ia'
@@ -97,14 +100,14 @@ export default function OrdenCompraForm({
   const [moneda, setMoneda] = useState<'USD' | 'MXN'>(ordenInicial?.moneda || 'USD')
   const [comprador, setComprador] = useState(ordenInicial?.comprador || '')
   const [solicitante, setSolicitante] = useState(ordenInicial?.solicitante || '')
-  const [empresa, setEmpresa] = useState(ordenInicial?.empresa || 'SMV')
+  const [empresa, setEmpresa] = useState(ordenInicial?.empresa || EMPRESA_USA_DEFAULT)
   const [cuentaCargo, setCuentaCargo] = useState(ordenInicial?.cuentaCargo || 'Stock')
   const [ordenTrabajo, setOrdenTrabajo] = useState(ordenInicial?.ordenTrabajo || '')
   const [shippingAddressUSA, setShippingAddressUSA] = useState(
     ordenInicial?.shippingAddressUSA || DIRECCION_USA_DEFAULT
   )
   const [brokerAduanal, setBrokerAduanal] = useState(ordenInicial?.brokerAduanal || '')
-  const [terminosPago, setTerminosPago] = useState(ordenInicial?.terminosPago || 'Net 30')
+  const [terminosPago, setTerminosPago] = useState(ordenInicial?.terminosPago || TERMINOS_PAGO_DEFAULT)
   const [metodoEnvio, setMetodoEnvio] = useState(ordenInicial?.metodoEnvio || 'UPS Ground')
   const [notas, setNotas] = useState(ordenInicial?.notas || '')
   const [envio, setEnvio] = useState<number>(ordenInicial?.envio || 0)
@@ -765,7 +768,8 @@ export default function OrdenCompraForm({
               onChange={(e) => setEmpresa(e.target.value)}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <option value="SMV">SMV</option>
+              <option value="RGV Metal and Plastics CO.">RGV Metal and Plastics CO. (USA)</option>
+              <option value="SMV">SMV Industrial</option>
               <option value="AFX">AFX</option>
               <option value="GENERAL">General Planta</option>
             </select>
@@ -855,16 +859,41 @@ export default function OrdenCompraForm({
 
           {/* Términos de Pago */}
           <div>
-            <label className="block text-xs font-semibold text-foreground mb-1">
-              Términos de Pago
-            </label>
-            <input
-              type="text"
-              value={terminosPago}
-              onChange={(e) => setTerminosPago(e.target.value)}
-              placeholder="Net 30, Credit Card, Prepaid..."
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-foreground">
+                Términos de Pago (Payment Terms)
+              </label>
+              <span className="text-[10px] text-muted-foreground font-medium">Principal: Crédito</span>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <select
+                value={
+                  TERMINOS_PAGO_USA_OPCIONES.some((o) => o.id === terminosPago)
+                    ? terminosPago
+                    : 'custom'
+                }
+                onChange={(e) => {
+                  if (e.target.value !== 'custom') {
+                    setTerminosPago(e.target.value)
+                  }
+                }}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                {TERMINOS_PAGO_USA_OPCIONES.map((op) => (
+                  <option key={op.id} value={op.id}>
+                    {op.label}
+                  </option>
+                ))}
+                <option value="custom">Otro / Personalizado...</option>
+              </select>
+              <input
+                type="text"
+                value={terminosPago}
+                onChange={(e) => setTerminosPago(e.target.value)}
+                placeholder="Ej. Credit (Net 30), Corporate Credit Card, Prepaid..."
+                className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+              />
+            </div>
           </div>
 
           {/* Método de Envío */}

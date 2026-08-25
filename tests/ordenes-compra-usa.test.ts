@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest'
 import {
   calcularTotalesPO,
   DIRECCION_USA_DEFAULT,
+  EMPRESA_USA_DEFAULT,
+  TERMINOS_PAGO_DEFAULT,
+  TERMINOS_PAGO_USA_OPCIONES,
 } from '@/lib/ordenes-compra-usa'
 import {
   OrdenCompraUsaSchema,
@@ -46,8 +49,13 @@ describe('Órdenes de Compra USA (lib/ordenes-compra-usa)', () => {
     expect(res.total).toBe(0)
   })
 
-  it('DIRECCION_USA_DEFAULT apunta a la dirección de Brownsville', () => {
+  it('constantes institucionales de USA configuran RGV Metal and Plastics CO. y Credit (Net 30)', () => {
     expect(DIRECCION_USA_DEFAULT).toBe('5423 Lovers Ln Brownsville, Texas 78526')
+    expect(EMPRESA_USA_DEFAULT).toBe('RGV Metal and Plastics CO.')
+    expect(TERMINOS_PAGO_DEFAULT).toBe('Credit (Net 30)')
+    expect(TERMINOS_PAGO_USA_OPCIONES.some((o) => o.id === 'Credit (Net 30)')).toBe(true)
+    expect(TERMINOS_PAGO_USA_OPCIONES.some((o) => o.id === 'Corporate Credit Card')).toBe(true)
+    expect(TERMINOS_PAGO_USA_OPCIONES.some((o) => o.id === 'Wire Transfer / ACH')).toBe(true)
   })
 })
 
@@ -77,7 +85,7 @@ describe('Esquemas de PO USA (lib/schemas)', () => {
     expect(parseado.subtotal).toBe(15.0)
   })
 
-  it('OrdenCompraUsaSchema aplica defaults institucionales', () => {
+  it('OrdenCompraUsaSchema aplica defaults institucionales de RGV Metal and Plastics CO. y Crédito', () => {
     const rawPO = {
       id: 'po-123',
       folio: 'PO-2026-0001',
@@ -101,7 +109,8 @@ describe('Esquemas de PO USA (lib/schemas)', () => {
     expect(parseado.shippingAddressUSA).toBe('5423 Lovers Ln Brownsville, Texas 78526')
     expect(parseado.moneda).toBe('USD')
     expect(parseado.estado).toBe('borrador')
-    expect(parseado.empresa).toBe('SMV')
+    expect(parseado.empresa).toBe('RGV Metal and Plastics CO.')
+    expect(parseado.terminosPago).toBe('Credit (Net 30)')
   })
 })
 

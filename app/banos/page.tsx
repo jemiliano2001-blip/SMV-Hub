@@ -19,14 +19,19 @@ export default function BanosPage() {
 
   return (
     <AuthGuard>
-      <PageShell>
+      <PageShell
+        printClassName="print:bg-white print:p-0"
+        innerClassName="print:p-0 print:m-0 print:max-w-none print:gap-0"
+      >
         <PageHeader
           title="Control de baños"
           badge="Incidencias taller"
           icon={Clock}
           description="Registro en vivo, reportes formales diarios en PDF y resúmenes mensuales."
+          className="print:hidden"
         />
         <ModuleTabs
+          headerClassName="print:hidden"
           value={tab}
           onValueChange={(v) => setTab(v as TabBanos)}
           items={[

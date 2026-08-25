@@ -22,7 +22,22 @@ const repo = crearRepositorio<OrdenCompraUsa>({
   converter: poConverter,
 })
 
+export const EMPRESA_USA_DEFAULT = "RGV Metal and Plastics CO."
 export const DIRECCION_USA_DEFAULT = "5423 Lovers Ln Brownsville, Texas 78526"
+
+export const TERMINOS_PAGO_USA_OPCIONES = [
+  { id: "Credit (Net 30)", label: "Credit (Net 30) - Principal" },
+  { id: "Credit (Net 60)", label: "Credit (Net 60)" },
+  { id: "Credit (Net 15)", label: "Credit (Net 15)" },
+  { id: "Credit (Net 45)", label: "Credit (Net 45)" },
+  { id: "Credit (Net 90)", label: "Credit (Net 90)" },
+  { id: "Corporate Credit Card", label: "Tarjeta de Crédito Corporativa (Credit Card)" },
+  { id: "Wire Transfer / ACH", label: "Transferencia Bancaria / Wire / ACH" },
+  { id: "Prepaid / Advance Payment", label: "Prepago / Pago Anticipado (Prepaid)" },
+  { id: "Check / COD", label: "Cheque / Cobro contra entrega (COD)" },
+] as const
+
+export const TERMINOS_PAGO_DEFAULT = "Credit (Net 30)"
 
 /**
  * Calcula los totales de una Purchase Order a partir de sus partidas.
@@ -148,6 +163,8 @@ export async function crearOrdenCompraUsa(
     {
       ...payload,
       folio,
+      empresa: payload.empresa?.trim() || EMPRESA_USA_DEFAULT,
+      terminosPago: payload.terminosPago?.trim() || TERMINOS_PAGO_DEFAULT,
       shippingAddressUSA: payload.shippingAddressUSA?.trim() || DIRECCION_USA_DEFAULT,
       items: itemsNormalizados,
       subtotal: totales.subtotal,
@@ -280,7 +297,7 @@ export async function registrarPOEnBitacoraOrdenes(
   const usuarioEmail = user?.email || "desconocido"
 
   const requisitor = po.solicitante || po.comprador || "SMV Compras"
-  const empresa = po.empresa || "SMV"
+  const empresa = po.empresa || EMPRESA_USA_DEFAULT
   const cuentaCargo = po.cuentaCargo || "Stock"
   const ordenTrabajo = po.ordenTrabajo || ""
 
