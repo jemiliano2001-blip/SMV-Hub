@@ -10,14 +10,21 @@ interface OrdenCompraImprimibleProps {
   onEnviarEmail?: () => void
 }
 
-function formatUSD(amount: number | null | undefined): string {
-  if (amount === null || amount === undefined) return '$0.00'
+/**
+ * Formatea en el locale del documento (la PO va en ingles al proveedor USA),
+ * pero con la moneda real de la orden: el encabezado imprime `orden.moneda` y
+ * el schema admite MXN, asi que clavar 'USD' mostraria simbolos que no cuadran.
+ */
+function formatMonto(
+  amount: number | null | undefined,
+  moneda: OrdenCompraUsa['moneda'] | undefined
+): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: moneda || 'USD',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(amount)
+  }).format(amount ?? 0)
 }
 
 function formatOrderDate(dateStr?: string | null): string {
@@ -262,10 +269,10 @@ export default function OrdenCompraImprimible({
                     {it.cantidad}
                   </td>
                   <td className="py-2.5 px-3 text-right font-mono text-foreground border-r border-border print:border-gray-300 print:text-black">
-                    {formatUSD(it.precioUnitario)}
+                    {formatMonto(it.precioUnitario, orden.moneda)}
                   </td>
                   <td className="py-2.5 px-3 text-right font-mono font-bold text-foreground print:text-black">
-                    {formatUSD(it.subtotal)}
+                    {formatMonto(it.subtotal, orden.moneda)}
                   </td>
                 </tr>
               ))}
@@ -327,26 +334,26 @@ export default function OrdenCompraImprimible({
               <div className="divide-y divide-border text-xs print:divide-gray-300">
                 <div className="flex justify-between py-2 px-3">
                   <span className="font-semibold text-muted-foreground print:text-gray-700">Subtotal:</span>
-                  <span className="font-mono font-semibold text-foreground print:text-black">{formatUSD(orden.subtotal)}</span>
+                  <span className="font-mono font-semibold text-foreground print:text-black">{formatMonto(orden.subtotal, orden.moneda)}</span>
                 </div>
 
                 <div className="flex justify-between py-2 px-3">
                   <span className="text-muted-foreground print:text-gray-700">Shipping & Handling:</span>
                   <span className="font-mono text-foreground print:text-black">
-                    {orden.envio > 0 ? formatUSD(orden.envio) : '$0.00'}
+                    {formatMonto(orden.envio > 0 ? orden.envio : 0, orden.moneda)}
                   </span>
                 </div>
 
                 <div className="flex justify-between py-2 px-3">
                   <span className="text-muted-foreground print:text-gray-700">Estimated Sales Tax:</span>
                   <span className="font-mono text-foreground print:text-black">
-                    {orden.impuestos > 0 ? formatUSD(orden.impuestos) : '$0.00'}
+                    {formatMonto(orden.impuestos > 0 ? orden.impuestos : 0, orden.moneda)}
                   </span>
                 </div>
 
                 <div className="flex justify-between py-3 px-3 bg-muted/60 border-t-2 border-foreground/80 font-bold text-sm text-foreground print:border-black print:bg-gray-100 print:text-black">
                   <span>TOTAL AMOUNT ({orden.moneda || 'USD'}):</span>
-                  <span className="font-mono text-base">{formatUSD(orden.total)}</span>
+                  <span className="font-mono text-base">{formatMonto(orden.total, orden.moneda)}</span>
                 </div>
               </div>
             </div>
