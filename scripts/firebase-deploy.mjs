@@ -66,6 +66,37 @@ if (
   }
 }
 
+// Parchear firebase.json temporalmente con vars server-side para la Cloud Run SSR.
+// frameworksBackend.environmentVariables las inyecta en el runtime de Cloud Run.
+// Se restaura tras el deploy para no almacenar secrets en el repo.
+const firebaseJsonPath = join(process.cwd(), "firebase.json")
+let firebaseJsonBackup = null
+if (projectFromFirebaseArgs(firebaseArgs) === "smv-brain" && existsSync(firebaseJsonPath)) {
+  const SERVER_ONLY_VARS = [
+    "GEMINI_API_KEY",
+    "GEMINI_MODEL",
+    "GEMINI_MODEL_SAT",
+    "GEMINI_MODEL_SAT_ESCALADO",
+    "HUB_GEMINI_API_KEY",
+  ]
+  const envVarsToInject = {}
+  for (const key of SERVER_ONLY_VARS) {
+    if (resolvedEnv[key]) envVarsToInject[key] = resolvedEnv[key]
+  }
+  if (Object.keys(envVarsToInject).length > 0) {
+    firebaseJsonBackup = readFileSync(firebaseJsonPath, "utf8")
+    const firebaseConfig = JSON.parse(firebaseJsonBackup)
+    if (firebaseConfig.hosting?.frameworksBackend) {
+      firebaseConfig.hosting.frameworksBackend.environmentVariables = {
+        ...firebaseConfig.hosting.frameworksBackend.environmentVariables,
+        ...envVarsToInject,
+      }
+      writeFileSync(firebaseJsonPath, JSON.stringify(firebaseConfig, null, 2) + "\n", "utf8")
+      console.log(`→ vars server-side inyectadas en firebase.json[frameworksBackend]: ${Object.keys(envVarsToInject).join(", ")}`)
+    }
+  }
+}
+
 runPatch("apply")
 
 const nodeOptions = resolvedEnv.NODE_OPTIONS || ""
@@ -120,6 +151,10 @@ function restaurarUnaVez() {
   if (envLocalBackup !== null) {
     writeFileSync(envLocalPath, envLocalBackup, "utf8")
     envLocalBackup = null
+  }
+  if (firebaseJsonBackup !== null) {
+    writeFileSync(firebaseJsonPath, firebaseJsonBackup, "utf8")
+    firebaseJsonBackup = null
   }
   runPatch("restore")
   limpiarShim()
