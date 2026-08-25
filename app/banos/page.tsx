@@ -1,17 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import { Calculator, CalendarDays, Clock } from 'lucide-react'
+import { Calculator, CalendarDays, Clock, FileText } from 'lucide-react'
 
 import AuthGuard from '../AuthGuard'
 import CuentaDiaria from './CuentaDiaria'
 import RegistroBanoList from './RegistroBanoList'
+import ReporteDiarioBanos from './ReporteDiarioBanos'
 import ResumenMensual from './ResumenMensual'
 import PageHeader from '@/components/layout/PageHeader'
 import PageShell from '@/components/layout/PageShell'
 import ModuleTabs from '@/components/layout/ModuleTabs'
 
-type TabBanos = 'registro' | 'diaria' | 'mensual'
+type TabBanos = 'registro' | 'reporte-diario' | 'diaria' | 'mensual'
 
 export default function BanosPage() {
   const [tab, setTab] = useState<TabBanos>('registro')
@@ -23,7 +24,7 @@ export default function BanosPage() {
           title="Control de baños"
           badge="Incidencias taller"
           icon={Clock}
-          description="Registro de tiempos y resúmenes diarios o mensuales de uso."
+          description="Registro en vivo, reportes formales diarios en PDF y resúmenes mensuales."
         />
         <ModuleTabs
           value={tab}
@@ -34,10 +35,20 @@ export default function BanosPage() {
               label: (
                 <span className="inline-flex items-center gap-1.5">
                   <Clock className="size-3.5" aria-hidden />
-                  Registro
+                  Registro en vivo
                 </span>
               ),
-              content: <RegistroBanoList />,
+              content: <RegistroBanoList onIrAReporteDiario={() => setTab('reporte-diario')} />,
+            },
+            {
+              value: 'reporte-diario',
+              label: (
+                <span className="inline-flex items-center gap-1.5">
+                  <FileText className="size-3.5" aria-hidden />
+                  Reporte Diario (PDF)
+                </span>
+              ),
+              content: <ReporteDiarioBanos />,
             },
             {
               value: 'diaria',
@@ -54,7 +65,7 @@ export default function BanosPage() {
               label: (
                 <span className="inline-flex items-center gap-1.5">
                   <Calculator className="size-3.5" aria-hidden />
-                  Resumen
+                  Resumen Mensual
                 </span>
               ),
               content: <ResumenMensual />,

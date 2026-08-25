@@ -13,7 +13,7 @@ import {
 } from '@/lib/format'
 import { resolverOperadorActivo, resolverOperadorPorQR } from '@/lib/banos-captura'
 import { MOTIVOS_SOLICITUD_BORRADO_BANO } from '@/lib/banos-solicitudes-borrado'
-import { Plus, Trash2, Check, Search, Pencil, Clock, Copy, CheckCircle, QrCode, Sparkles } from 'lucide-react'
+import { Plus, Trash2, Check, Search, Pencil, Clock, Copy, CheckCircle, QrCode, Sparkles, Printer } from 'lucide-react'
 import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { Button } from '@/components/ui/button'
@@ -60,7 +60,11 @@ function getInitials(name: string) {
   return name.trim().split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
 }
 
-export default function RegistroBanoList() {
+interface RegistroBanoListProps {
+  onIrAReporteDiario?: () => void
+}
+
+export default function RegistroBanoList({ onIrAReporteDiario }: RegistroBanoListProps = {}) {
   const { usuario } = useUsuario()
   const { esSuperAdmin } = usePermisos(authBypassActivo() ? null : usuario)
   const puedeEliminar = esSuperAdmin || authBypassActivo()
@@ -405,15 +409,32 @@ export default function RegistroBanoList() {
             </span>
           </div>
 
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => setIsLectorQROpen(true)}
-            className="h-8 px-3 text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 cursor-pointer shadow-xs"
-          >
-            <QrCode className="size-3.5" />
-            <span>Escanear Gafete</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            {onIrAReporteDiario && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onIrAReporteDiario}
+                className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl cursor-pointer hover:bg-muted"
+                title="Generar y consultar reporte diario en PDF"
+              >
+                <Printer className="size-3.5 text-primary" />
+                <span className="hidden sm:inline">Generar Reporte Diario</span>
+                <span className="sm:hidden">Reporte PDF</span>
+              </Button>
+            )}
+
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setIsLectorQROpen(true)}
+              className="h-8 px-3 text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 cursor-pointer shadow-xs rounded-xl"
+            >
+              <QrCode className="size-3.5" />
+              <span>Escanear Gafete</span>
+            </Button>
+          </div>
         </div>
 
         {/* Selector Ergonómico de Baños */}
