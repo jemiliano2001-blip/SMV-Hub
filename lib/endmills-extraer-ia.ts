@@ -2,6 +2,7 @@ import * as XLSX from "xlsx"
 import { configGeneracionJson } from "@/lib/gemini-generation-config"
 import { ErrorIA, resolverModeloExtraccion } from "@/lib/extraer-ia"
 import type { EndmillMedida } from "@/lib/schemas"
+import { obtenerGeminiApiKey, MENSAJE_FALTA_GEMINI_API_KEY } from "@/lib/gemini-api-key"
 
 export interface ItemExtraidoEndmill {
   descripcionInput: string
@@ -25,9 +26,9 @@ export interface ResultadoExtraccionEndmills {
 }
 
 function obtenerApiKey(): string {
-  const key = process.env.GEMINI_API_KEY?.trim()
+  const key = obtenerGeminiApiKey()
   if (!key) {
-    throw new ErrorIA("Falta GEMINI_API_KEY en .env.local (crea una en Google AI Studio)")
+    throw new ErrorIA(MENSAJE_FALTA_GEMINI_API_KEY)
   }
   return key
 }

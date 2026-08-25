@@ -2,6 +2,7 @@ import { z } from "zod"
 import { configGeneracionJson } from "@/lib/gemini-generation-config"
 import { GEMINI_MODELO_FLASH_ECONOMICO } from "@/lib/gemini-modelos"
 import type { RegistroBano, MotivoSolicitudBorradoBano } from "@/lib/schemas"
+import { obtenerGeminiApiKey, MENSAJE_FALTA_GEMINI_API_KEY } from "@/lib/gemini-api-key"
 
 export const MODELO_BANOS_DEFAULT = "gemini-3.7-flash"
 /** Candidato A/B más económico — probar vía `GEMINI_MODEL_BANOS=gemini-3.6-flash`. */
@@ -27,8 +28,8 @@ const RESPONSE_SCHEMA = {
 }
 
 function obtenerApiKey(): string {
-  const key = process.env.GEMINI_API_KEY?.trim()
-  if (!key) throw new Error("Falta GEMINI_API_KEY")
+  const key = obtenerGeminiApiKey()
+  if (!key) throw new Error(MENSAJE_FALTA_GEMINI_API_KEY)
   return key
 }
 

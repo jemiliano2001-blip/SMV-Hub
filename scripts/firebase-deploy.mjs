@@ -66,37 +66,6 @@ if (
   }
 }
 
-// Parchear firebase.json temporalmente con vars server-side para la Cloud Run SSR.
-// frameworksBackend.environmentVariables las inyecta en el runtime de Cloud Run.
-// Se restaura tras el deploy para no almacenar secrets en el repo.
-const firebaseJsonPath = join(process.cwd(), "firebase.json")
-let firebaseJsonBackup = null
-if (projectFromFirebaseArgs(firebaseArgs) === "smv-brain" && existsSync(firebaseJsonPath)) {
-  const SERVER_ONLY_VARS = [
-    "GEMINI_API_KEY",
-    "GEMINI_MODEL",
-    "GEMINI_MODEL_SAT",
-    "GEMINI_MODEL_SAT_ESCALADO",
-    "HUB_GEMINI_API_KEY",
-  ]
-  const envVarsToInject = {}
-  for (const key of SERVER_ONLY_VARS) {
-    if (resolvedEnv[key]) envVarsToInject[key] = resolvedEnv[key]
-  }
-  if (Object.keys(envVarsToInject).length > 0) {
-    firebaseJsonBackup = readFileSync(firebaseJsonPath, "utf8")
-    const firebaseConfig = JSON.parse(firebaseJsonBackup)
-    if (firebaseConfig.hosting?.frameworksBackend) {
-      firebaseConfig.hosting.frameworksBackend.environmentVariables = {
-        ...firebaseConfig.hosting.frameworksBackend.environmentVariables,
-        ...envVarsToInject,
-      }
-      writeFileSync(firebaseJsonPath, JSON.stringify(firebaseConfig, null, 2) + "\n", "utf8")
-      console.log(`→ vars server-side inyectadas en firebase.json[frameworksBackend]: ${Object.keys(envVarsToInject).join(", ")}`)
-    }
-  }
-}
-
 runPatch("apply")
 
 const nodeOptions = resolvedEnv.NODE_OPTIONS || ""
@@ -146,19 +115,17 @@ function limpiarShim() {
 }
 
 /**
- * Devuelve al disco los archivos que este script parchea en caliente.
- * Es sincrona y sin dependencias para poder correr tambien dentro de `process.on("exit")`:
- * si el proceso muere sin pasar por `restaurarUnaVez()`, la GEMINI_API_KEY inyectada en
- * firebase.json quedaria escrita en el repo y podria commitearse por accidente.
+ * Devuelve al disco los archivos que este script parchea en caliente (.env.local).
+ * Es sincrona y sin dependencias para poder correr tambien dentro de `process.on("exit")`,
+ * de modo que una salida abrupta no deje el archivo a medias.
+ *
+ * La API key de Gemini ya no pasa por aqui: la monta Secret Manager en el runtime,
+ * declarada en firebase.json -> hosting.frameworksBackend.secrets.
  */
 function restaurarArchivos() {
   if (envLocalBackup !== null) {
     writeFileSync(envLocalPath, envLocalBackup, "utf8")
     envLocalBackup = null
-  }
-  if (firebaseJsonBackup !== null) {
-    writeFileSync(firebaseJsonPath, firebaseJsonBackup, "utf8")
-    firebaseJsonBackup = null
   }
 }
 

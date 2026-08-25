@@ -7,6 +7,7 @@ import { ErrorIA } from "@/lib/extraer-ia"
 import { configGeneracionJson } from "@/lib/gemini-generation-config"
 import { GEMINI_MODELO_FLASH_ECONOMICO } from "@/lib/gemini-modelos"
 import { CATEGORIAS_PRODUCTO_REGISTRO } from "./categorias-registro"
+import { obtenerGeminiApiKey, MENSAJE_FALTA_GEMINI_API_KEY } from "@/lib/gemini-api-key"
 
 /** Modelo para clasificación (override con GEMINI_MODEL_CLASIFICACION). */
 export const MODELO_CLASIFICACION_DEFAULT = "gemini-3.5-flash-lite"
@@ -79,10 +80,10 @@ const CLASIFICACION_SCHEMA = {
 }
 
 function obtenerApiKey(): string {
-  const key = process.env.GEMINI_API_KEY?.trim()
+  const key = obtenerGeminiApiKey()
   if (!key) {
     throw new ErrorIA(
-      "Falta GEMINI_API_KEY en .env.local (crea una en Google AI Studio)"
+      MENSAJE_FALTA_GEMINI_API_KEY
     )
   }
   return key

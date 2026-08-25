@@ -17,7 +17,10 @@
     "frameworksBackend": {
       "region": "us-central1",
       "memory": "1GiB",
-      "timeoutSeconds": 120
+      "timeoutSeconds": 120,
+      "secrets": [
+        "HUB_GEMINI_API_KEY"
+      ]
     },
     "ignore": [
       "firebase.json",

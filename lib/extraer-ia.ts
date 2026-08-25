@@ -3,6 +3,7 @@ import {
   type ExtraccionInvoice,
 } from "@/lib/schemas"
 import { configGeneracionJson } from "@/lib/gemini-generation-config"
+import { obtenerGeminiApiKey, MENSAJE_FALTA_GEMINI_API_KEY } from "@/lib/gemini-api-key"
 
 /**
  * Modelos Gemini para extracción de facturas.
@@ -141,10 +142,10 @@ type GeminiGenerateResponse = {
 }
 
 function obtenerApiKey(): string {
-  const key = process.env.GEMINI_API_KEY?.trim()
+  const key = obtenerGeminiApiKey()
   if (!key) {
     throw new ErrorIA(
-      "Falta GEMINI_API_KEY en .env.local (crea una en Google AI Studio)"
+      MENSAJE_FALTA_GEMINI_API_KEY
     )
   }
   return key

@@ -1,6 +1,7 @@
 import { configGeneracionJson } from "@/lib/gemini-generation-config"
 import { GEMINI_MODELO_WORKHORSE } from "@/lib/gemini-modelos"
 import { ErrorIA, resolverModeloExtraccion, type MediaTypeFactura } from "@/lib/extraer-ia"
+import { obtenerGeminiApiKey, MENSAJE_FALTA_GEMINI_API_KEY } from "@/lib/gemini-api-key"
 
 export interface ExtraccionPOUsa {
   proveedor: string
@@ -87,10 +88,10 @@ export async function extraerPOUsaDesdeArchivo(
   mediaType: MediaTypeFactura = "image/jpeg"
 ): Promise<ExtraccionPOUsa> {
   // Solo servidor: nunca exponer la llave con NEXT_PUBLIC_ (se filtraria al bundle del navegador).
-  const apiKey = process.env.GEMINI_API_KEY
+  const apiKey = obtenerGeminiApiKey()
   if (!apiKey) {
     throw new ErrorIA(
-      "GEMINI_API_KEY no configurada. Agrega la clave a las variables de entorno."
+      MENSAJE_FALTA_GEMINI_API_KEY
     )
   }
 

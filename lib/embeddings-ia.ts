@@ -9,6 +9,7 @@
 import { ErrorIA } from "./extraer-ia"
 import { resolverModeloGemini } from "./gemini-modelos"
 import { modeloUsaPrefijosEmbedding, prefijarTextoEmbedding } from "./embeddings-prefijos"
+import { obtenerGeminiApiKey, MENSAJE_FALTA_GEMINI_API_KEY } from "@/lib/gemini-api-key"
 
 export const MODELO_EMBEDDING_DEFAULT = "gemini-embedding-2"
 
@@ -196,9 +197,9 @@ export async function generarEmbeddingTexto(
     throw new ErrorIA("El texto para generar embedding no puede estar vacío")
   }
 
-  const apiKey = opciones.apiKey || process.env.GEMINI_API_KEY
+  const apiKey = opciones.apiKey || obtenerGeminiApiKey()
   if (!apiKey) {
-    throw new ErrorIA("No se ha configurado GEMINI_API_KEY en el entorno")
+    throw new ErrorIA(MENSAJE_FALTA_GEMINI_API_KEY)
   }
 
   const modelo = opciones.modelo || resolverModeloEmbedding()
@@ -250,9 +251,9 @@ export async function generarEmbeddingsLote(
     return resultado
   }
 
-  const apiKey = opciones.apiKey || process.env.GEMINI_API_KEY
+  const apiKey = opciones.apiKey || obtenerGeminiApiKey()
   if (!apiKey) {
-    throw new ErrorIA("No se ha configurado GEMINI_API_KEY en el entorno")
+    throw new ErrorIA(MENSAJE_FALTA_GEMINI_API_KEY)
   }
 
   const modelo = opciones.modelo || resolverModeloEmbedding()

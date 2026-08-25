@@ -4,6 +4,7 @@ import { resolverModeloGemini } from "@/lib/gemini-modelos"
 import type { SatSearchResult } from "@/lib/sat/buscar"
 import { findSatCatalogEntryByKey } from "@/lib/sat/catalogo"
 import { clasificarAreaComprasSmv, contextoSmvParaIa } from "@/lib/sat/perfil-compras-smv"
+import { obtenerGeminiApiKey, MENSAJE_FALTA_GEMINI_API_KEY } from "@/lib/gemini-api-key"
 
 /** Modelo económico para traducción/clasificación SAT (override con GEMINI_MODEL_SAT). */
 export const MODELO_SAT_LITE = "gemini-3.5-flash-lite"
@@ -25,10 +26,10 @@ type GeminiGenerateResponse = {
 }
 
 function obtenerApiKey(): string {
-  const key = process.env.GEMINI_API_KEY?.trim()
+  const key = obtenerGeminiApiKey()
   if (!key) {
     throw new ErrorIA(
-      "Falta GEMINI_API_KEY en .env.local (crea una en Google AI Studio)"
+      MENSAJE_FALTA_GEMINI_API_KEY
     )
   }
   return key

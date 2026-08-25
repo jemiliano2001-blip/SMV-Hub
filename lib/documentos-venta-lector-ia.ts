@@ -9,6 +9,7 @@ import { z } from "zod"
 import { configGeneracionJson } from "@/lib/gemini-generation-config"
 import { ErrorIA } from "./extraer-ia"
 import type { VentaOdooSo } from "./schemas"
+import { obtenerGeminiApiKey, MENSAJE_FALTA_GEMINI_API_KEY } from "@/lib/gemini-api-key"
 
 export const MODELO_ORDENES_CLIENTE_DEFAULT = "gemini-3.7-flash"
 
@@ -119,9 +120,9 @@ export async function extraerOrdenCompraClienteIA(
     timeoutMs?: number
   } = {}
 ): Promise<OrdenCompraClienteExtraida> {
-  const apiKey = opciones.apiKey || process.env.GEMINI_API_KEY
+  const apiKey = opciones.apiKey || obtenerGeminiApiKey()
   if (!apiKey) {
-    throw new ErrorIA("No se ha configurado GEMINI_API_KEY en el entorno")
+    throw new ErrorIA(MENSAJE_FALTA_GEMINI_API_KEY)
   }
 
   const modelo = opciones.modelo || resolverModeloExtraccionCliente()

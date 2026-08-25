@@ -1,6 +1,7 @@
 import { configGeneracionJson } from "@/lib/gemini-generation-config"
 import { GEMINI_MODELO_WORKHORSE } from "@/lib/gemini-modelos"
 import { ErrorIA, resolverModeloExtraccion, type MediaTypeFactura } from "@/lib/extraer-ia"
+import { obtenerGeminiApiKey, MENSAJE_FALTA_GEMINI_API_KEY } from "@/lib/gemini-api-key"
 
 export interface CotizacionExtraidaItem {
   numeroParte: string | null
@@ -86,10 +87,10 @@ Partidas (items): Extrae cada producto como un objeto en la lista:
 Si la cotización contiene múltiples páginas o varias filas en una tabla, incluye TODAS las partidas en el array de "items". Si solo hay un producto, devuelve un array con 1 solo ítem. Usa null en campos numéricos o textos no disponibles.`
 
 function obtenerApiKey(): string {
-  const key = process.env.GEMINI_API_KEY?.trim()
+  const key = obtenerGeminiApiKey()
   if (!key) {
     throw new ErrorIA(
-      "Falta GEMINI_API_KEY en .env.local (crea una en Google AI Studio)"
+      MENSAJE_FALTA_GEMINI_API_KEY
     )
   }
   return key

@@ -163,6 +163,11 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 NEXT_PUBLIC_FIREBASE_APP_ID=
 
 # Gemini (para extracción IA de facturas — crear en Google AI Studio)
+# Solo desarrollo local: en producción la key la monta Secret Manager como
+# HUB_GEMINI_API_KEY (declarado en firebase.json → hosting.frameworksBackend.secrets),
+# nunca se escribe en el repo ni en firebase.json. Todo el código server-side la lee
+# vía `obtenerGeminiApiKey()` de lib/gemini-api-key.ts, que prefiere el secreto y cae
+# a esta variable en local.
 GEMINI_API_KEY=
 # Opcional: override del modelo de extracción (default gemini-3.7-flash)
 # GEMINI_MODEL=

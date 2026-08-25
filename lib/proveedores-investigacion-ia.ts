@@ -9,6 +9,7 @@ import { ErrorIA } from "@/lib/extraer-ia"
 import { configGeneracionJson } from "@/lib/gemini-generation-config"
 import { TIPO_CAMBIO_DEFAULT_USD_MXN } from "@/lib/tipo-cambio"
 import type { CompraOdooItem, OrdenCompra } from "@/lib/schemas"
+import { obtenerGeminiApiKey, MENSAJE_FALTA_GEMINI_API_KEY } from "@/lib/gemini-api-key"
 
 export const MODELO_INVESTIGACION_DEFAULT = "gemini-3.7-flash"
 const TIEMPO_TIMEOUT_MS = 25_000
@@ -163,9 +164,9 @@ const RESPONSE_SCHEMA_GEMINI = {
 }
 
 function obtenerApiKey(): string {
-  const key = process.env.GEMINI_API_KEY?.trim()
+  const key = obtenerGeminiApiKey()
   if (!key) {
-    throw new ErrorIA("Falta GEMINI_API_KEY en las variables de entorno.")
+    throw new ErrorIA(MENSAJE_FALTA_GEMINI_API_KEY)
   }
   return key
 }

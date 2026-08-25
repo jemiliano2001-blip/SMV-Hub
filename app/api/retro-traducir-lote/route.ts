@@ -19,6 +19,7 @@ import {
 import { cargarMapeosSatDesdeFirestore } from "@/lib/sat/cargar-mapeos-firestore"
 import { resolverModeloLite } from "@/lib/sat/gemini-sat"
 import { normalizarHistorialEntradasSat } from "@/lib/sat/payload-sugerir-clave"
+import { obtenerGeminiApiKey, MENSAJE_FALTA_GEMINI_API_KEY } from "@/lib/gemini-api-key"
 
 const MAX_ORDENES_SEGURAS_POR_REQUEST = 2
 const MAX_ORDENES_LEGACY_POR_REQUEST = 10
@@ -48,8 +49,8 @@ function resolverModeloTraduccion(): string {
 }
 
 async function traducirDescripciones(descripciones: string[]): Promise<string[]> {
-  const apiKey = process.env.GEMINI_API_KEY?.trim()
-  if (!apiKey) throw new ErrorIA("Falta GEMINI_API_KEY en .env.local")
+  const apiKey = obtenerGeminiApiKey()
+  if (!apiKey) throw new ErrorIA(MENSAJE_FALTA_GEMINI_API_KEY)
 
   const modelo = resolverModeloTraduccion()
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`
