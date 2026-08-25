@@ -17,6 +17,10 @@ import {
 } from '@/components/ui/table'
 import ModuleSurface from '@/components/layout/ModuleSurface'
 
+import { toast } from 'sonner'
+import { generarExcelReporteCaja } from '@/lib/caja-chica-export'
+import { descargarExcelEnNavegador } from '@/lib/excel-export-base'
+
 export default function ReportesCaja() {
   const [modoFiltro, setModoFiltro] = useState<ModoFiltroCaja>('CICLO_ACTIVO')
   const [periodo, setPeriodo] = useState(() => {
@@ -26,6 +30,7 @@ export default function ReportesCaja() {
   const [corteIdSel, setCorteIdSel] = useState<string>('')
   const [cortesHistorial, setCortesHistorial] = useState<CorteCaja[]>([])
   const [conFactura, setConFactura] = useState(true)
+  const [exportando, setExportando] = useState(false)
 
   useEffect(() => {
     listarCortesCaja()
@@ -64,57 +69,52 @@ export default function ReportesCaja() {
 
   const exportarExcel = async () => {
     if (filtrados.length === 0) return
-    const XLSX = await import('xlsx')
-
-    const datos = filtrados.map((m) => {
-      const fila: Record<string, string | number> = {
-        Fecha: m.fecha,
-        Descripción: m.descripcion,
-        'Proveedor / Lugar': m.proveedor,
-        Categoría: m.categoria,
-        Comprobante: m.comprobante,
-        'Monto ($)': m.monto,
-      }
-      return fila
-    })
-
-    datos.push({
-      Fecha: '',
-      Descripción: '',
-      'Proveedor / Lugar': '',
-      Categoría: '',
-      Comprobante: '',
-      'Monto ($)': '',
-    })
-
-    const filaTotal: Record<string, string | number> = {
-      Fecha: 'TOTALES',
-      'Monto ($)': total,
+    try {
+      setExportando(true)
+      const buffer = await generarExcelReporteCaja({
+        movimientos: filtrados,
+        etiquetaModo,
+        conFactura,
+      })
+      const sufijoModo = modoFiltro.toLowerCase()
+      const nombre = `Reporte_CajaChica_${sufijoModo}${conFactura ? '_ConFactura' : '_SinFactura'}_${new Date().toISOString().slice(0, 10)}.xlsx`
+      descargarExcelEnNavegador(buffer, nombre)
+      toast.success('Reporte de caja chica exportado a Excel')
+    } catch (err) {
+      console.error('Error exportando caja chica a Excel:', err)
+      toast.error('No se pudo exportar el archivo Excel.')
+    } finally {
+      setExportando(false)
     }
-    datos.push(filaTotal)
+  }
 
-    const worksheet = XLSX.utils.json_to_sheet(datos)
-    const wscols = [
-      { wch: 12 },
-      { wch: 40 },
-      { wch: 25 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-    ]
-    worksheet['!cols'] = wscols
-
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte Caja Chica')
-
-    const sufijoModo = modoFiltro.toLowerCase()
-    XLSX.writeFile(workbook, `Reporte_CajaChica_${sufijoModo}${conFactura ? '_ConFactura' : '_SinFactura'}.xlsx`)
+  const handleImprimir = () => {
+    const tituloOriginal = document.title
+    document.title = `Reporte_CajaChica_${modoFiltro}_${conFactura ? 'ConFactura' : 'SinFactura'}`
+    window.print()
+    document.title = tituloOriginal
   }
 
   const columnas = 6
 
   return (
-    <div className="space-y-4 print:space-y-6">
+    <div className="reporte-formal-print space-y-4">
+      {/* Cabecera formal de Impresión (PDF) */}
+      <div className="mb-3 hidden print:flex print:items-center print:justify-between print:bg-[#111111] print:px-3 print:py-2.5 print:text-white">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-widest">SMV Maquinados</p>
+          <p className="mt-0.5 text-[8px] tracking-wide print:text-gray-400">S.A. de C.V.</p>
+        </div>
+        <div className="text-center">
+          <p className="text-[12.5px] font-semibold uppercase tracking-wide">Reporte de Caja Chica</p>
+          <p className="mt-1 text-[8.5px] print:text-gray-400">{etiquetaModo} · Gastos {conFactura ? 'Con Factura' : 'Sin Factura'}</p>
+        </div>
+        <div className="text-right text-[8px] leading-relaxed print:text-gray-400">
+          <p>MXN · {filtrados.length} movimientos</p>
+          <p>Generado el {new Date().toLocaleDateString('es-MX')}</p>
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div className="flex flex-wrap items-center gap-2">
           {/* Selector de Modo */}
@@ -179,14 +179,14 @@ export default function ReportesCaja() {
         <div className="flex gap-2">
           <button
             onClick={exportarExcel}
-            disabled={filtrados.length === 0}
-            className="flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={filtrados.length === 0 || exportando}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
           >
             <Table2 className="h-3.5 w-3.5" /> Exportar Excel
           </button>
           <button
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 rounded-lg bg-card border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+            onClick={handleImprimir}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
           >
             <Printer className="h-3.5 w-3.5" /> Guardar PDF
           </button>
@@ -194,36 +194,21 @@ export default function ReportesCaja() {
       </div>
 
       {error && (
-        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-lg text-sm print:hidden">
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm print:hidden">
           {error}
         </div>
       )}
 
-      {/* Cabecera de Impresión (PDF) */}
-      <div className="hidden print:block mb-6 pb-4 border-b-2 border-gray-900">
-        <div className="flex justify-between items-end">
-          <div>
-            <h1 className="text-3xl font-black text-foreground tracking-tight">SMV MAQUINADOS</h1>
-            <h2 className="text-xl font-bold text-foreground mt-1 uppercase tracking-wider">Reporte de Caja Chica</h2>
-          </div>
-          <div className="text-right text-sm text-foreground">
-            <p><span className="font-semibold">Selección:</span> {etiquetaModo}</p>
-            <p><span className="font-semibold">Filtro:</span> Gastos {conFactura ? 'Con Factura' : 'Sin Factura'}</p>
-            <p><span className="font-semibold">Fecha de Emisión:</span> {new Date().toLocaleDateString('es-MX')}</p>
-          </div>
-        </div>
-      </div>
-
-      <ModuleSurface className="overflow-x-auto print:border-0 print:overflow-visible print:shadow-none">
-        <Table className="w-full text-sm text-left print:text-xs">
-          <TableHeader className="bg-muted text-muted-foreground font-medium border-b border-border print:bg-white print:border-b-2 print:border-gray-900 print:text-gray-900">
+      <ModuleSurface className="overflow-x-auto print:border-0 print:p-0 print:overflow-visible print:shadow-none">
+        <Table className="w-full text-sm text-left print:text-[9px]">
+          <TableHeader className="bg-muted text-muted-foreground font-semibold border-b border-border print:bg-[#111111] print:border-b-0">
             <TableRow>
-              <TableHead className="px-4 py-3 print:px-2 print:py-2">Fecha</TableHead>
-              <TableHead className="px-4 py-3 print:px-2 print:py-2">Descripción</TableHead>
-              <TableHead className="px-4 py-3 print:px-2 print:py-2">Proveedor</TableHead>
-              <TableHead className="px-4 py-3 print:px-2 print:py-2">Categoría</TableHead>
-              <TableHead className="px-4 py-3 print:px-2 print:py-2">Comprobante</TableHead>
-              <TableHead className="px-4 py-3 text-right print:px-2 print:py-2">Monto</TableHead>
+              <TableHead className="px-4 py-3 print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">Fecha</TableHead>
+              <TableHead className="px-4 py-3 print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">Descripción</TableHead>
+              <TableHead className="px-4 py-3 print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">Proveedor</TableHead>
+              <TableHead className="px-4 py-3 print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">Categoría</TableHead>
+              <TableHead className="px-4 py-3 print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">Comprobante</TableHead>
+              <TableHead className="px-4 py-3 text-right print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">Monto</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-border print:divide-gray-300">

@@ -650,8 +650,8 @@ function GenerarPOModal({
 
   return (
     <Dialog open={abierto} onOpenChange={(val) => !val && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto print:max-w-none print:max-h-none print:overflow-visible print:border-0 print:p-0 print:shadow-none print:bg-white">
+        <DialogHeader className="print:hidden">
           <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
             <Printer className="h-5 w-5 text-primary" /> Generar Orden de Compra Internacional (PO / PDF)
           </DialogTitle>
@@ -660,7 +660,8 @@ function GenerarPOModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 text-xs font-sans">
+        {/* ── FORMULARIO WEB (OCULTO EN IMPRESIÓN) ── */}
+        <div className="space-y-4 text-xs font-sans print:hidden">
           {/* Datos Generales de la Orden */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
@@ -668,7 +669,7 @@ function GenerarPOModal({
               <select
                 value={proveedorId}
                 onChange={(e) => setProveedorId(e.target.value)}
-                className="w-full px-3 py-2 border border-input rounded-lg text-xs font-bold text-primary"
+                className="w-full px-3 py-2 border border-input bg-card text-foreground rounded-lg text-xs font-bold text-primary"
               >
                 {proveedores.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -685,7 +686,7 @@ function GenerarPOModal({
                 value={numeroOrden}
                 onChange={(e) => setNumeroOrden(e.target.value)}
                 placeholder="PO-2026-001"
-                className="w-full px-3 py-2 border border-input rounded-lg text-xs font-mono font-bold"
+                className="w-full px-3 py-2 border border-input bg-card text-foreground rounded-lg text-xs font-mono font-bold"
               />
             </div>
 
@@ -694,7 +695,7 @@ function GenerarPOModal({
               <select
                 value={categoria}
                 onChange={(e) => setCategoria(e.target.value as CategoriaProveedor)}
-                className="w-full px-3 py-2 border border-input rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-input bg-card text-foreground rounded-lg text-xs"
               >
                 <option value="endmills">Endmills</option>
                 <option value="insertos">Insertos</option>
@@ -712,7 +713,7 @@ function GenerarPOModal({
                 type="text"
                 value={producto}
                 onChange={(e) => setProducto(e.target.value)}
-                className="w-full px-3 py-2 border border-input rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-input bg-card text-foreground rounded-lg text-xs"
               />
             </div>
 
@@ -722,7 +723,7 @@ function GenerarPOModal({
                 type="text"
                 value={marca}
                 onChange={(e) => setMarca(e.target.value)}
-                className="w-full px-3 py-2 border border-input rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-input bg-card text-foreground rounded-lg text-xs"
               />
             </div>
 
@@ -733,7 +734,7 @@ function GenerarPOModal({
                 min="1"
                 value={cantidad}
                 onChange={(e) => setCantidad(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-input rounded-lg text-xs font-bold"
+                className="w-full px-3 py-2 border border-input bg-card text-foreground rounded-lg text-xs font-bold"
               />
             </div>
           </div>
@@ -746,7 +747,7 @@ function GenerarPOModal({
                 step="0.1"
                 value={precioUnitario}
                 onChange={(e) => setPrecioUnitario(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-input rounded-lg text-xs font-bold"
+                className="w-full px-3 py-2 border border-input bg-card text-foreground rounded-lg text-xs font-bold"
               />
             </div>
 
@@ -757,7 +758,7 @@ function GenerarPOModal({
                 step="0.1"
                 value={fleteUSD}
                 onChange={(e) => setFleteUSD(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-input rounded-lg text-xs font-bold"
+                className="w-full px-3 py-2 border border-input bg-card text-foreground rounded-lg text-xs font-bold"
               />
             </div>
 
@@ -767,14 +768,14 @@ function GenerarPOModal({
                 type="number"
                 value={leadTimeRealDias}
                 onChange={(e) => setLeadTimeRealDias(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-input rounded-lg text-xs font-bold"
+                className="w-full px-3 py-2 border border-input bg-card text-foreground rounded-lg text-xs font-bold"
               />
             </div>
           </div>
 
-          {/* VISTA PREVIA IMPRESIÓN PO */}
+          {/* VISTA PREVIA EN PANTALLA */}
           {prov && (
-            <div className="p-4 bg-card border border-input rounded-xl space-y-3 font-mono text-[11px] shadow-xs">
+            <div className="p-4 bg-card border border-border rounded-xl space-y-3 font-mono text-[11px] shadow-xs">
               <div className="flex items-center justify-between border-b border-border pb-2">
                 <div>
                   <h3 className="font-bold text-foreground text-xs">SMV MAQUINADOS S.A. DE C.V.</h3>
@@ -793,7 +794,7 @@ function GenerarPOModal({
                   <p className="text-muted-foreground">{prov.ubicacion || prov.pais}</p>
                 </div>
 
-                <div className="bg-sky-50 p-2 rounded border border-sky-200">
+                <div className="bg-muted/70 p-2 rounded border border-border">
                   <span className="font-bold text-primary block uppercase">SHIP TO / BODEGA USA:</span>
                   <p className="font-bold text-foreground">{prov.shippingAddressUSA || 'Laredo TX Crossing Warehouse'}</p>
                   <p className="text-muted-foreground">Broker: {prov.brokerAduanal || 'Agencia Rangel'}</p>
@@ -814,7 +815,7 @@ function GenerarPOModal({
                     <TableRow>
                       <TableCell className="px-2 py-1 font-sans">{producto} ({marca})</TableCell>
                       <TableCell className="px-2 py-1">{cantidad}</TableCell>
-                      <TableCell className="px-2 py-1">${precioUnitario} USD</TableCell>
+                      <TableCell className="px-2 py-1">${precioUnitario.toFixed(2)} USD</TableCell>
                       <TableCell className="px-2 py-1 text-right font-bold">${subtotal.toFixed(2)} USD</TableCell>
                     </TableRow>
                   </TableBody>
@@ -823,7 +824,7 @@ function GenerarPOModal({
 
               <div className="flex justify-between items-center pt-2 border-t border-border text-xs">
                 <span className="font-bold text-foreground">TOTAL CON FLETE EST.:</span>
-                <span className="font-black text-emerald-700 text-sm">${total.toFixed(2)} USD</span>
+                <span className="font-black text-emerald-600 dark:text-emerald-400 text-sm">${total.toFixed(2)} USD</span>
               </div>
             </div>
           )}
@@ -839,12 +840,114 @@ function GenerarPOModal({
             <button
               type="button"
               onClick={handlePrintAndSave}
-              className="px-4 py-2 font-bold text-white bg-primary hover:bg-primary/90 rounded-lg shadow-xs flex items-center gap-1.5"
+              className="px-4 py-2 font-bold text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg shadow-xs flex items-center gap-1.5"
             >
-              <Printer className="h-4 w-4" /> Guardar e Imprimir Orden (PDF)
+              <Printer className="h-4 w-4" /> Guardar e Imprimir PO (PDF)
             </button>
           </div>
         </div>
+
+        {/* ── ORDEN DE COMPRA FORMAL EJECUTIVA (SOLO IMPRESIÓN / PDF) ── */}
+        {prov && (
+          <div className="hidden print:block print:p-6 print:text-foreground font-sans">
+            {/* Membrete institucional */}
+            <div className="mb-4 flex items-center justify-between border-b-2 border-foreground pb-3">
+              <div>
+                <h1 className="text-base font-black tracking-wider uppercase">SMV Maquinados S.A. de C.V.</h1>
+                <p className="text-[9px] text-muted-foreground">RFC: SMV120301ABC · Monterrey, N.L., México</p>
+                <p className="text-[9px] text-muted-foreground">Tel: +52 (81) 8000-0000 · compras@smv.com.mx</p>
+              </div>
+              <div className="text-right">
+                <div className="bg-foreground text-background px-3 py-1 text-[11px] font-black uppercase tracking-widest inline-block">
+                  Purchase Order
+                </div>
+                <p className="mt-1 font-mono text-xs font-bold">{numeroOrden}</p>
+                <p className="text-[8.5px] text-muted-foreground">Fecha: {fechaHoyLocal()} · Moneda: USD</p>
+              </div>
+            </div>
+
+            {/* Bloques de Proveedor y Destino */}
+            <div className="mb-4 grid grid-cols-2 gap-4 text-[9.5px]">
+              <div className="border border-border p-2.5 rounded">
+                <p className="font-bold text-[8px] uppercase tracking-widest text-muted-foreground mb-1">Vendor / Proveedor:</p>
+                <p className="font-bold text-foreground text-[10.5px]">{prov.nombre}</p>
+                <p className="text-muted-foreground">{prov.ubicacion || prov.pais}</p>
+                {prov.contacto && <p className="text-muted-foreground">Contacto: {prov.contacto}</p>}
+                {prov.email && <p className="text-muted-foreground">Email: {prov.email}</p>}
+              </div>
+
+              <div className="border border-border p-2.5 rounded bg-muted/40">
+                <p className="font-bold text-[8px] uppercase tracking-widest text-muted-foreground mb-1">Ship To / Consignatario Laredo:</p>
+                <p className="font-bold text-foreground text-[10.5px]">SMV Maquinados c/o Warehouse</p>
+                <p className="text-muted-foreground">{prov.shippingAddressUSA || '1201 Santa Maria Ave, Laredo, TX 78040'}</p>
+                <p className="text-muted-foreground">Customs Broker: {prov.brokerAduanal || 'Agencia Aduanal Rangel'}</p>
+              </div>
+            </div>
+
+            {/* Tabla de Partidas */}
+            <table className="w-full border-collapse text-[9.5px] mb-4">
+              <thead>
+                <tr className="bg-foreground text-background">
+                  <th className="border border-foreground px-2 py-1.5 text-left font-bold uppercase tracking-wider text-[8px]">#</th>
+                  <th className="border border-foreground px-2 py-1.5 text-left font-bold uppercase tracking-wider text-[8px]">Descripción / Item</th>
+                  <th className="border border-foreground px-2 py-1.5 text-left font-bold uppercase tracking-wider text-[8px]">Marca</th>
+                  <th className="border border-foreground px-2 py-1.5 text-right font-bold uppercase tracking-wider text-[8px]">Cant.</th>
+                  <th className="border border-foreground px-2 py-1.5 text-right font-bold uppercase tracking-wider text-[8px]">P. Unitario</th>
+                  <th className="border border-foreground px-2 py-1.5 text-right font-bold uppercase tracking-wider text-[8px]">Importe USD</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-border">
+                  <td className="border border-border px-2 py-2 text-center">1</td>
+                  <td className="border border-border px-2 py-2 font-medium">{producto}</td>
+                  <td className="border border-border px-2 py-2">{marca || '—'}</td>
+                  <td className="border border-border px-2 py-2 text-right font-mono font-bold">{cantidad}</td>
+                  <td className="border border-border px-2 py-2 text-right font-mono">${precioUnitario.toFixed(2)}</td>
+                  <td className="border border-border px-2 py-2 text-right font-mono font-bold">${subtotal.toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            {/* Totales */}
+            <div className="flex justify-end mb-8">
+              <div className="w-64 text-[9.5px] space-y-1">
+                <div className="flex justify-between border-b border-border py-1">
+                  <span className="text-muted-foreground">Subtotal:</span>
+                  <span className="font-mono font-bold">${subtotal.toFixed(2)} USD</span>
+                </div>
+                {fleteUSD > 0 && (
+                  <div className="flex justify-between border-b border-border py-1">
+                    <span className="text-muted-foreground">Flete estimado:</span>
+                    <span className="font-mono">${fleteUSD.toFixed(2)} USD</span>
+                  </div>
+                )}
+                <div className="flex justify-between border-b-2 border-foreground py-1.5 text-xs font-bold">
+                  <span>TOTAL ORDEN (USD):</span>
+                  <span className="font-mono font-black">${total.toFixed(2)} USD</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Firmas de Autorización */}
+            <div className="mt-12 grid grid-cols-2 gap-12 text-center text-[9px] pt-4">
+              <div>
+                <div className="border-b border-foreground w-48 mx-auto mb-1"></div>
+                <p className="font-bold uppercase">Elaboró / Compras Internacionales</p>
+                <p className="text-muted-foreground">SMV Maquinados S.A. de C.V.</p>
+              </div>
+              <div>
+                <div className="border-b border-foreground w-48 mx-auto mb-1"></div>
+                <p className="font-bold uppercase">Autorizó / Dirección Operativa</p>
+                <p className="text-muted-foreground">Aprobación de Compra</p>
+              </div>
+            </div>
+
+            <div className="mt-8 border-t border-border pt-2 flex justify-between text-[7.5px] text-muted-foreground">
+              <span>Documento oficial de compra internacional · SMV Maquinados S.A. de C.V.</span>
+              <span>Página 1 de 1</span>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

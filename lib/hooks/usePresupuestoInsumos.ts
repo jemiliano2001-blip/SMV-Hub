@@ -176,58 +176,29 @@ export function usePresupuestoInsumos(usdToMxn: number = TIPO_CAMBIO_DEFAULT_USD
   )
   const totalPartidas = partidas.length
 
-  const exportarAExcel = useCallback(() => {
+  const exportarAExcel = useCallback(async () => {
     if (partidas.length === 0) return
 
-    const fecha = new Date().toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    })
-
-    const filasCsv: string[] = []
-
-    // Encabezado del reporte SMV Hub
-    filasCsv.push('SMV HUB - PRESUPUESTO DE INSUMOS Y MATERIALES')
-    filasCsv.push(`Fecha de Generación,${fecha}`)
-    filasCsv.push(`Tipo de Cambio Referencia,${usdToMxn.toFixed(2)} MXN/USD`)
-    filasCsv.push('') // línea vacía
-    filasCsv.push(
-      '# ,Descripción,Categoría,Tipo/Material,Medida,Proveedor,Cantidad,Moneda Orig.,P. Unitario Orig.,Importe Orig.,Importe MXN,Importe USD'
-    )
-
-    partidas.forEach((p, idx) => {
-      const desc = `"${p.descripcion.replace(/"/g, '""')}"`
-      const cat = `"${p.categoriaId}"`
-      const tipo = `"${p.tipoInsumo ?? '—'}"`
-      const med = `"${p.medida ?? '—'}"`
-      const prov = `"${p.proveedorNombre.replace(/"/g, '""')}"`
-      const pUnit = p.precioUnitario.toFixed(2)
-      const impOrig = p.subtotal.toFixed(2)
-      const impMxn = p.subtotalMxn.toFixed(2)
-      const impUsd = p.subtotalUsd.toFixed(2)
-
-      filasCsv.push(
-        `${idx + 1},${desc},${cat},${tipo},${med},${prov},${p.cantidad},${p.moneda},${pUnit},${impOrig},${impMxn},${impUsd}`
+    try {
+      const { generarExcelPresupuestoInsumos } = await import(
+        '@/lib/presupuesto-insumos-export'
       )
-    })
+      const { descargarExcelEnNavegador } = await import(
+        '@/lib/excel-export-base'
+      )
 
-    filasCsv.push('')
-    filasCsv.push(
-      `,,,,,,,TOTALES METRICOS,,,,$${totalMxn.toFixed(2)} MXN,$${totalUsd.toFixed(2)} USD`
-    )
+      const buffer = await generarExcelPresupuestoInsumos({
+        partidas,
+        usdToMxn,
+        totalMxn,
+        totalUsd,
+      })
 
-    // Crear Blob CSV con BOM UTF-8 para compatibilidad directa con Microsoft Excel en español
-    const contenidoCsv = '\uFEFF' + filasCsv.join('\n')
-    const blob = new Blob([contenidoCsv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `Presupuesto_SMV_Hub_${fecha.replace(/\//g, '-')}.csv`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+      const fecha = new Date().toISOString().slice(0, 10)
+      descargarExcelEnNavegador(buffer, `Presupuesto_Insumos_SMV_${fecha}.xlsx`)
+    } catch (err) {
+      console.error('Error al exportar presupuesto a Excel:', err)
+    }
   }, [partidas, usdToMxn, totalMxn, totalUsd])
 
   return {

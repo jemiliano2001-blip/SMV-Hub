@@ -27,12 +27,17 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
+import { toast } from "sonner"
+import { generarExcelReporteFinanzas } from "@/lib/finanzas-reportes-export"
+import { descargarExcelEnNavegador } from "@/lib/excel-export-base"
+
 type Periodo = "mes" | "anio"
 
 function ReportesFinanzas() {
   const { facturas, estadoSync, loading, error, recargar } = useFinanzasFacturas()
   const [monedaActiva, setMonedaActiva] = useState<string | null>(null)
   const [periodo, setPeriodo] = useState<Periodo>("mes")
+  const [exportando, setExportando] = useState(false)
 
   const monedas = useMemo(() => monedasPresentes(facturas), [facturas])
   const moneda = monedaActiva ?? monedas[0] ?? "MXN"
@@ -45,26 +50,41 @@ function ReportesFinanzas() {
   const grupos = useMemo(() => agruparPorCliente(facturasPeriodo), [facturasPeriodo])
   const kpis = useMemo(() => calcularKpisFinanzas(facturasPeriodo), [facturasPeriodo])
 
+  const periodoLabel = periodo === "mes" ? "Mes actual" : "Acumulado del año"
+  const generadoEl = new Date().toLocaleDateString("es-MX", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  })
+
   async function exportarExcel() {
-    const XLSX = await import("xlsx")
-    const filas = facturasPeriodo.map((f) => ({
-      Cliente: f.cliente,
-      Factura: f.numeroFactura,
-      Tipo: f.tipo === "nota_credito" ? "Nota de crédito" : "Factura",
-      Fecha: f.fechaFactura ?? "",
-      Vencimiento: f.fechaVencimiento ?? "",
-      Moneda: f.moneda,
-      Subtotal: f.subtotal,
-      IVA: f.impuestos,
-      Total: f.total,
-      "Saldo pendiente": f.saldoPendiente,
-      "Estado de pago": f.estadoPago,
-    }))
-    const worksheet = XLSX.utils.json_to_sheet(filas)
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Facturación")
-    const nombre = `finanzas_${periodo === "mes" ? "mes" : "anio"}_${moneda}.xlsx`
-    XLSX.writeFile(workbook, nombre)
+    if (facturasPeriodo.length === 0) {
+      toast.info("No hay facturas en este periodo para exportar.")
+      return
+    }
+    try {
+      setExportando(true)
+      const buffer = await generarExcelReporteFinanzas({
+        facturas: facturasPeriodo,
+        periodoLabel,
+        moneda,
+      })
+      const nombre = `Finanzas_Facturacion_${periodo === "mes" ? "Mes" : "Anio"}_${moneda}_${new Date().toISOString().slice(0, 10)}.xlsx`
+      descargarExcelEnNavegador(buffer, nombre)
+      toast.success("Reporte de facturación exportado a Excel")
+    } catch (err) {
+      console.error("Error exportando finanzas a Excel:", err)
+      toast.error("No se pudo exportar el archivo Excel.")
+    } finally {
+      setExportando(false)
+    }
+  }
+
+  const handleImprimir = () => {
+    const tituloOriginal = document.title
+    document.title = `Reporte_Facturacion_${periodo === "mes" ? "Mes" : "Anio"}_${moneda}`
+    window.print()
+    document.title = tituloOriginal
   }
 
   if (loading && facturas.length === 0) {
@@ -89,7 +109,23 @@ function ReportesFinanzas() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="reporte-formal-print space-y-4">
+      {/* Cabecera formal de impresión (PDF) */}
+      <div className="mb-3 hidden print:flex print:items-center print:justify-between print:bg-[#111111] print:px-3 print:py-2.5 print:text-white">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-widest">SMV Maquinados</p>
+          <p className="mt-0.5 text-[8px] tracking-wide print:text-gray-400">S.A. de C.V.</p>
+        </div>
+        <div className="text-center">
+          <p className="text-[12.5px] font-semibold uppercase tracking-wide">Reporte de Facturación a Clientes</p>
+          <p className="mt-1 text-[8.5px] print:text-gray-400">{periodoLabel}</p>
+        </div>
+        <div className="text-right text-[8px] leading-relaxed print:text-gray-400">
+          <p>{moneda} · {facturasPeriodo.length} facturas</p>
+          <p>Generado el {generadoEl}</p>
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <BannerSync estadoSync={estadoSync} onSincronizado={recargar} />
         <div className="flex flex-wrap gap-2">
@@ -125,39 +161,40 @@ function ReportesFinanzas() {
           </div>
           <button
             onClick={exportarExcel}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+            disabled={exportando || facturasPeriodo.length === 0}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
           >
             <Download className="h-3.5 w-3.5" /> Excel
           </button>
           <button
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+            onClick={handleImprimir}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
           >
-            <Printer className="h-3.5 w-3.5" /> Imprimir
+            <Printer className="h-3.5 w-3.5" /> Guardar PDF
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <ModuleSurface className="p-4 print:border-0 print:shadow-none">
-          <p className="mb-1 text-xs text-muted-foreground">Facturación</p>
-          <p className="text-xl font-bold text-foreground tabular-nums">{formatPrecio(kpis.facturacionTotal, moneda)}</p>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 print:mb-3 print:gap-2">
+        <ModuleSurface className="p-4 print:rounded-none print:border print:border-border/60 print:bg-card print:p-2.5 print:shadow-none">
+          <p className="mb-1 text-xs text-muted-foreground print:text-[8px]">Facturación Total</p>
+          <p className="text-xl font-bold text-foreground tabular-nums print:text-sm">{formatPrecio(kpis.facturacionTotal, moneda)}</p>
         </ModuleSurface>
-        <ModuleSurface className="p-4 print:border-0 print:shadow-none">
-          <p className="mb-1 text-xs text-muted-foreground">Subtotal</p>
-          <p className="text-xl font-bold text-foreground tabular-nums">{formatPrecio(kpis.subtotal, moneda)}</p>
+        <ModuleSurface className="p-4 print:rounded-none print:border print:border-border/60 print:bg-card print:p-2.5 print:shadow-none">
+          <p className="mb-1 text-xs text-muted-foreground print:text-[8px]">Subtotal</p>
+          <p className="text-xl font-bold text-foreground tabular-nums print:text-sm">{formatPrecio(kpis.subtotal, moneda)}</p>
         </ModuleSurface>
-        <ModuleSurface className="p-4 print:border-0 print:shadow-none">
-          <p className="mb-1 text-xs text-muted-foreground">IVA</p>
-          <p className="text-xl font-bold text-foreground tabular-nums">{formatPrecio(kpis.impuestos, moneda)}</p>
+        <ModuleSurface className="p-4 print:rounded-none print:border print:border-border/60 print:bg-card print:p-2.5 print:shadow-none">
+          <p className="mb-1 text-xs text-muted-foreground print:text-[8px]">IVA Trasladado</p>
+          <p className="text-xl font-bold text-foreground tabular-nums print:text-sm">{formatPrecio(kpis.impuestos, moneda)}</p>
         </ModuleSurface>
-        <ModuleSurface className="p-4 print:border-0 print:shadow-none">
-          <p className="mb-1 text-xs text-muted-foreground">Facturas</p>
-          <p className="text-xl font-bold text-foreground tabular-nums">{kpis.numFacturas}</p>
+        <ModuleSurface className="p-4 print:rounded-none print:border print:border-border/60 print:bg-card print:p-2.5 print:shadow-none">
+          <p className="mb-1 text-xs text-muted-foreground print:text-[8px]">Facturas Emitidas</p>
+          <p className="text-xl font-bold text-foreground tabular-nums print:text-sm">{kpis.numFacturas}</p>
         </ModuleSurface>
       </div>
 
-      <ModuleSurface className="p-4 sm:p-6 print:border-0 print:p-0 print:shadow-none">
+      <ModuleSurface className="p-4 sm:p-6 print:rounded-none print:border-0 print:p-0 print:shadow-none">
         {grupos.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">Sin facturación en este periodo.</p>
         ) : (
@@ -179,27 +216,27 @@ function ReportesFinanzas() {
               </div>
             ))}
           </div>
-          <div className="hidden overflow-x-auto md:block print:block">
-            <Table className="w-full border-collapse text-sm">
-              <TableHeader>
-                <TableRow className="border-b-2 border-border">
-                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-muted-foreground">Cliente</TableHead>
-                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-muted-foreground">Factura</TableHead>
-                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-muted-foreground">Fecha</TableHead>
-                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-muted-foreground">Subtotal</TableHead>
-                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-muted-foreground">IVA</TableHead>
-                  <TableHead className="pb-2 text-right text-xs font-semibold text-muted-foreground">Total</TableHead>
+          <div className="hidden overflow-x-auto md:block print:block print:overflow-visible">
+            <Table className="w-full border-collapse text-sm print:text-[9px]">
+              <TableHeader className="bg-muted text-muted-foreground font-semibold print:bg-[#111111]">
+                <TableRow className="border-b-2 border-border print:border-b-0">
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-muted-foreground print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">Cliente</TableHead>
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-muted-foreground print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">Factura</TableHead>
+                  <TableHead className="pb-2 pr-3 text-left text-xs font-semibold text-muted-foreground print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">Fecha</TableHead>
+                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-muted-foreground print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">Subtotal</TableHead>
+                  <TableHead className="pb-2 pr-3 text-right text-xs font-semibold text-muted-foreground print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">IVA</TableHead>
+                  <TableHead className="pb-2 text-right text-xs font-semibold text-muted-foreground print:px-2 print:py-1.5 print:text-[7.5px] print:font-medium print:uppercase print:tracking-widest print:text-white">Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {facturasPeriodo.map((f) => (
-                  <TableRow key={f.id} className="border-b border-border">
-                    <TableCell className="py-1.5 pr-3">{f.cliente}</TableCell>
-                    <TableCell className="py-1.5 pr-3 font-mono text-xs text-muted-foreground">{f.numeroFactura}</TableCell>
-                    <TableCell className="py-1.5 pr-3 text-xs">{formatFecha(f.fechaFactura)}</TableCell>
-                    <TableCell className="py-1.5 pr-3 text-right tabular-nums">{formatPrecio(f.subtotal, moneda)}</TableCell>
-                    <TableCell className="py-1.5 pr-3 text-right tabular-nums">{formatPrecio(f.impuestos, moneda)}</TableCell>
-                    <TableCell className="py-1.5 text-right font-medium tabular-nums">{formatPrecio(f.total, moneda)}</TableCell>
+                {facturasPeriodo.map((f, i) => (
+                  <TableRow key={f.id} className={`border-b border-border hover:bg-muted print:hover:bg-transparent ${i % 2 === 1 ? "print:bg-[#fafafa]" : ""}`}>
+                    <TableCell className="py-1.5 pr-3 print:px-2 print:py-1 print:text-[8.5px] font-medium text-foreground print:text-black">{f.cliente}</TableCell>
+                    <TableCell className="py-1.5 pr-3 font-mono text-xs text-muted-foreground print:px-2 print:py-1 print:font-mono print:text-[8.5px] print:text-gray-700">{f.numeroFactura}</TableCell>
+                    <TableCell className="py-1.5 pr-3 text-xs print:px-2 print:py-1 print:font-mono print:text-[8.5px] print:text-gray-700">{formatFecha(f.fechaFactura)}</TableCell>
+                    <TableCell className="py-1.5 pr-3 text-right tabular-nums print:px-2 print:py-1 print:font-mono print:text-[8.5px]">{formatPrecio(f.subtotal, moneda)}</TableCell>
+                    <TableCell className="py-1.5 pr-3 text-right tabular-nums print:px-2 print:py-1 print:font-mono print:text-[8.5px]">{formatPrecio(f.impuestos, moneda)}</TableCell>
+                    <TableCell className="py-1.5 text-right font-medium tabular-nums print:px-2 print:py-1 print:font-mono print:text-[8.5px] print:font-bold">{formatPrecio(f.total, moneda)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -208,6 +245,11 @@ function ReportesFinanzas() {
           </>
         )}
       </ModuleSurface>
+
+      <div className="mt-3 hidden justify-between border-t border-border pt-2 text-[7.5px] tracking-wide text-muted-foreground print:flex">
+        <span>SMV Maquinados, S.A. de C.V.</span>
+        <span>Uso interno · Confidencial</span>
+      </div>
     </div>
   )
 }

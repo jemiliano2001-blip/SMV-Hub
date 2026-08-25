@@ -159,7 +159,7 @@ export default function BottomNavBar() {
   return (
     <nav
       aria-label="Navegación móvil inferior"
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/80 bg-card/95 pb-[max(env(safe-area-inset-bottom,0px),0.5rem)] pt-1.5 shadow-lg backdrop-blur-lg md:hidden"
+      className="no-print fixed bottom-0 left-0 right-0 z-40 border-t border-border/80 bg-card/95 pb-[max(env(safe-area-inset-bottom,0px),0.5rem)] pt-1.5 shadow-lg backdrop-blur-lg md:hidden print:hidden"
     >
       <div className="mx-auto flex max-w-lg items-center justify-around px-2">
         {items.map((item) => {

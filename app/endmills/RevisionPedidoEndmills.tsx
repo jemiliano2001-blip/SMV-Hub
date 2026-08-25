@@ -1,7 +1,6 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import * as XLSX from "xlsx"
 import {
   ClipboardCopy,
   MessageSquare,
@@ -269,37 +268,45 @@ export default function RevisionPedidoEndmills({
     toast.success("Texto formateado para WeChat copiado")
   }
 
-  function descargarExcelPO() {
-    const wsData = [
-      ["SMV MAQUINADOS - PURCHASE ORDER"],
-      [`Supplier: ${PROVEEDOR.nombre}`],
-      [`Contact: ${PROVEEDOR.contacto} (${PROVEEDOR.email})`],
-      [`Date: ${fecha}`, `Supplier Ref / Folio: ${numeroProveedor || "N/A"}`],
-      [],
-      ["Item", "Size (Inch)", "Description", "Spec", "Quantity (pcs)", "Unit Price (USD)", "Subtotal (USD)"],
-      ...seleccionadas.map((m, idx) => {
+  async function descargarExcelPO() {
+    if (seleccionadas.length === 0) {
+      toast.info("Selecciona al menos una partida para exportar.")
+      return
+    }
+    try {
+      const { generarExcelPOEndmills } = await import("@/lib/endmills-export")
+      const { descargarExcelEnNavegador } = await import("@/lib/excel-export-base")
+
+      const partidasExport = seleccionadas.map((m) => {
         const fila = filas[m.id]
-        return [
-          idx + 1,
-          m.medidaPulgadas,
-          m.descripcion,
-          m.specPropuesta,
-          fila.cantidad,
-          fila.precio,
-          redondearUSD(fila.cantidad * fila.precio),
-        ]
-      }),
-      [],
-      ["", "", "", "", "", "Items Subtotal:", totales.costoItemsUSD],
-      ["", "", "", "", "", "Shipping (DHL/FedEx):", Number(shipping) || 0],
-      ["", "", "", "", "", "Alibaba / Fee:", Number(aliCost) || 0],
-      ["", "", "", "", "", "TOTAL USD:", totales.totalUSD],
-    ]
-    const ws = XLSX.utils.aoa_to_sheet(wsData)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, "Purchase Order")
-    XLSX.writeFile(wb, `PO_SMV_Endmills_${fecha}_${numeroProveedor || "Rita"}.xlsx`)
-    toast.success("Orden de compra descargada en Excel (.xlsx)")
+        return {
+          id: m.id,
+          medidaPulgadas: m.medidaPulgadas,
+          descripcion: m.descripcion,
+          specPropuesta: m.specPropuesta,
+          cantidad: fila.cantidad,
+          precio: fila.precio,
+          subtotal: redondearUSD(fila.cantidad * fila.precio),
+        }
+      })
+
+      const buffer = await generarExcelPOEndmills({
+        partidas: partidasExport,
+        fecha,
+        numeroProveedor: numeroProveedor.trim() || undefined,
+        proveedorNombre: PROVEEDOR.nombre,
+        itemsSubtotal: totales.costoItemsUSD,
+        shippingUSD: Number(shipping) || 0,
+        aliCostUSD: Number(aliCost) || 0,
+        totalUSD: totales.totalUSD,
+      })
+
+      descargarExcelEnNavegador(buffer, `PO_SMV_Endmills_${fecha}_${numeroProveedor || "Rita"}.xlsx`)
+      toast.success("Orden de compra descargada en Excel formal (.xlsx)")
+    } catch (err) {
+      console.error("Error al exportar orden de endmills a Excel:", err)
+      toast.error("No se pudo exportar la orden a Excel.")
+    }
   }
 
   function abrirCorreo() {
@@ -399,10 +406,43 @@ export default function RevisionPedidoEndmills({
             </div>
           </DialogHeader>
 
-          <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto px-5 pb-5 lg:grid-cols-[1fr_280px] print:block print:p-6 print:overflow-visible">
+          <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto px-5 pb-5 lg:grid-cols-[1fr_280px] print:block print:p-6 print:overflow-visible font-sans">
             <div className="min-w-0 space-y-3">
-              {/* Encabezado formal de la Orden de Compra (Visible en pantalla y print) */}
-              <div className="grid gap-3 pt-1 sm:grid-cols-3 print:grid-cols-3 print:border-b print:pb-4">
+              {/* Cabecera institucional de Impresión (PDF) */}
+              <div className="mb-4 hidden print:flex print:items-center print:justify-between print:border-b-2 print:border-foreground print:pb-3">
+                <div>
+                  <h1 className="text-base font-black tracking-wider uppercase text-foreground">SMV Maquinados S.A. de C.V.</h1>
+                  <p className="text-[9px] text-muted-foreground">RFC: SMV120301ABC · Monterrey, N.L., México</p>
+                  <p className="text-[9px] text-muted-foreground">Purchasing / Compras Internacionales · compras@smv.com.mx</p>
+                </div>
+                <div className="text-right">
+                  <div className="bg-foreground text-background px-3 py-1 text-[11px] font-black uppercase tracking-widest inline-block">
+                    Purchase Order
+                  </div>
+                  <p className="mt-1 font-mono text-xs font-bold text-foreground">{numeroProveedor || "PO-ENDMILLS"}</p>
+                  <p className="text-[8.5px] text-muted-foreground">Fecha: {fecha} · Moneda: USD</p>
+                </div>
+              </div>
+
+              {/* Bloques de Proveedor y Embarque en Impresión */}
+              <div className="mb-4 hidden print:grid print:grid-cols-2 print:gap-4 print:text-[9.5px]">
+                <div className="border border-border p-2.5 rounded">
+                  <p className="font-bold text-[8px] uppercase tracking-widest text-muted-foreground mb-1">Vendor / Proveedor China:</p>
+                  <p className="font-bold text-foreground text-[10.5px]">{PROVEEDOR.nombre}</p>
+                  <p className="text-muted-foreground">Contacto: {PROVEEDOR.contacto}</p>
+                  <p className="text-muted-foreground">Email: {PROVEEDOR.email}</p>
+                </div>
+
+                <div className="border border-border p-2.5 rounded bg-muted/40">
+                  <p className="font-bold text-[8px] uppercase tracking-widest text-muted-foreground mb-1">Ship To / Destino Importación:</p>
+                  <p className="font-bold text-foreground text-[10.5px]">SMV Maquinados S.A. de C.V.</p>
+                  <p className="text-muted-foreground">Planta Monterrey / Courier Direct DHL-FedEx</p>
+                  <p className="text-muted-foreground">Incoterm: DDP / DAP Courier</p>
+                </div>
+              </div>
+
+              {/* Encabezado en pantalla (oculto en print) */}
+              <div className="grid gap-3 pt-1 sm:grid-cols-3 print:hidden">
                 <div>
                   <Label htmlFor="pedido-fecha" className="text-xs">Fecha del Pedido</Label>
                   <Input
@@ -410,7 +450,7 @@ export default function RevisionPedidoEndmills({
                     type="date"
                     value={fecha}
                     onChange={(e) => setFecha(e.target.value)}
-                    className="h-8 text-xs"
+                    className="h-8 text-xs bg-card"
                   />
                 </div>
                 <div>
@@ -420,7 +460,7 @@ export default function RevisionPedidoEndmills({
                     value={numeroProveedor}
                     onChange={(e) => setNumeroProveedor(e.target.value)}
                     placeholder="e.g. PI-2026-CH88"
-                    className="h-8 text-xs font-mono"
+                    className="h-8 text-xs font-mono bg-card"
                   />
                 </div>
                 <div className="rounded-lg border bg-muted px-3 py-1.5 text-xs">
@@ -467,19 +507,19 @@ export default function RevisionPedidoEndmills({
                 </div>
               </div>
 
-              <div className="max-h-[50vh] overflow-auto rounded-lg border print:max-h-none print:border-black">
-                <Table>
-                  <TableHeader className="sticky top-0 z-10 bg-card print:static">
-                    <TableRow className="bg-muted/70">
-                      <TableHead>Medida / Descripción / Spec</TableHead>
+              <div className="max-h-[50vh] overflow-auto rounded-lg border print:max-h-none print:border-0">
+                <Table className="print:text-[9.5px]">
+                  <TableHeader className="sticky top-0 z-10 bg-card print:static print:bg-[#111111]">
+                    <TableRow className="bg-muted/70 print:bg-[#111111]">
+                      <TableHead className="print:text-white print:px-2 print:py-1.5 print:text-[8px] print:uppercase print:font-bold">Medida / Descripción / Spec</TableHead>
                       <TableHead className="w-20 text-right print:hidden">Stock</TableHead>
-                      <TableHead className="w-24 text-right">Cantidad</TableHead>
-                      <TableHead className="w-28 text-right">Precio USD</TableHead>
-                      <TableHead className="w-28 text-right">Subtotal USD</TableHead>
+                      <TableHead className="w-24 text-right print:text-white print:px-2 print:py-1.5 print:text-[8px] print:uppercase print:font-bold">Cantidad</TableHead>
+                      <TableHead className="w-28 text-right print:text-white print:px-2 print:py-1.5 print:text-[8px] print:uppercase print:font-bold">Precio USD</TableHead>
+                      <TableHead className="w-28 text-right print:text-white print:px-2 print:py-1.5 print:text-[8px] print:uppercase print:font-bold">Subtotal USD</TableHead>
                       <TableHead className="w-24 print:hidden">Estado</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
+                  <TableBody className="print:divide-y print:divide-gray-300">
                     {medidasVisibles.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="p-8 text-center text-xs text-muted-foreground">
@@ -489,7 +529,7 @@ export default function RevisionPedidoEndmills({
                         </TableCell>
                       </TableRow>
                     ) : (
-                      medidasVisibles.map((medida) => {
+                      medidasVisibles.map((medida, idx) => {
                         const fila = filas[medida.id]
                         const sinBase = medida.objetivoPar === null
                         const subtotalFila = redondearUSD(fila.cantidad * fila.precio)
@@ -497,13 +537,13 @@ export default function RevisionPedidoEndmills({
                         return (
                           <TableRow
                             key={medida.id}
-                            className={medida.requiereConfirmacion ? "bg-amber-50/50" : ""}
+                            className={`${medida.requiereConfirmacion ? "bg-amber-50/50" : ""} ${idx % 2 === 1 ? "print:bg-gray-50" : ""}`}
                           >
-                            <TableCell className="max-w-sm whitespace-normal">
-                              <div className="font-semibold text-foreground">
+                            <TableCell className="max-w-sm whitespace-normal print:px-2 print:py-1.5">
+                              <div className="font-semibold text-foreground print:text-black">
                                 {medida.medidaPulgadas}&quot; · {medida.descripcion}
                               </div>
-                              <div className="truncate font-mono text-[10px] text-muted-foreground">
+                              <div className="truncate font-mono text-[10px] text-muted-foreground print:text-[8.5px] print:text-gray-700">
                                 {medida.specPropuesta}
                               </div>
                               {sinBase && (
@@ -515,7 +555,8 @@ export default function RevisionPedidoEndmills({
                             <TableCell className="text-right font-bold text-muted-foreground print:hidden">
                               {medida.stockActual}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="print:text-right print:px-2 print:py-1.5">
+                              <span className="hidden print:inline font-mono font-bold text-black">{fila.cantidad}</span>
                               <Input
                                 aria-label={`Cantidad ${medida.descripcion}`}
                                 type="number"
@@ -527,10 +568,11 @@ export default function RevisionPedidoEndmills({
                                     cantidad: Math.max(0, Math.trunc(Number(e.target.value) || 0)),
                                   })
                                 }
-                                className="h-7 w-20 text-right font-black font-mono"
+                                className="h-7 w-20 text-right font-black font-mono bg-card print:hidden"
                               />
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="print:text-right print:px-2 print:py-1.5">
+                              <span className="hidden print:inline font-mono text-gray-900">${fila.precio.toFixed(2)}</span>
                               <Input
                                 aria-label={`Precio ${medida.descripcion}`}
                                 type="number"
@@ -542,10 +584,10 @@ export default function RevisionPedidoEndmills({
                                     precio: Math.max(0, Number(e.target.value) || 0),
                                   })
                                 }
-                                className="h-7 w-24 text-right font-bold text-emerald-700 font-mono"
+                                className="h-7 w-24 text-right font-bold text-emerald-700 font-mono bg-card print:hidden"
                               />
                             </TableCell>
-                            <TableCell className="text-right font-mono font-bold text-foreground">
+                            <TableCell className="text-right font-mono font-bold text-foreground print:text-black print:px-2 print:py-1.5">
                               ${subtotalFila.toFixed(2)}
                             </TableCell>
                             <TableCell className="print:hidden">
@@ -571,6 +613,52 @@ export default function RevisionPedidoEndmills({
                     )}
                   </TableBody>
                 </Table>
+              </div>
+
+              {/* Totales y firmas impresas */}
+              <div className="hidden print:block pt-4">
+                <div className="flex justify-end mb-6">
+                  <div className="w-64 text-[9.5px] space-y-1">
+                    <div className="flex justify-between border-b border-border py-1">
+                      <span className="text-muted-foreground">Subtotal Ítems ({seleccionadas.length} partidas):</span>
+                      <span className="font-mono font-bold">${totales.costoItemsUSD.toFixed(2)} USD</span>
+                    </div>
+                    {Number(shipping) > 0 && (
+                      <div className="flex justify-between border-b border-border py-1">
+                        <span className="text-muted-foreground">Shipping (DHL/FedEx):</span>
+                        <span className="font-mono">${Number(shipping).toFixed(2)} USD</span>
+                      </div>
+                    )}
+                    {Number(aliCost) > 0 && (
+                      <div className="flex justify-between border-b border-border py-1">
+                        <span className="text-muted-foreground">Alibaba / Processing Fee:</span>
+                        <span className="font-mono">${Number(aliCost).toFixed(2)} USD</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between border-b-2 border-foreground py-1.5 text-xs font-bold">
+                      <span>TOTAL ORDEN (USD):</span>
+                      <span className="font-mono font-black">${totales.totalUSD.toFixed(2)} USD</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-12 grid grid-cols-2 gap-12 text-center text-[9px] pt-4">
+                  <div>
+                    <div className="border-b border-foreground w-48 mx-auto mb-1"></div>
+                    <p className="font-bold uppercase">Elaboró / Compras Internacionales</p>
+                    <p className="text-muted-foreground">SMV Maquinados S.A. de C.V.</p>
+                  </div>
+                  <div>
+                    <div className="border-b border-foreground w-48 mx-auto mb-1"></div>
+                    <p className="font-bold uppercase">Autorizó / Dirección</p>
+                    <p className="text-muted-foreground">Aprobación de Pedido</p>
+                  </div>
+                </div>
+
+                <div className="mt-8 border-t border-border pt-2 flex justify-between text-[7.5px] text-muted-foreground">
+                  <span>Documento oficial de pedido internacional · SMV Maquinados S.A. de C.V.</span>
+                  <span>Página 1 de 1</span>
+                </div>
               </div>
             </div>
 
