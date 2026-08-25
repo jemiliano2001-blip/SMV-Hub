@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { fechaHoyLocal } from '@/lib/format'
+import { imprimirComoDocumento } from '@/lib/imprimir-documento'
 import {
   Building2,
   Tag,
@@ -640,7 +641,7 @@ function GenerarPOModal({
           notas,
         })
       }
-      window.print()
+      imprimirComoDocumento(`PO_${numeroOrden || 'SinFolio'}_${prov.nombre}`)
       onClose()
     } catch (err) {
       console.error(err)

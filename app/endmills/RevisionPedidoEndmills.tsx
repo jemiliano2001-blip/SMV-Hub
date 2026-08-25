@@ -44,6 +44,7 @@ import {
   redondearUSD,
 } from "@/lib/endmills-calculos"
 import { fechaHoyLocal, formatPrecio } from "@/lib/format"
+import { imprimirComoDocumento } from "@/lib/imprimir-documento"
 import type { ItemExtraidoEndmill } from "@/lib/endmills-extraer-ia"
 import type { ActorEndmills } from "@/lib/endmills"
 import type {
@@ -322,7 +323,7 @@ export default function RevisionPedidoEndmills({
   }
 
   function imprimirPO() {
-    window.print()
+    imprimirComoDocumento(`PO_SMV_Endmills_${fecha}_${numeroProveedor || "Rita"}`)
   }
 
   async function registrar() {

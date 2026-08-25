@@ -2,6 +2,7 @@
 
 import { Printer, ArrowLeft, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { imprimirComoDocumento } from '@/lib/imprimir-documento'
 import type { OrdenCompraUsa } from '@/lib/schemas'
 
 interface OrdenCompraImprimibleProps {
@@ -63,7 +64,7 @@ export default function OrdenCompraImprimible({
   onEnviarEmail,
 }: OrdenCompraImprimibleProps) {
   const handlePrint = () => {
-    window.print()
+    imprimirComoDocumento(`PO_${orden.folio}_${orden.proveedor || 'Proveedor'}`)
   }
 
   const buyerCompany = orden.empresa?.trim() || 'RGV Metal and Plastics CO.'

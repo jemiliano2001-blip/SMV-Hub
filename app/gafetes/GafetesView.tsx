@@ -31,6 +31,8 @@ import {
   guardarGafete,
   type GafetePerfilPayload,
 } from "@/lib/gafetes"
+import { fechaHoyLocal } from "@/lib/format"
+import { imprimirComoDocumento } from "@/lib/imprimir-documento"
 import { cargarFotoGafete, subirFotoGafete } from "@/lib/storage"
 import { Area, GafeteAjusteFoto, GafetePerfil, Operador } from "@/lib/schemas"
 import { construirPayloadQROperador } from "@/lib/gafetes-qr"
@@ -357,7 +359,7 @@ export default function GafetesView() {
       setError("Selecciona al menos un gafete completo para imprimir.")
       return
     }
-    window.print()
+    imprimirComoDocumento(`Gafetes_SMV_${imprimibles.length}_${fechaHoyLocal()}`)
   }
 
   const hojas = agruparGafetesParaImpresion(imprimibles)

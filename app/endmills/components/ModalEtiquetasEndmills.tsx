@@ -12,6 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { fechaHoyLocal } from "@/lib/format"
+import { imprimirComoDocumento } from "@/lib/imprimir-documento"
 import type { EndmillMedida } from "@/lib/schemas"
 
 export default function ModalEtiquetasEndmills({
@@ -43,7 +45,7 @@ export default function ModalEtiquetasEndmills({
   }
 
   function handleImprimir() {
-    window.print()
+    imprimirComoDocumento(`Etiquetas_Gaveteros_Endmills_${seleccionadasCount}_${fechaHoyLocal()}`)
   }
 
   return (

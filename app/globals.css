@@ -180,4 +180,36 @@ h1, h2, h3, h4, h5, h6 {
   .reporte-document tr.grupo-header td {
     border-top: 1px solid #111111 !important;
   }
+
+  /* ── Impresión desde un diálogo (POs, etiquetas de endmills) ──────────────
+     El Dialog se monta en un portal a nivel de <body> y es `position: fixed`,
+     mientras que la página que quedó atrás sigue en el DOM. Sin estas reglas el
+     PDF sale con el listado de fondo y el modal recortado encima — el clásico
+     "me imprimió un screenshot". Con un diálogo abierto el documento ES el
+     diálogo: se oculta la página y el popup deja de flotar para fluir como hoja. */
+  body:has([data-slot="dialog-content"]) main {
+    display: none !important;
+  }
+
+  [data-slot="dialog-overlay"],
+  [data-slot="dialog-close"] {
+    display: none !important;
+  }
+
+  [data-slot="dialog-content"] {
+    position: static !important;
+    display: block !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
 }
