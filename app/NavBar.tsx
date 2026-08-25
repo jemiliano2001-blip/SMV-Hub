@@ -26,11 +26,22 @@ type GrupoNav = { nombre: string; links: { href: string; label: string }[] }
 
 const GRUPOS: GrupoNav[] = [
   {
+    nombre: 'Operación',
+    links: [
+      { href: 'https://dashboardsmv.web.app/', label: 'Dashboard SMV ↗' },
+      { href: 'https://smv-vision.web.app/', label: 'SMV Vision ↗' },
+      { href: '/documentos-venta', label: 'Documentos de venta' },
+      { href: '/pedidos-almacen', label: 'Pedidos de almacén' },
+      { href: '/almacen', label: 'Almacén de materiales' },
+      { href: '/endmills', label: 'Endmills China' },
+      { href: '/notificaciones', label: 'Notificaciones' },
+    ],
+  },
+  {
     nombre: 'Compras',
     links: [
       { href: '/nueva-compra', label: 'Nueva compra (IA)' },
       { href: '/compras-odoo', label: 'Compras Odoo' },
-      { href: '/caja-chica', label: 'Caja chica' },
       { href: '/ordenes', label: 'Ver órdenes' },
       { href: '/requisiciones', label: 'Requisiciones' },
       { href: '/cotizaciones', label: 'Cotizaciones' },
@@ -39,21 +50,9 @@ const GRUPOS: GrupoNav[] = [
     ],
   },
   {
-    nombre: 'Operación',
-    links: [
-      { href: 'https://smv-vision.web.app/', label: 'SMV Vision ↗' },
-      { href: '/notificaciones', label: 'Notificaciones' },
-      { href: '/documentos-venta', label: 'Documentos de venta' },
-      { href: '/pedidos-almacen', label: 'Pedidos de almacén' },
-      { href: '/almacen', label: 'Almacén de materiales' },
-      { href: '/endmills', label: 'Endmills China' },
-      { href: '/operadores', label: 'Catálogo de operadores' },
-    ],
-  },
-  {
     nombre: 'Finanzas',
     links: [
-      { href: 'https://dashboardsmv.web.app/', label: 'Dashboard SMV ↗' },
+      { href: '/caja-chica', label: 'Caja chica' },
       { href: '/finanzas', label: 'Resumen financiero' },
       { href: '/finanzas/facturacion', label: 'Facturación clientes (Odoo)' },
       { href: '/finanzas/cobranza', label: 'Control de cobranza' },
@@ -65,9 +64,10 @@ const GRUPOS: GrupoNav[] = [
   {
     nombre: 'Personal',
     links: [
-      { href: '/gafetes', label: 'Gafetes de personal' },
+      { href: '/operadores', label: 'Catálogo de operadores' },
       { href: '/horas-extra', label: 'Horas extra' },
       { href: '/banos', label: 'Control de baños' },
+      { href: '/gafetes', label: 'Gafetes de personal' },
     ],
   },
 ]

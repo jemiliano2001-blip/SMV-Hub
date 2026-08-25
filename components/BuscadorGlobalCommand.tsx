@@ -11,6 +11,8 @@ import {
   Package,
   Sparkles,
   TrendingUp,
+  Tv,
+  Eye,
   Loader2,
   AlertCircle,
 } from 'lucide-react'
@@ -25,6 +27,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { getClienteAuth } from '@/lib/firebase'
 import { formatPrecio, normalizar } from '@/lib/format'
+import { abrirAppConSSO } from '@/lib/sso-cliente'
 import type { ResultadoBusquedaSemantica } from '@/lib/busqueda-semantica-catalogo'
 
 /**
@@ -40,28 +43,33 @@ const MODULOS_NAVEGABLES: ReadonlyArray<{
   label: string
   claves: string
 }> = [
-  { href: '/nueva-compra', label: 'Nueva compra', claves: 'nueva compra captura factura alta' },
-  { href: '/ordenes', label: 'Órdenes de compra', claves: 'ordenes oc historial compras' },
-  { href: '/cotizaciones', label: 'Cotizaciones', claves: 'cotizaciones cotizar precios' },
-  { href: '/requisiciones', label: 'Requisiciones', claves: 'requisiciones requis solicitudes' },
-  { href: '/proveedores', label: 'Proveedores', claves: 'proveedores catalogo comparador usa mexico' },
-  { href: '/compras-odoo', label: 'Compras Odoo', claves: 'compras odoo po rfq' },
-  { href: '/almacen', label: 'Almacén', claves: 'almacen entradas salidas materiales herramientas' },
-  { href: '/pedidos-almacen', label: 'Pedidos de almacén', claves: 'pedidos almacen piso' },
-  { href: '/endmills', label: 'Endmills China', claves: 'endmills fresas china inventario' },
-  { href: '/reportes', label: 'Reportes', claves: 'reportes kpis dashboard' },
-  { href: '/reportes/contable', label: 'Cierre contable', claves: 'contable cierre sat lotes' },
-  { href: '/claves-sat', label: 'Claves SAT', claves: 'claves sat unspsc clasificacion' },
-  { href: '/finanzas', label: 'Finanzas', claves: 'finanzas facturacion cobranza odoo' },
-  { href: '/caja-chica', label: 'Caja chica', claves: 'caja chica arqueo efectivo movimientos' },
-  { href: '/documentos-venta', label: 'Documentos de venta', claves: 'documentos venta factura remision so' },
-  { href: '/banos', label: 'Baños', claves: 'banos registro tiempos conteo' },
-  { href: '/horas-extra', label: 'Horas extra', claves: 'horas extra overtime semanal' },
-  { href: '/operadores', label: 'Operadores', claves: 'operadores personal catalogo' },
-  { href: '/gafetes', label: 'Gafetes', claves: 'gafetes credenciales badge' },
-  { href: '/notificaciones', label: 'Notificaciones', claves: 'notificaciones avisos alertas' },
-  { href: '/auditoria', label: 'Auditoría', claves: 'auditoria bitacora log' },
-  { href: '/usuarios', label: 'Usuarios y roles', claves: 'usuarios roles permisos accesos modulos' },
+  { href: 'https://dashboardsmv.web.app/', label: 'Dashboard SMV (Fábrica Visual)', claves: 'dashboard smv fabrica visual tv pantalla ordenes rotativo produccion' },
+  { href: 'https://smv-vision.web.app/', label: 'SMV Visión (Planos & Dibujos)', claves: 'smv vision blueprints planos hojas trabajo dibujos piezas medidas ingenieros clientes odoo' },
+  { href: '/documentos-venta', label: 'Documentos de venta', claves: 'documentos venta factura remision so chat pedidos' },
+  { href: '/pedidos-almacen', label: 'Pedidos de almacén', claves: 'pedidos almacen piso urgente material herramienta' },
+  { href: '/almacen', label: 'Almacén de materiales', claves: 'almacen entradas salidas materiales herramientas existencias inventario' },
+  { href: '/endmills', label: 'Endmills China', claves: 'endmills fresas cortadores china inventario pedido usd cnc' },
+  { href: '/notificaciones', label: 'Notificaciones', claves: 'notificaciones avisos alertas taller' },
+  { href: '/nueva-compra', label: 'Nueva compra (IA)', claves: 'nueva compra captura factura alta ia scanner ticket' },
+  { href: '/ordenes', label: 'Órdenes de compra', claves: 'ordenes oc historial compras bitacora' },
+  { href: '/cotizaciones', label: 'Cotizaciones', claves: 'cotizaciones cotizar precios historico proveedores' },
+  { href: '/requisiciones', label: 'Requisiciones', claves: 'requisiciones requis solicitudes automatizacion ingenieros' },
+  { href: '/proveedores', label: 'Proveedores (USA & MX)', claves: 'proveedores catalogo comparador usa mexico herramental tooling' },
+  { href: '/compras-odoo', label: 'Compras Odoo', claves: 'compras odoo po rfq excel cotizacion' },
+  { href: '/reportes', label: 'Reportes de compras', claves: 'reportes kpis dashboard compras' },
+  { href: '/caja-chica', label: 'Caja chica', claves: 'caja chica arqueo efectivo movimientos fondo fijo vales' },
+  { href: '/finanzas', label: 'Resumen financiero', claves: 'finanzas facturacion cobranza odoo ingresos' },
+  { href: '/finanzas/facturacion', label: 'Facturación por cliente', claves: 'facturacion facturas clientes odoo ventas' },
+  { href: '/finanzas/cobranza', label: 'Control de cobranza', claves: 'cobranza cartera vencida promesas pago' },
+  { href: '/reportes/contable', label: 'Reportes Contables SAT', claves: 'contable cierre sat lotes impuestos cfdi' },
+  { href: '/claves-sat', label: 'Claves SAT', claves: 'claves sat unspsc clasificacion catalogo buscador' },
+  { href: '/finanzas/reportes', label: 'Reportes financieros', claves: 'reportes financieros saldos ingresos' },
+  { href: '/operadores', label: 'Catálogo de operadores', claves: 'operadores personal catalogo taller directorio' },
+  { href: '/horas-extra', label: 'Horas extra', claves: 'horas extra overtime semanal autorizacion' },
+  { href: '/banos', label: 'Control de baños', claves: 'banos registro tiempos conteo taller incidencias' },
+  { href: '/gafetes', label: 'Gafetes de personal', claves: 'gafetes credenciales badge fotos personal' },
+  { href: '/auditoria', label: 'Bitácora de auditoría', claves: 'auditoria bitacora log seguridad' },
+  { href: '/usuarios', label: 'Usuarios y roles', claves: 'usuarios roles permisos accesos modulos admin' },
 ]
 
 function modulosQueCoinciden(consulta: string) {
@@ -241,11 +249,19 @@ export default function BuscadorGlobalCommand() {
                 {modulosCoincidentes.map((m) => (
                   <CommandItem
                     key={m.href}
-                    onSelect={() => runCommand(() => router.push(m.href))}
+                    onSelect={() =>
+                      runCommand(() => {
+                        if (m.href.startsWith('http')) {
+                          void abrirAppConSSO(m.href)
+                        } else {
+                          router.push(m.href)
+                        }
+                      })
+                    }
                   >
                     <Search className="mr-2 h-4 w-4 text-muted-foreground" />
                     <span>{m.label}</span>
-                    <CommandShortcut>{m.href}</CommandShortcut>
+                    <CommandShortcut>{m.href.startsWith('http') ? 'SSO ↗' : m.href}</CommandShortcut>
                   </CommandItem>
                 ))}
               </CommandGroup>
@@ -339,10 +355,52 @@ export default function BuscadorGlobalCommand() {
 
           {!consultaLarga && (
             <>
-              <CommandGroup heading="Módulos de Compras & Tooling">
-                <CommandItem onSelect={() => runCommand(() => router.push('/requisiciones'))}>
+              <CommandGroup heading="Fábrica Visual & Operación de Taller">
+                <CommandItem
+                  onSelect={() =>
+                    runCommand(() => void abrirAppConSSO('https://dashboardsmv.web.app/'))
+                  }
+                >
+                  <Tv className="mr-2 h-4 w-4 text-amber-600" />
+                  <span>Dashboard SMV (Fábrica Visual en TV)</span>
+                  <CommandShortcut>TV ↗</CommandShortcut>
+                </CommandItem>
+                <CommandItem
+                  onSelect={() =>
+                    runCommand(() => void abrirAppConSSO('https://smv-vision.web.app/'))
+                  }
+                >
+                  <Eye className="mr-2 h-4 w-4 text-sky-600" />
+                  <span>SMV Visión (Planos &amp; Blueprints)</span>
+                  <CommandShortcut>VIS ↗</CommandShortcut>
+                </CommandItem>
+                <CommandItem onSelect={() => runCommand(() => router.push('/documentos-venta'))}>
+                  <FileText className="mr-2 h-4 w-4 text-indigo-600" />
+                  <span>Documentos de venta (remisión / factura)</span>
+                </CommandItem>
+                <CommandItem onSelect={() => runCommand(() => router.push('/pedidos-almacen'))}>
+                  <Package className="mr-2 h-4 w-4 text-amber-500" />
+                  <span>Pedidos de almacén (material y herramienta)</span>
+                  <CommandShortcut>PED</CommandShortcut>
+                </CommandItem>
+                <CommandItem onSelect={() => runCommand(() => router.push('/endmills'))}>
+                  <Sparkles className="mr-2 h-4 w-4 text-violet-600" />
+                  <span>Endmills China (inventario y pedido)</span>
+                  <CommandShortcut>END</CommandShortcut>
+                </CommandItem>
+              </CommandGroup>
+
+              <CommandSeparator />
+
+              <CommandGroup heading="Compras & Abastecimiento">
+                <CommandItem onSelect={() => runCommand(() => router.push('/nueva-compra'))}>
                   <ShoppingCart className="mr-2 h-4 w-4 text-primary" />
-                  <span>Flujo de Requisiciones &amp; Cotizaciones</span>
+                  <span>Nueva compra (Escaneo IA de facturas)</span>
+                  <CommandShortcut>IA</CommandShortcut>
+                </CommandItem>
+                <CommandItem onSelect={() => runCommand(() => router.push('/requisiciones'))}>
+                  <ShoppingCart className="mr-2 h-4 w-4 text-sky-600" />
+                  <span>Flujo de Requisiciones de Ingenieros</span>
                   <CommandShortcut>REQ</CommandShortcut>
                 </CommandItem>
                 <CommandItem onSelect={() => runCommand(() => router.push('/proveedores'))}>
@@ -350,29 +408,24 @@ export default function BuscadorGlobalCommand() {
                   <span>Catálogo &amp; Comparador de Proveedores (USA / MX)</span>
                   <CommandShortcut>PROV</CommandShortcut>
                 </CommandItem>
-                <CommandItem onSelect={() => runCommand(() => router.push('/almacen'))}>
-                  <Package className="mr-2 h-4 w-4 text-amber-500" />
-                  <span>Almacén de materiales: entradas y salidas</span>
-                  <CommandShortcut>ALM</CommandShortcut>
-                </CommandItem>
-                <CommandItem onSelect={() => runCommand(() => router.push('/endmills'))}>
-                  <Sparkles className="mr-2 h-4 w-4 text-violet-600" />
-                  <span>Endmills China: inventario y pedido sugerido</span>
-                  <CommandShortcut>END</CommandShortcut>
-                </CommandItem>
                 <CommandItem onSelect={() => runCommand(() => router.push('/ordenes'))}>
-                  <FileText className="mr-2 h-4 w-4 text-sky-600" />
+                  <FileText className="mr-2 h-4 w-4 text-slate-600" />
                   <span>Historial de Órdenes de Compra (OC)</span>
                 </CommandItem>
                 <CommandItem onSelect={() => runCommand(() => router.push('/reportes'))}>
                   <TrendingUp className="mr-2 h-4 w-4 text-purple-600" />
-                  <span>Dashboard de Inteligencia Operativa (3-Tier)</span>
+                  <span>Reportes de Compras y KPIs</span>
                 </CommandItem>
               </CommandGroup>
 
               <CommandSeparator />
 
-              <CommandGroup heading="Finanzas & Facturación">
+              <CommandGroup heading="Finanzas, Cobranza & SAT">
+                <CommandItem onSelect={() => runCommand(() => router.push('/caja-chica'))}>
+                  <DollarSign className="mr-2 h-4 w-4 text-amber-600" />
+                  <span>Caja Chica (Fondo fijo y gastos menores)</span>
+                  <CommandShortcut>CAJA</CommandShortcut>
+                </CommandItem>
                 <CommandItem onSelect={() => runCommand(() => router.push('/finanzas'))}>
                   <DollarSign className="mr-2 h-4 w-4 text-emerald-600" />
                   <span>Resumen Financiero &amp; Flujo de Efectivo</span>
@@ -381,30 +434,9 @@ export default function BuscadorGlobalCommand() {
                   <FileText className="mr-2 h-4 w-4 text-slate-600" />
                   <span>Facturación Clientes (Odoo Sync)</span>
                 </CommandItem>
-                <CommandItem onSelect={() => runCommand(() => router.push('/documentos-venta'))}>
-                  <FileText className="mr-2 h-4 w-4 text-sky-600" />
-                  <span>Documentos de venta (remisión / factura)</span>
-                </CommandItem>
-                <CommandItem onSelect={() => runCommand(() => router.push('/caja-chica'))}>
-                  <DollarSign className="mr-2 h-4 w-4 text-amber-600" />
-                  <span>Caja Chica &amp; Gastos Menores</span>
-                </CommandItem>
-              </CommandGroup>
-
-              <CommandSeparator />
-
-              <CommandGroup heading="Proveedores Frecuentes EE.UU. / CNC">
-                <CommandItem onSelect={() => runCommand(() => router.push('/proveedores'))}>
-                  <Sparkles className="mr-2 h-4 w-4 text-amber-500" />
-                  <span>Shars Tool Company (Endmills &amp; Cortadores)</span>
-                </CommandItem>
-                <CommandItem onSelect={() => runCommand(() => router.push('/proveedores'))}>
-                  <Sparkles className="mr-2 h-4 w-4 text-amber-500" />
-                  <span>Kennametal Authorized (Insertos Torneado/Fresado)</span>
-                </CommandItem>
-                <CommandItem onSelect={() => runCommand(() => router.push('/proveedores'))}>
-                  <Sparkles className="mr-2 h-4 w-4 text-amber-500" />
-                  <span>Travers Tool Co (Consumibles &amp; Lubricantes)</span>
+                <CommandItem onSelect={() => runCommand(() => router.push('/reportes/contable'))}>
+                  <FileText className="mr-2 h-4 w-4 text-blue-600" />
+                  <span>Reportes Contables SAT (Lotes y cierres)</span>
                 </CommandItem>
               </CommandGroup>
             </>
