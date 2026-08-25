@@ -18,6 +18,8 @@ export function formatPrecio(
   }
 }
 
+export { formatPrecio as formatearMoneda }
+
 /** Convierte una fecha YYYY-MM-DD a DD/MM/YYYY para mostrar al usuario. */
 export function formatFecha(fecha: string | null | undefined): string {
   if (!fecha) return "-"

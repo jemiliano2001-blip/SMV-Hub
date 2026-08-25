@@ -178,6 +178,20 @@ service cloud.firestore {
              d.actualizadoEn is timestamp;
     }
 
+    function ordenCompraUsaValida(d) {
+      return d.folio is string &&
+             d.proveedor is string &&
+             d.fechaPedido is string &&
+             d.moneda in ['USD', 'MXN'] &&
+             d.estado in ['borrador', 'enviada', 'confirmada', 'recibida', 'cancelada'] &&
+             montoValido(d.subtotal) &&
+             montoValido(d.envio) &&
+             montoValido(d.impuestos) &&
+             montoValido(d.total) &&
+             d.creadoEn is timestamp &&
+             d.actualizadoEn is timestamp;
+    }
+
     // ── Órdenes de compra ────────────────────────────────────────────────────
 
     match /ordenes/{ordenId} {
@@ -217,6 +231,30 @@ service cloud.firestore {
 
       // Evita borrar y recrear el mismo id para evadir la protección de
       // proveedorId. Es una acción destructiva reservada a super-admin.
+      allow delete: if esUsuarioAutorizado()
+                    && (esCorreoBreakGlass() || esSuperAdminDoc());
+    }
+
+    // ── Órdenes de compra USA (Purchase Orders) ──────────────────────────────
+
+    match /ordenes_compra_usa/{poId} {
+      allow read: if esUsuarioAutorizado()
+                  && (esCorreoBreakGlass() || esSuperAdminDoc()
+                      || tieneAlgunModulo(['ordenes-compra', 'ordenes', 'nueva-compra',
+                                           'proveedores', 'almacen', 'compras-odoo',
+                                           'finanzas', 'auditoria']));
+
+      allow create: if esUsuarioAutorizado()
+                    && (esCorreoBreakGlass() || esSuperAdminDoc()
+                        || tieneAlgunModulo(['ordenes-compra', 'nueva-compra',
+                                             'compras-odoo', 'requisiciones']))
+                    && ordenCompraUsaValida(request.resource.data);
+
+      allow update: if esUsuarioAutorizado()
+                    && ordenCompraUsaValida(request.resource.data)
+                    && request.resource.data.creadoEn == resource.data.creadoEn
+                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+
       allow delete: if esUsuarioAutorizado()
                     && (esCorreoBreakGlass() || esSuperAdminDoc());
     }

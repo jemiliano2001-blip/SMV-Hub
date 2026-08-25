@@ -7,6 +7,7 @@ export type { Rol, ModuloId }
 export const RUTA_POR_MODULO: Record<ModuloId, string> = {
   "nueva-compra": "/nueva-compra",
   ordenes: "/ordenes",
+  "ordenes-compra": "/ordenes-compra",
   "claves-sat": "/claves-sat",
   cotizaciones: "/cotizaciones",
   "compras-odoo": "/compras-odoo",
@@ -32,6 +33,7 @@ export const GRUPOS_MODULOS: { nombre: string; modulos: { id: ModuloId; label: s
   {
     nombre: "Compras",
     modulos: [
+      { id: "ordenes-compra", label: "Órdenes de compra USA (PO)" },
       { id: "nueva-compra", label: "Nueva compra" },
       { id: "ordenes", label: "Órdenes" },
       { id: "compras-odoo", label: "Compras Odoo (Cotizaciones)" },
@@ -80,6 +82,7 @@ export const GRUPOS_MODULOS: { nombre: string; modulos: { id: ModuloId; label: s
 ]
 
 const PLANTILLA_ADMIN: ModuloId[] = [
+  "ordenes-compra",
   "nueva-compra",
   "ordenes",
   "claves-sat",
@@ -103,6 +106,7 @@ const PLANTILLA_ADMIN: ModuloId[] = [
 ]
 
 const PLANTILLA_COMPRAS: ModuloId[] = [
+  "ordenes-compra",
   "nueva-compra",
   "compras-odoo",
   "cotizaciones",

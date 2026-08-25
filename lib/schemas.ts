@@ -399,6 +399,7 @@ export const ModuloIdSchema = z.enum([
   "documentos-venta",
   "auditoria",
   "usuarios",
+  "ordenes-compra",
 ])
 export type ModuloId = z.infer<typeof ModuloIdSchema>
 
@@ -1519,4 +1520,75 @@ export const BusquedaIndiceSchema = z.object({
   actualizadoEn: z.date(),
 })
 export type BusquedaIndice = z.infer<typeof BusquedaIndiceSchema>
+
+// ── Órdenes de Compra USA (Purchase Orders) ──────────────────────────────────
+
+export const EstadoOrdenCompraUsaSchema = z.enum([
+  "borrador",     // RFQ / Borrador
+  "enviada",      // Petición enviada al proveedor
+  "confirmada",   // Pedido de compra confirmado
+  "recibida",     // Mercancía recibida / Realizado
+  "cancelada",    // Pedido cancelado
+])
+export type EstadoOrdenCompraUsa = z.infer<typeof EstadoOrdenCompraUsaSchema>
+
+export const ItemOrdenCompraUsaSchema = z.object({
+  id: z.string().optional(),
+  producto: z.string().default(""), // Número de parte / SKU / Código
+  descripcion: z.string(),
+  cantidad: z.number().positive(),
+  precioUnitario: z.number().nonnegative(),
+  impuestos: z.number().nonnegative().default(0), // Tax en monto USD
+  subtotal: z.number().nonnegative(),
+  fechaPlanificada: z.string().nullable().optional(), // YYYY-MM-DD
+  cuentaCargo: z.string().default("Stock"),
+  ordenTrabajo: z.string().default(""),
+  claveProdServ: z.string().regex(/^\d{8}$/).nullable().optional().default(null),
+})
+export type ItemOrdenCompraUsa = z.infer<typeof ItemOrdenCompraUsaSchema>
+
+export const HistorialNotaUsaSchema = z.object({
+  id: z.string(),
+  fecha: z.string(), // ISO string
+  autor: z.string(),
+  texto: z.string(),
+  tipo: z.enum(["nota", "cambio_estado", "sistema"]).default("nota"),
+})
+export type HistorialNotaUsa = z.infer<typeof HistorialNotaUsaSchema>
+
+export const OrdenCompraUsaSchema = z.object({
+  id: z.string(),
+  folio: z.string(), // ej. "PO-2026-0001"
+  proveedor: z.string(),
+  proveedorId: z.string().nullable().optional(),
+  referenciaProveedor: z.string().default(""), // Quote # / Ref
+  fechaPedido: z.string(), // YYYY-MM-DD
+  fechaEntregaEstimada: z.string().nullable().optional(), // YYYY-MM-DD
+  moneda: z.enum(["USD", "MXN"]).default("USD"),
+  estado: EstadoOrdenCompraUsaSchema.default("borrador"),
+  comprador: z.string().default(""),
+  solicitante: z.string().default(""),
+  empresa: z.string().default("SMV"),
+  cuentaCargo: z.string().default("Stock"),
+  ordenTrabajo: z.string().default(""),
+  shippingAddressUSA: z.string().default("5423 Lovers Ln Brownsville, Texas 78526"),
+  brokerAduanal: z.string().default(""),
+  terminosPago: z.string().default("Net 30"),
+  metodoEnvio: z.string().default("UPS Ground"),
+  notas: z.string().default(""),
+  items: z.array(ItemOrdenCompraUsaSchema).default([]),
+  subtotal: z.number().nonnegative().default(0),
+  envio: z.number().nonnegative().default(0),
+  impuestos: z.number().nonnegative().default(0),
+  total: z.number().nonnegative().default(0),
+  /** FK opcional a la bitácora de órdenes cuando se registra en /ordenes al recibirse */
+  ordenHubId: z.string().nullable().optional(),
+  cotizacionId: z.string().nullable().optional(),
+  requisicionId: z.string().nullable().optional(),
+  historialNotas: z.array(HistorialNotaUsaSchema).default([]),
+  creadoPor: z.string().default(""),
+  creadoEn: z.date(),
+  actualizadoEn: z.date(),
+})
+export type OrdenCompraUsa = z.infer<typeof OrdenCompraUsaSchema>
 
