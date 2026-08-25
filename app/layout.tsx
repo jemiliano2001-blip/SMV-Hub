@@ -27,7 +27,8 @@ const firaSans = Fira_Sans({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  // Sin maximumScale: bloquear el pinch-zoom viola WCAG 1.4.4 (axe: "meta-viewport") —
+  // es la causa de que e2e/login-accessibility.spec.ts venga fallando en CI.
   viewportFit: "cover",
   themeColor: "#061936",
 };
