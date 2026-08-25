@@ -17,7 +17,16 @@ export async function POST(req: NextRequest) {
   )
   if (!auth.ok) return auth.response
 
-  const formData = await req.formData()
+  // Un body que no sea multipart hace throw aqui; sin este guard se va como 500.
+  let formData: FormData
+  try {
+    formData = await req.formData()
+  } catch {
+    return Response.json(
+      { error: "El cuerpo debe ser multipart/form-data con el campo 'archivo'" },
+      { status: 400 }
+    )
+  }
   const archivo = formData.get("archivo")
 
   if (!archivo || !(archivo instanceof File)) {

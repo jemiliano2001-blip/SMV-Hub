@@ -145,9 +145,13 @@ function limpiarShim() {
   windowsShimDir = null
 }
 
-function restaurarUnaVez() {
-  if (restaurado) return
-  restaurado = true
+/**
+ * Devuelve al disco los archivos que este script parchea en caliente.
+ * Es sincrona y sin dependencias para poder correr tambien dentro de `process.on("exit")`:
+ * si el proceso muere sin pasar por `restaurarUnaVez()`, la GEMINI_API_KEY inyectada en
+ * firebase.json quedaria escrita en el repo y podria commitearse por accidente.
+ */
+function restaurarArchivos() {
   if (envLocalBackup !== null) {
     writeFileSync(envLocalPath, envLocalBackup, "utf8")
     envLocalBackup = null
@@ -156,12 +160,19 @@ function restaurarUnaVez() {
     writeFileSync(firebaseJsonPath, firebaseJsonBackup, "utf8")
     firebaseJsonBackup = null
   }
+}
+
+function restaurarUnaVez() {
+  if (restaurado) return
+  restaurado = true
+  restaurarArchivos()
   runPatch("restore")
   limpiarShim()
 }
 
 process.on("exit", () => {
   if (!restaurado) {
+    restaurarArchivos()
     try {
       spawnSync(process.execPath, [patchScript, "restore"], { stdio: "inherit" })
     } catch {
