@@ -222,18 +222,18 @@ export default function NavBar() {
             </div>
           </nav>
 
-          {/* Menú Móvil */}
-          <div className="flex items-center gap-1 md:hidden">
-            <NotificacionesBell />
+          {/* Menú Móvil Limpio y Sin Ruido Redundante */}
+          <div className="flex items-center gap-1.5 md:hidden">
+            <BuscadorGlobalCommand />
+            <BotonSesion />
             <Sheet open={menuMovil} onOpenChange={setMenuMovil}>
               <SheetTrigger asChild>
                 <button
                   type="button"
                   aria-label="Abrir menú"
-                  className="flex cursor-pointer items-center gap-1 rounded-lg p-2 text-foreground transition-colors hover:bg-muted"
+                  className="flex size-9 cursor-pointer items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-muted shadow-2xs"
                 >
-                  <Menu className="h-5 w-5" />
-                  <PedidoAlmacenBadge />
+                  <Menu className="h-4.5 w-4.5" />
                 </button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[85vw] max-w-sm overflow-y-auto border-l border-border p-0">
