@@ -86,7 +86,8 @@ export async function extraerPOUsaDesdeArchivo(
   base64Data: string,
   mediaType: MediaTypeFactura = "image/jpeg"
 ): Promise<ExtraccionPOUsa> {
-  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY
+  // Solo servidor: nunca exponer la llave con NEXT_PUBLIC_ (se filtraria al bundle del navegador).
+  const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
     throw new ErrorIA(
       "GEMINI_API_KEY no configurada. Agrega la clave a las variables de entorno."

@@ -33,8 +33,8 @@ import {
   TERMINOS_PAGO_USA_OPCIONES,
   TERMINOS_PAGO_DEFAULT,
 } from '@/lib/ordenes-compra-usa'
-import { extraerPOUsaDesdeArchivo } from '@/lib/ordenes-compra-ia'
-import { type MediaTypeFactura } from '@/lib/extraer-ia'
+import type { ExtraccionPOUsa } from '@/lib/ordenes-compra-ia'
+import { getClienteAuth } from '@/lib/firebase'
 import { formatearMoneda } from '@/lib/format'
 import type {
   OrdenCompraUsa,
@@ -232,21 +232,24 @@ export default function OrdenCompraForm({
     const toastId = toast.loading('Analizando cotización con IA Gemini...')
 
     try {
-      const reader = new FileReader()
-      const base64Promise = new Promise<string>((resolve, reject) => {
-        reader.onload = () => {
-          const res = reader.result as string
-          const base64 = res.split(',')[1]
-          resolve(base64)
-        }
-        reader.onerror = reject
-      })
-      reader.readAsDataURL(file)
-      const base64 = await base64Promise
+      const token = await getClienteAuth().currentUser?.getIdToken()
+      if (!token) {
+        toast.error('Inicia sesión para extraer datos con IA', { id: toastId })
+        return
+      }
 
-      const mediaType: MediaTypeFactura =
-        file.type === 'application/pdf' ? 'application/pdf' : 'image/jpeg'
-      const datos = await extraerPOUsaDesdeArchivo(base64, mediaType)
+      const fd = new FormData()
+      fd.append('archivo', file)
+      const res = await fetch('/api/ordenes-compra/extraer', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      })
+      const datos: ExtraccionPOUsa & { error?: string } = await res.json()
+      if (!res.ok) {
+        toast.error(datos.error ?? 'Error al extraer la cotización', { id: toastId })
+        return
+      }
 
       if (datos.proveedor && !proveedor) {
         handleSeleccionarProveedor(datos.proveedor)
@@ -1110,7 +1113,9 @@ export default function OrdenCompraForm({
 
       {/* Modal para enviar correo */}
       <ModalEnviarEmailPO
+        key={proveedorId ?? 'sin-proveedor'}
         orden={ordenDataParaImpresion}
+        emailProveedorDefault={proveedoresUsa.find((p) => p.id === proveedorId)?.email || ''}
         open={mostrarModalEmail}
         onOpenChange={setMostrarModalEmail}
       />

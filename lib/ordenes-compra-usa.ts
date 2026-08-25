@@ -193,11 +193,14 @@ export async function actualizarOrdenCompraUsa(
   let payloadAjustado = { ...cambios }
 
   if (cambios.items) {
-    const totales = calcularTotalesPO(cambios.items, cambios.envio ?? 0)
+    // Sin `envio` explicito hay que leer el guardado: asumir 0 borraria el flete del total.
+    const envioEfectivo = cambios.envio ?? (await repo.obtener(id))?.envio ?? 0
+    const totales = calcularTotalesPO(cambios.items, envioEfectivo)
     payloadAjustado = {
       ...payloadAjustado,
       subtotal: totales.subtotal,
       impuestos: totales.impuestos,
+      envio: totales.envio,
       total: totales.total,
       items: cambios.items.map((it, idx) => ({
         ...it,
