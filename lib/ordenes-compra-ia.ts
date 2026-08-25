@@ -94,7 +94,7 @@ export async function extraerPOUsaDesdeArchivo(
     )
   }
 
-  const modelo = resolverModeloExtraccion("normal") || GEMINI_MODELO_WORKHORSE
+  const modelo = resolverModeloExtraccion() || GEMINI_MODELO_WORKHORSE
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`
 
   const requestBody = {
