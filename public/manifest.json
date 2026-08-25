@@ -1,0 +1,24 @@
+{
+  "name": "SMV Hub",
+  "short_name": "SMV Hub",
+  "description": "Plataforma interna de SMV Maquinados — compras, diseño y operación del taller",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#061936",
+  "theme_color": "#061936",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

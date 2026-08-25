@@ -13,8 +13,13 @@ import {
   X,
   MessageSquare,
   Copy,
-  Trash2,
-  Eye,
+  Mic,
+  MicOff,
+  Sparkles,
+  Wrench,
+  PackageCheck,
+  Scissors,
+  Plus,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { copiarAlPortapapeles } from '@/lib/portapapeles'
@@ -31,6 +36,11 @@ import { formatFechaHoraCorta } from '@/lib/format'
 import type { PedidoAlmacen } from '@/lib/schemas'
 import { ModalCamara } from '@/components/ModalCamara'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
+import {
+  CATEGORIAS_INSUMOS,
+  agregarInsumoADescripcion,
+  type InsumoFrecuente,
+} from '@/lib/insumos-frecuentes'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -66,13 +76,24 @@ export default function PedidosAlmacenView() {
   const [enviando, setEnviando] = useState(false)
   const [errorCaptura, setErrorCaptura] = useState<string | null>(null)
   const [mensajeExito, setMensajeExito] = useState<string | null>(null)
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<'corte' | 'consumibles' | 'ferreteria'>('corte')
+  const [escuchandoVoz, setEscuchandoVoz] = useState(false)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null)
 
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl)
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop()
+        } catch {
+          // Ignorar
+        }
+      }
     }
   }, [previewUrl])
 
@@ -96,6 +117,77 @@ export default function PedidosAlmacenView() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  function handleSeleccionarInsumo(insumo: InsumoFrecuente) {
+    setDescripcion((prev) => agregarInsumoADescripcion(prev, insumo))
+    setErrorCaptura(null)
+    toast.info(`Agregado: ${insumo.nombre}`, { duration: 1500 })
+    textareaRef.current?.focus()
+  }
+
+  function toggleDictadoVoz() {
+    if (typeof window === 'undefined') return
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      toast.error('Dictado por voz no disponible', {
+        description: 'Tu navegador no soporta SpeechRecognition. Intenta en Chrome o Safari.',
+      })
+      return
+    }
+
+    if (escuchandoVoz) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop()
+        } catch {
+          // Ignorar
+        }
+      }
+      setEscuchandoVoz(false)
+      return
+    }
+
+    try {
+      const recognition = new SpeechRecognition()
+      recognition.lang = 'es-MX'
+      recognition.continuous = false
+      recognition.interimResults = false
+
+      recognition.onstart = () => {
+        setEscuchandoVoz(true)
+        toast.info('🎙️ Escuchando... Di lo que necesitas', { duration: 2500 })
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0]?.[0]?.transcript
+        if (transcript) {
+          setDescripcion((prev) => {
+            const limpio = prev.trim()
+            return limpio ? `${limpio}, ${transcript}` : transcript
+          })
+          toast.success('Dictado capturado')
+        }
+      }
+
+      recognition.onerror = () => {
+        setEscuchandoVoz(false)
+        toast.error('No se pudo escuchar el audio', { description: 'Revisa los permisos de tu micrófono.' })
+      }
+
+      recognition.onend = () => {
+        setEscuchandoVoz(false)
+      }
+
+      recognitionRef.current = recognition
+      recognition.start()
+    } catch (err) {
+      console.error('Error iniciando dictado:', err)
+      setEscuchandoVoz(false)
+    }
+  }
+
   async function handleEnviar(e: React.FormEvent) {
     e.preventDefault()
     setErrorCaptura(null)
@@ -103,7 +195,7 @@ export default function PedidosAlmacenView() {
 
     const texto = descripcion.trim()
     if (!texto) {
-      setErrorCaptura('Escribe qué necesitas que se compre')
+      setErrorCaptura('Escribe o selecciona qué necesitas que se compre')
       return
     }
     if (!usuario) {
@@ -123,7 +215,7 @@ export default function PedidosAlmacenView() {
           ? { imagenUrl: imagenGuardada.url, imagenPath: imagenGuardada.path }
           : {}),
       })
-      setMensajeExito('Pedido guardado')
+      setMensajeExito('Pedido guardado exitosamente')
       toast.success('Pedido de Almacén Guardado', {
         description: `Se registró el pedido para "${texto.substring(0, 40)}..."`,
       })
@@ -167,6 +259,8 @@ export default function PedidosAlmacenView() {
     })
   const historial = pedidos.filter((p) => p.estado !== 'pendiente')
 
+  const categoriaActual = CATEGORIAS_INSUMOS.find((c) => c.id === categoriaSeleccionada) ?? CATEGORIAS_INSUMOS[0]
+
   function Tarjeta({ pedido }: { pedido: PedidoAlmacen }) {
     const textoWhatsApp = encodeURIComponent(
       `Hola ${pedido.solicitadoPorNombre}, sobre tu pedido de almacén "${pedido.descripcion}":\nEstado: ${ESTADO_LABEL[pedido.estado]}`
@@ -175,7 +269,7 @@ export default function PedidosAlmacenView() {
     return (
       <ContextMenu>
         <ContextMenuTrigger asChild>
-          <div className="flex cursor-pointer select-none gap-3 overflow-hidden rounded-xl border border-border bg-card p-4 shadow-xs transition-shadow hover:shadow-sm">
+          <div className="flex cursor-pointer select-none gap-3 overflow-hidden rounded-xl border border-border bg-card p-3.5 sm:p-4 shadow-xs transition-shadow hover:shadow-sm">
             {pedido.imagenUrl && (
               <a
                 href={pedido.imagenUrl}
@@ -299,82 +393,103 @@ export default function PedidosAlmacenView() {
               >
                 <span>Solicitante ({pedido.solicitadoPorNombre})</span>
               </ContextMenuItem>
-              {pedido.imagenUrl && (
-                <ContextMenuItem
-                  onClick={() => {
-                    void copiarAlPortapapeles(pedido.imagenUrl || '', 'Enlace de imagen copiado')
-                  }}
-                >
-                  <span>Enlace de foto</span>
-                </ContextMenuItem>
-              )}
             </ContextMenuSubContent>
           </ContextMenuSub>
-
-          {pedido.imagenUrl && (
-            <ContextMenuItem
-              onClick={() => {
-                if (pedido.imagenUrl) window.open(pedido.imagenUrl, '_blank', 'noopener,noreferrer')
-              }}
-            >
-              <Eye className="text-sky-600" />
-              <span>Ver foto completa</span>
-            </ContextMenuItem>
-          )}
-
-          {pedido.ordenIdVinculada && (
-            <ContextMenuItem
-              onClick={() => {
-                window.location.href = '/ordenes'
-              }}
-            >
-              <ExternalLink className="text-sky-600" />
-              <span>Ver orden vinculada</span>
-            </ContextMenuItem>
-          )}
-
-          {pedido.estado === 'pendiente' && (
-            <>
-              <ContextMenuSeparator />
-              <ContextMenuItem
-                variant="destructive"
-                onClick={() => handleCancelar(pedido.id)}
-              >
-                <Trash2 />
-                <span>Cancelar pedido</span>
-              </ContextMenuItem>
-            </>
-          )}
         </ContextMenuContent>
       </ContextMenu>
     )
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {mensajeExito && (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800 animate-in fade-in-50">
           {mensajeExito}
         </div>
       )}
       {errorCaptura && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700 animate-in fade-in-50">
           {errorCaptura}
         </div>
       )}
 
-      <ModuleSurface className="space-y-3 p-4">
-        <form onSubmit={handleEnviar} className="space-y-3">
-          <textarea
-            ref={textareaRef}
-            autoFocus
-            required
-            rows={2}
-            placeholder="¿Qué necesitas que se compre? Ej. 5 brocas de 3/8"
-            value={descripcion}
-            onChange={(e) => setDescripcion(e.target.value)}
-            className="w-full resize-none rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          />
+      {/* ── Captura Express con Insumos Frecuentes y Multimodal ── */}
+      <ModuleSurface className="space-y-4 p-4 sm:p-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Sparkles className="size-4" />
+            </span>
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+              Captura Express de Piso
+            </span>
+          </div>
+          <span className="text-[11px] text-muted-foreground hidden sm:inline">
+            1-toque para agregar insumos de taller
+          </span>
+        </div>
+
+        {/* Selector de Familias de Insumos */}
+        <div className="space-y-2.5">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 border-b border-border">
+            {CATEGORIAS_INSUMOS.map((cat) => {
+              const activa = cat.id === categoriaSeleccionada
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setCategoriaSeleccionada(cat.id)}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all shrink-0 cursor-pointer select-none active:scale-95 ${
+                    activa
+                      ? 'bg-primary text-primary-foreground shadow-2xs'
+                      : 'bg-muted text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {cat.id === 'corte' && <Scissors className="size-3.5" />}
+                  {cat.id === 'consumibles' && <PackageCheck className="size-3.5" />}
+                  {cat.id === 'ferreteria' && <Wrench className="size-3.5" />}
+                  <span>{cat.label}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Chips de 1-Toque */}
+          <div className="flex flex-wrap gap-1.5">
+            {categoriaActual.items.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => handleSeleccionarInsumo(item)}
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground shadow-2xs transition-all hover:border-primary/50 hover:bg-sky-50/40 active:scale-95 cursor-pointer select-none"
+              >
+                <Plus className="size-3 text-primary" />
+                <span>{item.nombre}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Formulario Principal */}
+        <form onSubmit={handleEnviar} className="space-y-3 pt-2">
+          <div className="relative">
+            <textarea
+              ref={textareaRef}
+              autoFocus
+              required
+              rows={2}
+              placeholder="¿Qué necesitas que se compre? Ej. 5 brocas de 3/8, Insertos APMT…"
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              className="w-full resize-none rounded-xl border border-input bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+            {escuchandoVoz && (
+              <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-bold text-destructive animate-pulse">
+                <span className="size-2 rounded-full bg-destructive animate-ping" />
+                Escuchando…
+              </div>
+            )}
+          </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <ModuleFilterChips
@@ -383,10 +498,26 @@ export default function PedidosAlmacenView() {
               onValueChange={(value) => setUrgente(value === 'urgente')}
               options={[
                 { value: 'normal', label: 'Normal' },
-                { value: 'urgente', label: 'Urgente' },
+                { value: 'urgente', label: '🔥 Urgente' },
               ]}
             />
 
+            {/* Dictado por Voz */}
+            <button
+              type="button"
+              onClick={toggleDictadoVoz}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer select-none active:scale-95 ${
+                escuchandoVoz
+                  ? 'border-destructive bg-destructive text-destructive-foreground animate-pulse'
+                  : 'border-border bg-card text-foreground hover:bg-muted'
+              }`}
+              title="Dictar por voz"
+            >
+              {escuchandoVoz ? <MicOff className="size-3.5" /> : <Mic className="size-3.5 text-primary" />}
+              <span>{escuchandoVoz ? 'Detener' : 'Dictar'}</span>
+            </button>
+
+            {/* Selector de Foto */}
             <input
               ref={fileInputRef}
               type="file"
@@ -401,34 +532,34 @@ export default function PedidosAlmacenView() {
                 <img
                   src={previewUrl}
                   alt="Foto seleccionada"
-                  className="h-9 w-9 rounded-md border border-border object-cover"
+                  className="size-9 rounded-lg border border-border object-cover"
                 />
                 <button
                   type="button"
                   onClick={quitarImagen}
-                  className="absolute -right-1.5 -top-1.5 rounded-full bg-foreground p-0.5 text-background"
+                  className="absolute -right-1.5 -top-1.5 rounded-full bg-foreground p-0.5 text-background hover:opacity-90"
                 >
-                  <X className="h-3 w-3" />
+                  <X className="size-3" />
                 </button>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={() => setIsCamaraOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted"
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground transition-all hover:border-primary/50 hover:bg-muted cursor-pointer select-none active:scale-95"
               >
-                <Camera className="h-4 w-4" />
-                Foto (opcional)
+                <Camera className="size-3.5 text-primary" />
+                <span>Foto rápida</span>
               </button>
             )}
 
             <button
               type="submit"
               disabled={enviando || !descripcion.trim()}
-              className="ml-auto inline-flex items-center gap-2 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+              className="ml-auto inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground shadow-xs transition-all hover:bg-primary/90 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
-              {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              Enviar pedido
+              {enviando ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+              <span>Guardar pedido</span>
             </button>
           </div>
         </form>
@@ -442,14 +573,17 @@ export default function PedidosAlmacenView() {
       />
 
       {loading ? (
-        <div className="h-24 animate-pulse rounded-lg bg-muted" />
+        <div className="h-24 animate-pulse rounded-xl bg-muted" />
       ) : error ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">{error}</div>
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">{error}</div>
       ) : (
         <div className="space-y-6">
           <div>
-            <h3 className="mb-3 text-sm font-medium text-foreground">
-              Pendientes ({pendientes.length})
+            <h3 className="mb-3 text-sm font-bold text-foreground flex items-center gap-2">
+              <span>Pendientes</span>
+              <span className="rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-mono">
+                {pendientes.length}
+              </span>
             </h3>
             {pendientes.length === 0 ? (
               <ModuleEmptyState
@@ -468,7 +602,7 @@ export default function PedidosAlmacenView() {
 
           {historial.length > 0 && (
             <details className="group">
-              <summary className="cursor-pointer text-sm font-medium text-foreground">
+              <summary className="cursor-pointer text-sm font-bold text-muted-foreground hover:text-foreground">
                 Historial ({historial.length})
               </summary>
               <div className="mt-3 space-y-2">

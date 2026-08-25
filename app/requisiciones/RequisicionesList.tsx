@@ -48,6 +48,7 @@ import DetalleRequisicionModal from './DetalleRequisicionModal'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { toast } from 'sonner'
 import { copiarAlPortapapeles } from '@/lib/portapapeles'
+import { vibrarTap, vibrarExito } from '@/lib/haptics'
 import ModuleFilterChips from '@/components/layout/ModuleFilterChips'
 import ModuleSurface from '@/components/layout/ModuleSurface'
 import ModuleTabs from '@/components/layout/ModuleTabs'
@@ -155,7 +156,7 @@ type RequisicionCardProps = {
   onEliminar: (id: string, desc: string) => void
 }
 
-// Tarjeta para < md: mismos datos que la fila de tabla (general y automatización), sin scroll horizontal.
+// Tarjeta para móviles (< md): diseño táctil ergonómico con semáforo y acciones rápidas.
 function RequisicionCard({
   r,
   isAuto,
@@ -168,29 +169,37 @@ function RequisicionCard({
   onEliminar,
 }: RequisicionCardProps) {
   return (
-    <div className={`p-4 space-y-2.5 ${r.estado === 'parcial' ? 'bg-pink-50/40' : ''}`}>
-      <div className="flex justify-between items-start gap-3">
+    <div className={`p-4 space-y-3 bg-card transition-colors ${r.estado === 'parcial' ? 'bg-amber-50/20' : ''}`}>
+      {/* Cabecera: Checkbox, Solicitante / Fecha y Selector de Estado */}
+      <div className="flex justify-between items-start gap-2.5">
         <div className="min-w-0 flex items-start gap-2.5">
           <input
             type="checkbox"
             checked={selected}
-            onChange={(e) => onToggleSelect(r.id, e as unknown as React.MouseEvent)}
-            className="mt-1 h-4 w-4 rounded border-input text-primary focus:ring-ring shrink-0"
+            onChange={(e) => {
+              vibrarTap()
+              onToggleSelect(r.id, e as unknown as React.MouseEvent)
+            }}
+            className="mt-1 size-4 rounded border-input text-primary focus:ring-ring shrink-0 cursor-pointer"
           />
           <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[11px] font-mono text-muted-foreground">
               {formatFecha(r.fechaPedido)}
               {!isAuto && r.solicitante ? ` · ${r.solicitante}` : ''}
             </p>
-            <div className="text-sm font-semibold text-foreground break-words">
+            <div className="text-sm font-bold text-foreground break-words mt-0.5">
               <CeldaDescripcion r={r} />
             </div>
           </div>
         </div>
+
         <select
           value={r.estado}
-          onChange={(e) => onCambioEstado(r.id, e.target.value as EstatusRequisicion)}
-          className={`shrink-0 rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset border-0 focus:ring-2 focus:ring-ring ${ESTADO_BADGE[r.estado]}`}
+          onChange={(e) => {
+            vibrarExito()
+            onCambioEstado(r.id, e.target.value as EstatusRequisicion)
+          }}
+          className={`shrink-0 rounded-xl px-2.5 py-1 text-xs font-bold ring-1 ring-inset border-0 focus:ring-2 focus:ring-ring cursor-pointer shadow-2xs ${ESTADO_BADGE[r.estado]}`}
           title="Cambiar estado"
         >
           {ESTADOS_REQUISICION.map((e) => (
@@ -199,48 +208,41 @@ function RequisicionCard({
         </select>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 text-xs pl-[26px]">
+      {/* Grid de Metadatos Táctiles */}
+      <div className="grid grid-cols-2 gap-2 text-xs pl-[26px] bg-muted/40 rounded-xl p-2.5 border border-border/70">
         {isAuto ? (
           <>
             <div className="min-w-0">
-              <span className="text-muted-foreground block">Proveedor</span>
-              <span className="text-foreground truncate block">{r.tienda || '-'}</span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Proveedor</span>
+              <span className="text-foreground font-semibold truncate block">{r.tienda || '-'}</span>
             </div>
             <div className="min-w-0">
-              <span className="text-muted-foreground block">Parte # · Cant.</span>
-              <span className="text-foreground truncate block font-mono">{r.parteNumero || '-'} · {r.cantidad || '-'}</span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Parte # · Cant.</span>
+              <span className="text-foreground truncate block font-mono font-bold">{r.parteNumero || '-'} · {r.cantidad || '-'}</span>
             </div>
             <div className="min-w-0">
-              <span className="text-muted-foreground block">F. entrega</span>
-              <span className="text-foreground block">{r.fechaEntregaEst ? formatFecha(r.fechaEntregaEst) : '-'}</span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">F. entrega</span>
+              <span className="text-foreground block font-mono">{r.fechaEntregaEst ? formatFecha(r.fechaEntregaEst) : '-'}</span>
             </div>
             <div className="min-w-0">
-              <span className="text-muted-foreground block">Plazo</span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Plazo / Semáforo</span>
               <CeldaAtraso r={r} hoy={hoy} isAuto />
             </div>
             <div className="min-w-0">
-              <span className="text-muted-foreground block">Empresa · O.T.</span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Empresa · O.T.</span>
               <span className="flex items-center gap-1.5">
                 {r.empresa ? (
-                  <span className={`rounded px-1.5 py-0.5 font-semibold ${badgeEmpresa(r.empresa)}`}>{r.empresa}</span>
+                  <span className={`rounded px-1.5 py-0.5 font-bold text-[10px] ${badgeEmpresa(r.empresa)}`}>{r.empresa}</span>
                 ) : '-'}
                 <span className="text-foreground font-mono truncate">{r.ordenServicio || ''}</span>
               </span>
             </div>
             <div className="min-w-0">
-              <span className="text-muted-foreground block">Link</span>
-              {r.link ? (
-                <a href={r.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                  Abrir
-                </a>
-              ) : '-'}
-            </div>
-            <div className="min-w-0">
-              <span className="text-muted-foreground block">Recibió</span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Recibió</span>
               <select
                 value={r.recibio ?? ''}
                 onChange={(e) => onCampoInline(r.id, 'recibio', e.target.value)}
-                className="rounded border-0 bg-transparent text-foreground focus:ring-1 focus:ring-ring -ml-1"
+                className="rounded border-0 bg-transparent text-foreground font-semibold focus:ring-1 focus:ring-ring -ml-1 text-xs"
               >
                 <option value="">—</option>
                 {SOLICITANTES.map((s) => (
@@ -248,48 +250,34 @@ function RequisicionCard({
                 ))}
               </select>
             </div>
-            <div className="min-w-0">
-              <span className="text-muted-foreground block">Rev. finanzas</span>
-              <select
-                value={r.revisionFinanzas ?? ''}
-                onChange={(e) => onCampoInline(r.id, 'revisionFinanzas', e.target.value)}
-                className={`rounded px-1 -ml-1 font-semibold border-0 focus:ring-1 focus:ring-ring ${
-                  r.revisionFinanzas === 'Entrega parcial' ? 'bg-yellow-100 text-yellow-800' : 'bg-transparent text-foreground'
-                }`}
-              >
-                {REVISION_FINANZAS_OPCIONES.map((op) => (
-                  <option key={op || 'vacio'} value={op}>{op || '—'}</option>
-                ))}
-              </select>
-            </div>
           </>
         ) : (
           <>
             <div className="min-w-0">
-              <span className="text-muted-foreground block">Tienda</span>
-              <span className="text-foreground truncate block">{r.tienda || '-'}</span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Tienda</span>
+              <span className="text-foreground font-semibold truncate block">{r.tienda || '-'}</span>
             </div>
             <div className="min-w-0">
-              <span className="text-muted-foreground block">Cantidad</span>
-              <span className="text-foreground block">{r.cantidad || '-'}</span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Cantidad</span>
+              <span className="text-foreground font-bold font-mono block">{r.cantidad || '-'}</span>
             </div>
             <div className="min-w-0">
-              <span className="text-muted-foreground block">Prioridad</span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Prioridad</span>
               {r.prioridad ? (
-                <span className={`inline-block rounded px-1.5 py-0.5 font-semibold ${PRIORIDAD_BADGE[r.prioridad]}`}>
+                <span className={`inline-block rounded px-1.5 py-0.5 font-bold text-[10px] ${PRIORIDAD_BADGE[r.prioridad]}`}>
                   {r.prioridad}
                 </span>
               ) : '-'}
             </div>
             <div className="min-w-0">
-              <span className="text-muted-foreground block">Límite</span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Plazo</span>
               <CeldaAtraso r={r} hoy={hoy} isAuto={false} />
             </div>
             <div className="min-w-0">
-              <span className="text-muted-foreground block">Empresa · O.T.</span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Empresa · O.T.</span>
               <span className="flex items-center gap-1.5">
                 {r.empresa ? (
-                  <span className={`rounded px-1.5 py-0.5 font-semibold ${badgeEmpresa(r.empresa)}`}>{r.empresa}</span>
+                  <span className={`rounded px-1.5 py-0.5 font-bold text-[10px] ${badgeEmpresa(r.empresa)}`}>{r.empresa}</span>
                 ) : '-'}
                 <span className="text-foreground font-mono truncate">{r.ordenServicio || ''}</span>
               </span>
@@ -298,30 +286,68 @@ function RequisicionCard({
         )}
       </div>
 
-      <div className="flex items-center justify-end gap-3 pl-[26px] pt-2 border-t border-border">
-        {r.estado !== 'comprado' && r.estado !== 'recibido' ? (
-          <Link
-            href={`/nueva-compra?requisicionId=${r.id}&descripcion=${encodeURIComponent(r.descripcion || r.nota || '')}`}
-            className="p-1.5 text-muted-foreground hover:text-emerald-600 transition-colors"
-            title="Comprar en SMV Hub"
+      {/* Barra de Acciones Móviles */}
+      <div className="flex items-center justify-between gap-2 pl-[26px] pt-1">
+        {r.link ? (
+          <a
+            href={r.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => vibrarTap()}
+            className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
           >
-            <ShoppingCart className="h-4 w-4" />
-          </Link>
+            <ExternalLink className="size-3.5" />
+            <span>Enlace de compra</span>
+          </a>
         ) : (
-          <Link
-            href="/ordenes"
-            className="p-1.5 text-emerald-600 hover:text-emerald-700 transition-colors"
-            title="Ver orden de compra vinculada"
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Link>
+          <span className="text-xs text-muted-foreground italic">Sin link</span>
         )}
-        <button onClick={() => onEditar(r)} className="p-1.5 text-muted-foreground hover:text-primary" title="Editar">
-          <Edit2 className="h-4 w-4" />
-        </button>
-        <button onClick={() => onEliminar(r.id, r.descripcion)} className="p-1.5 text-muted-foreground hover:text-red-600" title="Eliminar">
-          <Trash2 className="h-4 w-4" />
-        </button>
+
+        <div className="flex items-center gap-1.5">
+          {r.estado !== 'comprado' && r.estado !== 'recibido' ? (
+            <Link
+              href={`/nueva-compra?requisicionId=${r.id}&descripcion=${encodeURIComponent(r.descripcion || r.nota || '')}`}
+              onClick={() => vibrarTap()}
+              className="inline-flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary hover:bg-primary/20 transition-colors"
+              title="Comprar en SMV Hub"
+            >
+              <ShoppingCart className="size-3.5" />
+              <span>Comprar</span>
+            </Link>
+          ) : (
+            <Link
+              href="/ordenes"
+              onClick={() => vibrarTap()}
+              className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition-colors"
+              title="Ver orden de compra vinculada"
+            >
+              <ExternalLink className="size-3.5" />
+              <span>Ver OC</span>
+            </Link>
+          )}
+
+          <button
+            onClick={() => {
+              vibrarTap()
+              onEditar(r)
+            }}
+            className="size-8 flex items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer shadow-2xs"
+            title="Editar"
+          >
+            <Edit2 className="size-3.5" />
+          </button>
+
+          <button
+            onClick={() => {
+              vibrarTap()
+              onEliminar(r.id, r.descripcion)
+            }}
+            className="size-8 flex items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer shadow-2xs"
+            title="Eliminar"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+        </div>
       </div>
     </div>
   )

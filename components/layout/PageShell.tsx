@@ -36,7 +36,7 @@ export default function PageShell({
     >
       <div
         className={cn(
-          "mx-auto flex w-full flex-1 flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8",
+          "mx-auto flex w-full flex-1 flex-col gap-4 px-4 pt-6 pb-20 sm:px-6 md:pb-6 lg:px-8",
           MAX_WIDTH[maxWidth],
           innerClassName
         )}

@@ -32,7 +32,9 @@ import {
   type GafetePerfilPayload,
 } from "@/lib/gafetes"
 import { cargarFotoGafete, subirFotoGafete } from "@/lib/storage"
-import type { Area, GafeteAjusteFoto, GafetePerfil, Operador } from "@/lib/schemas"
+import { Area, GafeteAjusteFoto, GafetePerfil, Operador } from "@/lib/schemas"
+import { construirPayloadQROperador } from "@/lib/gafetes-qr"
+import { generarQRSVG } from "@/lib/qr"
 import ModuleSurface from "@/components/layout/ModuleSurface"
 import PageHeader from "@/components/layout/PageHeader"
 import PageShell from "@/components/layout/PageShell"
@@ -152,10 +154,17 @@ function FotoGafete({
 
 function CaraGafete({ item, reverso = false }: { item: GafeteListo; reverso?: boolean }) {
   const { operador, perfil } = item
+  const qrSvg = generarQRSVG(construirPayloadQROperador(operador), 70)
+
   if (reverso) {
     return (
       <article className="gafete-card gafete-reverso" aria-label={`Reverso de gafete de ${operador.nombre}`}>
         <LogoGafete />
+        <div
+          className="gafete-qr-marco"
+          title={`Código QR de ${operador.nombre}`}
+          dangerouslySetInnerHTML={{ __html: qrSvg }}
+        />
         <p className="gafete-eyebrow">RESPONSABLE</p>
         <p className="gafete-responsable">{DATOS_TALLER_GAFETES.responsableNombre}</p>
         <p className="gafete-puesto">{DATOS_TALLER_GAFETES.responsablePuesto}</p>
@@ -373,6 +382,7 @@ export default function GafetesView() {
         .gafete-domicilio { position: relative; z-index: 1; margin: 0; width: 2.04in; font-size: .083in; line-height: 1.35; }
         .gafete-pie { position: absolute; z-index: 1; bottom: .13in; left: .18in; right: .18in; font-size: .07in; font-weight: 700; letter-spacing: .025in; text-align: center; opacity: .95; }
         .gafete-reverso { padding: .82in .25in .18in; }
+        .gafete-qr-marco { position: absolute; top: .18in; right: .18in; z-index: 2; width: .62in; height: .62in; border: .015in solid white; border-radius: .04in; overflow: hidden; background: white; box-shadow: 0 .02in .08in rgba(0,0,0,.25); }
         .gafete-eyebrow { position: relative; z-index: 1; margin: 0 0 .09in; color: #bae6fd; font-size: .08in; font-weight: 800; letter-spacing: .025in; }
         .gafete-responsable { position: relative; z-index: 1; margin: 0; font-size: .19in; line-height: 1.1; font-weight: 800; }
         .gafete-puesto { position: relative; z-index: 1; margin: .07in 0 0; font-size: .10in; font-weight: 600; line-height: 1.25; }

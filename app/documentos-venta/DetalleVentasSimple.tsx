@@ -20,6 +20,7 @@ import {
   etiquetaEstadoSolicitudDocumento,
   ordenCompraSolicitud,
 } from '@/lib/documentos-venta-helpers'
+import { vibrarTap, vibrarExito } from '@/lib/haptics'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -112,6 +113,7 @@ export default function DetalleVentasSimple({
       setError('Escribe el motivo antes de cancelar la solicitud')
       return
     }
+    vibrarTap()
     setBusy(true)
     setError(null)
     try {
@@ -126,6 +128,7 @@ export default function DetalleVentasSimple({
         folioOdoo: hacia === 'completada' ? folio.trim() || null : undefined,
         motivoRechazo: hacia === 'rechazada' ? motivoLimpio : undefined,
       })
+      vibrarExito()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo actualizar')
     } finally {
@@ -136,10 +139,12 @@ export default function DetalleVentasSimple({
   async function enviar(textoAEnviar?: string) {
     const t = (textoAEnviar ?? texto).trim()
     if (!t) return
+    vibrarTap()
     setBusy(true)
     setError(null)
     try {
       await onEnviarMensaje(solicitud.id, t, uid, nombre)
+      vibrarExito()
       if (!textoAEnviar) {
         setTexto('')
       }

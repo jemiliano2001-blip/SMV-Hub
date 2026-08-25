@@ -1,4 +1,5 @@
 import type { Operador } from "@/lib/schemas"
+export { resolverOperadorPorQR } from "@/lib/gafetes-qr"
 
 /** Devuelve el operador activo si el nombre coincide exactamente (trim). */
 export function resolverOperadorActivo(
@@ -9,3 +10,4 @@ export function resolverOperadorActivo(
   if (!trimmed) return null
   return operadores.find((o) => o.nombre === trimmed) ?? null
 }
+

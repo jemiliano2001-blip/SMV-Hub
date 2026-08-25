@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fira_Code, Fira_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
 import { SesionProvider } from "@/lib/auth";
 import { AppCheckProvider } from "@/components/AppCheckProvider";
 import NavBar from "@/app/NavBar";
+import BottomNavBar from "@/components/layout/BottomNavBar";
 import { Toaster } from "@/components/ui/sonner";
 import { WebVitals } from "@/app/_components/WebVitals";
 import { ConfirmDialogProvider } from "@/components/ConfirmDialogProvider";
@@ -23,10 +24,24 @@ const firaSans = Fira_Sans({
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
+  themeColor: "#061936",
+};
+
 export const metadata: Metadata = {
   title: "SMV Hub",
   description: "Plataforma interna de SMV Maquinados — compras, diseño y operación del taller",
   applicationName: "SMV Hub",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "SMV Hub",
+  },
 };
 
 export default function RootLayout({
@@ -44,6 +59,7 @@ export default function RootLayout({
               <ConfirmDialogProvider>
                 <NavBar />
                 {children}
+                <BottomNavBar />
                 <Toaster />
               </ConfirmDialogProvider>
             </AuthProvider>

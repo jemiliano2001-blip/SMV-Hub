@@ -1,21 +1,25 @@
-import { useState, useRef } from 'react'
+'use client'
+
+import { useState, useRef, useMemo } from 'react'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
 import { calcularMinutos, useBanos } from '@/lib/hooks/useBanos'
 import { useOperadores } from '@/lib/hooks/useOperadores'
-import type { Bano, MotivoSolicitudBorradoBano, RegistroBano } from '@/lib/schemas'
+import type { Bano, MotivoSolicitudBorradoBano, Operador, RegistroBano } from '@/lib/schemas'
 import {
   fechaHoyLocal,
   horaAhoraLocal,
   formatIndicadorCapturaBano,
 } from '@/lib/format'
-import { resolverOperadorActivo } from '@/lib/banos-captura'
+import { resolverOperadorActivo, resolverOperadorPorQR } from '@/lib/banos-captura'
 import { MOTIVOS_SOLICITUD_BORRADO_BANO } from '@/lib/banos-solicitudes-borrado'
-import { Plus, Trash2, Check, Search, Pencil, Clock, Copy, CheckCircle } from 'lucide-react'
+import { Plus, Trash2, Check, Search, Pencil, Clock, Copy, CheckCircle, QrCode, Sparkles } from 'lucide-react'
 import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { Button } from '@/components/ui/button'
 import ModuleSurface from '@/components/layout/ModuleSurface'
+import { LectorQR } from '@/components/LectorQR'
+import { toast } from 'sonner'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -81,10 +85,30 @@ export default function RegistroBanoList() {
   const [mensajeExito, setMensajeExito] = useState<string | null>(null)
   const [busqueda, setBusqueda] = useState('')
 
-  const [bano, setBano] = useState<Bano | null>(null)
+  const [bano, setBano] = useState<Bano>(() => {
+    if (typeof window === 'undefined') return 'Baño #1'
+    try {
+      const guardado = localStorage.getItem('smv_bano_preferido') as Bano | null
+      if (guardado && BANOS.includes(guardado)) return guardado
+    } catch {
+      // Ignorar
+    }
+    return 'Baño #1'
+  })
   const [operador, setOperador] = useState('')
   const [indicadorHora, setIndicadorHora] = useState(() => new Date())
+  const [isLectorQROpen, setIsLectorQROpen] = useState(false)
   const operadorInputRef = useRef<HTMLInputElement>(null)
+
+  function handleSeleccionarBano(nuevoBano: Bano) {
+    setBano(nuevoBano)
+    setErrorCaptura(null)
+    try {
+      localStorage.setItem('smv_bano_preferido', nuevoBano)
+    } catch {
+      // Ignorar
+    }
+  }
 
   // Estado para modal de edición de horario
   const [editandoRegistro, setEditandoRegistro] = useState<RegistroBano | null>(null)
@@ -192,6 +216,51 @@ export default function RegistroBanoList() {
     ? registros.some((r) => r.fecha === fechaHoy && r.operador === operador.trim() && !r.horaLlegada)
     : false
 
+  // Operadores más frecuentes de hoy / turno para 1-tap punch
+  const operadoresFrecuentes = useMemo(() => {
+    const nombresHoy = new Set(registros.filter((r) => r.fecha === fechaHoy).map((r) => r.operador))
+    const frecuentes = operadoresActivos.filter((op) => nombresHoy.has(op.nombre))
+    // Si hay pocos hoy, rellenar con los primeros operadores activos
+    const restantes = operadoresActivos.filter((op) => !nombresHoy.has(op.nombre))
+    return [...frecuentes, ...restantes].slice(0, 8)
+  }, [registros, operadoresActivos, fechaHoy])
+
+  async function registrarEntradaDirecta(op: Operador, banoDestino: Bano) {
+    setMensajeExito(null)
+    setErrorCaptura(null)
+    setErrorDuplicado(null)
+
+    if (registros.some((r) => r.fecha === fechaHoy && r.operador === op.nombre && !r.horaLlegada)) {
+      setErrorDuplicado(
+        `${op.nombre} ya tiene un registro abierto hoy. Marca "Llegó" antes de registrar otro.`
+      )
+      toast.warning(`${op.nombre} ya está en el baño`, { description: 'Marca su llegada primero.' })
+      return
+    }
+
+    const ahora = new Date()
+    const fecha = fechaHoyLocal(ahora)
+    const horaEntrada = horaAhoraLocal(ahora)
+
+    setAgregando(true)
+    try {
+      await registrarEntrada({ fecha, operador: op.nombre, bano: banoDestino, horaEntrada })
+      setMensajeExito(`${op.nombre} registrado — ${banoDestino}, ${horaEntrada}`)
+      toast.success(`Entrada registrada: ${op.nombre}`, {
+        description: `${banoDestino} a las ${horaEntrada}`,
+      })
+      setOperador('')
+      setIndicadorHora(ahora)
+      setTimeout(() => operadorInputRef.current?.focus(), 0)
+    } catch (err) {
+      console.error('Error registrando entrada:', err)
+      setErrorCaptura('No se pudo registrar la entrada. Intenta de nuevo.')
+      toast.error('Error al registrar entrada')
+    } finally {
+      setAgregando(false)
+    }
+  }
+
   async function handleAgregar(e: React.FormEvent) {
     e.preventDefault()
     setMensajeExito(null)
@@ -209,43 +278,30 @@ export default function RegistroBanoList() {
       return
     }
 
-    if (
-      registros.some(
-        (r) => r.fecha === fechaHoy && r.operador === op.nombre && !r.horaLlegada
-      )
-    ) {
-      setErrorDuplicado(
-        `${op.nombre} ya tiene un registro abierto hoy. Marca "Llegó" antes de registrar otro.`
-      )
+    await registrarEntradaDirecta(op, bano)
+  }
+
+  function handleQRScanned(payload: string) {
+    const op = resolverOperadorPorQR(payload, operadoresActivos)
+    if (!op) {
+      toast.error('Gafete no reconocido', {
+        description: `No se encontró operador activo para "${payload.slice(0, 30)}"`,
+      })
       return
     }
 
-    const ahora = new Date()
-    const fecha = fechaHoyLocal(ahora)
-    const horaEntrada = horaAhoraLocal(ahora)
-
-    setAgregando(true)
-    try {
-      await registrarEntrada({ fecha, operador: op.nombre, bano, horaEntrada })
-      setMensajeExito(`${op.nombre} registrado — ${bano}, ${horaEntrada}`)
-      setOperador('')
-      setIndicadorHora(ahora)
-      setTimeout(() => operadorInputRef.current?.focus(), 0)
-    } catch (err) {
-      console.error('Error registrando entrada:', err)
-      setErrorCaptura('No se pudo registrar la entrada. Intenta de nuevo.')
-    } finally {
-      setAgregando(false)
-    }
+    void registrarEntradaDirecta(op, bano)
   }
 
   async function handleLlegada(id: string, horaOriginal: string) {
     const horaLlegada = horaAhoraLocal()
     try {
       await registrarLlegada(id, horaLlegada, horaOriginal)
+      toast.success('Llegada registrada', { description: `Hora: ${horaLlegada}` })
     } catch (err) {
       console.error('Error registrando llegada:', err)
       setErrorCaptura('No se pudo registrar la llegada. Intenta de nuevo.')
+      toast.error('Error al registrar llegada')
     }
   }
 
@@ -259,20 +315,24 @@ export default function RegistroBanoList() {
     if (!aceptado) return
     try {
       await borrarRegistro(id)
+      toast.info('Registro eliminado')
     } catch (err) {
       console.error('Error eliminando registro:', err)
+      toast.error('Error al eliminar registro')
     }
   }
 
   if (loadingBanos || loadingOps) {
-    return <div className="animate-pulse h-64 bg-muted rounded-lg"></div>
+    return <div className="animate-pulse h-64 bg-muted rounded-xl"></div>
   }
 
   if (error) {
     return (
-      <div className="text-red-600 bg-red-50 border border-red-200 p-4 rounded-lg text-sm space-y-2">
+      <div className="text-red-600 bg-red-50 border border-red-200 p-4 rounded-xl text-sm space-y-2">
         <p>{error}</p>
-        <button onClick={fetchRegistros} className="font-semibold underline hover:no-underline">Reintentar</button>
+        <button onClick={fetchRegistros} className="font-semibold underline hover:no-underline cursor-pointer">
+          Reintentar
+        </button>
       </div>
     )
   }
@@ -295,48 +355,81 @@ export default function RegistroBanoList() {
   const personaMax = terminadosTodos.find(t => t.tiempoMinutos === maxTiempo)?.operador || ''
 
   return (
-    <div className="space-y-8">
-      {terminadosTodos.length > 0 && (
-        <div className="flex flex-wrap gap-4 text-sm bg-blue-50 text-blue-800 p-3 rounded-lg border border-blue-100">
-          <div><strong>Promedio hoy:</strong> {promedio} min</div>
-          <div className="w-px bg-blue-200 hidden sm:block"></div>
-          <div><strong>Persona con más tiempo:</strong> {personaMax} ({maxTiempo} min)</div>
+    <div className="space-y-6 sm:space-y-8">
+      {/* ── KPIs Rápidos de Hoy ── */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-border bg-card p-3 shadow-2xs">
+          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">En el baño ahora</p>
+          <p className="mt-1 text-xl font-extrabold text-foreground flex items-center gap-2">
+            <span>{enCursoTodos.length}</span>
+            {enCursoTodos.length > 0 && <span className="size-2.5 rounded-full bg-amber-500 animate-ping" />}
+          </p>
         </div>
-      )}
+        <div className="rounded-xl border border-border bg-card p-3 shadow-2xs">
+          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Promedio hoy</p>
+          <p className="mt-1 text-xl font-extrabold text-foreground">{promedio} <span className="text-xs font-normal text-muted-foreground">min</span></p>
+        </div>
+        <div className="col-span-2 sm:col-span-1 rounded-xl border border-border bg-card p-3 shadow-2xs">
+          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Máximo de hoy</p>
+          <p className="mt-1 text-sm font-bold text-foreground truncate">
+            {personaMax ? `${personaMax} (${maxTiempo} min)` : '--'}
+          </p>
+        </div>
+      </div>
 
       {mensajeExito && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2 text-emerald-800 text-sm">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 text-emerald-800 text-sm animate-in fade-in-50">
           {mensajeExito}
         </div>
       )}
       {errorCaptura && (
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2 text-red-700 text-sm">
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 text-red-700 text-sm animate-in fade-in-50">
           {errorCaptura}
         </div>
       )}
       {errorDuplicado && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 text-amber-700 text-sm">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 text-amber-700 text-sm animate-in fade-in-50">
           {errorDuplicado}
         </div>
       )}
 
-      <ModuleSurface className="p-4 space-y-3">
-        <form onSubmit={handleAgregar} className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            <span className="text-xs font-medium text-muted-foreground w-full sm:w-auto sm:self-center">
-              Baño / Área
+      {/* ── Captura Rápida Turbo ── */}
+      <ModuleSurface className="p-4 sm:p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Sparkles className="size-4" />
             </span>
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+              Registro Rápido de Entrada
+            </span>
+          </div>
+
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setIsLectorQROpen(true)}
+            className="h-8 px-3 text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 cursor-pointer shadow-xs"
+          >
+            <QrCode className="size-3.5" />
+            <span>Escanear Gafete</span>
+          </Button>
+        </div>
+
+        {/* Selector Ergonómico de Baños */}
+        <div className="space-y-1.5">
+          <span className="text-xs font-medium text-muted-foreground block">
+            Baño / Ubicación
+          </span>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             {BANOS.map((b) => (
               <button
                 key={b}
                 type="button"
-                onClick={() => {
-                  setBano(b)
-                  setErrorCaptura(null)
-                }}
-                className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
+                onClick={() => handleSeleccionarBano(b)}
+                className={`py-2 px-3 text-xs sm:text-sm font-bold rounded-xl border transition-all cursor-pointer select-none active:scale-95 text-center ${
                   bano === b
-                    ? 'bg-primary text-primary-foreground border-primary'
+                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
                     : 'bg-card text-foreground border-border hover:border-primary/50'
                 }`}
               >
@@ -344,202 +437,315 @@ export default function RegistroBanoList() {
               </button>
             ))}
           </div>
+        </div>
 
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="w-full sm:w-64">
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Operador</label>
-              <input
-                list="operadores-list"
-                ref={operadorInputRef}
-                required
-                placeholder="Buscar o escribir..."
-                value={operador}
-                onChange={(e) => {
-                  setOperador(e.target.value)
-                  setErrorDuplicado(null)
-                  setErrorCaptura(null)
-                }}
-                className="w-full px-3 py-1.5 text-sm border border-input rounded-md bg-card text-foreground focus:outline-none focus:border-primary"
-              />
-              <datalist id="operadores-list">
-                {operadoresActivos.map(op => (
-                  <option key={op.id} value={op.nombre} />
-                ))}
-              </datalist>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {formatIndicadorCapturaBano(indicadorHora)}
-              </p>
-            </div>
-
-            <button
-              type="submit"
-              disabled={agregando || yaEnCurso || !bano}
-              title={
-                yaEnCurso
-                  ? `${operador} ya tiene un registro abierto hoy`
-                  : !bano
-                    ? 'Selecciona un baño primero'
-                    : undefined
-              }
-              className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 sm:ml-auto"
-            >
-              <Plus className="h-4 w-4" />
-              Registrar Entrada
-            </button>
+        {/* Operadores Frecuentes / 1-Tap Punch */}
+        <div className="space-y-2 pt-1 border-t border-border">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+            Operadores Frecuentes (1-Toque para registrar)
+          </span>
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {operadoresFrecuentes.map((op) => {
+              const estaAdentro = registros.some((r) => r.fecha === fechaHoy && r.operador === op.nombre && !r.horaLlegada)
+              return (
+                <button
+                  key={op.id}
+                  type="button"
+                  disabled={agregando || estaAdentro}
+                  onClick={() => void registrarEntradaDirecta(op, bano)}
+                  title={estaAdentro ? `${op.nombre} ya está en el baño` : `Registrar entrada de ${op.nombre}`}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all shrink-0 cursor-pointer select-none active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${
+                    estaAdentro
+                      ? 'border-amber-300 bg-amber-50 text-amber-900'
+                      : 'border-border bg-card text-foreground hover:border-primary/60 hover:bg-sky-50/40 shadow-2xs'
+                  }`}
+                >
+                  <span className={`size-5 rounded-full flex items-center justify-center text-[9px] font-bold ${AREA_COLORS[op.area || 'taller'] || 'bg-muted text-muted-foreground'}`}>
+                    {getInitials(op.nombre)}
+                  </span>
+                  <span>{op.nombre.split(' ')[0]}</span>
+                </button>
+              )
+            })}
           </div>
+        </div>
+
+        {/* Formulario con Datalist de Búsqueda */}
+        <form onSubmit={handleAgregar} className="flex flex-wrap items-end gap-3 pt-1 border-t border-border">
+          <div className="w-full sm:flex-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Buscar o escribir operador</label>
+            <input
+              list="operadores-list"
+              ref={operadorInputRef}
+              required
+              placeholder="Escribe el nombre del operador…"
+              value={operador}
+              onChange={(e) => {
+                setOperador(e.target.value)
+                setErrorDuplicado(null)
+                setErrorCaptura(null)
+              }}
+              className="w-full px-3.5 py-2 text-sm border border-input rounded-xl bg-card text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            />
+            <datalist id="operadores-list">
+              {operadoresActivos.map(op => (
+                <option key={op.id} value={op.nombre} />
+              ))}
+            </datalist>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {formatIndicadorCapturaBano(indicadorHora)}
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            disabled={agregando || yaEnCurso || !bano}
+            title={
+              yaEnCurso
+                ? `${operador} ya tiene un registro abierto hoy`
+                : !bano
+                  ? 'Selecciona un baño primero'
+                  : undefined
+            }
+            className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs active:scale-95 disabled:opacity-50 cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+            Registrar Entrada
+          </button>
         </form>
       </ModuleSurface>
 
-      <div className="relative w-full sm:w-64">
+      {/* Modal de Escáner QR de Gafetes */}
+      <LectorQR
+        isOpen={isLectorQROpen}
+        onClose={() => setIsLectorQROpen(false)}
+        onScan={handleQRScanned}
+        titulo="Escanear Gafete del Operador"
+        subtitulo="Apunta la cámara al código QR de su gafete para registrar entrada instantánea"
+      />
+
+      {/* Barra de Filtro de Registros */}
+      <div className="relative w-full sm:w-72">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Buscar operador..."
+          placeholder="Filtrar por operador..."
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          className="w-full pl-9 pr-3 py-1.5 text-sm border border-input bg-card text-foreground rounded-md focus:outline-none focus:border-primary"
+          className="w-full pl-9 pr-3 py-2 text-sm border border-input bg-card text-foreground rounded-xl focus:outline-none focus:border-primary"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* ── En el Baño Ahora ── */}
         <div>
-          <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-            En el baño ({enCurso.length})
+          <h3 className="text-sm font-bold text-foreground mb-3 flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+              <span>En el baño ahora</span>
+            </span>
+            <span className="rounded-full bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 font-mono font-bold">
+              {enCurso.length}
+            </span>
           </h3>
-          <ModuleSurface>
-            <Table className="text-xs">
-              <TableHeader className="bg-muted text-muted-foreground font-medium border-b border-border">
-                <TableRow>
-                  <TableHead className="px-4 py-2">Operador</TableHead>
-                  <TableHead className="px-4 py-2">Baño</TableHead>
-                  <TableHead className="px-4 py-2 w-20">Entrada</TableHead>
-                  <TableHead className="px-4 py-2 w-28 text-right">Acción</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody className="divide-y divide-border">
-                {enCurso.length === 0 ? (
+
+          {/* Vista móvil de tarjetas táctiles (para teléfonos) */}
+          <div className="space-y-2.5 sm:hidden">
+            {enCurso.length === 0 ? (
+              <div className="rounded-xl border border-border bg-card p-6 text-center text-xs text-muted-foreground">
+                {filtro && enCursoTodos.length > 0 ? 'Sin coincidencias' : 'Nadie en el baño actualmente'}
+              </div>
+            ) : (
+              enCurso.map((r) => {
+                const mins = calcularMinutos(r.horaEntrada, horaAhoraLocal())
+                const esLargo = mins >= 15
+                const esMedio = mins >= 10 && mins < 15
+
+                return (
+                  <div
+                    key={r.id}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3.5 shadow-2xs"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${AREA_COLORS[operadoresActivos.find(o => o.nombre === r.operador)?.area || 'taller'] || 'bg-muted text-muted-foreground'}`}>
+                          {getInitials(r.operador)}
+                        </div>
+                        <p className="font-bold text-sm text-foreground truncate">{r.operador}</p>
+                      </div>
+                      <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground">{r.bano}</span>
+                        <span>·</span>
+                        <span>Entró: {r.horaEntrada}</span>
+                        <span>·</span>
+                        <span className={`font-mono font-bold px-1.5 py-0.5 rounded text-[11px] ${
+                          esLargo
+                            ? 'bg-red-100 text-red-800 animate-pulse'
+                            : esMedio
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          {mins} min
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => void handleLlegada(r.id, r.horaEntrada)}
+                      className="shrink-0 h-11 px-4 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs active:scale-95 cursor-pointer"
+                    >
+                      <Check className="size-4" />
+                      <span>Llegó</span>
+                    </button>
+                  </div>
+                )
+              })
+            )}
+          </div>
+
+          {/* Vista de tabla para pantallas medianas/grandes */}
+          <div className="hidden sm:block">
+            <ModuleSurface>
+              <Table className="text-xs">
+                <TableHeader className="bg-muted text-muted-foreground font-medium border-b border-border">
                   <TableRow>
-                    <TableCell colSpan={4} className="px-4 py-6 text-center text-muted-foreground text-xs">
-                      {filtro && enCursoTodos.length > 0 ? 'Sin coincidencias' : 'Nadie en el baño'}
-                    </TableCell>
+                    <TableHead className="px-4 py-2">Operador</TableHead>
+                    <TableHead className="px-4 py-2">Baño</TableHead>
+                    <TableHead className="px-4 py-2 w-20">Entrada</TableHead>
+                    <TableHead className="px-4 py-2 w-28 text-right">Acción</TableHead>
                   </TableRow>
-                ) : (
-                  enCurso.map((r) => (
-                    <ContextMenu key={r.id}>
-                      <ContextMenuTrigger asChild>
-                        <TableRow className="hover:bg-amber-50/50 cursor-pointer select-none" onDoubleClick={() => handleLlegada(r.id, r.horaEntrada)}>
-                          <TableCell className="px-4 py-2 font-medium text-foreground">
-                            <div className="flex items-center gap-2">
-                              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${AREA_COLORS[operadoresActivos.find(o => o.nombre === r.operador)?.area || 'taller'] || 'bg-muted text-muted-foreground'}`}>
-                                {getInitials(r.operador)}
+                </TableHeader>
+                <TableBody className="divide-y divide-border">
+                  {enCurso.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="px-4 py-6 text-center text-muted-foreground text-xs">
+                        {filtro && enCursoTodos.length > 0 ? 'Sin coincidencias' : 'Nadie en el baño'}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    enCurso.map((r) => (
+                      <ContextMenu key={r.id}>
+                        <ContextMenuTrigger asChild>
+                          <TableRow className="hover:bg-amber-50/50 cursor-pointer select-none" onDoubleClick={() => handleLlegada(r.id, r.horaEntrada)}>
+                            <TableCell className="px-4 py-2 font-medium text-foreground">
+                              <div className="flex items-center gap-2">
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${AREA_COLORS[operadoresActivos.find(o => o.nombre === r.operador)?.area || 'taller'] || 'bg-muted text-muted-foreground'}`}>
+                                  {getInitials(r.operador)}
+                                </div>
+                                {r.operador}
                               </div>
-                              {r.operador}
-                            </div>
-                          </TableCell>
-                          <TableCell className="px-4 py-2 text-muted-foreground">{r.bano}</TableCell>
-                          <TableCell className="px-4 py-2 text-foreground">{r.horaEntrada}</TableCell>
-                          <TableCell className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                type="button"
-                                onClick={() => abrirModalEditar(r)}
-                                title="Editar hora de entrada"
-                                className="text-xs font-semibold text-primary bg-sky-50 hover:bg-sky-100 border border-sky-200/80 px-2 py-0.5 rounded-md inline-flex items-center gap-1 transition-colors cursor-pointer"
-                              >
-                                <Pencil className="h-3 w-3" />
-                                Editar
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleLlegada(r.id, r.horaEntrada)}
-                                className="text-xs font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-2.5 py-1 rounded-md inline-flex items-center gap-1 transition-colors cursor-pointer"
-                              >
-                                <Check className="h-3.5 w-3.5" />
-                                Llegó
-                              </button>
-                              {!puedeEliminar && !!usuario?.uid && r.creadoPorUid === usuario.uid && (
-                                r.solicitudBorradoEstado === 'pendiente' ? (
-                                  <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md whitespace-nowrap">
-                                    Pendiente
-                                  </span>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => abrirModalSolicitud(r)}
-                                    title="Solicitar eliminación (un súper admin la revisará)"
-                                    className="text-[10px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md transition-colors whitespace-nowrap cursor-pointer"
-                                  >
-                                    Solicitar eliminación
-                                  </button>
-                                )
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      </ContextMenuTrigger>
+                            </TableCell>
+                            <TableCell className="px-4 py-2 text-muted-foreground">{r.bano}</TableCell>
+                            <TableCell className="px-4 py-2 text-foreground">{r.horaEntrada}</TableCell>
+                            <TableCell className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => abrirModalEditar(r)}
+                                  title="Editar hora de entrada"
+                                  className="text-xs font-semibold text-primary bg-sky-50 hover:bg-sky-100 border border-sky-200/80 px-2 py-0.5 rounded-md inline-flex items-center gap-1 transition-colors cursor-pointer"
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                  Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => void handleLlegada(r.id, r.horaEntrada)}
+                                  className="text-xs font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-2.5 py-1 rounded-md inline-flex items-center gap-1 transition-colors cursor-pointer"
+                                >
+                                  <Check className="h-3.5 w-3.5" />
+                                  Llegó
+                                </button>
+                                {!puedeEliminar && !!usuario?.uid && r.creadoPorUid === usuario.uid && (
+                                  r.solicitudBorradoEstado === 'pendiente' ? (
+                                    <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md whitespace-nowrap">
+                                      Pendiente
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => abrirModalSolicitud(r)}
+                                      title="Solicitar eliminación (un súper admin la revisará)"
+                                      className="text-[10px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md transition-colors whitespace-nowrap cursor-pointer"
+                                    >
+                                      Solicitar eliminación
+                                    </button>
+                                  )
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        </ContextMenuTrigger>
 
-                      <ContextMenuContent className="w-56">
-                        <ContextMenuItem onClick={() => handleLlegada(r.id, r.horaEntrada)}>
-                          <CheckCircle className="text-emerald-600" />
-                          <span>Marcar Llegada ahora</span>
-                          <ContextMenuShortcut>↵</ContextMenuShortcut>
-                        </ContextMenuItem>
+                        <ContextMenuContent className="w-56">
+                          <ContextMenuItem onClick={() => void handleLlegada(r.id, r.horaEntrada)}>
+                            <CheckCircle className="text-emerald-600" />
+                            <span>Marcar Llegada ahora</span>
+                            <ContextMenuShortcut>↵</ContextMenuShortcut>
+                          </ContextMenuItem>
 
-                        <ContextMenuItem onClick={() => abrirModalEditar(r)}>
-                          <Pencil className="text-sky-600" />
-                          <span>Editar horario</span>
-                        </ContextMenuItem>
+                          <ContextMenuItem onClick={() => abrirModalEditar(r)}>
+                            <Pencil className="text-sky-600" />
+                            <span>Editar horario</span>
+                          </ContextMenuItem>
 
-                        <ContextMenuSeparator />
+                          <ContextMenuSeparator />
 
-                        <ContextMenuItem
-                          onClick={() => {
-                            void copiarAlPortapapeles(r.operador, 'Nombre copiado', r.operador)
-                          }}
-                        >
-                          <Copy className="text-muted-foreground" />
-                          <span>Copiar nombre ({r.operador})</span>
-                        </ContextMenuItem>
+                          <ContextMenuItem
+                            onClick={() => {
+                              void copiarAlPortapapeles(r.operador, 'Nombre copiado', r.operador)
+                            }}
+                          >
+                            <Copy className="text-muted-foreground" />
+                            <span>Copiar nombre ({r.operador})</span>
+                          </ContextMenuItem>
 
-                        {puedeEliminar ? (
-                          <>
-                            <ContextMenuSeparator />
-                            <ContextMenuItem
-                              className="text-rose-600"
-                              onClick={() => handleEliminar(r.id, r.operador)}
-                            >
-                              <Trash2 className="text-rose-600" />
-                              <span>Eliminar registro</span>
-                            </ContextMenuItem>
-                          </>
-                        ) : (
-                          !puedeEliminar && !!usuario?.uid && r.creadoPorUid === usuario.uid && r.solicitudBorradoEstado !== 'pendiente' && (
+                          {puedeEliminar ? (
                             <>
                               <ContextMenuSeparator />
                               <ContextMenuItem
-                                className="text-amber-700"
-                                onClick={() => abrirModalSolicitud(r)}
+                                className="text-rose-600"
+                                onClick={() => handleEliminar(r.id, r.operador)}
                               >
-                                <Trash2 className="text-amber-600" />
-                                <span>Solicitar eliminación</span>
+                                <Trash2 className="text-rose-600" />
+                                <span>Eliminar registro</span>
                               </ContextMenuItem>
                             </>
-                          )
-                        )}
-                      </ContextMenuContent>
-                    </ContextMenu>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </ModuleSurface>
+                          ) : (
+                            !puedeEliminar && !!usuario?.uid && r.creadoPorUid === usuario.uid && r.solicitudBorradoEstado !== 'pendiente' && (
+                              <>
+                                <ContextMenuSeparator />
+                                <ContextMenuItem
+                                  className="text-amber-700"
+                                  onClick={() => abrirModalSolicitud(r)}
+                                >
+                                  <Trash2 className="text-amber-600" />
+                                  <span>Solicitar eliminación</span>
+                                </ContextMenuItem>
+                              </>
+                            )
+                          )}
+                        </ContextMenuContent>
+                      </ContextMenu>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </ModuleSurface>
+          </div>
         </div>
 
+        {/* ── Completados Hoy ── */}
         <div>
-          <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-muted-foreground/40"></span>
-            Completados hoy ({terminados.length})
+          <h3 className="text-sm font-bold text-foreground mb-3 flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-muted-foreground/40"></span>
+              <span>Completados hoy</span>
+            </span>
+            <span className="rounded-full bg-muted text-muted-foreground text-xs px-2.5 py-0.5 font-mono">
+              {terminados.length}
+            </span>
           </h3>
           <ModuleSurface>
             <Table className="text-xs">
@@ -607,22 +813,6 @@ export default function RegistroBanoList() {
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
                               )}
-                              {!puedeEliminar && !!usuario?.uid && r.creadoPorUid === usuario.uid && (
-                                r.solicitudBorradoEstado === 'pendiente' ? (
-                                  <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md whitespace-nowrap">
-                                    Pendiente de revisión
-                                  </span>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => abrirModalSolicitud(r)}
-                                    title="Solicitar eliminación (un súper admin la revisará)"
-                                    className="text-[10px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md transition-colors whitespace-nowrap cursor-pointer"
-                                  >
-                                    Solicitar eliminación
-                                  </button>
-                                )
-                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -646,7 +836,7 @@ export default function RegistroBanoList() {
                           <span>Copiar nombre ({r.operador})</span>
                         </ContextMenuItem>
 
-                        {puedeEliminar ? (
+                        {puedeEliminar && (
                           <>
                             <ContextMenuSeparator />
                             <ContextMenuItem
@@ -657,19 +847,6 @@ export default function RegistroBanoList() {
                               <span>Eliminar registro</span>
                             </ContextMenuItem>
                           </>
-                        ) : (
-                          !puedeEliminar && !!usuario?.uid && r.creadoPorUid === usuario.uid && r.solicitudBorradoEstado !== 'pendiente' && (
-                            <>
-                              <ContextMenuSeparator />
-                              <ContextMenuItem
-                                className="text-amber-700"
-                                onClick={() => abrirModalSolicitud(r)}
-                              >
-                                <Trash2 className="text-amber-600" />
-                                <span>Solicitar eliminación</span>
-                              </ContextMenuItem>
-                            </>
-                          )
                         )}
                       </ContextMenuContent>
                     </ContextMenu>
@@ -809,4 +986,3 @@ export default function RegistroBanoList() {
     </div>
   )
 }
-
