@@ -72,6 +72,19 @@ export function useBanos(mesFiltro?: string) {
     await actualizarRegistroBano(id, { horaEntrada, horaLlegada, tiempoMinutos })
   }
 
+  async function actualizarRegistro(
+    id: string,
+    datos: Partial<Omit<RegistroBano, 'id' | 'creadoEn'>>
+  ): Promise<void> {
+    const cambios: Partial<Omit<RegistroBano, 'id' | 'creadoEn'>> = { ...datos }
+    if (datos.horaEntrada && datos.horaLlegada) {
+      cambios.tiempoMinutos = calcularMinutos(datos.horaEntrada, datos.horaLlegada)
+    } else if (datos.horaLlegada === null) {
+      cambios.tiempoMinutos = null
+    }
+    await actualizarRegistroBano(id, cambios)
+  }
+
   async function borrarRegistro(id: string): Promise<void> {
     await eliminarRegistroBano(id)
   }
@@ -84,6 +97,7 @@ export function useBanos(mesFiltro?: string) {
     registrarEntrada,
     registrarLlegada,
     actualizarHorario,
+    actualizarRegistro,
     borrarRegistro,
   }
 }

@@ -800,11 +800,10 @@ service cloud.firestore {
                     && request.resource.data.creadoEn == resource.data.creadoEn
                     && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
 
-      // Antes cualquier usuario autorizado podía borrar directo — la UI ya
-      // ocultaba el botón a quien no fuera súper admin, pero la regla no lo
-      // exigía. El flujo de solicitud de borrado (Route Handler + Admin SDK)
-      // solo tiene sentido si esto queda cerrado también aquí.
-      allow delete: if esUsuarioAutorizado() && (esSuperAdminDoc() || esCorreoBreakGlass());
+      // El personal de almacén y usuarios con acceso a baños pueden eliminar
+      // registros directamente para corregir errores operativos inmediatos.
+      allow delete: if esUsuarioAutorizado()
+                    && (esSuperAdminDoc() || esCorreoBreakGlass() || tieneAlgunModulo(['banos', 'almacen']));
     }
 
     // ── Solicitudes de eliminación de registros de baño ──────────────────────

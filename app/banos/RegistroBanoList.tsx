@@ -1,18 +1,15 @@
 'use client'
 
 import { useState, useRef, useMemo, useEffect } from 'react'
-import { authBypassActivo, useUsuario } from '@/lib/auth'
-import { usePermisos } from '@/lib/hooks/useRol'
 import { calcularMinutos, useBanos } from '@/lib/hooks/useBanos'
 import { useOperadores } from '@/lib/hooks/useOperadores'
-import type { Bano, MotivoSolicitudBorradoBano, Operador, RegistroBano } from '@/lib/schemas'
+import type { Bano, Operador, RegistroBano } from '@/lib/schemas'
 import {
   fechaHoyLocal,
   horaAhoraLocal,
   formatIndicadorCapturaBano,
 } from '@/lib/format'
 import { resolverOperadorActivo, resolverOperadorPorQR } from '@/lib/banos-captura'
-import { MOTIVOS_SOLICITUD_BORRADO_BANO } from '@/lib/banos-solicitudes-borrado'
 import {
   Plus,
   Trash2,
@@ -22,9 +19,10 @@ import {
   Clock,
   QrCode,
   Sparkles,
-  UserCheck,
   Timer,
   CheckCircle2,
+  Calendar,
+  User,
 } from 'lucide-react'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { Button } from '@/components/ui/button'
@@ -64,23 +62,16 @@ function getInitials(name: string) {
 }
 
 export default function RegistroBanoList() {
-  const { usuario } = useUsuario()
-  const { esSuperAdmin } = usePermisos(authBypassActivo() ? null : usuario)
-  const puedeEliminar = esSuperAdmin || authBypassActivo()
-
   const confirmar = useConfirmDialog()
   const mesActual = fechaHoyLocal().slice(0, 7)
   const {
     registros,
-    loading: loadingBanos,
-    error,
-    fetchRegistros,
     registrarEntrada,
     registrarLlegada,
-    actualizarHorario,
+    actualizarRegistro,
     borrarRegistro,
   } = useBanos(mesActual)
-  const { activos: operadoresActivos, loading: loadingOps } = useOperadores()
+  const { activos: operadoresActivos } = useOperadores()
 
   const [agregando, setAgregando] = useState(false)
   const [errorDuplicado, setErrorDuplicado] = useState<string | null>(null)
@@ -122,103 +113,87 @@ export default function RegistroBanoList() {
     }
   }
 
-  // Estado para modal de edición de horario
+  // Estado para modal de edición completa del registro
   const [editandoRegistro, setEditandoRegistro] = useState<RegistroBano | null>(null)
+  const [editOperador, setEditOperador] = useState('')
+  const [editBano, setEditBano] = useState<Bano>('Baño #1')
+  const [editFecha, setEditFecha] = useState('')
   const [editHoraEntrada, setEditHoraEntrada] = useState('')
   const [editHoraLlegada, setEditHoraLlegada] = useState('')
+  const [editEnCurso, setEditEnCurso] = useState(false)
   const [guardandoEdit, setGuardandoEdit] = useState(false)
   const [errorEdit, setErrorEdit] = useState<string | null>(null)
 
-  // Estado para modal de solicitud de eliminación
-  const [solicitandoRegistro, setSolicitandoRegistro] = useState<RegistroBano | null>(null)
-  const [motivoSolicitud, setMotivoSolicitud] = useState<MotivoSolicitudBorradoBano | null>(null)
-  const [notaSolicitud, setNotaSolicitud] = useState('')
-  const [enviandoSolicitud, setEnviandoSolicitud] = useState(false)
-  const [errorSolicitud, setErrorSolicitud] = useState<string | null>(null)
-
-  function abrirModalSolicitud(r: RegistroBano) {
-    setSolicitandoRegistro(r)
-    setMotivoSolicitud(null)
-    setNotaSolicitud('')
-    setErrorSolicitud(null)
-  }
-
-  async function handleEnviarSolicitud(e: React.FormEvent) {
-    e.preventDefault()
-    if (!solicitandoRegistro || !motivoSolicitud) return
-    if (motivoSolicitud === 'otro' && !notaSolicitud.trim()) {
-      setErrorSolicitud('Escribe una nota para el motivo "Otro".')
-      return
-    }
-
-    setEnviandoSolicitud(true)
-    setErrorSolicitud(null)
-    try {
-      const token = await usuario?.getIdToken()
-      const res = await fetch('/api/banos/solicitudes-borrado', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          registroId: solicitandoRegistro.id,
-          motivo: motivoSolicitud,
-          nota: notaSolicitud.trim() || undefined,
-        }),
-      })
-      const data = await res.json() as { estado?: string; error?: string }
-      if (!res.ok) {
-        setErrorSolicitud(data.error || 'No se pudo enviar la solicitud.')
-        return
-      }
-      if (data.estado === 'rechazada') {
-        toast.info('La solicitud no procedió; el registro se conserva.')
-      } else {
-        toast.success(
-          data.estado === 'auto_aprobada'
-            ? `Se eliminó el registro de ${solicitandoRegistro.operador}.`
-            : 'Solicitud enviada para revisión.'
-        )
-      }
-      setSolicitandoRegistro(null)
-    } catch (err) {
-      console.error('Error enviando solicitud de borrado:', err)
-      setErrorSolicitud('No se pudo enviar la solicitud. Intenta de nuevo.')
-    } finally {
-      setEnviandoSolicitud(false)
-    }
-  }
-
   function abrirModalEditar(r: RegistroBano) {
     setEditandoRegistro(r)
+    setEditOperador(r.operador)
+    setEditBano(r.bano)
+    setEditFecha(r.fecha)
     setEditHoraEntrada(r.horaEntrada)
-    setEditHoraLlegada(r.horaLlegada || horaAhoraLocal())
+    setEditHoraLlegada(r.horaLlegada || '')
+    setEditEnCurso(!r.horaLlegada)
     setErrorEdit(null)
   }
 
-  async function handleGuardarHorario(e: React.FormEvent) {
+  async function handleGuardarEdicion(e: React.FormEvent) {
     e.preventDefault()
     if (!editandoRegistro) return
-    if (!editHoraEntrada || !editHoraLlegada) {
-      setErrorEdit('Ingresa tanto la hora de entrada como la de llegada.')
+    if (!editOperador.trim()) {
+      setErrorEdit('El nombre del operador es obligatorio.')
+      return
+    }
+    if (!editFecha) {
+      setErrorEdit('La fecha es obligatoria.')
+      return
+    }
+    if (!editHoraEntrada) {
+      setErrorEdit('La hora de entrada es obligatoria.')
+      return
+    }
+    if (!editEnCurso && !editHoraLlegada) {
+      setErrorEdit('Ingresa la hora de llegada o marca que el operador sigue en el baño.')
       return
     }
 
     setGuardandoEdit(true)
     setErrorEdit(null)
     try {
-      await actualizarHorario(editandoRegistro.id, editHoraEntrada, editHoraLlegada)
-      const mins = calcularMinutos(editHoraEntrada, editHoraLlegada)
-      toast.success(`Horario actualizado: ${editandoRegistro.operador}`, {
-        description: `${editHoraEntrada} - ${editHoraLlegada} (${mins} min)`,
+      const horaLlegadaFinal = editEnCurso ? null : editHoraLlegada
+      await actualizarRegistro(editandoRegistro.id, {
+        operador: editOperador.trim(),
+        bano: editBano,
+        fecha: editFecha,
+        horaEntrada: editHoraEntrada,
+        horaLlegada: horaLlegadaFinal,
+      })
+      const mins = horaLlegadaFinal ? calcularMinutos(editHoraEntrada, horaLlegadaFinal) : null
+      toast.success(`Registro actualizado: ${editOperador.trim()}`, {
+        description: `${editBano} · ${editHoraEntrada} ${horaLlegadaFinal ? `- ${horaLlegadaFinal} (${mins} min)` : '(En curso)'}`,
       })
       setEditandoRegistro(null)
     } catch (err) {
-      console.error('Error guardando horario:', err)
-      setErrorEdit('No se pudo actualizar el horario. Intenta de nuevo.')
+      console.error('Error guardando registro de baño:', err)
+      setErrorEdit('No se pudo actualizar el registro. Intenta de nuevo.')
     } finally {
       setGuardandoEdit(false)
+    }
+  }
+
+  async function handleEliminar(id: string, nombreOperador: string, banoNombre?: string) {
+    const aceptado = await confirmar({
+      title: 'Eliminar registro de baño',
+      description: `¿Estás seguro de eliminar el registro de ${nombreOperador}${banoNombre ? ` (${banoNombre})` : ''}? Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar registro',
+      variant: 'destructive',
+    })
+    if (!aceptado) return
+
+    try {
+      await borrarRegistro(id)
+      toast.success(`Registro de ${nombreOperador} eliminado`)
+    } catch (err) {
+      console.error('Error eliminando registro:', err)
+      toast.error('No se pudo eliminar el registro. Intenta de nuevo.')
     }
   }
 
@@ -248,23 +223,25 @@ export default function RegistroBanoList() {
       return
     }
 
-    const ahora = new Date()
-    const fecha = fechaHoyLocal(ahora)
-    const horaEntrada = horaAhoraLocal(ahora)
-
     setAgregando(true)
     try {
-      await registrarEntrada({ fecha, operador: op.nombre, bano: banoDestino, horaEntrada })
-      toast.success(`Entrada: ${op.nombre}`, {
-        description: `${banoDestino} a las ${horaEntrada}`,
+      const horaActual = horaAhoraLocal()
+      await registrarEntrada({
+        operador: op.nombre,
+        bano: banoDestino,
+        horaEntrada: horaActual,
+        fecha: fechaHoy,
       })
+      const exito = `Registrada entrada de ${op.nombre} a ${banoDestino} (${horaActual})`
+      setMensajeExito(exito)
+      toast.success(exito)
       setOperador('')
-      setIndicadorHora(ahora)
-      setTimeout(() => operadorInputRef.current?.focus(), 50)
+      setIndicadorHora(new Date())
     } catch (err) {
-      console.error('Error registrando entrada:', err)
-      setErrorCaptura('No se pudo registrar la entrada. Intenta de nuevo.')
-      toast.error('Error al registrar entrada')
+      console.error('Error al registrar entrada:', err)
+      const fallback = 'No se pudo registrar la entrada. Intenta de nuevo.'
+      setErrorCaptura(fallback)
+      toast.error(fallback)
     } finally {
       setAgregando(false)
     }
@@ -276,236 +253,175 @@ export default function RegistroBanoList() {
     setErrorCaptura(null)
     setErrorDuplicado(null)
 
-    if (!bano) {
-      setErrorCaptura('Selecciona un baño primero')
+    const opEncontrado = resolverOperadorActivo(operador, operadoresActivos)
+    if (!opEncontrado) {
+      const errorMsg = 'Selecciona un operador activo de la lista'
+      setErrorCaptura(errorMsg)
+      toast.error(errorMsg)
       return
     }
 
-    const op = resolverOperadorActivo(operador, operadoresActivos)
-    if (!op) {
-      setErrorCaptura('Operador no encontrado. Selecciona un nombre válido de la lista.')
-      return
-    }
-
-    await registrarEntradaDirecta(op, bano)
+    await registrarEntradaDirecta(opEncontrado, bano)
   }
 
-  function handleQRScanned(payload: string) {
-    const op = resolverOperadorPorQR(payload, operadoresActivos)
-    if (!op) {
-      toast.error('Gafete no reconocido', {
-        description: `No se encontró operador activo para "${payload.slice(0, 30)}"`,
-      })
+  async function handleQRScanned(qrData: string) {
+    setIsLectorQROpen(false)
+    setMensajeExito(null)
+    setErrorCaptura(null)
+    setErrorDuplicado(null)
+
+    const opEncontrado = resolverOperadorPorQR(qrData, operadoresActivos)
+    if (!opEncontrado) {
+      const msg = 'El código QR no corresponde a ningún operador activo.'
+      setErrorCaptura(msg)
+      toast.error(msg)
       return
     }
 
-    void registrarEntradaDirecta(op, bano)
+    await registrarEntradaDirecta(opEncontrado, bano)
   }
 
-  async function handleLlegada(id: string, horaOriginal: string, nombreOp: string) {
-    const horaLlegada = horaAhoraLocal()
+  async function handleLlegada(id: string, horaEntrada: string, nombreOperador: string) {
     try {
-      await registrarLlegada(id, horaLlegada, horaOriginal)
-      const mins = calcularMinutos(horaOriginal, horaLlegada)
-      toast.success(`Regresó: ${nombreOp}`, {
-        description: `${horaOriginal} - ${horaLlegada} (${mins} min)`,
+      const horaLlegada = horaAhoraLocal()
+      await registrarLlegada(id, horaLlegada, horaEntrada)
+      const mins = calcularMinutos(horaEntrada, horaLlegada)
+      toast.success(`Llegada registrada: ${nombreOperador}`, {
+        description: `Duración: ${mins} minutos (${horaEntrada} - ${horaLlegada})`,
       })
     } catch (err) {
       console.error('Error registrando llegada:', err)
-      setErrorCaptura('No se pudo registrar la llegada. Intenta de nuevo.')
-      toast.error('Error al registrar llegada')
+      toast.error('No se pudo registrar la llegada. Intenta de nuevo.')
     }
   }
 
-  async function handleEliminar(id: string, op: string) {
-    const aceptado = await confirmar({
-      title: 'Eliminar registro',
-      description: `¿Estás seguro de eliminar el registro de ${op}?`,
-      confirmLabel: 'Eliminar',
-      variant: 'destructive',
-    })
-    if (!aceptado) return
-    try {
-      await borrarRegistro(id)
-      toast.info('Registro eliminado')
-    } catch (err) {
-      console.error('Error eliminando registro:', err)
-      toast.error('Error al eliminar registro')
-    }
-  }
+  // Filtrado de registros de hoy
+  const registrosHoy = useMemo(() => {
+    return registros.filter((r) => r.fecha === fechaHoy)
+  }, [registros, fechaHoy])
 
-  if (loadingBanos || loadingOps) {
-    return (
-      <div className="space-y-4 animate-pulse">
-        <div className="h-20 bg-card rounded-2xl border border-border" />
-        <div className="h-44 bg-card rounded-2xl border border-border" />
-        <div className="h-64 bg-card rounded-2xl border border-border" />
-      </div>
-    )
-  }
+  const enCurso = useMemo(() => {
+    return registrosHoy.filter((r) => !r.horaLlegada)
+  }, [registrosHoy])
 
-  if (error) {
-    return (
-      <div className="text-destructive bg-destructive/10 border border-destructive/20 p-4 rounded-xl text-sm space-y-2">
-        <p>{error}</p>
-        <button onClick={fetchRegistros} className="font-semibold underline hover:no-underline cursor-pointer">
-          Reintentar
-        </button>
-      </div>
-    )
-  }
+  const terminadosTodos = useMemo(() => {
+    return registrosHoy.filter((r) => r.horaLlegada)
+  }, [registrosHoy])
 
-  const registrosHoy = registros.filter(r => r.fecha === fechaHoy)
-  const enCursoTodos = registrosHoy.filter(r => !r.horaLlegada)
-  const terminadosTodos = registrosHoy.filter(r => r.horaLlegada)
-
-  const enCursoOrdenados = [...enCursoTodos].sort((a, b) =>
-    b.horaEntrada.localeCompare(a.horaEntrada)
-  )
-
-  const filtro = busqueda.trim().toLowerCase()
-  const enCurso = filtro ? enCursoOrdenados.filter(r => r.operador.toLowerCase().includes(filtro)) : enCursoOrdenados
-  const terminados = filtro ? terminadosTodos.filter(r => r.operador.toLowerCase().includes(filtro)) : terminadosTodos
-
-  const totalMinutos = terminadosTodos.reduce((acc, curr) => acc + (curr.tiempoMinutos || 0), 0)
-  const promedio = terminadosTodos.length ? Math.round(totalMinutos / terminadosTodos.length) : 0
+  const filtro = busqueda.toLowerCase().trim()
+  const terminados = useMemo(() => {
+    if (!filtro) return terminadosTodos
+    return terminadosTodos.filter((r) => r.operador.toLowerCase().includes(filtro))
+  }, [terminadosTodos, filtro])
 
   return (
     <div className="space-y-6">
-      {/* ── KPIs Rápidos y Claros de Hoy ── */}
-      <div className="grid grid-cols-3 gap-3 sm:gap-4">
-        <div className="rounded-2xl border border-border bg-card p-3.5 sm:p-4 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-              En el baño ahora
-            </span>
-            {enCursoTodos.length > 0 && (
-              <span className="flex size-2 rounded-full bg-amber-500 animate-ping" />
-            )}
-          </div>
-          <p className="mt-1.5 text-2xl sm:text-3xl font-black text-foreground flex items-baseline gap-2">
-            <span>{enCursoTodos.length}</span>
-            <span className="text-xs font-medium text-muted-foreground">
-              {enCursoTodos.length === 1 ? 'persona' : 'personas'}
-            </span>
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-card p-3.5 sm:p-4 shadow-2xs">
-          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-            Promedio hoy
-          </span>
-          <p className="mt-1.5 text-2xl sm:text-3xl font-black text-foreground flex items-baseline gap-1.5">
-            <span>{promedio}</span>
-            <span className="text-xs font-medium text-muted-foreground">min / visita</span>
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-card p-3.5 sm:p-4 shadow-2xs">
-          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-            Completados hoy
-          </span>
-          <p className="mt-1.5 text-2xl sm:text-3xl font-black text-foreground flex items-baseline gap-1.5">
-            <span>{terminadosTodos.length}</span>
-            <span className="text-xs font-medium text-muted-foreground">salidas</span>
-          </p>
-        </div>
-      </div>
-
-      {mensajeExito && (
-        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-2.5 text-emerald-400 text-sm animate-in fade-in-50">
-          {mensajeExito}
-        </div>
-      )}
-      {errorCaptura && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-2.5 text-destructive text-sm animate-in fade-in-50">
-          {errorCaptura}
-        </div>
-      )}
-      {errorDuplicado && (
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-2.5 text-amber-400 text-sm animate-in fade-in-50">
-          {errorDuplicado}
-        </div>
-      )}
-
-      {/* ── Tarjeta Principal de Captura Rápida de Entrada ── */}
-      <ModuleSurface className="p-4 sm:p-5 space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Sparkles className="size-4" />
-            </span>
-            <div>
-              <h2 className="text-sm font-bold text-foreground">
-                Registro Rápido de Entrada
-              </h2>
-              <p className="text-[11px] text-muted-foreground">
-                Selecciona el baño y escribe o toca el nombre del operador
-              </p>
-            </div>
+      {/* ── SECCIÓN SUPERIOR: CAPTURA RÁPIDA (PUNCH DIRECTO & QR) ── */}
+      <ModuleSurface className="p-4 sm:p-5 space-y-4 border border-border shadow-xs bg-card">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+          <div>
+            <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+              <span>Registrar Visita al Baño</span>
+              <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                Almacén / Control Directo
+              </span>
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              1. Selecciona el baño · 2. Presiona el operador o escanea su gafete QR
+            </p>
           </div>
 
+          {/* Botón Escáner QR */}
           <Button
             type="button"
-            size="sm"
+            variant="outline"
             onClick={() => setIsLectorQROpen(true)}
-            className="h-8 px-3 text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 cursor-pointer rounded-xl shrink-0"
+            className="w-full sm:w-auto h-10 px-4 rounded-xl border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary font-bold flex items-center justify-center gap-2 text-xs transition-all active:scale-95 cursor-pointer shadow-2xs"
           >
-            <QrCode className="size-3.5" />
-            <span>Escanear Gafete</span>
+            <QrCode className="size-4" />
+            <span>Escanear Gafete QR</span>
           </Button>
         </div>
 
-        {/* 1. Selector de Baño */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-            <span>1. Baño asignado</span>
-            <span className="text-[10px] text-muted-foreground font-normal">(se guarda tu última opción)</span>
+        {/* 1. Selector de Baño (Pills Obligatorios) */}
+        <div>
+          <label className="block text-xs font-semibold text-foreground mb-2">
+            1. Baño de destino:
           </label>
-          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-            {BANOS.map((b) => (
-              <button
-                key={b}
-                type="button"
-                onClick={() => handleSeleccionarBano(b)}
-                className={`py-2 px-3 text-xs sm:text-sm font-bold rounded-xl border transition-all cursor-pointer select-none active:scale-95 text-center ${
-                  bano === b
-                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
-                    : 'bg-card text-foreground border-border hover:border-primary/50'
-                }`}
-              >
-                {b}
-              </button>
-            ))}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {BANOS.map((b) => {
+              const seleccionado = bano === b
+              return (
+                <button
+                  key={b}
+                  type="button"
+                  onClick={() => handleSeleccionarBano(b)}
+                  className={`h-11 rounded-xl border font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    seleccionado
+                      ? 'border-primary bg-primary text-primary-foreground shadow-xs ring-2 ring-primary/20'
+                      : 'border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                  }`}
+                >
+                  {seleccionado && <Check className="size-4 stroke-[3]" />}
+                  <span>{b}</span>
+                </button>
+              )
+            })}
           </div>
         </div>
 
-        {/* 2. Operadores Frecuentes (1-Toque para registrar) */}
-        <div className="space-y-1.5 pt-2 border-t border-border">
-          <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-            <UserCheck className="size-3.5" />
-            <span>2. Operadores frecuentes de hoy (1-Toque para registrar)</span>
-          </span>
-          <div className="flex gap-1.5 overflow-x-auto pb-1">
+        {/* Mensajes de feedback */}
+        {errorDuplicado && (
+          <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-400 font-medium">
+            {errorDuplicado}
+          </div>
+        )}
+        {errorCaptura && (
+          <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-xl text-xs text-destructive font-medium">
+            {errorCaptura}
+          </div>
+        )}
+        {mensajeExito && (
+          <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-400 font-medium flex items-center gap-2">
+            <CheckCircle2 className="size-4 shrink-0" />
+            <span>{mensajeExito}</span>
+          </div>
+        )}
+
+        {/* 2. Operadores Frecuentes / 1-Tap Punch */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <Sparkles className="size-3.5 text-amber-400" />
+              <span>2. Toque rápido (Operadores del turno)</span>
+            </label>
+            <span className="text-[11px] text-muted-foreground">
+              Toca para registrar entrada a <strong>{bano}</strong>
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
             {operadoresFrecuentes.map((op) => {
-              const estaAdentro = registros.some((r) => r.fecha === fechaHoy && r.operador === op.nombre && !r.horaLlegada)
+              const estaAdentro = registros.some(
+                (r) => r.fecha === fechaHoy && r.operador === op.nombre && !r.horaLlegada
+              )
               return (
                 <button
                   key={op.id}
                   type="button"
                   disabled={agregando || estaAdentro}
                   onClick={() => void registrarEntradaDirecta(op, bano)}
-                  title={estaAdentro ? `${op.nombre} ya está adentro` : `Registrar entrada de ${op.nombre}`}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-all shrink-0 cursor-pointer select-none active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${
+                  title={estaAdentro ? `${op.nombre} ya está en el baño` : `Registrar entrada de ${op.nombre}`}
+                  className={`h-10 px-2.5 rounded-xl border text-xs font-medium flex items-center gap-2 transition-all text-left truncate cursor-pointer active:scale-95 ${
                     estaAdentro
-                      ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+                      ? 'border-amber-500/30 bg-amber-500/10 text-amber-400 opacity-60 cursor-not-allowed'
                       : 'border-border bg-card text-foreground hover:border-primary/60 hover:bg-primary/5 shadow-2xs'
                   }`}
                 >
-                  <span className={`size-4 rounded-full flex items-center justify-center text-[8px] font-bold border ${AREA_COLORS[op.area || 'taller'] || 'bg-muted text-muted-foreground border-border'}`}>
+                  <span className={`size-4 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0 border ${AREA_COLORS[op.area || 'taller'] || 'bg-muted text-muted-foreground border-border'}`}>
                     {getInitials(op.nombre)}
                   </span>
-                  <span>{op.nombre.split(' ')[0]}</span>
+                  <span className="truncate">{op.nombre.split(' ')[0]}</span>
                 </button>
               )
             })}
@@ -575,7 +491,7 @@ export default function RegistroBanoList() {
           </div>
           {enCurso.length > 0 && (
             <span className="text-xs text-muted-foreground font-medium">
-              Presiona &ldquo;Llegó&rdquo; cuando el operador regrese al taller
+              Presiona &ldquo;Llegó&rdquo; cuando regrese o edita/elimina si hubo error
             </span>
           )}
         </div>
@@ -639,13 +555,13 @@ export default function RegistroBanoList() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => abrirModalEditar(r)}
-                      title="Corregir hora de entrada"
+                      title="Editar datos del registro"
                       className="h-10 w-10 p-0 text-muted-foreground hover:text-foreground rounded-xl cursor-pointer"
                     >
                       <Pencil className="size-4" />
@@ -653,8 +569,19 @@ export default function RegistroBanoList() {
 
                     <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void handleEliminar(r.id, r.operador, r.bano)}
+                      title="Cancelar / Eliminar registro"
+                      className="h-10 w-10 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl cursor-pointer"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+
+                    <Button
+                      type="button"
                       onClick={() => void handleLlegada(r.id, r.horaEntrada, r.operador)}
-                      className="h-11 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm flex items-center gap-2 shadow-xs active:scale-95 cursor-pointer"
+                      className="h-11 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm flex items-center gap-1.5 shadow-xs active:scale-95 cursor-pointer"
                     >
                       <Check className="size-4.5 stroke-[3]" />
                       <span>Llegó</span>
@@ -697,7 +624,7 @@ export default function RegistroBanoList() {
                 <TableHead className="px-4 py-2.5">Baño</TableHead>
                 <TableHead className="px-4 py-2.5 w-36">Horario</TableHead>
                 <TableHead className="px-4 py-2.5 w-20 text-right">Tiempo</TableHead>
-                <TableHead className="px-4 py-2.5 w-20 text-right">Acción</TableHead>
+                <TableHead className="px-4 py-2.5 w-24 text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-border">
@@ -732,42 +659,21 @@ export default function RegistroBanoList() {
                           variant="ghost"
                           size="sm"
                           onClick={() => abrirModalEditar(r)}
-                          title="Editar horario"
+                          title="Editar registro"
                           className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
                         >
                           <Pencil className="size-3.5" />
                         </Button>
-                        {puedeEliminar ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEliminar(r.id, r.operador)}
-                            title="Eliminar registro (Super Admin)"
-                            className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive rounded-lg cursor-pointer"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </Button>
-                        ) : (
-                          !puedeEliminar && !!usuario?.uid && r.creadoPorUid === usuario.uid && (
-                            r.solicitudBorradoEstado === 'pendiente' ? (
-                              <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
-                                Pendiente
-                              </span>
-                            ) : (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => abrirModalSolicitud(r)}
-                                title="Solicitar corrección/borrado"
-                                className="h-7 px-2 text-[10px] font-semibold text-amber-400 hover:bg-amber-500/10 rounded-lg cursor-pointer"
-                              >
-                                Corregir
-                              </Button>
-                            )
-                          )
-                        )}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => void handleEliminar(r.id, r.operador, r.bano)}
+                          title="Eliminar registro"
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -778,25 +684,83 @@ export default function RegistroBanoList() {
         </ModuleSurface>
       </div>
 
-      {/* Modal de Editar Horario */}
+      {/* Modal de Edición Completa del Registro */}
       <Dialog open={editandoRegistro != null} onOpenChange={(open) => !open && setEditandoRegistro(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Editar horario de registro</DialogTitle>
-            {editandoRegistro ? (
-              <DialogDescription>
-                {editandoRegistro.operador} — {editandoRegistro.bano} ({editandoRegistro.fecha})
-              </DialogDescription>
-            ) : null}
+            <DialogTitle>Editar registro de baño</DialogTitle>
+            <DialogDescription>
+              Corrige los datos del operador, baño, fecha u horario.
+            </DialogDescription>
           </DialogHeader>
 
           {errorEdit && (
-            <div className="bg-destructive/10 border border-destructive/20 text-destructive p-2.5 rounded-lg text-xs">
+            <div className="bg-destructive/10 border border-destructive/20 text-destructive p-2.5 rounded-lg text-xs font-medium">
               {errorEdit}
             </div>
           )}
 
-          <form onSubmit={handleGuardarHorario} className="space-y-4">
+          <form onSubmit={handleGuardarEdicion} className="space-y-4">
+            {/* Operador */}
+            <div>
+              <label className="block text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
+                <User className="h-3.5 w-3.5 text-muted-foreground" />
+                Operador
+              </label>
+              <input
+                list="modal-operadores-list"
+                required
+                value={editOperador}
+                onChange={(e) => setEditOperador(e.target.value)}
+                placeholder="Nombre del operador..."
+                className="w-full rounded-lg border border-input bg-card text-foreground px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20 font-medium"
+              />
+              <datalist id="modal-operadores-list">
+                {operadoresActivos.map(op => (
+                  <option key={op.id} value={op.nombre} />
+                ))}
+              </datalist>
+            </div>
+
+            {/* Baño */}
+            <div>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">
+                Baño
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                {BANOS.map((b) => (
+                  <button
+                    key={b}
+                    type="button"
+                    onClick={() => setEditBano(b)}
+                    className={`px-2 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+                      editBano === b
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border bg-card text-muted-foreground hover:border-primary/40'
+                    }`}
+                  >
+                    {b}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Fecha */}
+            <div>
+              <label className="block text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                Fecha
+              </label>
+              <input
+                type="date"
+                required
+                value={editFecha}
+                onChange={(e) => setEditFecha(e.target.value)}
+                className="w-full rounded-lg border border-input bg-card text-foreground px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20 font-mono"
+              />
+            </div>
+
+            {/* Horas */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
@@ -808,7 +772,7 @@ export default function RegistroBanoList() {
                   required
                   value={editHoraEntrada}
                   onChange={(e) => setEditHoraEntrada(e.target.value)}
-                  className="w-full rounded-lg border border-input bg-card text-foreground px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
+                  className="w-full rounded-lg border border-input bg-card text-foreground px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20 font-mono"
                 />
               </div>
 
@@ -819,86 +783,60 @@ export default function RegistroBanoList() {
                 </label>
                 <input
                   type="time"
-                  required
+                  disabled={editEnCurso}
+                  required={!editEnCurso}
                   value={editHoraLlegada}
                   onChange={(e) => setEditHoraLlegada(e.target.value)}
-                  className="w-full rounded-lg border border-input bg-card text-foreground px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
+                  className={`w-full rounded-lg border border-input bg-card text-foreground px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20 font-mono ${
+                    editEnCurso ? 'opacity-40 cursor-not-allowed bg-muted' : ''
+                  }`}
                 />
               </div>
             </div>
 
+            {/* Checkbox Aún en el baño */}
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="edit-en-curso"
+                checked={editEnCurso}
+                onChange={(e) => {
+                  setEditEnCurso(e.target.checked)
+                  if (e.target.checked) {
+                    setEditHoraLlegada('')
+                  } else if (!editHoraLlegada) {
+                    setEditHoraLlegada(horaAhoraLocal())
+                  }
+                }}
+                className="size-4 rounded border-border text-primary focus:ring-primary/20"
+              />
+              <label htmlFor="edit-en-curso" className="text-xs font-medium text-foreground cursor-pointer select-none">
+                El operador aún está en el baño (En curso)
+              </label>
+            </div>
+
+            {/* Resumen de duración recalculada */}
             <div className="bg-muted border border-border rounded-lg p-3 flex items-center justify-between text-xs">
-              <span className="text-muted-foreground font-medium">Duración recalculada:</span>
-              <span className="rounded border border-primary/20 bg-primary/10 px-2 py-0.5 text-sm font-bold text-primary">
-                {editHoraEntrada && editHoraLlegada ? `${calcularMinutos(editHoraEntrada, editHoraLlegada)} min` : '--'}
+              <span className="text-muted-foreground font-medium">Estado / Duración:</span>
+              <span className={`rounded border px-2 py-0.5 text-xs font-bold ${
+                editEnCurso
+                  ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+                  : 'border-primary/20 bg-primary/10 text-primary'
+              }`}>
+                {editEnCurso
+                  ? 'En curso'
+                  : editHoraEntrada && editHoraLlegada
+                    ? `${calcularMinutos(editHoraEntrada, editHoraLlegada)} min`
+                    : '--'}
               </span>
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" size="sm" onClick={() => setEditandoRegistro(null)}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setEditandoRegistro(null)} className="cursor-pointer">
                 Cancelar
               </Button>
-              <Button type="submit" size="sm" disabled={guardandoEdit}>
-                {guardandoEdit ? 'Guardando...' : 'Guardar horario'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de Solicitud de Borrado */}
-      <Dialog open={solicitandoRegistro != null} onOpenChange={(open) => !open && setSolicitandoRegistro(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Solicitar eliminación de registro</DialogTitle>
-            {solicitandoRegistro ? (
-              <DialogDescription>
-                {solicitandoRegistro.operador} — {solicitandoRegistro.bano} ({solicitandoRegistro.fecha})
-              </DialogDescription>
-            ) : null}
-          </DialogHeader>
-
-          {errorSolicitud && (
-            <div className="bg-destructive/10 border border-destructive/20 text-destructive p-2.5 rounded-lg text-xs">
-              {errorSolicitud}
-            </div>
-          )}
-
-          <form onSubmit={handleEnviarSolicitud} className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              {MOTIVOS_SOLICITUD_BORRADO_BANO.map((m) => (
-                <button
-                  key={m.value}
-                  type="button"
-                  onClick={() => setMotivoSolicitud(m.value)}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                    motivoSolicitud === m.value
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border bg-background text-foreground hover:border-primary/50'
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-
-            {motivoSolicitud === 'otro' && (
-              <textarea
-                required
-                value={notaSolicitud}
-                onChange={(e) => setNotaSolicitud(e.target.value)}
-                placeholder="Explica brevemente el motivo..."
-                rows={3}
-                className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
-              />
-            )}
-
-            <DialogFooter>
-              <Button type="button" variant="outline" size="sm" onClick={() => setSolicitandoRegistro(null)}>
-                Cancelar
-              </Button>
-              <Button type="submit" size="sm" disabled={enviandoSolicitud || !motivoSolicitud}>
-                {enviandoSolicitud ? 'Enviando...' : 'Enviar solicitud'}
+              <Button type="submit" size="sm" disabled={guardandoEdit} className="cursor-pointer font-bold">
+                {guardandoEdit ? 'Guardando...' : 'Guardar cambios'}
               </Button>
             </DialogFooter>
           </form>
