@@ -8,6 +8,7 @@ import {
   generarExcelReporteDiario,
   formatearHorasMinutos,
 } from '@/lib/banos-export'
+import { descargarYCopiarImagenDiaria } from '@/lib/banos-imagen-export'
 import { descargarExcelEnNavegador } from '@/lib/excel-export-base'
 import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import { fechaHoyLocal } from '@/lib/format'
@@ -32,6 +33,7 @@ import {
   Users,
   Timer,
   AlertTriangle,
+  ImageIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -75,6 +77,7 @@ export default function ReporteDiarioBanos() {
 
   const { registros, loading, error, fetchRegistros } = useBanos(mesFiltro)
   const [exportandoExcel, setExportandoExcel] = useState(false)
+  const [exportandoImagen, setExportandoImagen] = useState(false)
 
   // Estadísticas del día
   const stats = useMemo(() => {
@@ -111,6 +114,33 @@ export default function ReporteDiarioBanos() {
       'Resumen de reporte diario copiado para WhatsApp',
       'Listo para pegar en WhatsApp o correo'
     )
+  }
+
+  const handleExportarFoto = async () => {
+    try {
+      setExportandoImagen(true)
+      const { copiado, descargado } = await descargarYCopiarImagenDiaria(stats)
+      if (copiado && descargado) {
+        toast.success('Foto JPG descargada y copiada al portapapeles', {
+          description: 'Puedes pegarla en WhatsApp con Ctrl+V o adjuntar el archivo descargado.',
+        })
+      } else if (descargado) {
+        toast.success('Foto JPG descargada', {
+          description: 'Archivo listo para enviar por WhatsApp o correo.',
+        })
+      } else if (copiado) {
+        toast.success('Foto copiada al portapapeles', {
+          description: 'Puedes pegarla en WhatsApp Web con Ctrl+V.',
+        })
+      } else {
+        toast.error('No se pudo generar la imagen del reporte')
+      }
+    } catch (err) {
+      console.error('Error generando foto para WhatsApp:', err)
+      toast.error('Error al generar la foto del reporte')
+    } finally {
+      setExportandoImagen(false)
+    }
   }
 
   const handleExportarExcel = async () => {
@@ -197,7 +227,7 @@ export default function ReporteDiarioBanos() {
 
       {/* ── Barra de Controles y Selector de Fecha (Pantalla) ── */}
       <ModuleSurface className="p-4 sm:p-5 space-y-4 print:hidden">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           {/* Navegador de Fecha */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center rounded-xl border border-border bg-card p-1 shadow-2xs">
@@ -257,24 +287,41 @@ export default function ReporteDiarioBanos() {
               </Button>
             </div>
 
-            <span className="text-xs text-muted-foreground capitalize hidden lg:inline ml-2 font-medium">
+            <span className="text-xs text-muted-foreground capitalize hidden xl:inline ml-2 font-medium">
               {formatearFechaLegible(fecha)}
             </span>
           </div>
 
-          {/* Acciones de Exportación */}
-          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          {/* Acciones de Compartir y Exportar destacadas */}
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleExportarFoto}
+              disabled={exportandoImagen || stats.totalVisitas === 0}
+              className="h-9 px-3.5 text-xs font-semibold gap-1.5 rounded-xl cursor-pointer flex-1 sm:flex-none border-primary/30 text-primary hover:bg-primary/10 active:scale-95"
+              title="Descargar imagen JPG y copiar al portapapeles para WhatsApp"
+            >
+              {exportandoImagen ? (
+                <div className="size-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <ImageIcon className="size-4" />
+              )}
+              <span>Foto para WhatsApp</span>
+            </Button>
+
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={handleCopiarWhatsApp}
               disabled={stats.totalVisitas === 0}
-              className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl cursor-pointer flex-1 sm:flex-none"
+              className="h-9 px-3.5 text-xs font-semibold gap-1.5 rounded-xl cursor-pointer flex-1 sm:flex-none active:scale-95"
               title="Copiar texto formateado para WhatsApp / Chat"
             >
-              <Copy className="size-3.5" />
-              <span>Copiar WhatsApp</span>
+              <Copy className="size-4" />
+              <span>Copiar Texto</span>
             </Button>
 
             <Button
@@ -283,10 +330,10 @@ export default function ReporteDiarioBanos() {
               size="sm"
               onClick={handleExportarExcel}
               disabled={exportandoExcel || stats.totalVisitas === 0}
-              className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl cursor-pointer flex-1 sm:flex-none"
+              className="h-9 px-3.5 text-xs font-semibold gap-1.5 rounded-xl cursor-pointer flex-1 sm:flex-none active:scale-95"
             >
-              <FileSpreadsheet className="size-3.5" />
-              <span>Excel</span>
+              <FileSpreadsheet className="size-4" />
+              <span>Descargar Excel</span>
             </Button>
 
             <Button
@@ -294,9 +341,9 @@ export default function ReporteDiarioBanos() {
               size="sm"
               onClick={handleImprimir}
               disabled={stats.totalVisitas === 0}
-              className="h-8 px-3.5 text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl cursor-pointer shadow-xs flex-1 sm:flex-none"
+              className="h-9 px-4 text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl cursor-pointer shadow-xs flex-1 sm:flex-none active:scale-95"
             >
-              <Printer className="size-3.5" />
+              <Printer className="size-4" />
               <span>Guardar PDF</span>
             </Button>
           </div>
@@ -305,7 +352,7 @@ export default function ReporteDiarioBanos() {
 
       {/* ── KPIs Ejecutivos del Día (Solo en Pantalla, Ocultos en PDF) ── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 print:hidden">
-        <div className="rounded-xl border border-border bg-card p-4 shadow-2xs">
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-2xs">
           <div className="flex items-center justify-between text-muted-foreground">
             <p className="text-[11px] font-medium uppercase tracking-wider">
               Total de Visitas
@@ -322,7 +369,7 @@ export default function ReporteDiarioBanos() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-4 shadow-2xs">
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-2xs">
           <div className="flex items-center justify-between text-muted-foreground">
             <p className="text-[11px] font-medium uppercase tracking-wider">
               Tiempo Total
@@ -334,7 +381,7 @@ export default function ReporteDiarioBanos() {
           </p>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-4 shadow-2xs">
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-2xs">
           <div className="flex items-center justify-between text-muted-foreground">
             <p className="text-[11px] font-medium uppercase tracking-wider">
               Promedio / Visita
@@ -349,7 +396,7 @@ export default function ReporteDiarioBanos() {
           </p>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-4 shadow-2xs">
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-2xs">
           <div className="flex items-center justify-between text-muted-foreground">
             <p className="text-[11px] font-medium uppercase tracking-wider">
               Visitas Prolongadas
@@ -361,7 +408,7 @@ export default function ReporteDiarioBanos() {
               {stats.visitasProlongadas}
             </p>
             {stats.visitasProlongadas > 0 && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
                 ≥ 15 min
               </span>
             )}
@@ -370,9 +417,9 @@ export default function ReporteDiarioBanos() {
       </div>
 
       {loading ? (
-        <div className="animate-pulse h-64 bg-muted rounded-xl" />
+        <div className="animate-pulse h-64 bg-card rounded-2xl border border-border" />
       ) : stats.totalVisitas === 0 ? (
-        <div className="text-center py-12 px-4 rounded-xl border border-dashed border-border bg-muted/30 text-muted-foreground space-y-3 print:hidden">
+        <div className="text-center py-12 px-4 rounded-2xl border border-dashed border-border bg-card/50 text-muted-foreground space-y-3 print:hidden">
           <Clock className="size-10 mx-auto opacity-40 text-muted-foreground" />
           <p className="text-sm font-semibold text-foreground">
             No se encontraron registros de baño para el {formatearFechaLegible(fecha)}
@@ -475,14 +522,14 @@ export default function ReporteDiarioBanos() {
                                 key={vIdx}
                                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono transition-colors ${
                                   esEnCurso
-                                    ? 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold'
+                                    ? 'border-amber-500/30 bg-amber-500/10 text-amber-300 font-semibold'
                                     : esProlongado
-                                    ? 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300 font-semibold'
-                                    : 'border-border/60 bg-muted/60 text-foreground'
+                                    ? 'border-rose-500/30 bg-rose-500/10 text-rose-300 font-semibold'
+                                    : 'border-border bg-muted/60 text-foreground'
                                 }`}
                               >
                                 <span>{v.horaEntrada} - {v.horaLlegada || 'En curso'}</span>
-                                <span className={esProlongado ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-muted-foreground'}>
+                                <span className={esProlongado ? 'text-rose-400 font-bold' : 'text-muted-foreground'}>
                                   ({v.minutos !== null ? `${v.minutos}m` : '—'})
                                 </span>
                                 <span className="text-muted-foreground/70">· {v.bano}</span>
@@ -552,24 +599,24 @@ export default function ReporteDiarioBanos() {
                         </TableCell>
                         <TableCell className="px-4 py-2 text-right font-mono font-bold print:px-2 print:py-1 print:text-[8px] print:text-black print:border-r print:border-gray-200">
                           {r.tiempoMinutos !== null ? (
-                            <span className={esProlongado ? 'text-rose-600 dark:text-rose-400 font-extrabold print:text-black' : 'text-foreground print:text-black'}>
+                            <span className={esProlongado ? 'text-rose-400 font-extrabold print:text-black' : 'text-foreground print:text-black'}>
                               {r.tiempoMinutos} min
                             </span>
                           ) : (
-                            <span className="text-amber-600 dark:text-amber-400 font-medium print:text-black">En curso</span>
+                            <span className="text-amber-400 font-medium print:text-black">En curso</span>
                           )}
                         </TableCell>
                         <TableCell className="px-4 py-2 text-center print:px-2 print:py-1">
                           {esEnCurso ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 print:text-[7.5px] print:text-black print:border-black print:border print:bg-transparent print:px-1 print:py-0">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 print:text-[7.5px] print:text-black print:border-black print:border print:bg-transparent print:px-1 print:py-0">
                               En baño
                             </span>
                           ) : esProlongado ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 print:text-[7.5px] print:text-black print:border-black print:border print:bg-transparent print:px-1 print:py-0">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20 print:text-[7.5px] print:text-black print:border-black print:border print:bg-transparent print:px-1 print:py-0">
                               ≥ 15 min
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 print:text-[7.5px] print:text-black print:border-0 print:bg-transparent print:px-0">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 print:text-[7.5px] print:text-black print:border-0 print:bg-transparent print:px-0">
                               Normal
                             </span>
                           )}
@@ -581,27 +628,8 @@ export default function ReporteDiarioBanos() {
               </Table>
             </ModuleSurface>
           </div>
-
-          {/* ── Pie de Firmas Formales en Impresión PDF (Compacto a 1 sola página) ── */}
-          <div className="mt-6 hidden items-end justify-around pt-4 print:flex print:break-inside-avoid">
-            <div className="text-center">
-              <div className="mx-auto mb-1 w-44 border-b border-black"></div>
-              <p className="text-[8.5px] font-bold text-black uppercase tracking-wider">
-                Entregó / Personal de Almacén
-              </p>
-              <p className="text-[7.5px] print:text-gray-700">Control y Registro de Incidencias</p>
-            </div>
-            <div className="text-center">
-              <div className="mx-auto mb-1 w-44 border-b border-black"></div>
-              <p className="text-[8.5px] font-bold text-black uppercase tracking-wider">
-                Recibió / Supervisión RH
-              </p>
-              <p className="text-[7.5px] print:text-gray-700">Revisión y Autorización de Turno</p>
-            </div>
-          </div>
         </div>
       )}
     </div>
   )
 }
-

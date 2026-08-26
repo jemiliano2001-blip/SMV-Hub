@@ -38,7 +38,7 @@ export default function SeccionEntradaRapida({
   onAgregarFila,
 }: SeccionEntradaRapidaProps) {
   return (
-    <Card className="gap-4 py-4 shadow-sm">
+    <Card className="bg-card/70 backdrop-blur-md border-border/80 gap-4 py-4 shadow-sm">
       <CardHeader className="flex flex-col gap-2 px-4 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase">
           <ClipboardPaste className="text-primary" aria-hidden />
@@ -65,11 +65,12 @@ export default function SeccionEntradaRapida({
             size="sm"
             disabled={extrayendoIa}
             onClick={() => fileInputIaRef.current?.click()}
+            className="cursor-pointer"
           >
             {extrayendoIa ? (
               <Loader2 className="animate-spin" data-icon="inline-start" />
             ) : (
-              <Sparkles data-icon="inline-start" />
+              <Sparkles className="text-sky-500" data-icon="inline-start" />
             )}
             {extrayendoIa ? 'Extrayendo con IA...' : 'Escanear PDF / Imagen (IA)'}
           </Button>
@@ -78,11 +79,12 @@ export default function SeccionEntradaRapida({
             variant="outline"
             size="sm"
             onClick={() => fileInputRef.current?.click()}
+            className="cursor-pointer"
           >
             <Upload data-icon="inline-start" />
             Subir CSV/TSV
           </Button>
-          <Button type="button" variant="secondary" size="sm" onClick={onAgregarFila}>
+          <Button type="button" variant="secondary" size="sm" onClick={onAgregarFila} className="cursor-pointer">
             <Plus data-icon="inline-start" />
             Agregar Fila
           </Button>
@@ -108,7 +110,7 @@ export default function SeccionEntradaRapida({
         )}
         {textoPegado.trim().length > 0 && !extrayendoIa && (
           <div className="mt-2 flex justify-end">
-            <Button type="button" size="sm" onClick={onProcesarTexto}>
+            <Button type="button" size="sm" onClick={onProcesarTexto} className="cursor-pointer">
               <Sparkles data-icon="inline-start" />
               Procesar Tabla Pegada
             </Button>

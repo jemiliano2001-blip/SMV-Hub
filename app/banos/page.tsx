@@ -43,7 +43,7 @@ export default function BanosPage() {
                   Registro en vivo
                 </span>
               ),
-              content: <RegistroBanoList onIrAReporteDiario={() => setTab('reporte-diario')} />,
+              content: <RegistroBanoList />,
             },
             {
               value: 'reporte-diario',

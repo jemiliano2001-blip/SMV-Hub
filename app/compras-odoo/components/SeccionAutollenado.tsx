@@ -1,8 +1,9 @@
 'use client'
 
-import { Sparkles } from 'lucide-react'
+import { CheckCheck, Sparkles } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -35,6 +36,7 @@ export interface SeccionAutollenadoProps {
   mostrarDropdownOt: boolean
   ordenesTrabajo: OrdenTrabajoSugerida[]
   cargandoOTs: boolean
+  cantidadPartidas?: number
   onRequisitorChange: (v: string) => void
   onEmpresaChange: (v: string) => void
   onUdmChange: (v: string) => void
@@ -43,6 +45,7 @@ export interface SeccionAutollenadoProps {
   onMostrarDropdownOt: (v: boolean) => void
   onSeleccionarOt: (ot: OrdenTrabajoSugerida) => void
   onSeleccionarPreset: (opt: string) => void
+  onAplicarATodas?: () => void
 }
 
 export default function SeccionAutollenado({
@@ -56,6 +59,7 @@ export default function SeccionAutollenado({
   mostrarDropdownOt,
   ordenesTrabajo,
   cargandoOTs,
+  cantidadPartidas = 0,
   onRequisitorChange,
   onEmpresaChange,
   onUdmChange,
@@ -64,13 +68,14 @@ export default function SeccionAutollenado({
   onMostrarDropdownOt,
   onSeleccionarOt,
   onSeleccionarPreset,
+  onAplicarATodas,
 }: SeccionAutollenadoProps) {
   return (
-    <Card className="bg-muted/40 gap-4 py-4 shadow-sm lg:col-span-5">
+    <Card className="bg-card/70 backdrop-blur-md border-border/80 gap-4 py-4 shadow-sm lg:col-span-5">
       <CardHeader className="border-b px-4 pb-3 [.border-b]:pb-3">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase">
-            <Sparkles className="text-amber-600" aria-hidden />
+            <Sparkles className="text-amber-500" aria-hidden />
             2. Autollenado de Partidas
           </CardTitle>
           <span className="text-muted-foreground text-[10px] font-medium">Asignado por defecto</span>
@@ -227,6 +232,24 @@ export default function SeccionAutollenado({
               </Select>
             </Field>
           </div>
+
+          {cantidadPartidas > 0 && onAplicarATodas && (
+            <div className="mt-1 flex items-center justify-between border-t pt-2">
+              <span className="text-muted-foreground text-[10px]">
+                ¿Quieres reflejar estos valores en la tabla?
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onAplicarATodas}
+                className="h-7 cursor-pointer text-[10px] font-semibold"
+              >
+                <CheckCheck className="text-emerald-500" data-icon="inline-start" />
+                Aplicar defaults a todas ({cantidadPartidas})
+              </Button>
+            </div>
+          )}
         </FieldGroup>
       </CardContent>
     </Card>

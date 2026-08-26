@@ -10,11 +10,34 @@ import PageHeader from '@/components/layout/PageHeader'
 import PageShell from '@/components/layout/PageShell'
 import ModuleTabs from '@/components/layout/ModuleTabs'
 import DrawerPendientesAbastecimiento from '@/components/abastecimiento/DrawerPendientesAbastecimiento'
+import type { BorradorComprasOdoo } from './components/tipos-captura'
+import type { RegistroCotizacionOdoo } from '@/lib/schemas'
+import { fechaHoyLocal } from '@/lib/format'
 
 type TabModo = 'captura' | 'historial'
 
 export default function ComprasOdooPage() {
   const [tab, setTab] = useState<TabModo>('captura')
+  const [datosRecotizar, setDatosRecotizar] = useState<Partial<BorradorComprasOdoo> | null>(null)
+  const [capturaKey, setCapturaKey] = useState<string>('captura-init')
+
+  const handleRecotizar = (registro: RegistroCotizacionOdoo) => {
+    setDatosRecotizar({
+      proveedor: registro.proveedor,
+      proveedorId: registro.proveedorId ?? null,
+      referenciaProveedor: registro.referenciaProveedor || '',
+      moneda: registro.moneda,
+      fecha: fechaHoyLocal(),
+      fechaRecepcion: fechaHoyLocal(),
+      notas: registro.notas || '',
+      partidas: (registro.partidas || []).map((p, idx) => ({
+        ...p,
+        id: `recot_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+      })),
+    })
+    setCapturaKey(`recot-${Date.now()}`)
+    setTab('captura')
+  }
 
   return (
     <AuthGuard>
@@ -39,7 +62,16 @@ export default function ComprasOdooPage() {
                   Nueva cotización
                 </span>
               ),
-              content: <CapturaOdooForm onCotizacionCreada={() => setTab('historial')} />,
+              content: (
+                <CapturaOdooForm
+                  key={capturaKey}
+                  initialData={datosRecotizar}
+                  onCotizacionCreada={() => {
+                    setDatosRecotizar(null)
+                    setTab('historial')
+                  }}
+                />
+              ),
             },
             {
               value: 'historial',
@@ -49,7 +81,7 @@ export default function ComprasOdooPage() {
                   Historial
                 </span>
               ),
-              content: <HistorialOdooList />,
+              content: <HistorialOdooList onRecotizar={handleRecotizar} />,
             },
           ]}
         />

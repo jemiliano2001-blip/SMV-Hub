@@ -14,6 +14,10 @@ import {
   AlertCircle,
   Copy,
   ShoppingCart,
+  FileDown,
+  RotateCcw,
+  Loader2,
+  Calendar,
 } from 'lucide-react'
 import { copiarAlPortapapeles } from '@/lib/portapapeles'
 
@@ -61,12 +65,23 @@ function formatMoney(n: number) {
   return n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-export default function HistorialOdooList() {
+type PeriodoFiltro = 'todos' | 'mes' | '30d' | '90d'
+type MonedaFiltro = 'todas' | 'MXN' | 'USD'
+
+export interface HistorialOdooListProps {
+  onRecotizar?: (registro: RegistroCotizacionOdoo) => void
+}
+
+export default function HistorialOdooList({ onRecotizar }: HistorialOdooListProps) {
   const [registros, setRegistros] = useState<RegistroCotizacionOdoo[]>([])
   const [cargando, setCargando] = useState(true)
   const [errorCarga, setErrorCarga] = useState<string | null>(null)
   const [busqueda, setBusqueda] = useState('')
   const [expandidoId, setExpandidoId] = useState<string | null>(null)
+
+  const [periodo, setPeriodo] = useState<PeriodoFiltro>('todos')
+  const [monedaFiltro, setMonedaFiltro] = useState<MonedaFiltro>('todas')
+  const [exportando, setExportando] = useState(false)
 
   const cargarHistorial = useCallback(async () => {
     try {
@@ -116,16 +131,50 @@ export default function HistorialOdooList() {
 
   const filtrados = useMemo(() => {
     const q = busqueda.toLowerCase().trim()
-    if (!q) return registros
+    const ahora = new Date()
 
-    return registros.filter(
-      (r) =>
-        r.odooName.toLowerCase().includes(q) ||
-        r.proveedor.toLowerCase().includes(q) ||
-        (r.referenciaProveedor && r.referenciaProveedor.toLowerCase().includes(q)) ||
-        (r.creadoPorEmail && r.creadoPorEmail.toLowerCase().includes(q))
-    )
-  }, [registros, busqueda])
+    return registros.filter((r) => {
+      // Filtro por texto
+      if (q) {
+        const coincide =
+          r.odooName.toLowerCase().includes(q) ||
+          r.proveedor.toLowerCase().includes(q) ||
+          (r.referenciaProveedor && r.referenciaProveedor.toLowerCase().includes(q)) ||
+          (r.creadoPorEmail && r.creadoPorEmail.toLowerCase().includes(q)) ||
+          (r.creadoPorNombre && r.creadoPorNombre.toLowerCase().includes(q))
+        if (!coincide) return false
+      }
+
+      // Filtro por moneda
+      if (monedaFiltro !== 'todas' && r.moneda !== monedaFiltro) {
+        return false
+      }
+
+      // Filtro por período
+      if (periodo !== 'todos') {
+        const fechaReg = r.fecha
+          ? new Date(r.fecha)
+          : r.creadoEn
+          ? new Date(r.creadoEn)
+          : null
+        if (fechaReg && !isNaN(fechaReg.getTime())) {
+          const diffDias = (ahora.getTime() - fechaReg.getTime()) / (1000 * 3600 * 24)
+          if (periodo === 'mes') {
+            const mismoMes =
+              fechaReg.getFullYear() === ahora.getFullYear() &&
+              fechaReg.getMonth() === ahora.getMonth()
+            if (!mismoMes) return false
+          } else if (periodo === '30d') {
+            if (diffDias > 30) return false
+          } else if (periodo === '90d') {
+            if (diffDias > 90) return false
+          }
+        }
+      }
+
+      return true
+    })
+  }, [registros, busqueda, monedaFiltro, periodo])
 
   const stats = useMemo(() => {
     const total = filtrados.length
@@ -142,10 +191,27 @@ export default function HistorialOdooList() {
     setExpandidoId((prev) => (prev === id ? null : id))
   }
 
+  const handleExportarExcel = async () => {
+    if (filtrados.length === 0) return
+    setExportando(true)
+    try {
+      const { exportarHistorialOdooExcel } = await import('@/lib/compras-odoo-export')
+      await exportarHistorialOdooExcel(filtrados, {
+        moneda: monedaFiltro !== 'todas' ? monedaFiltro : undefined,
+        periodo: periodo !== 'todos' ? periodo : undefined,
+      })
+    } catch (err) {
+      console.error('Error al exportar a Excel:', err)
+    } finally {
+      setExportando(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
+      {/* Tarjetas KPI con tokens adaptables para modo oscuro */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Card className="gap-2 py-4 shadow-sm">
+        <Card className="bg-card/70 backdrop-blur-md border-border/80 gap-2 py-4 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between px-4 pb-0">
             <CardTitle className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
               Cotizaciones Enviadas
@@ -156,44 +222,44 @@ export default function HistorialOdooList() {
             {cargando ? (
               <Skeleton className="h-7 w-16" />
             ) : (
-              <p className="font-mono text-xl font-bold tabular-nums">{stats.total}</p>
+              <p className="font-mono text-xl font-bold tabular-nums text-foreground">{stats.total}</p>
             )}
           </CardContent>
         </Card>
 
-        <Card className="gap-2 py-4 shadow-sm">
+        <Card className="bg-card/70 backdrop-blur-md border-border/80 gap-2 py-4 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between px-4 pb-0">
             <CardTitle className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
               Monto Total MXN
             </CardTitle>
-            <DollarSign className="text-emerald-600 size-4" aria-hidden />
+            <DollarSign className="text-emerald-500 size-4" aria-hidden />
           </CardHeader>
           <CardContent className="px-4">
             {cargando ? (
               <Skeleton className="h-7 w-28" />
             ) : (
-              <p className="font-mono text-xl font-bold tabular-nums text-emerald-950">
+              <p className="font-mono text-xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
                 ${formatMoney(stats.totalMxn)}{' '}
-                <span className="text-xs font-normal text-emerald-700">MXN</span>
+                <span className="text-xs font-normal text-emerald-700/80 dark:text-emerald-400/80">MXN</span>
               </p>
             )}
           </CardContent>
         </Card>
 
-        <Card className="gap-2 py-4 shadow-sm">
+        <Card className="bg-card/70 backdrop-blur-md border-border/80 gap-2 py-4 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between px-4 pb-0">
             <CardTitle className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
               Monto Total USD
             </CardTitle>
-            <DollarSign className="size-4 text-sky-600" aria-hidden />
+            <DollarSign className="size-4 text-sky-500" aria-hidden />
           </CardHeader>
           <CardContent className="px-4">
             {cargando ? (
               <Skeleton className="h-7 w-28" />
             ) : (
-              <p className="font-mono text-xl font-bold tabular-nums text-sky-950">
+              <p className="font-mono text-xl font-bold tabular-nums text-sky-600 dark:text-sky-400">
                 ${formatMoney(stats.totalUsd)}{' '}
-                <span className="text-xs font-normal text-sky-700">USD</span>
+                <span className="text-xs font-normal text-sky-700/80 dark:text-sky-400/80">USD</span>
               </p>
             )}
           </CardContent>
@@ -206,33 +272,148 @@ export default function HistorialOdooList() {
           <AlertTitle>No se pudo cargar el historial</AlertTitle>
           <AlertDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <span>{errorCarga}</span>
-            <Button type="button" variant="outline" size="sm" onClick={cargarHistorial}>
+            <Button type="button" variant="outline" size="sm" onClick={cargarHistorial} className="cursor-pointer">
               Reintentar
             </Button>
           </AlertDescription>
         </Alert>
       )}
 
-      <Card className="gap-0 py-0 shadow-sm">
-        <CardContent className="flex flex-col items-stretch justify-between gap-3 p-3 sm:flex-row sm:items-center">
-          <div className="relative w-full sm:w-80">
-            <Search className="text-muted-foreground absolute top-2.5 left-2.5 size-4" aria-hidden />
-            <Input
-              type="search"
-              placeholder="Buscar por folio (P00XXX), proveedor, ref..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className="pl-8 text-xs"
-            />
+      {/* Barra de Búsqueda y Filtros Avanzados */}
+      <Card className="bg-card/70 backdrop-blur-md border-border/80 gap-0 py-0 shadow-sm">
+        <CardContent className="flex flex-col items-stretch justify-between gap-3 p-3 lg:flex-row lg:items-center">
+          <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative w-full sm:w-80">
+              <Search className="text-muted-foreground absolute top-2.5 left-2.5 size-4" aria-hidden />
+              <Input
+                type="search"
+                placeholder="Buscar por folio (P00XXX), proveedor, ref..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                className="pl-8 text-xs"
+              />
+            </div>
+
+            {/* Selector de Moneda */}
+            <div className="flex items-center gap-1 rounded-lg border bg-background/60 p-0.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setMonedaFiltro('todas')}
+                className={`rounded px-2.5 py-1 font-medium transition-colors cursor-pointer ${
+                  monedaFiltro === 'todas'
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Todas
+              </button>
+              <button
+                type="button"
+                onClick={() => setMonedaFiltro('MXN')}
+                className={`rounded px-2.5 py-1 font-medium transition-colors cursor-pointer ${
+                  monedaFiltro === 'MXN'
+                    ? 'bg-emerald-600 text-white font-semibold shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                MXN
+              </button>
+              <button
+                type="button"
+                onClick={() => setMonedaFiltro('USD')}
+                className={`rounded px-2.5 py-1 font-medium transition-colors cursor-pointer ${
+                  monedaFiltro === 'USD'
+                    ? 'bg-sky-600 text-white font-semibold shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                USD
+              </button>
+            </div>
+
+            {/* Selector de Rango de Fecha */}
+            <div className="flex items-center gap-1 rounded-lg border bg-background/60 p-0.5 text-xs">
+              <Calendar className="text-muted-foreground ml-1.5 size-3.5" aria-hidden />
+              <button
+                type="button"
+                onClick={() => setPeriodo('todos')}
+                className={`rounded px-2 py-1 font-medium transition-colors cursor-pointer ${
+                  periodo === 'todos'
+                    ? 'bg-muted text-foreground font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Todo
+              </button>
+              <button
+                type="button"
+                onClick={() => setPeriodo('mes')}
+                className={`rounded px-2 py-1 font-medium transition-colors cursor-pointer ${
+                  periodo === 'mes'
+                    ? 'bg-muted text-foreground font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Este mes
+              </button>
+              <button
+                type="button"
+                onClick={() => setPeriodo('30d')}
+                className={`rounded px-2 py-1 font-medium transition-colors cursor-pointer ${
+                  periodo === '30d'
+                    ? 'bg-muted text-foreground font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                30 días
+              </button>
+              <button
+                type="button"
+                onClick={() => setPeriodo('90d')}
+                className={`rounded px-2 py-1 font-medium transition-colors cursor-pointer ${
+                  periodo === '90d'
+                    ? 'bg-muted text-foreground font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                90 días
+              </button>
+            </div>
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={cargarHistorial} disabled={cargando}>
-            <RefreshCw className={cargando ? 'animate-spin' : undefined} data-icon="inline-start" />
-            Actualizar
-          </Button>
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleExportarExcel}
+              disabled={exportando || filtrados.length === 0}
+              className="cursor-pointer"
+            >
+              {exportando ? (
+                <Loader2 className="animate-spin" data-icon="inline-start" />
+              ) : (
+                <FileDown data-icon="inline-start" />
+              )}
+              {exportando ? 'Generando...' : 'Exportar Excel'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={cargarHistorial}
+              disabled={cargando}
+              className="cursor-pointer"
+            >
+              <RefreshCw className={cargando ? 'animate-spin' : undefined} data-icon="inline-start" />
+              Actualizar
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      <Card className="gap-0 overflow-hidden py-0 shadow-sm">
+      {/* Tabla de Historial */}
+      <Card className="bg-card/70 backdrop-blur-md border-border/80 gap-0 overflow-hidden py-0 shadow-sm">
         {cargando ? (
           <div className="flex flex-col gap-3 p-4">
             <Skeleton className="h-10 w-full" />
@@ -248,14 +429,16 @@ export default function HistorialOdooList() {
               </EmptyMedia>
               <EmptyTitle className="text-sm">No se encontraron cotizaciones</EmptyTitle>
               <EmptyDescription>
-                Las cotizaciones que envíes a Odoo desde la pestaña de captura aparecerán aquí.
+                {busqueda || monedaFiltro !== 'todas' || periodo !== 'todos'
+                  ? 'No hay registros que coincidan con los filtros seleccionados.'
+                  : 'Las cotizaciones que envíes a Odoo desde la pestaña de captura aparecerán aquí.'}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (
           <div className="overflow-x-auto">
             <Table className="w-full text-left text-xs">
-              <TableHeader className="bg-muted/80 text-[11px] font-bold tracking-wider uppercase">
+              <TableHeader className="bg-muted/80 sticky top-0 z-10 text-[11px] font-bold tracking-wider uppercase backdrop-blur-xs">
                 <TableRow>
                   <TableHead className="w-8 px-3 py-2.5" />
                   <TableHead className="px-3 py-2.5">Folio Odoo</TableHead>
@@ -264,7 +447,7 @@ export default function HistorialOdooList() {
                   <TableHead className="px-3 py-2.5 text-center">Partidas</TableHead>
                   <TableHead className="px-3 py-2.5 text-right">Total</TableHead>
                   <TableHead className="px-3 py-2.5">Creado Por</TableHead>
-                  <TableHead className="w-28 px-3 py-2.5 text-center">Acción</TableHead>
+                  <TableHead className="w-36 px-3 py-2.5 text-center">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -305,7 +488,7 @@ export default function HistorialOdooList() {
                                   </div>
                                   <div className="text-center">
                                     <Badge variant="outline" className="font-mono text-[11px]">
-                                      {r.itemsCount} partidas
+                                      {r.itemsCount || r.partidas?.length || 0} partidas
                                     </Badge>
                                   </div>
                                   <div className="text-right font-mono font-bold tabular-nums">
@@ -316,28 +499,50 @@ export default function HistorialOdooList() {
                                   </div>
                                   <div className="flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
                                     <span className="text-muted-foreground truncate text-[11px]">
-                                      {r.creadoPorEmail?.split('@')[0] || '—'}
+                                      {r.creadoPorNombre || r.creadoPorEmail?.split('@')[0] || '—'}
                                     </span>
-                                    <Button asChild variant="outline" size="sm" className="shrink-0 text-[11px]">
-                                      <a
-                                        href={urlOdoo}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                      >
-                                        <ExternalLink data-icon="inline-start" />
-                                        Odoo
-                                      </a>
-                                    </Button>
+                                    <div className="flex items-center gap-1">
+                                      {onRecotizar && (
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          className="text-primary hover:bg-primary/10 h-7 shrink-0 px-2 text-[11px] font-semibold cursor-pointer"
+                                          onClick={() => onRecotizar(r)}
+                                          title="Cargar partidas en la pestaña de nueva cotización"
+                                        >
+                                          <RotateCcw className="size-3" data-icon="inline-start" />
+                                          Re-cotizar
+                                        </Button>
+                                      )}
+                                      <Button asChild variant="outline" size="sm" className="h-7 shrink-0 px-2 text-[11px]">
+                                        <a
+                                          href={urlOdoo}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                        >
+                                          <ExternalLink data-icon="inline-start" />
+                                          Odoo
+                                        </a>
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
 
                               {estaExpandido && (
                                 <div className="bg-muted/40 flex flex-col gap-2 border-t p-3.5" onClick={(e) => e.stopPropagation()}>
-                                  <span className="flex items-center gap-1.5 text-[11px] font-bold tracking-wider uppercase">
-                                    <FileSpreadsheet className="text-muted-foreground size-3.5" aria-hidden />
-                                    Desglose de Partidas ({r.partidas.length})
-                                  </span>
+                                  <div className="flex items-center justify-between">
+                                    <span className="flex items-center gap-1.5 text-[11px] font-bold tracking-wider uppercase">
+                                      <FileSpreadsheet className="text-muted-foreground size-3.5" aria-hidden />
+                                      Desglose de Partidas ({r.partidas?.length || 0})
+                                    </span>
+                                    {r.notas && (
+                                      <span className="text-muted-foreground max-w-md truncate text-[11px] italic">
+                                        Notas: {r.notas}
+                                      </span>
+                                    )}
+                                  </div>
                                   <div className="bg-card overflow-hidden rounded-lg border shadow-sm">
                                     <Table className="w-full text-left text-xs">
                                       <TableHeader className="bg-muted/80 text-[10px] font-bold uppercase">
@@ -354,7 +559,7 @@ export default function HistorialOdooList() {
                                         </TableRow>
                                       </TableHeader>
                                       <TableBody className="text-[11px]">
-                                        {r.partidas.map((p, idx) => (
+                                        {r.partidas?.map((p, idx) => (
                                           <TableRow key={p.id || idx}>
                                             <TableCell className="text-muted-foreground px-2.5 py-1.5 text-center font-mono">
                                               {p.partida || idx + 1}
@@ -402,12 +607,19 @@ export default function HistorialOdooList() {
                           <ContextMenuShortcut>↵</ContextMenuShortcut>
                         </ContextMenuItem>
 
+                        {onRecotizar && (
+                          <ContextMenuItem onClick={() => onRecotizar(r)}>
+                            <RotateCcw className="text-emerald-500" />
+                            <span>Re-cotizar en Captura</span>
+                          </ContextMenuItem>
+                        )}
+
                         <ContextMenuItem
                           onClick={() => {
                             window.open(urlOdoo, '_blank', 'noopener,noreferrer')
                           }}
                         >
-                          <ExternalLink className="text-sky-600" />
+                          <ExternalLink className="text-sky-500" />
                           <span>Abrir en Odoo ERP</span>
                         </ContextMenuItem>
 
@@ -416,7 +628,7 @@ export default function HistorialOdooList() {
                             window.location.href = `/nueva-compra?proveedor=${encodeURIComponent(r.proveedor)}`
                           }}
                         >
-                          <ShoppingCart className="text-emerald-600" />
+                          <ShoppingCart className="text-amber-500" />
                           <span>Re-cotizar en Nueva Compra</span>
                         </ContextMenuItem>
 

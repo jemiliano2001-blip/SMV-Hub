@@ -68,7 +68,7 @@ export default function SeccionDatosCotizacion({
   onNotasChange,
 }: SeccionDatosCotizacionProps) {
   return (
-    <Card className="gap-4 py-4 shadow-sm lg:col-span-7">
+    <Card className="bg-card/70 backdrop-blur-md border-border/80 gap-4 py-4 shadow-sm lg:col-span-7">
       <CardHeader className="border-b px-4 pb-3 [.border-b]:pb-3">
         <CardTitle className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase">
           <Building2 className="text-primary" aria-hidden />

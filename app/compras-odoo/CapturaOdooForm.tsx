@@ -10,6 +10,7 @@ import {
   Sparkles,
   AlertTriangle,
   AlertCircle,
+  Save,
 } from 'lucide-react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -24,44 +25,73 @@ import SeccionAutollenado from './components/SeccionAutollenado'
 import SeccionDatosCotizacion from './components/SeccionDatosCotizacion'
 import SeccionEntradaRapida from './components/SeccionEntradaRapida'
 import TablaPartidasCotizacion from './components/TablaPartidasCotizacion'
-import type { OrdenTrabajoSugerida, ProveedorSugerido } from './components/tipos-captura'
+import type { BorradorComprasOdoo, OrdenTrabajoSugerida, ProveedorSugerido } from './components/tipos-captura'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
+
+const LOCAL_STORAGE_DRAFT_KEY = 'smv_compras_odoo_draft_v1'
+
+export interface CapturaOdooFormProps {
+  onCotizacionCreada?: () => void
+  initialData?: Partial<BorradorComprasOdoo> | null
+}
 
 export default function CapturaOdooForm({
   onCotizacionCreada,
-}: {
-  onCotizacionCreada?: () => void
-}) {
+  initialData,
+}: CapturaOdooFormProps) {
   const searchParams = useSearchParams()
   const confirmar = useConfirmDialog()
-  const [proveedor, setProveedor] = useState(() => searchParams?.get('proveedor') || '')
-  const [proveedorId, setProveedorId] = useState<number | null>(null)
-  const [referenciaProveedor, setReferenciaProveedor] = useState(() => searchParams?.get('referencia') || '')
+
+  const [proveedor, setProveedor] = useState(() => initialData?.proveedor || searchParams?.get('proveedor') || '')
+  const [proveedorId, setProveedorId] = useState<number | null>(() => initialData?.proveedorId ?? null)
+  const [referenciaProveedor, setReferenciaProveedor] = useState(() => initialData?.referenciaProveedor || searchParams?.get('referencia') || '')
   const [moneda, setMoneda] = useState<'MXN' | 'USD'>(() => {
+    if (initialData?.moneda) return initialData.moneda
     const m = searchParams?.get('moneda')
     return m === 'USD' ? 'USD' : 'MXN'
   })
-  const [fecha, setFecha] = useState(() => fechaHoyLocal())
-  const [fechaRecepcion, setFechaRecepcion] = useState(() => fechaHoyLocal())
-  const [notas, setNotas] = useState('')
+  const [fecha, setFecha] = useState(() => initialData?.fecha || fechaHoyLocal())
+  const [fechaRecepcion, setFechaRecepcion] = useState(() => initialData?.fechaRecepcion || fechaHoyLocal())
+  const [notas, setNotas] = useState(() => initialData?.notas || '')
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false)
   const [intentoCrearSinProveedor, setIntentoCrearSinProveedor] = useState(false)
+  const [validarFilas, setValidarFilas] = useState(false)
 
-  const [defaultRequisitor, setDefaultRequisitor] = useState('Pablo')
-  const [defaultEmpresa, setDefaultEmpresa] = useState('Taller')
-  const [defaultUso, setDefaultUso] = useState('General')
-  const [defaultOrdenTrabajo, setDefaultOrdenTrabajo] = useState('')
-  const [defaultOrdenTrabajoId, setDefaultOrdenTrabajoId] = useState<number | null>(null)
-  const [defaultUdm, setDefaultUdm] = useState('Pieza')
-  const [defaultImpuesto, setDefaultImpuesto] = useState('IVA 16%')
-  const [defaultTasaIva, setDefaultTasaIva] = useState(0.16)
+  const [defaultRequisitor, setDefaultRequisitor] = useState(() => initialData?.defaultRequisitor || 'Pablo')
+  const [defaultEmpresa, setDefaultEmpresa] = useState(() => initialData?.defaultEmpresa || 'Taller')
+  const [defaultUso, setDefaultUso] = useState(() => initialData?.defaultUso || 'General')
+  const [defaultOrdenTrabajo, setDefaultOrdenTrabajo] = useState(() => initialData?.defaultOrdenTrabajo || '')
+  const [defaultOrdenTrabajoId, setDefaultOrdenTrabajoId] = useState<number | null>(() => initialData?.defaultOrdenTrabajoId ?? null)
+  const [defaultUdm, setDefaultUdm] = useState(() => initialData?.defaultUdm || 'Pieza')
+  const [defaultImpuesto, setDefaultImpuesto] = useState(() => initialData?.defaultImpuesto || 'IVA 16%')
+  const [defaultTasaIva, setDefaultTasaIva] = useState(() => initialData?.defaultTasaIva ?? 0.16)
 
   const [ordenesTrabajo, setOrdenesTrabajo] = useState<OrdenTrabajoSugerida[]>([])
   const [cargandoOTs, setCargandoOTs] = useState(false)
   const [busquedaOtCabecera, setBusquedaOtCabecera] = useState('')
   const [mostrarDropdownOt, setMostrarDropdownOt] = useState(false)
 
+  const [extrayendoIa, setExtrayendoIa] = useState(false)
+  const [mensajeIa, setMensajeIa] = useState<string | null>(null)
+  const [sugerenciasProveedores, setSugerenciasProveedores] = useState<ProveedorSugerido[]>([])
+  const [cargandoProveedores, setCargandoProveedores] = useState(false)
+  const [textoPegado, setTextoPegado] = useState('')
+  const [advertenciasParser, setAdvertenciasParser] = useState<string[]>([])
+  const [enviando, setEnviando] = useState(false)
+  const [errorEnvio, setErrorEnvio] = useState<string | null>(null)
+  const [resultadoExitoso, setResultadoExitoso] = useState<{
+    odooId: number
+    odooName: string
+    proveedor: string
+    total: number
+    moneda: string
+    itemsCount: number
+  } | null>(null)
+
   const [partidas, setPartidas] = useState<PartidaCotizacionOdoo[]>(() => {
+    if (initialData?.partidas && initialData.partidas.length > 0) {
+      return initialData.partidas
+    }
     if (!searchParams) return []
     const paramDesc = searchParams.get('descripcion')
     const paramSku = searchParams.get('numeroParte')
@@ -95,33 +125,117 @@ export default function CapturaOdooForm({
     }
     return []
   })
-  const [textoPegado, setTextoPegado] = useState('')
-  const [advertenciasParser, setAdvertenciasParser] = useState<string[]>([])
 
-  const [extrayendoIa, setExtrayendoIa] = useState(false)
-  const [mensajeIa, setMensajeIa] = useState<string | null>(null)
+  // Detección de borrador previo en localStorage
+  const [borradorDetectado, setBorradorDetectado] = useState<BorradorComprasOdoo | null>(() => {
+    if (initialData) return null
+    if (typeof window === 'undefined') return null
+    try {
+      const guardado = localStorage.getItem(LOCAL_STORAGE_DRAFT_KEY)
+      if (guardado) {
+        const parsed = JSON.parse(guardado) as BorradorComprasOdoo
+        if (
+          parsed &&
+          (parsed.partidas?.length > 0 || parsed.proveedor || parsed.referenciaProveedor)
+        ) {
+          return parsed
+        }
+      }
+    } catch {
+      // Ignorar errores de localStorage
+    }
+    return null
+  })
 
-  const [sugerenciasProveedores, setSugerenciasProveedores] = useState<ProveedorSugerido[]>([])
-  const [cargandoProveedores, setCargandoProveedores] = useState(false)
+  // Guardado automático del borrador en localStorage (debounced)
+  useEffect(() => {
+    if (partidas.length === 0 && !proveedor.trim()) {
+      return
+    }
 
-  const [enviando, setEnviando] = useState(false)
-  const [errorEnvio, setErrorEnvio] = useState<string | null>(null)
-  const [resultadoExitoso, setResultadoExitoso] = useState<{
-    odooId: number
-    odooName: string
-    proveedor: string
-    total: number
-    moneda: string
-    itemsCount: number
-  } | null>(null)
+    const timer = setTimeout(() => {
+      try {
+        const borrador: BorradorComprasOdoo = {
+          proveedor,
+          proveedorId,
+          referenciaProveedor,
+          moneda,
+          fecha,
+          fechaRecepcion,
+          notas,
+          defaultRequisitor,
+          defaultEmpresa,
+          defaultUso,
+          defaultOrdenTrabajo,
+          defaultOrdenTrabajoId,
+          defaultUdm,
+          defaultImpuesto,
+          defaultTasaIva,
+          partidas,
+          guardadoEn: new Date().toISOString(),
+        }
+        localStorage.setItem(LOCAL_STORAGE_DRAFT_KEY, JSON.stringify(borrador))
+      } catch {
+        // Fallback silencioso
+      }
+    }, 600)
+
+    return () => clearTimeout(timer)
+  }, [
+    proveedor,
+    proveedorId,
+    referenciaProveedor,
+    moneda,
+    fecha,
+    fechaRecepcion,
+    notas,
+    defaultRequisitor,
+    defaultEmpresa,
+    defaultUso,
+    defaultOrdenTrabajo,
+    defaultOrdenTrabajoId,
+    defaultUdm,
+    defaultImpuesto,
+    defaultTasaIva,
+    partidas,
+  ])
+
+  const restaurarBorrador = () => {
+    if (!borradorDetectado) return
+    if (borradorDetectado.proveedor) setProveedor(borradorDetectado.proveedor)
+    if (borradorDetectado.proveedorId !== undefined) setProveedorId(borradorDetectado.proveedorId)
+    if (borradorDetectado.referenciaProveedor) setReferenciaProveedor(borradorDetectado.referenciaProveedor)
+    if (borradorDetectado.moneda) setMoneda(borradorDetectado.moneda)
+    if (borradorDetectado.fecha) setFecha(borradorDetectado.fecha)
+    if (borradorDetectado.fechaRecepcion) setFechaRecepcion(borradorDetectado.fechaRecepcion)
+    if (borradorDetectado.notas) setNotas(borradorDetectado.notas)
+    if (borradorDetectado.defaultRequisitor) setDefaultRequisitor(borradorDetectado.defaultRequisitor)
+    if (borradorDetectado.defaultEmpresa) setDefaultEmpresa(borradorDetectado.defaultEmpresa)
+    if (borradorDetectado.defaultUso) setDefaultUso(borradorDetectado.defaultUso)
+    if (borradorDetectado.defaultOrdenTrabajo) setDefaultOrdenTrabajo(borradorDetectado.defaultOrdenTrabajo)
+    if (borradorDetectado.defaultOrdenTrabajoId !== undefined) setDefaultOrdenTrabajoId(borradorDetectado.defaultOrdenTrabajoId)
+    if (borradorDetectado.defaultUdm) setDefaultUdm(borradorDetectado.defaultUdm)
+    if (borradorDetectado.defaultImpuesto) setDefaultImpuesto(borradorDetectado.defaultImpuesto)
+    if (borradorDetectado.defaultTasaIva !== undefined) setDefaultTasaIva(borradorDetectado.defaultTasaIva)
+    if (borradorDetectado.partidas?.length) setPartidas(borradorDetectado.partidas)
+
+    setBorradorDetectado(null)
+  }
+
+  const descartarBorrador = () => {
+    try {
+      localStorage.removeItem(LOCAL_STORAGE_DRAFT_KEY)
+    } catch {
+      // Ignorar
+    }
+    setBorradorDetectado(null)
+  }
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const fileInputIaRef = useRef<HTMLInputElement>(null)
 
   const proveedorInvalido =
     intentoCrearSinProveedor || (proveedor.trim().length > 0 && proveedorId == null)
-
-
 
   useEffect(() => {
     let cancelado = false
@@ -492,6 +606,61 @@ export default function CapturaOdooForm({
     setPartidas((prev) => prev.filter((p) => p.id !== id))
   }
 
+  const eliminarLote = (ids: string[]) => {
+    setPartidas((prev) => prev.filter((p) => !ids.includes(p.id)))
+  }
+
+  const clonarPartida = (id: string) => {
+    setPartidas((prev) => {
+      const idx = prev.findIndex((p) => p.id === id)
+      if (idx === -1) return prev
+      const item = prev[idx]
+      const clonada: PartidaCotizacionOdoo = {
+        ...item,
+        id: `clon_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        partida: prev.length + 1,
+      }
+      return [...prev.slice(0, idx + 1), clonada, ...prev.slice(idx + 1)]
+    })
+  }
+
+  const clonarLote = (ids: string[]) => {
+    setPartidas((prev) => {
+      const aClonar = prev.filter((p) => ids.includes(p.id))
+      const clonadas: PartidaCotizacionOdoo[] = aClonar.map((item, i) => ({
+        ...item,
+        id: `clon_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 6)}`,
+        partida: prev.length + i + 1,
+      }))
+      return [...prev, ...clonadas]
+    })
+  }
+
+  const actualizarLote = (ids: string[], campo: keyof PartidaCotizacionOdoo, valor: unknown) => {
+    setPartidas((prev) =>
+      prev.map((p) => {
+        if (!ids.includes(p.id)) return p
+        return { ...p, [campo]: valor }
+      })
+    )
+  }
+
+  const aplicarDefaultsATodas = () => {
+    setPartidas((prev) =>
+      prev.map((p) => ({
+        ...p,
+        requisitor: defaultRequisitor || p.requisitor,
+        empresa: defaultEmpresa || p.empresa,
+        uso: defaultUso || p.uso,
+        ordenTrabajo: defaultOrdenTrabajo || defaultUso || p.ordenTrabajo,
+        ordenTrabajoId: defaultOrdenTrabajoId !== undefined ? defaultOrdenTrabajoId : p.ordenTrabajoId,
+        udm: defaultUdm || p.udm,
+        impuesto: defaultImpuesto || p.impuesto,
+        tasaIva: defaultTasaIva !== undefined ? defaultTasaIva : p.tasaIva,
+      }))
+    )
+  }
+
   const limpiarTodo = async () => {
     if (partidas.length > 0) {
       const aceptado = await confirmar({
@@ -507,6 +676,12 @@ export default function CapturaOdooForm({
     setErrorEnvio(null)
     setMensajeIa(null)
     setAdvertenciasParser([])
+    setValidarFilas(false)
+    try {
+      localStorage.removeItem(LOCAL_STORAGE_DRAFT_KEY)
+    } catch {
+      // Ignorar
+    }
   }
 
   const totales = useMemo(() => {
@@ -542,12 +717,14 @@ export default function CapturaOdooForm({
 
     const partidasInvalidas = partidas.filter((p) => !p.descripcion.trim() || p.cantidad <= 0)
     if (partidasInvalidas.length > 0) {
+      setValidarFilas(true)
       setErrorEnvio(
-        'Hay partidas con descripción vacía o cantidad menor o igual a 0. Revisa la tabla.'
+        `Hay ${partidasInvalidas.length} partida(s) con descripción vacía o cantidad menor o igual a 0. Revisa las filas resaltadas en rojo.`
       )
       return
     }
 
+    setValidarFilas(false)
     setIntentoCrearSinProveedor(false)
     setMostrarConfirmacion(true)
   }
@@ -600,6 +777,13 @@ export default function CapturaOdooForm({
         moneda: data.data.moneda,
         itemsCount: data.data.itemsCount,
       })
+
+      // Limpiar borrador local al completarse con éxito
+      try {
+        localStorage.removeItem(LOCAL_STORAGE_DRAFT_KEY)
+      } catch {
+        // Ignorar
+      }
     } catch (err) {
       setErrorEnvio(err instanceof Error ? err.message : String(err))
       setMostrarConfirmacion(false)
@@ -610,21 +794,52 @@ export default function CapturaOdooForm({
 
   return (
     <div className="flex flex-col gap-5">
+      {borradorDetectado && (
+        <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 backdrop-blur-md">
+          <Save className="text-amber-500 size-4" />
+          <AlertTitle>Borrador guardado automáticamente</AlertTitle>
+          <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              Tienes una captura pendiente ({borradorDetectado.partidas?.length || 0} partidas) del{' '}
+              {new Date(borradorDetectado.guardadoEn).toLocaleString('es-MX', {
+                dateStyle: 'short',
+                timeStyle: 'short',
+              })}
+              . ¿Deseas restaurarla?
+            </span>
+            <div className="flex items-center gap-2">
+              <Button type="button" size="sm" onClick={restaurarBorrador} className="cursor-pointer">
+                Restaurar borrador
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={descartarBorrador}
+                className="cursor-pointer"
+              >
+                Descartar
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {resultadoExitoso && (
-        <Alert className="border-emerald-300 bg-emerald-50 text-emerald-950">
-          <CheckCircle2 className="text-emerald-700" />
+        <Alert className="border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200 backdrop-blur-md">
+          <CheckCircle2 className="text-emerald-500 size-4" />
           <AlertTitle>Solicitud de cotización creada en Odoo</AlertTitle>
           <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span>
               Folio{' '}
-              <span className="rounded border border-emerald-300 bg-emerald-200/80 px-2 py-0.5 font-mono font-bold">
+              <span className="rounded border border-emerald-500/30 bg-emerald-500/20 px-2 py-0.5 font-mono font-bold">
                 {resultadoExitoso.odooName}
               </span>{' '}
               para <span className="font-semibold">{resultadoExitoso.proveedor}</span> (
               {resultadoExitoso.itemsCount} partidas).
             </span>
             <div className="flex flex-wrap items-center gap-2">
-              <Button asChild size="sm" className="bg-emerald-700 hover:bg-emerald-800">
+              <Button asChild size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
                 <a
                   href={`https://system.maquinadosvazquez.com/web#id=${resultadoExitoso.odooId}&model=purchase.order&view_type=form`}
                   target="_blank"
@@ -635,7 +850,7 @@ export default function CapturaOdooForm({
                 </a>
               </Button>
               {onCotizacionCreada && (
-                <Button type="button" variant="outline" size="sm" onClick={onCotizacionCreada}>
+                <Button type="button" variant="outline" size="sm" onClick={onCotizacionCreada} className="cursor-pointer">
                   <History data-icon="inline-start" />
                   Ver Historial
                 </Button>
@@ -652,6 +867,7 @@ export default function CapturaOdooForm({
                   setMensajeIa(null)
                   setAdvertenciasParser([])
                 }}
+                className="cursor-pointer"
               >
                 <RotateCcw data-icon="inline-start" />
                 Nueva Captura
@@ -662,8 +878,8 @@ export default function CapturaOdooForm({
       )}
 
       {mensajeIa && (
-        <Alert className="border-sky-300 bg-sky-50 text-sky-950">
-          <Sparkles className="text-sky-600" />
+        <Alert className="border-sky-500/30 bg-sky-500/10 text-sky-900 dark:text-sky-200 backdrop-blur-md">
+          <Sparkles className="text-sky-500 size-4" />
           <AlertTitle>Extracción IA</AlertTitle>
           <AlertDescription className="flex items-start justify-between gap-2">
             <span>{mensajeIa}</span>
@@ -673,6 +889,7 @@ export default function CapturaOdooForm({
               size="sm"
               onClick={() => setMensajeIa(null)}
               aria-label="Cerrar aviso"
+              className="cursor-pointer"
             >
               ✕
             </Button>
@@ -681,8 +898,8 @@ export default function CapturaOdooForm({
       )}
 
       {advertenciasParser.length > 0 && (
-        <Alert className="border-amber-300 bg-amber-50 text-amber-950">
-          <AlertTriangle className="text-amber-600" />
+        <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 backdrop-blur-md">
+          <AlertTriangle className="text-amber-500 size-4" />
           <AlertTitle>Avisos del análisis ({advertenciasParser.length})</AlertTitle>
           <AlertDescription>
             <div className="flex items-start justify-between gap-2">
@@ -697,6 +914,7 @@ export default function CapturaOdooForm({
                 size="sm"
                 onClick={() => setAdvertenciasParser([])}
                 aria-label="Cerrar avisos del parser"
+                className="cursor-pointer"
               >
                 ✕
               </Button>
@@ -763,6 +981,7 @@ export default function CapturaOdooForm({
           mostrarDropdownOt={mostrarDropdownOt}
           ordenesTrabajo={ordenesTrabajo}
           cargandoOTs={cargandoOTs}
+          cantidadPartidas={partidas.length}
           onRequisitorChange={setDefaultRequisitor}
           onEmpresaChange={setDefaultEmpresa}
           onUdmChange={setDefaultUdm}
@@ -789,6 +1008,7 @@ export default function CapturaOdooForm({
             }
             setMostrarDropdownOt(false)
           }}
+          onAplicarATodas={aplicarDefaultsATodas}
         />
       </div>
 
@@ -811,9 +1031,14 @@ export default function CapturaOdooForm({
         totales={totales}
         enviando={enviando}
         puedeCrear={puedeIntentarCrear}
+        validarFilas={validarFilas}
         onActualizar={actualizarPartida}
         onSeleccionarOtFila={seleccionarOtFila}
         onEliminar={eliminarPartida}
+        onEliminarLote={eliminarLote}
+        onClonarPartida={clonarPartida}
+        onClonarLote={clonarLote}
+        onActualizarLote={actualizarLote}
         onLimpiar={limpiarTodo}
         onSolicitarCrear={solicitarCrear}
       />
