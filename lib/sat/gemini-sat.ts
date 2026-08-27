@@ -10,8 +10,6 @@ import { obtenerGeminiApiKey, MENSAJE_FALTA_GEMINI_API_KEY } from "@/lib/gemini-
 export const MODELO_SAT_LITE = "gemini-3.5-flash-lite"
 /** Modelo más capaz para casos ambiguos (override con GEMINI_MODEL_SAT_ESCALADO). */
 export const MODELO_SAT_ESCALADO = "gemini-3.7-flash"
-/** @deprecated Usar MODELO_SAT_LITE */
-export const MODELO_SAT = MODELO_SAT_LITE
 /** IDs retirados por Google — migrar al lite vigente. */
 const MODELOS_SAT_OBSOLETOS: Readonly<Record<string, string>> = {
   "gemini-3.1-flash-lite-preview": MODELO_SAT_LITE,

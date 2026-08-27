@@ -26,13 +26,14 @@ service firebase.storage {
     function esUsuarioAutorizado() {
       return request.auth != null && request.auth.token.email_verified == true &&
              appCheckValido() &&
-             (esCorreoBreakGlass() || request.auth.token.smvHubActivo == true);
+             (esCorreoBreakGlass() || esSuperAdmin() || request.auth.token.smvHubActivo == true);
     }
 
     // Los permisos por módulo se estampan como custom claims porque Storage no
     // puede consultar la base Firestore nombrada "compras-americanas".
     function tieneModulo(modulo) {
       return esCorreoBreakGlass() ||
+             esSuperAdmin() ||
              (request.auth.token.smvHubModulos is list &&
               modulo in request.auth.token.smvHubModulos);
     }
@@ -79,6 +80,23 @@ service firebase.storage {
       allow write: if esUsuarioAutorizado() && esSuperAdmin()
                    && request.resource.size < 10 * 1024 * 1024
                    && request.resource.contentType.matches('image/(jpeg|png|webp)');
+    }
+
+    // Rutas compartidas de Tool Crib (SMV-VISION en smv-brain)
+    match /tool-crib/{customer}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.resource.size < 25 * 1024 * 1024
+                   && (request.resource.contentType.matches('application/pdf')
+                       || request.resource.contentType.matches('model/stl')
+                       || request.resource.contentType.matches('application/sla')
+                       || request.resource.contentType.matches('image/jpeg'));
+    }
+    match /toolcrib/{partId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('application/pdf');
     }
 
     // Todo lo demás: denegado por defecto.

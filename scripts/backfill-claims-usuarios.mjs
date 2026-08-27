@@ -5,7 +5,7 @@
 // un hosting desplegado con código anterior a ese cambio).
 //
 // Uso (desde la raíz del repo, con el Firebase CLI ya autenticado):
-//   node scripts/backfill-claims-usuarios.mjs
+//   node scripts/backfill-claims-usuarios.mjs [smv-brain|smv-brain-dev]
 //
 // Este comando también estampa smvHubEsSuperAdmin: ejecútalo coordinado con el
 // despliegue de Storage Rules y pide a los super-admin refrescar su ID token.
@@ -19,7 +19,11 @@ import { initializeApp } from "firebase-admin/app"
 import { getAuth } from "firebase-admin/auth"
 import { getFirestore } from "firebase-admin/firestore"
 
-const PROYECTO = "smv-brain"
+const PROYECTO =
+  process.argv[2] ||
+  process.env.FIREBASE_PROJECT_ID ||
+  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+  "smv-brain"
 const BASE = "compras-americanas"
 
 if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
@@ -40,6 +44,7 @@ initializeApp({ projectId: PROYECTO })
 const auth = getAuth()
 const db = getFirestore(BASE)
 
+console.log(`Conectando a proyecto: ${PROYECTO} (base: ${BASE})`)
 const snap = await db.collection("usuarios").get()
 console.log(`Documentos en usuarios/: ${snap.size}`)
 

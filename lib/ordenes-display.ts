@@ -2,7 +2,6 @@ import { formatFecha } from "@/lib/format"
 import { normalizarClaveProdServ } from "@/lib/sat/normalizar"
 import { resolverCampoItem, type OrdenCompra } from "@/lib/schemas"
 
-export const LINK_GRUPO_WHATSAPP = "https://chat.whatsapp.com/IDCzgRSehHiEKiBldKFMLM"
 
 export type FechaOrdenDisplay = {
   principal: string
@@ -116,15 +115,3 @@ export function obtenerUrlWhatsApp(mensaje: string): string {
   return `https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`
 }
 
-/**
- * Copia el texto limpio de la orden al portapapeles.
- * Al presionar Ctrl+V en el grupo de WhatsApp Web, se pega el texto de la orden.
- */
-export async function copiarOrdenAlPortapapeles(mensaje: string): Promise<void> {
-  if (typeof window === "undefined" || !navigator.clipboard) return
-  try {
-    await navigator.clipboard.writeText(mensaje)
-  } catch (err) {
-    console.warn("[copiarOrdenAlPortapapeles] No se pudo copiar al portapapeles:", err)
-  }
-}
