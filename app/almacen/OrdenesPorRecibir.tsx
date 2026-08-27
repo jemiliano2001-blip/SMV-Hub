@@ -43,6 +43,7 @@ import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
 import { tieneModulo } from '@/lib/roles'
 import { listarOrdenesRecientes } from '@/lib/ordenes'
+import { useFilePreview } from '@/components/FilePreviewProvider'
 import type { OrdenCompra } from '@/lib/schemas'
 import { formatPrecio } from '@/lib/format'
 import ModalRecibirOrdenAlmacen from '@/components/abastecimiento/ModalRecibirOrdenAlmacen'
@@ -52,6 +53,7 @@ export default function OrdenesPorRecibir({
 }: {
   onOrdenRecibida?: () => void
 }) {
+  const { previewFile } = useFilePreview()
   const { usuario } = useUsuario()
   const { modulos, esSuperAdmin } = usePermisos(authBypassActivo() ? null : usuario)
   // Almacén no ve dinero: montos y comprobantes son de compras/admin. La
@@ -460,7 +462,13 @@ export default function OrdenesPorRecibir({
                           {puedeVerMontos && orden.imagenUrl && (
                             <ContextMenuItem
                               onClick={() => {
-                                if (orden.imagenUrl) window.open(orden.imagenUrl, '_blank', 'noopener,noreferrer')
+                                previewFile({
+                                  url: orden.imagenUrl!,
+                                  nombre: `Factura-${orden.numeroFactura || orden.id}`,
+                                  tipo: 'image',
+                                  titulo: `Comprobante · ${orden.proveedor}`,
+                                  subtitulo: `Factura #${orden.numeroFactura || 'S/N'} · ${formatPrecio(orden.total, orden.moneda)}`,
+                                })
                               }}
                             >
                               <FileText className="text-amber-600" />

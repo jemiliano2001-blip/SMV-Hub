@@ -43,6 +43,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useFilePreview } from '@/components/FilePreviewProvider'
 import {
   Dialog,
   DialogContent,
@@ -67,6 +68,7 @@ type AccionesMovimiento = {
 }
 
 function MovimientoRow({ m, onVerificar, onEditar, onBorrar }: AccionesMovimiento) {
+  const { previewFile } = useFilePreview()
   const isVale = m.comprobante === 'VALE'
   const isCortado = m.estadoCorte === 'CORTADO'
 
@@ -109,16 +111,22 @@ function MovimientoRow({ m, onVerificar, onEditar, onBorrar }: AccionesMovimient
             <div className="flex items-center gap-1.5">
               <span className={isVale ? 'text-amber-700 font-bold' : ''}>{m.comprobante}</span>
               {m.archivoUrl && (
-                <a
-                  href={m.archivoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-primary hover:text-sky-800 flex items-center gap-0.5 shrink-0"
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    previewFile({
+                      url: m.archivoUrl!,
+                      nombre: `Comprobante-${m.comprobante || m.id}`,
+                      titulo: `Comprobante · ${m.proveedor || m.descripcion}`,
+                      subtitulo: `${m.categoria} · ${m.fecha} · ${formatearDinero(m.monto)}`,
+                    })
+                  }}
+                  className="text-primary hover:text-sky-800 flex items-center gap-0.5 shrink-0 cursor-pointer p-0.5 rounded hover:bg-primary/10 transition-colors"
                   title="Ver comprobante digital"
                 >
                   <FileText className="h-3.5 w-3.5" />
-                </a>
+                </button>
               )}
               {m.deducible && (
                 <span className="text-[9px] font-bold text-sky-700 bg-sky-50 px-1 py-0.2 rounded border border-sky-200">
@@ -220,7 +228,12 @@ function MovimientoRow({ m, onVerificar, onEditar, onBorrar }: AccionesMovimient
         {m.archivoUrl && (
           <ContextMenuItem
             onClick={() => {
-              if (m.archivoUrl) window.open(m.archivoUrl, '_blank', 'noopener,noreferrer')
+              previewFile({
+                url: m.archivoUrl!,
+                nombre: `Comprobante-${m.comprobante || m.id}`,
+                titulo: `Comprobante · ${m.proveedor || m.descripcion}`,
+                subtitulo: `${m.categoria} · ${m.fecha} · ${formatearDinero(m.monto)}`,
+              })
             }}
           >
             <FileText className="text-amber-600" />
@@ -243,6 +256,7 @@ function MovimientoRow({ m, onVerificar, onEditar, onBorrar }: AccionesMovimient
 }
 
 function MovimientoCard({ m, onVerificar, onEditar, onBorrar }: AccionesMovimiento) {
+  const { previewFile } = useFilePreview()
   const isVale = m.comprobante === 'VALE'
   const isCortado = m.estadoCorte === 'CORTADO'
 
@@ -278,9 +292,21 @@ function MovimientoCard({ m, onVerificar, onEditar, onBorrar }: AccionesMovimien
           <div className="flex items-center gap-1">
             <span className={isVale ? 'text-amber-800 font-bold' : 'text-foreground'}>{m.comprobante}</span>
             {m.archivoUrl && (
-              <a href={m.archivoUrl} target="_blank" rel="noopener noreferrer" className="text-primary">
-                <FileText className="h-3 w-3" />
-              </a>
+              <button
+                type="button"
+                onClick={() =>
+                  previewFile({
+                    url: m.archivoUrl!,
+                    nombre: `Comprobante-${m.comprobante || m.id}`,
+                    titulo: `Comprobante · ${m.proveedor || m.descripcion}`,
+                    subtitulo: `${m.categoria} · ${m.fecha} · ${formatearDinero(m.monto)}`,
+                  })
+                }
+                className="text-primary hover:text-sky-800 p-0.5 rounded hover:bg-primary/10 transition-colors cursor-pointer"
+                title="Ver comprobante digital"
+              >
+                <FileText className="h-3.5 w-3.5" />
+              </button>
             )}
             {m.deducible && <span className="text-[9px] text-sky-700 bg-sky-50 px-1 py-0.2 rounded border border-sky-200">DED</span>}
           </div>

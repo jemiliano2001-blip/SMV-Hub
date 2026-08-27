@@ -9,6 +9,7 @@ import BottomNavBar from "@/components/layout/BottomNavBar";
 import { Toaster } from "@/components/ui/sonner";
 import { WebVitals } from "@/app/_components/WebVitals";
 import { ConfirmDialogProvider } from "@/components/ConfirmDialogProvider";
+import { FilePreviewProvider } from "@/components/FilePreviewProvider";
 
 const firaCode = Fira_Code({
   variable: "--font-fira-code",
@@ -58,10 +59,12 @@ export default function RootLayout({
           <SesionProvider>
             <AuthProvider>
               <ConfirmDialogProvider>
-                <NavBar />
-                {children}
-                <BottomNavBar />
-                <Toaster />
+                <FilePreviewProvider>
+                  <NavBar />
+                  {children}
+                  <BottomNavBar />
+                  <Toaster />
+                </FilePreviewProvider>
               </ConfirmDialogProvider>
             </AuthProvider>
           </SesionProvider>

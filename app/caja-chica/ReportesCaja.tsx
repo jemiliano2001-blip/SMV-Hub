@@ -20,8 +20,10 @@ import ModuleSurface from '@/components/layout/ModuleSurface'
 import { toast } from 'sonner'
 import { generarExcelReporteCaja } from '@/lib/caja-chica-export'
 import { descargarExcelEnNavegador } from '@/lib/excel-export-base'
+import { useFilePreview } from '@/components/FilePreviewProvider'
 
 export default function ReportesCaja() {
+  const { previewFile } = useFilePreview()
   const [modoFiltro, setModoFiltro] = useState<ModoFiltroCaja>('CICLO_ACTIVO')
   const [periodo, setPeriodo] = useState(() => {
     const hoy = new Date()
@@ -240,15 +242,21 @@ export default function ReportesCaja() {
                     <div className="flex items-center gap-1.5">
                       <span>{m.comprobante}</span>
                       {m.archivoUrl && (
-                        <a
-                          href={m.archivoUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:text-primary hover:underline flex items-center gap-0.5 print:hidden font-normal"
+                        <button
+                          type="button"
+                          onClick={() =>
+                            previewFile({
+                              url: m.archivoUrl!,
+                              nombre: `Comprobante-${m.comprobante || m.id}`,
+                              titulo: `Comprobante · ${m.proveedor || m.descripcion}`,
+                              subtitulo: `${m.categoria} · ${m.fecha} · ${formatPrecio(m.monto, 'MXN')}`,
+                            })
+                          }
+                          className="text-primary hover:text-sky-800 p-0.5 rounded hover:bg-primary/10 transition-colors print:hidden cursor-pointer"
                           title="Ver comprobante digital"
                         >
                           <FileText className="h-3.5 w-3.5" />
-                        </a>
+                        </button>
                       )}
                     </div>
                   </TableCell>

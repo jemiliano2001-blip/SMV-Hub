@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Plus, Trash2, Upload, X, AlertTriangle, FileText, Sparkles } from 'lucide-react'
+import { Loader2, Plus, Trash2, Upload, X, AlertTriangle, FileText, Sparkles, Maximize2 } from 'lucide-react'
 import WhatsAppIcon from '@/components/WhatsAppIcon'
 import { z } from 'zod'
 import { getClienteAuth } from '@/lib/firebase'
@@ -25,6 +25,7 @@ import {
 import { validarClaveProdServCatalogo } from '@/lib/sat/validar-clave'
 import { obtenerProveedores } from '@/lib/proveedores'
 import { Button } from '@/components/ui/button'
+import { useFilePreview } from '@/components/FilePreviewProvider'
 
 type FormInput = z.input<typeof NuevaCompraFormSchema>
 
@@ -93,6 +94,7 @@ export default function NuevaCompraForm({
   initialDescripcion?: string
   initialData?: InitialDataCompra
 }) {
+  const { previewFile } = useFilePreview()
   const [imagen, setImagen] = useState<File | null>(null)
   const [catalogoProveedores, setCatalogoProveedores] = useState<Proveedor[]>([])
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -581,14 +583,33 @@ export default function NuevaCompraForm({
               /* eslint-disable-next-line @next/next/no-img-element */
               <img src={previewUrl!} alt="Factura" className="max-h-72 w-full rounded-lg object-contain bg-muted" />
             )}
-            <button
-              type="button"
-              onClick={clearImage}
-              className="absolute top-2 right-2 rounded-full bg-card p-1 shadow-md hover:bg-muted"
-              aria-label="Quitar archivo"
-            >
-              <X className="h-4 w-4 text-muted-foreground" />
-            </button>
+            <div className="absolute top-2 right-2 flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() =>
+                  previewFile({
+                    url: previewUrl!,
+                    nombre: imagen.name,
+                    tipo: imagen.type === 'application/pdf' ? 'pdf' : 'image',
+                    titulo: 'Vista previa de Factura',
+                    subtitulo: imagen.name,
+                  })
+                }
+                className="rounded-full bg-card p-1.5 shadow-md hover:bg-muted text-foreground transition-colors cursor-pointer"
+                title="Expandir vista previa con zoom y rotación"
+                aria-label="Expandir vista previa"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={clearImage}
+                className="rounded-full bg-card p-1.5 shadow-md hover:bg-muted text-muted-foreground transition-colors cursor-pointer"
+                aria-label="Quitar archivo"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
             {extrayendo && (
               <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-lg bg-card/80">
                 <Loader2 className="h-6 w-6 animate-spin text-blue-500" />

@@ -36,6 +36,7 @@ import { formatFechaHoraCorta } from '@/lib/format'
 import type { PedidoAlmacen } from '@/lib/schemas'
 import { ModalCamara } from '@/components/ModalCamara'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
+import { useFilePreview } from '@/components/FilePreviewProvider'
 import {
   CATEGORIAS_INSUMOS,
   agregarInsumoADescripcion,
@@ -61,6 +62,7 @@ const ESTADO_LABEL: Record<PedidoAlmacen['estado'], string> = {
 
 export default function PedidosAlmacenView() {
   const confirmar = useConfirmDialog()
+  const { previewFile } = useFilePreview()
   const { usuario } = useUsuario()
   const { modulos, esSuperAdmin } = usePermisos(authBypassActivo() ? null : usuario)
   const { pedidos, loading, error, agregarPedido, cancelarPedido } = usePedidosAlmacen()
@@ -271,12 +273,20 @@ export default function PedidosAlmacenView() {
         <ContextMenuTrigger asChild>
           <div className="flex cursor-pointer select-none gap-3 overflow-hidden rounded-xl border border-border bg-card p-3.5 sm:p-4 shadow-xs transition-shadow hover:shadow-sm">
             {pedido.imagenUrl && (
-              <a
-                href={pedido.imagenUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="shrink-0"
-                onClick={(e) => e.stopPropagation()}
+              <button
+                type="button"
+                className="shrink-0 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  previewFile({
+                    url: pedido.imagenUrl!,
+                    nombre: `Pedido-${pedido.id}`,
+                    tipo: 'image',
+                    titulo: pedido.descripcion,
+                    subtitulo: `Solicitado por ${pedido.solicitadoPorNombre}`,
+                  })
+                }}
+                title="Ver foto en tamaño completo con zoom"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -284,7 +294,7 @@ export default function PedidosAlmacenView() {
                   alt="Foto del pedido"
                   className="h-16 w-16 rounded-xl border border-border object-cover"
                 />
-              </a>
+              </button>
             )}
             <div className="min-w-0 flex-1">
               <p className="break-words text-sm font-bold text-foreground">{pedido.descripcion}</p>

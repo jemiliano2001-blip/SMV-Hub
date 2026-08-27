@@ -43,6 +43,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useFilePreview } from '@/components/FilePreviewProvider'
 
 type ColFiltros = { proveedor: string; requisitor: string; empresa: string; cuentaCargo: string }
 
@@ -83,6 +84,7 @@ export default function OrdenesTabla({
   onDeleteClick,
   onPrepararFiltros,
 }: OrdenesTablaProps) {
+  const { previewFile } = useFilePreview()
   const [avisoWhatsApp, setAvisoWhatsApp] = useState<{
     mensaje: string
     whatsappUrl: string
@@ -124,14 +126,19 @@ export default function OrdenesTabla({
               </a>
             )}
             {avisoWhatsApp.comprobanteUrl && (
-              <a
-                href={avisoWhatsApp.comprobanteUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-md border border-amber-400 bg-card px-2.5 py-1 font-semibold hover:bg-amber-100"
+              <button
+                type="button"
+                onClick={() =>
+                  previewFile({
+                    url: avisoWhatsApp.comprobanteUrl!,
+                    tipo: 'image',
+                    titulo: 'Comprobante de Compra',
+                  })
+                }
+                className="rounded-md border border-amber-400 bg-card px-2.5 py-1 font-semibold hover:bg-amber-100 cursor-pointer"
               >
-                Abrir comprobante
-              </a>
+                Ver comprobante
+              </button>
             )}
           </div>
         </div>
@@ -405,7 +412,15 @@ export default function OrdenesTabla({
 
                   {orden.imagenUrl && (
                     <ContextMenuItem
-                      onClick={() => window.open(orden.imagenUrl, '_blank', 'noopener,noreferrer')}
+                      onClick={() =>
+                        previewFile({
+                          url: orden.imagenUrl!,
+                          nombre: `Factura-${orden.numeroFactura || orden.id}`,
+                          tipo: 'image',
+                          titulo: `Comprobante · ${orden.proveedor}`,
+                          subtitulo: `Factura #${orden.numeroFactura || 'S/N'} · ${formatPrecio(orden.total, orden.moneda)}`,
+                        })
+                      }
                     >
                       <FileText className="h-4 w-4 mr-2 text-amber-600" />
                       <span>Ver comprobante / factura</span>

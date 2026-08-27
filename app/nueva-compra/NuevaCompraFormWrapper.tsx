@@ -13,6 +13,7 @@ import type { NuevaCompraForm as FormData } from '@/lib/schemas'
 import { sincronizarCamposLegacyOrden } from '@/lib/schemas'
 import { generarMensajeWhatsApp, obtenerUrlWhatsApp } from '@/lib/ordenes-display'
 import { copiarCapturaWhatsApp, type ResultadoCopiaImagenWhatsApp } from '@/lib/whatsapp-notificacion'
+import { useFilePreview } from '@/components/FilePreviewProvider'
 
 export default function NuevaCompraFormWrapper({
   pedidoId,
@@ -26,6 +27,7 @@ export default function NuevaCompraFormWrapper({
   initialData?: InitialDataCompra
 } = {}) {
   const router = useRouter()
+  const { previewFile } = useFilePreview()
   const [errorGuardado, setErrorGuardado] = useState<string | null>(null)
   const [fallbackWhatsApp, setFallbackWhatsApp] = useState<{
     mensaje: string
@@ -167,14 +169,19 @@ export default function NuevaCompraFormWrapper({
               Abrir WhatsApp con texto
             </a>
             {fallbackWhatsApp.comprobanteUrl && (
-              <a
-                href={fallbackWhatsApp.comprobanteUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-md border border-amber-400 bg-card px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-100"
+              <button
+                type="button"
+                onClick={() =>
+                  previewFile({
+                    url: fallbackWhatsApp.comprobanteUrl!,
+                    tipo: 'image',
+                    titulo: 'Comprobante de Compra',
+                  })
+                }
+                className="rounded-md border border-amber-400 bg-card px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-100 cursor-pointer"
               >
-                Abrir comprobante
-              </a>
+                Ver comprobante
+              </button>
             )}
             <button
               type="button"

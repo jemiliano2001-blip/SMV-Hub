@@ -8,7 +8,8 @@ import WhatsAppIcon from '@/components/WhatsAppIcon'
 import { normalizarClaveProdServ } from '@/lib/sat/normalizar'
 import { sanitizarUrl } from '@/lib/importar'
 import type { OrdenCompra } from '@/lib/schemas'
-import { Calendar, CheckCircle2, Edit2, ExternalLink, PackageCheck, Tags, Trash2, XCircle } from 'lucide-react'
+import { Calendar, CheckCircle2, Edit2, ExternalLink, Eye, PackageCheck, Tags, Trash2, XCircle } from 'lucide-react'
+import { useFilePreview } from '@/components/FilePreviewProvider'
 import OrdenBadgeEstado from './OrdenBadgeEstado'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -52,6 +53,7 @@ export default function OrdenDetallesModal({
   onSugerirSat,
   onRecepcionExitosa,
 }: OrdenDetallesModalProps) {
+  const { previewFile } = useFilePreview()
   const [modalRecibirAbierto, setModalRecibirAbierto] = useState(false)
   const [estadoWhatsApp, setEstadoWhatsApp] = useState<{
     exito: boolean
@@ -282,11 +284,18 @@ export default function OrdenDetallesModal({
                   Se copiará al notificar
                 </span>
               </div>
-              <a
-                href={orden.imagenUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block relative group overflow-hidden rounded-xl border border-border bg-muted p-2"
+              <button
+                type="button"
+                onClick={() =>
+                  previewFile({
+                    url: orden.imagenUrl!,
+                    nombre: `Factura-${orden.numeroFactura || orden.id}`,
+                    tipo: 'image',
+                    titulo: `Comprobante · ${orden.proveedor}`,
+                    subtitulo: `Factura #${orden.numeroFactura || 'S/N'} · ${formatPrecio(orden.total, orden.moneda)}`,
+                  })
+                }
+                className="w-full text-left block relative group overflow-hidden rounded-xl border border-border bg-muted p-2 cursor-pointer transition-all hover:border-primary/50"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -295,9 +304,9 @@ export default function OrdenDetallesModal({
                   className="max-h-80 w-full object-contain mx-auto transition-transform duration-200 group-hover:scale-[1.01]"
                 />
                 <div className="absolute inset-0 bg-foreground/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 text-background text-xs font-mono font-bold transition-opacity duration-200">
-                  Abrir comprobante completo <ExternalLink className="h-3.5 w-3.5" />
+                  <Eye className="h-4 w-4 mr-1" /> Ver comprobante con zoom y rotación
                 </div>
-              </a>
+              </button>
             </div>
           )}
         </div>
@@ -372,14 +381,20 @@ export default function OrdenDetallesModal({
                   </a>
                 )}
                 {estadoWhatsApp.comprobanteUrl && (
-                  <a
-                    href={estadoWhatsApp.comprobanteUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-md border border-amber-400 bg-card px-2.5 py-1 font-semibold hover:bg-amber-100"
+                  <button
+                    type="button"
+                    onClick={() =>
+                      previewFile({
+                        url: estadoWhatsApp.comprobanteUrl!,
+                        nombre: `Comprobante-${orden.numeroFactura || orden.id}`,
+                        tipo: 'image',
+                        titulo: `Comprobante · ${orden.proveedor}`,
+                      })
+                    }
+                    className="rounded-md border border-amber-400 bg-card px-2.5 py-1 font-semibold hover:bg-amber-100 cursor-pointer"
                   >
-                    Abrir comprobante
-                  </a>
+                    Ver comprobante
+                  </button>
                 )}
               </div>
             )}

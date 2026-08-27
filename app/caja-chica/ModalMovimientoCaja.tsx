@@ -6,6 +6,7 @@ import { fechaHoyLocal } from '@/lib/format'
 import { subirComprobanteCajaChica } from '@/lib/storage'
 import { ModalCamara } from '@/components/ModalCamara'
 import { Button } from '@/components/ui/button'
+import { useFilePreview } from '@/components/FilePreviewProvider'
 import {
   Dialog,
   DialogContent,
@@ -60,6 +61,7 @@ export default function ModalMovimientoCaja({
   onClose,
   initialValores
 }: ModalProps) {
+  const { previewFile } = useFilePreview()
   const isEditing = !!movimiento
   const [loading, setLoading] = useState(false)
   const [subiendo, setSubiendo] = useState(false)
@@ -492,15 +494,21 @@ export default function ModalMovimientoCaja({
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             {(archivoUrl || archivoPreview) && (
-                              <a
-                                href={archivoPreview || archivoUrl!}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-1.5 text-muted-foreground hover:text-primary hover:bg-muted rounded-md transition-colors"
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  previewFile({
+                                    url: archivoPreview || archivoUrl!,
+                                    nombre: archivoNombre || 'Comprobante digital',
+                                    titulo: 'Comprobante de Caja Chica',
+                                    subtitulo: descripcion || proveedor || undefined,
+                                  })
+                                }
+                                className="p-1.5 text-muted-foreground hover:text-primary hover:bg-muted rounded-md transition-colors cursor-pointer"
                                 title="Visualizar comprobante"
                               >
                                 <Eye className="h-4.5 w-4.5" />
-                              </a>
+                              </button>
                             )}
                             <button
                               type="button"

@@ -8,10 +8,11 @@ import {
   generarExcelReporteDiario,
   formatearHorasMinutos,
 } from '@/lib/banos-export'
-import { descargarYCopiarImagenDiaria } from '@/lib/banos-imagen-export'
+import { descargarYCopiarImagenDiaria, generarImagenReporteDiario } from '@/lib/banos-imagen-export'
 import { descargarExcelEnNavegador } from '@/lib/excel-export-base'
 import { copiarAlPortapapeles } from '@/lib/portapapeles'
 import { fechaHoyLocal } from '@/lib/format'
+import { useFilePreview } from '@/components/FilePreviewProvider'
 import ModuleSurface from '@/components/layout/ModuleSurface'
 import { Button } from '@/components/ui/button'
 import {
@@ -34,6 +35,7 @@ import {
   Timer,
   AlertTriangle,
   ImageIcon,
+  Eye,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -75,6 +77,7 @@ export default function ReporteDiarioBanos() {
   const mesFiltro = fecha.slice(0, 7)
   const hoy = fechaHoyLocal()
 
+  const { previewFile } = useFilePreview()
   const { registros, loading, error, fetchRegistros } = useBanos(mesFiltro)
   const [exportandoExcel, setExportandoExcel] = useState(false)
   const [exportandoImagen, setExportandoImagen] = useState(false)
@@ -114,6 +117,25 @@ export default function ReporteDiarioBanos() {
       'Resumen de reporte diario copiado para WhatsApp',
       'Listo para pegar en WhatsApp o correo'
     )
+  }
+
+  const handlePrevisualizarFoto = async () => {
+    try {
+      setExportandoImagen(true)
+      const res = await generarImagenReporteDiario(stats)
+      previewFile({
+        url: res.dataUrlJpg,
+        nombre: `Reporte_Diario_Banos_${fecha}.jpg`,
+        tipo: 'image',
+        titulo: `Reporte Diario de Baños · ${formatearFechaLegible(fecha)}`,
+        subtitulo: `${stats.totalVisitas} visitas registradas · ${stats.operadoresDistintos} operadores`,
+      })
+    } catch (err) {
+      console.error('Error generando vista previa:', err)
+      toast.error('Error al generar la vista previa del reporte')
+    } finally {
+      setExportandoImagen(false)
+    }
   }
 
   const handleExportarFoto = async () => {
@@ -294,6 +316,23 @@ export default function ReporteDiarioBanos() {
 
           {/* Acciones de Compartir y Exportar destacadas */}
           <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handlePrevisualizarFoto}
+              disabled={exportandoImagen || stats.totalVisitas === 0}
+              className="h-9 px-3 text-xs font-semibold gap-1.5 rounded-xl cursor-pointer flex-1 sm:flex-none border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 active:scale-95"
+              title="Ver imagen del reporte antes de compartir o descargar"
+            >
+              {exportandoImagen ? (
+                <div className="size-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Eye className="size-4" />
+              )}
+              <span>Vista previa</span>
+            </Button>
+
             <Button
               type="button"
               variant="outline"
