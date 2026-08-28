@@ -71,19 +71,19 @@ describe("gafetes", () => {
   it("mantiene el orden entre frentes y reversos en lotes de cuatro para dúplex", () => {
     const hojas = agruparGafetesParaImpresion(["a", "b", "c", "d", "e"])
     expect(hojas).toEqual([["a", "b", "c", "d"], ["e"]])
-    expect(MEDIDAS_GAFETE_PULGADAS).toMatchObject({ ancho: 2.462, alto: 3.802, porHoja: 4 })
+    expect(MEDIDAS_GAFETE_PULGADAS).toMatchObject({ ancho: 2.1285, alto: 3.3850, porHoja: 4 })
   })
 
   it("acomoda un par de frente y reverso en una sola hoja Carta para enmicar", () => {
     const anchoPar = 2 * MEDIDAS_GAFETE_PULGADAS.ancho
-    const altoPar = 2 * MEDIDAS_GAFETE_PULGADAS.alto + 0.45 // 2 pares con separación
+    const altoPar = 2 * MEDIDAS_GAFETE_PULGADAS.alto + 0.50 // 2 pares con separación
     expect(anchoPar).toBeLessThanOrEqual(8.5)
     expect(altoPar).toBeLessThanOrEqual(11)
   })
 
   it("acomoda cuatro gafetes exactos dentro de una hoja Carta para dúplex", () => {
-    const ancho = 2 * MEDIDAS_GAFETE_PULGADAS.ancho + 0.26 + 2 * 1.658
-    const alto = 2 * MEDIDAS_GAFETE_PULGADAS.alto + 0.26 + 2 * 1.568
+    const ancho = 2 * MEDIDAS_GAFETE_PULGADAS.ancho + 0.35 + 2 * 1.946
+    const alto = 2 * MEDIDAS_GAFETE_PULGADAS.alto + 0.40 + 2 * 1.915
     expect(ancho).toBeLessThanOrEqual(8.5)
     expect(alto).toBeLessThanOrEqual(11)
   })

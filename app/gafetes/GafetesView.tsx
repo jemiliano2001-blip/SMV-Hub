@@ -170,7 +170,7 @@ function FotoGafete({
 
 function CaraGafete({ item, reverso = false }: { item: GafeteListo; reverso?: boolean }) {
   const { operador, perfil } = item
-  const qrSvg = generarQRSVG(construirPayloadQROperador(operador), 72)
+  const qrSvg = generarQRSVG(construirPayloadQROperador(operador), 62)
 
   if (reverso) {
     return (
@@ -536,29 +536,29 @@ export default function GafetesView() {
           flex-direction: column;
           align-items: center;
           text-align: center;
-          margin-top: 0.14in;
-          margin-bottom: 0.04in;
+          margin-top: 0.10in;
+          margin-bottom: 0.03in;
         }
         .gafete-logo-img {
-          width: 1.48in;
+          width: 1.28in;
           height: auto;
           object-fit: contain;
           filter: brightness(0) saturate(100%) invert(20%) sepia(85%) saturate(1980%) hue-rotate(192deg) brightness(85%) contrast(102%);
         }
         .gafete-logo-sub1 {
           margin: 0.02in 0 0;
-          font-size: 0.074in;
+          font-size: 0.065in;
           font-weight: 800;
           color: #0f4c81;
-          letter-spacing: 0.016in;
+          letter-spacing: 0.014in;
           line-height: 1;
         }
         .gafete-logo-sub2 {
           margin: 0.01in 0 0;
-          font-size: 0.090in;
+          font-size: 0.078in;
           font-weight: 800;
           color: #0f4c81;
-          letter-spacing: 0.024in;
+          letter-spacing: 0.020in;
           line-height: 1;
         }
 
@@ -567,27 +567,27 @@ export default function GafetesView() {
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 0.10in 0.15in 0.14in;
+          padding: 0.08in 0.12in 0.10in;
           text-align: center;
         }
         .gafete-foto-marco {
           position: relative;
           z-index: 1;
-          width: 1.15in;
-          height: 1.44in;
+          width: 0.98in;
+          height: 1.22in;
           border: 1px solid rgba(0, 0, 0, 0.18);
           overflow: hidden;
           background: #cbd5e1;
           box-shadow: 0 0.02in 0.08in rgba(0, 0, 0, 0.18);
-          margin-top: 0.05in;
-          margin-bottom: 0.05in;
+          margin-top: 0.04in;
+          margin-bottom: 0.04in;
         }
         .gafete-nombre {
           position: relative;
           z-index: 1;
           width: 100%;
-          margin: 0.03in 0 0.02in;
-          font-size: 0.135in;
+          margin: 0.02in 0 0.02in;
+          font-size: 0.115in;
           line-height: 1.15;
           font-weight: 700;
           color: #111827;
@@ -595,9 +595,9 @@ export default function GafetesView() {
         .gafete-linea-blanca {
           position: relative;
           z-index: 1;
-          width: 2.05in;
-          height: 0.032in;
-          margin: 0.03in auto 0.04in;
+          width: 1.75in;
+          height: 0.028in;
+          margin: 0.02in auto 0.03in;
           background: #ffffff;
           border-radius: 1px;
         }
@@ -605,21 +605,21 @@ export default function GafetesView() {
           position: relative;
           z-index: 1;
           margin: 0;
-          max-width: 2.15in;
-          font-size: 0.098in;
+          max-width: 1.95in;
+          font-size: 0.084in;
           font-weight: 600;
-          line-height: 1.25;
+          line-height: 1.2;
           color: #111827;
         }
         .gafete-domicilio-bloque {
           position: absolute;
           z-index: 1;
-          bottom: 0.12in;
-          left: 0.10in;
-          right: 0.10in;
+          bottom: 0.08in;
+          left: 0.08in;
+          right: 0.08in;
           text-align: center;
-          font-size: 0.076in;
-          line-height: 1.25;
+          font-size: 0.066in;
+          line-height: 1.2;
           font-weight: 500;
           color: #1f2937;
         }
@@ -632,15 +632,15 @@ export default function GafetesView() {
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 0.10in 0.15in 0.14in;
+          padding: 0.08in 0.12in 0.10in;
           text-align: center;
         }
         .gafete-reverso-datos {
           position: relative;
           z-index: 1;
-          margin-top: 0.12in;
-          font-size: 0.096in;
-          line-height: 1.45;
+          margin-top: 0.08in;
+          font-size: 0.085in;
+          line-height: 1.4;
           color: #111827;
           text-align: center;
         }
@@ -650,9 +650,9 @@ export default function GafetesView() {
         .gafete-reverso-responsable {
           position: relative;
           z-index: 1;
-          margin-top: 0.18in;
-          font-size: 0.092in;
-          line-height: 1.35;
+          margin-top: 0.12in;
+          font-size: 0.082in;
+          line-height: 1.3;
           color: #111827;
           text-align: center;
         }
@@ -675,16 +675,16 @@ export default function GafetesView() {
         .gafete-qr-wrap {
           position: absolute;
           z-index: 1;
-          bottom: 0.16in;
+          bottom: 0.10in;
           left: 0;
           right: 0;
           display: flex;
           justify-content: center;
         }
         .gafete-qr-marco {
-          width: 0.72in;
-          height: 0.72in;
-          padding: 0.03in;
+          width: 0.62in;
+          height: 0.62in;
+          padding: 0.025in;
           background: #ffffff;
           border-radius: 2px;
           box-shadow: 0 0.02in 0.06in rgba(0, 0, 0, 0.15);
@@ -727,7 +727,7 @@ export default function GafetesView() {
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            gap: 0.45in;
+            gap: 0.50in;
             box-sizing: border-box;
             break-after: page;
             page-break-after: always;
@@ -761,9 +761,9 @@ export default function GafetesView() {
             display: grid;
             grid-template-columns: repeat(2, ${MEDIDAS_GAFETE_PULGADAS.ancho}in);
             grid-template-rows: repeat(2, ${MEDIDAS_GAFETE_PULGADAS.alto}in);
-            column-gap: 0.26in;
-            row-gap: 0.26in;
-            padding: 1.568in 1.658in;
+            column-gap: 0.35in;
+            row-gap: 0.40in;
+            padding: 1.915in 1.946in;
             box-sizing: border-box;
             break-after: page;
             page-break-after: always;

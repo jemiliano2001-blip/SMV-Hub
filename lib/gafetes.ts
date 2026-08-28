@@ -5,8 +5,8 @@ import { registrarAuditoria } from "@/lib/auditoria"
 import { makeDateConverter } from "@/lib/firestore-helpers"
 
 export const MEDIDAS_GAFETE_PULGADAS = {
-  ancho: 2.462,
-  alto: 3.802,
+  ancho: 2.1285,
+  alto: 3.3850,
   porHoja: 4,
 } as const
 
