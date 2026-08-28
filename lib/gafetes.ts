@@ -17,14 +17,20 @@ export const AJUSTE_FOTO_INICIAL: GafeteAjusteFoto = {
   desplazamientoY: 0,
 }
 
+export const GAFETES_POR_HOJA_ENMICADO = 2
+
 /**
  * Datos institucionales impresos en todos los gafetes. Se mantienen fuera del
  * perfil individual para que una corrección aplique a todo el personal.
  */
 export const DATOS_TALLER_GAFETES = {
-  domicilio: "Calle: 7 de Diciembre #128 · Col. México Agrario · H. Matamoros, Tamaulipas, México · C.P. 87440",
-  responsableNombre: "Ing. Antonio Vázquez Vicencio",
+  domicilioLinea1: "Calle: 7 de diciembre #128",
+  domicilioLinea2: "Col. México Agrario, H. Matamoros",
+  domicilioLinea3: "Tamaulipas, México CP: 87440",
+  domicilio: "Calle: 7 de diciembre #128 · Col. México Agrario · H. Matamoros, Tamaulipas, México CP: 87440",
+  responsableTitulo: "Responsable:",
   responsablePuesto: "Gerente de Ingeniería / Ventas",
+  responsableNombre: "Ing. Antonio Vázquez Vicencio",
   responsableTelefono: "8681001683",
 } as const
 
@@ -52,6 +58,20 @@ export function normalizarAjusteFoto(ajuste?: AjusteFotoEntrada | null): GafeteA
   }
 }
 
+export function formatearFechaIngresoGafete(fecha?: string | null): string {
+  if (!fecha) return ""
+  const limpia = fecha.trim()
+  if (limpia.includes("/")) return limpia
+  const partes = limpia.split("-")
+  if (partes.length === 3) {
+    const [anio, mes, dia] = partes
+    if (anio.length === 4) {
+      return `${dia.padStart(2, "0")}/${mes.padStart(2, "0")}/${anio}`
+    }
+  }
+  return limpia
+}
+
 export function estaCompletoGafete(perfil: GafetePerfil | null | undefined): perfil is GafetePerfil {
   if (!perfil) return false
   return [
@@ -63,7 +83,16 @@ export function estaCompletoGafete(perfil: GafetePerfil | null | undefined): per
   ].every((valor) => valor.trim().length > 0)
 }
 
-/** Agrupa el mismo orden de frentes y reversos en hojas de cuatro gafetes. */
+/** Agrupa los gafetes para imprimir frente y reverso juntos (hasta 2 pares por hoja carta). */
+export function agruparGafetesParaEnmicar<T>(gafetes: readonly T[]): T[][] {
+  const hojas: T[][] = []
+  for (let indice = 0; indice < gafetes.length; indice += GAFETES_POR_HOJA_ENMICADO) {
+    hojas.push(gafetes.slice(indice, indice + GAFETES_POR_HOJA_ENMICADO))
+  }
+  return hojas
+}
+
+/** Agrupa el mismo orden de frentes y reversos en hojas de cuatro gafetes (modo dúplex). */
 export function agruparGafetesParaImpresion<T>(gafetes: readonly T[]): T[][] {
   const hojas: T[][] = []
   for (let indice = 0; indice < gafetes.length; indice += MEDIDAS_GAFETE_PULGADAS.porHoja) {
