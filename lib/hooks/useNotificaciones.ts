@@ -3,11 +3,14 @@ import { getClienteAuth } from "@/lib/firebase"
 import {
   audienciasNotificacionParaUsuario,
   contarNoLeidas,
+  descartarNotificacion as descartarNotificacionDb,
+  descartarTodasNotificaciones as descartarTodasDb,
   marcarNotificacionLeida,
   marcarTodasNotificacionesLeidas,
   mergeNotificacionesConLeidas,
   ordenarParaDropdown,
   suscribirNotificaciones,
+  suscribirNotificacionesDescartadas,
   suscribirNotificacionesLeidas,
 } from "@/lib/notificaciones"
 import type { ModuloId, NotificacionConLeida, OrigenModuloNotificacion } from "@/lib/schemas"
@@ -29,11 +32,15 @@ export function useNotificaciones(opciones?: {
       : getClienteAuth().currentUser?.uid ?? null
   const [leidasConfirmadas, setLeidasConfirmadas] = useState<Set<string>>(new Set())
   const [leidasOptimistas, setLeidasOptimistas] = useState<Set<string>>(new Set())
+  const [descartadasConfirmadas, setDescartadasConfirmadas] = useState<Set<string>>(new Set())
+  const [descartadasOptimistas, setDescartadasOptimistas] = useState<Set<string>>(new Set())
   const [raw, setRaw] = useState<Parameters<typeof mergeNotificacionesConLeidas>[0]>([])
   const [cargandoFeed, setCargandoFeed] = useState(enabled && Boolean(uid))
   const [cargandoLeidas, setCargandoLeidas] = useState(enabled && Boolean(uid))
+  const [cargandoDescartadas, setCargandoDescartadas] = useState(enabled && Boolean(uid))
   const [errorFeed, setErrorFeed] = useState<string | null>(null)
   const [errorLeidas, setErrorLeidas] = useState<string | null>(null)
+  const [errorDescartadas, setErrorDescartadas] = useState<string | null>(null)
   const [intento, setIntento] = useState(0)
   const audiencias = useMemo(
     () =>
@@ -102,14 +109,50 @@ export function useNotificaciones(opciones?: {
     return unsub
   }, [uid, enabled, intento])
 
+  useEffect(() => {
+    if (!enabled || !uid) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sin sesión no hay descartadas
+      setDescartadasConfirmadas(new Set())
+      setDescartadasOptimistas(new Set())
+      setCargandoDescartadas(false)
+      setErrorDescartadas(null)
+      return
+    }
+    setCargandoDescartadas(true)
+    setErrorDescartadas(null)
+    const unsub = suscribirNotificacionesDescartadas(
+      uid,
+      (ids) => {
+        setDescartadasConfirmadas(ids)
+        setDescartadasOptimistas((previas) => {
+          const pendientes = new Set([...previas].filter((id) => !ids.has(id)))
+          return pendientes.size === previas.size ? previas : pendientes
+        })
+        setCargandoDescartadas(false)
+        setErrorDescartadas(null)
+      },
+      (err) => {
+        console.error(err)
+        setErrorDescartadas(err.message || "No se pudieron cargar las notificaciones descartadas")
+        setCargandoDescartadas(false)
+      }
+    )
+    return unsub
+  }, [uid, enabled, intento])
+
   const leidasIds = useMemo(
     () => new Set([...leidasConfirmadas, ...leidasOptimistas]),
     [leidasConfirmadas, leidasOptimistas]
   )
 
+  const descartadasIds = useMemo(
+    () => new Set([...descartadasConfirmadas, ...descartadasOptimistas]),
+    [descartadasConfirmadas, descartadasOptimistas]
+  )
+
   const items = useMemo(
-    () => mergeNotificacionesConLeidas(raw, leidasIds),
-    [raw, leidasIds]
+    () => mergeNotificacionesConLeidas(raw, leidasIds, descartadasIds),
+    [raw, leidasIds, descartadasIds]
   )
 
   const noLeidas = useMemo(() => contarNoLeidas(items), [items])
@@ -151,6 +194,45 @@ export function useNotificaciones(opciones?: {
     }
   }, [uid, items])
 
+  const descartarNotificacion = useCallback(
+    async (id: string) => {
+      if (!uid) throw new Error("No hay una sesión activa para descartar la notificación")
+      setDescartadasOptimistas((previas) => new Set(previas).add(id))
+      try {
+        await descartarNotificacionDb(uid, id)
+      } catch (err) {
+        setDescartadasOptimistas((previas) => {
+          const siguientes = new Set(previas)
+          siguientes.delete(id)
+          return siguientes
+        })
+        console.error(err)
+        throw err
+      }
+    },
+    [uid]
+  )
+
+  const descartarTodas = useCallback(
+    async (idsParaDescartar?: readonly string[]) => {
+      if (!uid) throw new Error("No hay una sesión activa para descartar notificaciones")
+      const ids = idsParaDescartar ? [...idsParaDescartar] : items.map((n) => n.id)
+      if (ids.length === 0) return
+      setDescartadasOptimistas((previas) => new Set([...previas, ...ids]))
+      try {
+        await descartarTodasDb(uid, ids)
+      } catch (err) {
+        setDescartadasOptimistas((previas) => {
+          const siguientes = new Set(previas)
+          for (const id of ids) siguientes.delete(id)
+          return siguientes
+        })
+        throw err
+      }
+    },
+    [uid, items]
+  )
+
   const filtrar = useCallback(
     (origen: FiltroOrigen, leida: FiltroLeida): NotificacionConLeida[] => {
       return items.filter((n) => {
@@ -167,10 +249,12 @@ export function useNotificaciones(opciones?: {
     items,
     paraDropdown,
     noLeidas,
-    cargando: enabled && Boolean(uid) && (cargandoFeed || cargandoLeidas),
-    error: errorFeed ?? errorLeidas,
+    cargando: enabled && Boolean(uid) && (cargandoFeed || cargandoLeidas || cargandoDescartadas),
+    error: errorFeed ?? errorLeidas ?? errorDescartadas,
     marcarLeida,
     marcarTodas,
+    descartarNotificacion,
+    descartarTodas,
     filtrar,
     uid,
     reintentar: () => setIntento((actual) => actual + 1),

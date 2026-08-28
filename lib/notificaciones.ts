@@ -65,6 +65,10 @@ function leidasRef(uid: string) {
   return collection(db, "usuarios", uid, "notificaciones_leidas")
 }
 
+function descartadasRef(uid: string) {
+  return collection(db, "usuarios", uid, "notificaciones_descartadas")
+}
+
 const TITULOS: Record<TipoNotificacion, string> = {
   pedido_almacen_creado: "Nuevo pedido de almacén",
   pedido_almacen_estado: "Pedido de almacén actualizado",
@@ -100,9 +104,13 @@ export function hrefSeguroNotificacion(href: string): string {
 
 export function mergeNotificacionesConLeidas(
   notificaciones: readonly Notificacion[],
-  leidasIds: ReadonlySet<string>
+  leidasIds: ReadonlySet<string>,
+  descartadasIds?: ReadonlySet<string>
 ): NotificacionConLeida[] {
-  return notificaciones.map((n) => ({ ...n, leida: leidasIds.has(n.id) }))
+  const noDescartadas = descartadasIds
+    ? notificaciones.filter((n) => !descartadasIds.has(n.id))
+    : notificaciones
+  return noDescartadas.map((n) => ({ ...n, leida: leidasIds.has(n.id) }))
 }
 
 export function contarNoLeidas(items: readonly NotificacionConLeida[]): number {
@@ -256,9 +264,54 @@ export async function marcarTodasNotificacionesLeidas(
   }
 }
 
+/** Suscribe a los IDs de notificaciones que el usuario ha descartado/borrado. */
+export function suscribirNotificacionesDescartadas(
+  uid: string,
+  onData: (ids: Set<string>) => void,
+  onError?: (err: Error) => void
+): () => void {
+  return onSnapshot(
+    descartadasRef(uid),
+    (snap) => onData(new Set(snap.docs.map((d) => d.id))),
+    (err) => {
+      console.error("Error en suscripción a notificaciones descartadas:", err)
+      onError?.(err)
+    }
+  )
+}
+
+/** Descarta/elimina una notificación de la bandeja personal del usuario. */
+export async function descartarNotificacion(uid: string, notificacionId: string): Promise<void> {
+  await setDoc(doc(descartadasRef(uid), notificacionId), { descartadoEn: Timestamp.now() })
+}
+
+/** Descarta/elimina múltiples notificaciones de la bandeja personal en lote. */
+export async function descartarTodasNotificaciones(
+  uid: string,
+  ids: readonly string[]
+): Promise<void> {
+  const pendientes = [...new Set(ids.filter(Boolean))]
+  if (pendientes.length === 0) return
+
+  const LOTE = 400
+  for (let i = 0; i < pendientes.length; i += LOTE) {
+    const grupo = pendientes.slice(i, i + LOTE)
+    const batch = writeBatch(db)
+    const ahora = Timestamp.now()
+    for (const id of grupo) batch.set(doc(descartadasRef(uid), id), { descartadoEn: ahora })
+    await batch.commit()
+  }
+}
+
 /** Solo para tests y listados de una sola consulta. */
 export async function listarNotificacionesLeidasIds(uid: string): Promise<Set<string>> {
   const snap = await getDocs(leidasRef(uid))
+  return new Set(snap.docs.map((d) => d.id))
+}
+
+/** Solo para tests de notificaciones descartadas. */
+export async function listarNotificacionesDescartadasIds(uid: string): Promise<Set<string>> {
+  const snap = await getDocs(descartadasRef(uid))
   return new Set(snap.docs.map((d) => d.id))
 }
 

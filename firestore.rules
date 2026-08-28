@@ -122,6 +122,21 @@ service cloud.firestore {
           && appCheckValido()
           && request.auth.uid == uid;
       }
+
+      // Notificaciones descartadas / borradas por el usuario (limpieza de bandeja personal).
+      match /notificaciones_descartadas/{notificacionId} {
+        allow read: if estaAutenticado()
+          && appCheckValido()
+          && request.auth.uid == uid;
+        allow create, update: if estaAutenticado()
+          && appCheckValido()
+          && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['descartadoEn'])
+          && request.resource.data.descartadoEn is timestamp;
+        allow delete: if estaAutenticado()
+          && appCheckValido()
+          && request.auth.uid == uid;
+      }
     }
 
     // ── Validación de datos (frontera real del lado servidor) ────────────────

@@ -122,7 +122,7 @@ export default function NotificacionesBell() {
       >
         <Bell className="h-4 w-4" />
         {noLeidas > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 inline-flex h-[1.1rem] min-w-[1.1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+          <span className="absolute -top-0.5 -right-0.5 inline-flex h-[1.1rem] min-w-[1.1rem] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground">
             {noLeidas > 99 ? '99+' : noLeidas}
           </span>
         )}
@@ -169,7 +169,7 @@ export default function NotificacionesBell() {
               <button
                 type="button"
                 onClick={() => void onActivarEscritorio()}
-                className="shrink-0 cursor-pointer rounded bg-sky-600 px-2 py-0.5 text-[10px] font-bold text-white hover:bg-sky-700"
+                className="shrink-0 cursor-pointer rounded bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground hover:bg-primary/90"
               >
                 Activar
               </button>
