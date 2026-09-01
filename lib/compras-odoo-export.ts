@@ -12,6 +12,89 @@ import {
   type OpcionesTablaExcel,
 } from "@/lib/excel-export-base"
 
+export type TotalesPorMonedaOdoo = {
+  mxn: number
+  usd: number
+}
+
+function redondearCentavos(valor: number): number {
+  return Math.round((valor + Number.EPSILON) * 100) / 100
+}
+
+function acumularPorMoneda(
+  totales: TotalesPorMonedaOdoo,
+  moneda: string,
+  monto: number
+): void {
+  if (!Number.isFinite(monto) || monto === 0) return
+  if (moneda === "USD") totales.usd = redondearCentavos(totales.usd + monto)
+  else if (moneda === "MXN") totales.mxn = redondearCentavos(totales.mxn + monto)
+}
+
+/** Suma totales de cotizaciones Odoo por moneda. Nunca mezcla MXN y USD. */
+export function sumarTotalesPorMoneda(
+  registros: Array<{ moneda: string; total?: number | null }>
+): TotalesPorMonedaOdoo {
+  const totales: TotalesPorMonedaOdoo = { mxn: 0, usd: 0 }
+  for (const registro of registros) {
+    const monto = typeof registro.total === "number" ? registro.total : 0
+    acumularPorMoneda(totales, registro.moneda, monto)
+  }
+  return totales
+}
+
+/** Suma subtotales de partidas agrupados por la moneda del documento padre. */
+export function sumarSubtotalesPartidasPorMoneda(
+  registros: Array<{
+    moneda: string
+    partidas?: Array<{
+      subtotal?: number | null
+      cantidad?: number | null
+      precioUnitario?: number | null
+    }> | null
+  }>
+): TotalesPorMonedaOdoo {
+  const totales: TotalesPorMonedaOdoo = { mxn: 0, usd: 0 }
+  for (const registro of registros) {
+    if (!registro.partidas?.length) continue
+    let subtotalDoc = 0
+    for (const partida of registro.partidas) {
+      const linea =
+        typeof partida.subtotal === "number" && Number.isFinite(partida.subtotal)
+          ? partida.subtotal
+          : (partida.cantidad || 0) * (partida.precioUnitario || 0)
+      subtotalDoc += linea
+    }
+    acumularPorMoneda(totales, registro.moneda, subtotalDoc)
+  }
+  return totales
+}
+
+/**
+ * Valor para la celda de total de Excel: número si hay una sola moneda,
+ * texto con desglose si hay MXN y USD. Nunca devuelve MXN+USD.
+ */
+export function valorExcelSinMezclarMonedas(
+  totales: TotalesPorMonedaOdoo
+): number | string {
+  const hayMxn = totales.mxn !== 0
+  const hayUsd = totales.usd !== 0
+  if (hayMxn && hayUsd) {
+    return `MXN ${totales.mxn.toFixed(2)} · USD ${totales.usd.toFixed(2)}`
+  }
+  if (hayUsd) return totales.usd
+  return totales.mxn
+}
+
+export function etiquetaTotalesHistorialOdoo(totales: TotalesPorMonedaOdoo): string {
+  const hayMxn = totales.mxn !== 0
+  const hayUsd = totales.usd !== 0
+  if (hayMxn && hayUsd) return "TOTALES POR MONEDA (no mezclar MXN+USD):"
+  if (hayUsd) return "TOTAL GENERAL (USD):"
+  if (hayMxn) return "TOTAL GENERAL (MXN):"
+  return "TOTALES GENERALES:"
+}
+
 /**
  * Genera y descarga un archivo Excel profesional (.xlsx) con el historial de cotizaciones Odoo
  * y el desglose de partidas detallado.
@@ -37,13 +120,9 @@ export async function exportarHistorialOdooExcel(
     { header: "Notas", width: 35, align: "left" },
   ]
 
-  const totalMxn = registros
-    .filter((r) => r.moneda === "MXN")
-    .reduce((acc, r) => acc + (r.total || 0), 0)
-  const totalUsd = registros
-    .filter((r) => r.moneda === "USD")
-    .reduce((acc, r) => acc + (r.total || 0), 0)
+  const totalesPorMoneda = sumarTotalesPorMoneda(registros)
   const totalPartidas = registros.reduce((acc, r) => acc + (r.itemsCount || r.partidas?.length || 0), 0)
+  const valorTotalResumen = valorExcelSinMezclarMonedas(totalesPorMoneda)
 
   const filasResumen = registros.map((r) => [
     r.odooName,
@@ -63,8 +142,8 @@ export async function exportarHistorialOdooExcel(
   const metaFiltros = [
     filtros?.moneda ? `Moneda: ${filtros.moneda}` : null,
     filtros?.periodo ? `Período: ${filtros.periodo}` : null,
-    `Total MXN: $${totalMxn.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`,
-    `Total USD: $${totalUsd.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`,
+    `Total MXN: $${totalesPorMoneda.mxn.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`,
+    `Total USD: $${totalesPorMoneda.usd.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`,
   ].filter(Boolean).join("  ·  ")
 
   const opcionesResumen: OpcionesTablaExcel = {
@@ -77,10 +156,15 @@ export async function exportarHistorialOdooExcel(
     orientacion: "landscape",
     totales: {
       labelColSpan: 6,
-      label: "TOTALES GENERALES:",
+      label: etiquetaTotalesHistorialOdoo(totalesPorMoneda),
       valores: [
         { colIndex: 7, valor: totalPartidas, numFmt: "#,##0", align: "right" },
-        { colIndex: 10, valor: totalMxn + totalUsd, numFmt: "$#,##0.00", align: "right" },
+        {
+          colIndex: 10,
+          valor: valorTotalResumen,
+          numFmt: typeof valorTotalResumen === "number" ? "$#,##0.00" : undefined,
+          align: "right",
+        },
       ],
     },
   }
@@ -142,7 +226,6 @@ export async function exportarHistorialOdooExcel(
 
   // Filas Hoja 2
   let rowIdx = 5
-  let granSubtotalPartidas = 0
 
   for (const r of registros) {
     if (!r.partidas || !r.partidas.length) continue
@@ -152,7 +235,6 @@ export async function exportarHistorialOdooExcel(
       row.height = 18
 
       const subtotal = p.subtotal || (p.cantidad || 0) * (p.precioUnitario || 0)
-      granSubtotalPartidas += subtotal
 
       const vals = [
         r.odooName,
@@ -192,8 +274,10 @@ export async function exportarHistorialOdooExcel(
     }
   }
 
-  // Fila Total Hoja 2
+  // Fila Total Hoja 2 — desglose por moneda; nunca MXN+USD
   if (rowIdx > 5) {
+    const subtotalesPartidas = sumarSubtotalesPartidasPorMoneda(registros)
+    const valorPartidas = valorExcelSinMezclarMonedas(subtotalesPartidas)
     const totalPartidasRow = partidasSheet.getRow(rowIdx)
     totalPartidasRow.height = 22
     totalPartidasRow.font = { bold: true, size: 9.5 }
@@ -201,12 +285,14 @@ export async function exportarHistorialOdooExcel(
 
     partidasSheet.mergeCells(rowIdx, 1, rowIdx, 12)
     const labelPartidasTotal = totalPartidasRow.getCell(1)
-    labelPartidasTotal.value = "TOTAL SUBTOTAL PARTIDAS:"
+    labelPartidasTotal.value = etiquetaTotalesHistorialOdoo(subtotalesPartidas)
     labelPartidasTotal.alignment = { horizontal: "right", vertical: "middle" }
 
     const cellSum = totalPartidasRow.getCell(13)
-    cellSum.value = granSubtotalPartidas
-    cellSum.numFmt = "$#,##0.00"
+    cellSum.value = valorPartidas
+    if (typeof valorPartidas === "number") {
+      cellSum.numFmt = "$#,##0.00"
+    }
     cellSum.alignment = { horizontal: "right", vertical: "middle" }
 
     for (let c = 1; c <= columnasPartidas.length; c++) {
