@@ -10,6 +10,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { WebVitals } from "@/app/_components/WebVitals";
 import { ConfirmDialogProvider } from "@/components/ConfirmDialogProvider";
 import { FilePreviewProvider } from "@/components/FilePreviewProvider";
+import KeyboardShortcutsDialog from "@/components/KeyboardShortcutsDialog";
+import NetworkStatusIndicator from "@/components/NetworkStatusIndicator";
 
 const firaCode = Fira_Code({
   variable: "--font-fira-code",
@@ -64,6 +66,8 @@ export default function RootLayout({
                   {children}
                   <BottomNavBar />
                   <Toaster />
+                  <KeyboardShortcutsDialog />
+                  <NetworkStatusIndicator />
                 </FilePreviewProvider>
               </ConfirmDialogProvider>
             </AuthProvider>

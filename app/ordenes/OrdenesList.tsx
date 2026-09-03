@@ -8,9 +8,11 @@ import {
   cuentaCargoEfectiva,
   ordenTieneSatPendiente,
 } from '@/lib/ordenes-display'
-import { Loader2, AlertCircle, Package } from 'lucide-react'
+import { Loader2, AlertCircle, Package, CheckCircle2, XCircle, Tags, Trash2 } from 'lucide-react'
 import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
 import ModuleSurface from '@/components/layout/ModuleSurface'
+import ModuleBulkBar from '@/components/layout/ModuleBulkBar'
+import { Button } from '@/components/ui/button'
 
 import OrdenFormModal from './OrdenFormModal'
 import ModalSugerirClavesSat from './ModalSugerirClavesSat'
@@ -447,6 +449,69 @@ export default function OrdenesList({ busquedaInicial }: { busquedaInicial?: str
           onApplied={handleSatApplied}
         />
       )}
+
+      {/* Barra flotante de acciones en lote */}
+      <ModuleBulkBar
+        selectedCount={selectedIds.size}
+        totalCount={ordenesFiltradas.length}
+        onClearSelection={() =>
+          toggleAllSelection({ target: { checked: false } } as React.ChangeEvent<HTMLInputElement>)
+        }
+        actions={
+          <>
+            {seleccionPendientes.length > 0 && (
+              <>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleApproveMultiple}
+                  disabled={isChangingEstadoBulk}
+                  className="h-8 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer"
+                >
+                  <CheckCircle2 className="size-3.5" />
+                  Aprobar ({seleccionPendientes.length})
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleRejectMultiple}
+                  disabled={isChangingEstadoBulk}
+                  className="h-8 gap-1.5 border-rose-300 text-rose-600 hover:bg-rose-50 text-xs font-semibold cursor-pointer"
+                >
+                  <XCircle className="size-3.5" />
+                  Rechazar ({seleccionPendientes.length})
+                </Button>
+              </>
+            )}
+
+            {seleccionConSatPendiente.length > 0 && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void abrirSugerirSat(seleccionConSatPendiente)}
+                className="h-8 gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50 text-xs font-semibold cursor-pointer"
+              >
+                <Tags className="size-3.5" />
+                Claves SAT ({seleccionConSatPendiente.length})
+              </Button>
+            )}
+
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={handleDeleteMultiple}
+              disabled={isDeletingBulk}
+              className="h-8 gap-1.5 text-rose-600 hover:bg-rose-50 hover:text-rose-700 text-xs cursor-pointer"
+            >
+              <Trash2 className="size-3.5" />
+              Eliminar ({selectedIds.size})
+            </Button>
+          </>
+        }
+      />
     </>
   )
 }

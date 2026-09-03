@@ -75,36 +75,37 @@ export default function CotizacionesTabs() {
       <ModuleTabs
         value={modo}
         onValueChange={(value) => setModo(value as Modo)}
+        urlParam="tab"
+        stickyHeader
         items={[
           {
             value: 'consultar',
             label: (
-              <span className="inline-flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5">
                 <Search className="h-4 w-4" />
                 Consultar Catálogo
               </span>
             ),
+            badge: stats.total,
+            badgeVariant: 'sky',
             content: <CotizacionesList onIrAImportar={() => setModo('importar')} />,
           },
           {
             value: 'comparador',
             label: (
-              <span className="inline-flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5">
                 <Scale className="h-4 w-4" />
                 Comparador por Pieza
-                {stats.piezasComparables > 0 && (
-                  <span className="rounded-full bg-amber-100 dark:bg-amber-950/60 px-1.5 py-0.2 text-[10px] font-bold text-amber-700 dark:text-amber-300">
-                    {stats.piezasComparables}
-                  </span>
-                )}
               </span>
             ),
+            badge: stats.piezasComparables > 0 ? stats.piezasComparables : undefined,
+            badgeVariant: 'amber',
             content: <CotizacionesComparadorView cotizaciones={cotizaciones} />,
           },
           {
             value: 'importar',
             label: (
-              <span className="inline-flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5">
                 <Upload className="h-4 w-4" />
                 Carga Manual desde CSV
               </span>

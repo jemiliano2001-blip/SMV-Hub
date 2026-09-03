@@ -44,6 +44,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useFilePreview } from '@/components/FilePreviewProvider'
+import { useQuickLook } from '@/lib/hooks/useQuickLook'
 
 type ColFiltros = { proveedor: string; requisitor: string; empresa: string; cuentaCargo: string }
 
@@ -85,6 +86,22 @@ export default function OrdenesTabla({
   onPrepararFiltros,
 }: OrdenesTablaProps) {
   const { previewFile } = useFilePreview()
+  const [filaActivaIdx, setFilaActivaIdx] = useState<number | null>(0)
+
+  useQuickLook({
+    items: ordenesFiltradas,
+    selectedIndex: filaActivaIdx,
+    getArchivoMetadata: (orden) =>
+      orden.imagenUrl
+        ? {
+            url: orden.imagenUrl,
+            tipo: 'image',
+            titulo: `Comprobante · ${orden.proveedor}`,
+            subtitulo: `Factura #${orden.numeroFactura || 'S/N'} · ${formatPrecio(orden.total, orden.moneda)}`,
+          }
+        : null,
+  })
+
   const [avisoWhatsApp, setAvisoWhatsApp] = useState<{
     mensaje: string
     whatsappUrl: string
@@ -210,7 +227,7 @@ export default function OrdenesTabla({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {ordenesFiltradas.map((orden) => {
+          {ordenesFiltradas.map((orden, index) => {
             const fechas = formatFechaOrden(orden)
             const linkNorm = orden.linkProveedor ? sanitizarUrl(orden.linkProveedor) : null
             return (
@@ -218,6 +235,7 @@ export default function OrdenesTabla({
                 <ContextMenuTrigger asChild>
                   <TableRow
                     onClick={() => onSelectOrden(orden)}
+                    onMouseEnter={() => setFilaActivaIdx(index)}
                     className="cursor-pointer"
                   >
                     <TableCell className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
@@ -413,17 +431,29 @@ export default function OrdenesTabla({
                   {orden.imagenUrl && (
                     <ContextMenuItem
                       onClick={() =>
-                        previewFile({
-                          url: orden.imagenUrl!,
-                          nombre: `Factura-${orden.numeroFactura || orden.id}`,
-                          tipo: 'image',
-                          titulo: `Comprobante · ${orden.proveedor}`,
-                          subtitulo: `Factura #${orden.numeroFactura || 'S/N'} · ${formatPrecio(orden.total, orden.moneda)}`,
-                        })
+                        previewFile(
+                          {
+                            url: orden.imagenUrl!,
+                            nombre: `Factura-${orden.numeroFactura || orden.id}`,
+                            tipo: 'image',
+                            titulo: `Comprobante · ${orden.proveedor}`,
+                            subtitulo: `Factura #${orden.numeroFactura || 'S/N'} · ${formatPrecio(orden.total, orden.moneda)}`,
+                          },
+                          ordenesFiltradas
+                            .filter((o) => Boolean(o.imagenUrl))
+                            .map((o) => ({
+                              url: o.imagenUrl!,
+                              nombre: `Factura-${o.numeroFactura || o.id}`,
+                              tipo: 'image',
+                              titulo: `Comprobante · ${o.proveedor}`,
+                              subtitulo: `Factura #${o.numeroFactura || 'S/N'} · ${formatPrecio(o.total, o.moneda)}`,
+                            }))
+                        )
                       }
                     >
                       <FileText className="h-4 w-4 mr-2 text-amber-600" />
                       <span>Ver comprobante / factura</span>
+                      <ContextMenuShortcut>Espacio</ContextMenuShortcut>
                     </ContextMenuItem>
                   )}
 

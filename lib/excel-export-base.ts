@@ -1,4 +1,4 @@
-import ExcelJS from "exceljs"
+import type ExcelJS from "exceljs"
 
 export const COLOR_HEADER_BG = "FF111111"
 export const COLOR_HEADER_FG = "FFFFFFFF"
@@ -80,7 +80,11 @@ export async function construirWorkbookFormal(
     year: "numeric",
   })
 
-  const workbook = new ExcelJS.Workbook()
+  const ExcelJSModule = await import("exceljs")
+  const ExcelJSClass = (
+    "default" in ExcelJSModule ? ExcelJSModule.default : ExcelJSModule
+  ) as unknown as typeof import("exceljs")
+  const workbook = new ExcelJSClass.Workbook()
   workbook.creator = "SMV Hub"
   workbook.created = generadoEn
 

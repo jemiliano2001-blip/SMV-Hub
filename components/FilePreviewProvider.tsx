@@ -27,6 +27,8 @@ import {
   Loader2,
   Check,
   Search,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -42,15 +44,25 @@ import {
 } from '@/lib/preview-helpers'
 
 interface FilePreviewContextValue {
-  previewFile: (archivo: ArchivoPreviewMetadata) => void
+  previewFile: (archivo: ArchivoPreviewMetadata, lista?: ArchivoPreviewMetadata[], indice?: number) => void
+  previewList: (lista: ArchivoPreviewMetadata[], indiceInicial?: number) => void
   closePreview: () => void
   isOpen: boolean
+  archivoActivo: ArchivoPreviewMetadata | null
+  irSiguiente: () => void
+  irAnterior: () => void
+  hasPrev: boolean
+  hasNext: boolean
+  indiceActivo: number
+  totalArchivos: number
 }
 
 const FilePreviewContext = createContext<FilePreviewContextValue | null>(null)
 
 export function FilePreviewProvider({ children }: { children: ReactNode }) {
   const [archivoActivo, setArchivoActivo] = useState<ArchivoPreviewMetadata | null>(null)
+  const [colaArchivos, setColaArchivos] = useState<ArchivoPreviewMetadata[]>([])
+  const [indiceActivo, setIndiceActivo] = useState(0)
   const [zoom, setZoom] = useState(1)
   const [rotacion, setRotacion] = useState(0)
   const [posicion, setPosicion] = useState({ x: 0, y: 0 })
@@ -66,7 +78,7 @@ export function FilePreviewProvider({ children }: { children: ReactNode }) {
 
   const imagenRef = useRef<HTMLImageElement | null>(null)
 
-  const previewFile = useCallback((archivo: ArchivoPreviewMetadata) => {
+  const aplicarArchivo = useCallback((archivo: ArchivoPreviewMetadata) => {
     setArchivoActivo(archivo)
     setZoom(1)
     setRotacion(0)
@@ -78,13 +90,65 @@ export function FilePreviewProvider({ children }: { children: ReactNode }) {
     setFiltroTabla('')
   }, [])
 
+  const previewFile = useCallback(
+    (archivo: ArchivoPreviewMetadata, lista?: ArchivoPreviewMetadata[], indice?: number) => {
+      if (lista && lista.length > 0) {
+        setColaArchivos(lista)
+        const idx = indice ?? Math.max(0, lista.findIndex((a) => a.url === archivo.url))
+        setIndiceActivo(idx)
+        aplicarArchivo(lista[idx] || archivo)
+      } else {
+        setColaArchivos([archivo])
+        setIndiceActivo(0)
+        aplicarArchivo(archivo)
+      }
+    },
+    [aplicarArchivo]
+  )
+
+  const previewList = useCallback(
+    (lista: ArchivoPreviewMetadata[], indiceInicial = 0) => {
+      if (!lista || lista.length === 0) return
+      const idx = Math.min(Math.max(0, indiceInicial), lista.length - 1)
+      setColaArchivos(lista)
+      setIndiceActivo(idx)
+      aplicarArchivo(lista[idx]!)
+    },
+    [aplicarArchivo]
+  )
+
   const closePreview = useCallback(() => {
     setArchivoActivo(null)
+    setColaArchivos([])
+    setIndiceActivo(0)
     setZoom(1)
     setRotacion(0)
     setPosicion({ x: 0, y: 0 })
     setContenidoTexto(null)
   }, [])
+
+  const hasPrev = indiceActivo > 0
+  const hasNext = indiceActivo < colaArchivos.length - 1
+
+  const irAnterior = useCallback(() => {
+    if (!hasPrev) return
+    const nuevoIdx = indiceActivo - 1
+    const archivo = colaArchivos[nuevoIdx]
+    if (archivo) {
+      setIndiceActivo(nuevoIdx)
+      aplicarArchivo(archivo)
+    }
+  }, [hasPrev, indiceActivo, colaArchivos, aplicarArchivo])
+
+  const irSiguiente = useCallback(() => {
+    if (!hasNext) return
+    const nuevoIdx = indiceActivo + 1
+    const archivo = colaArchivos[nuevoIdx]
+    if (archivo) {
+      setIndiceActivo(nuevoIdx)
+      aplicarArchivo(archivo)
+    }
+  }, [hasNext, indiceActivo, colaArchivos, aplicarArchivo])
 
   // Tipo resuelto
   const tipoFinal: TipoArchivoPreview = useMemo(() => {
@@ -171,9 +235,26 @@ export function FilePreviewProvider({ children }: { children: ReactNode }) {
     if (!archivoActivo) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
+      const esInput = tag === 'input' || tag === 'textarea' || tag === 'select'
+
       if (e.key === 'Escape') {
         e.preventDefault()
         closePreview()
+      } else if ((e.key === ' ' || e.code === 'Space') && !esInput) {
+        // QuickLook toggle: cerrar si se presiona espacio estando abierto
+        e.preventDefault()
+        closePreview()
+      } else if (e.key === 'ArrowLeft' && !esInput) {
+        if (hasPrev) {
+          e.preventDefault()
+          irAnterior()
+        }
+      } else if (e.key === 'ArrowRight' && !esInput) {
+        if (hasNext) {
+          e.preventDefault()
+          irSiguiente()
+        }
       } else if (e.key === '+' || e.key === '=') {
         e.preventDefault()
         setZoom((z) => Math.min(z + 0.25, 4))
@@ -192,7 +273,7 @@ export function FilePreviewProvider({ children }: { children: ReactNode }) {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [archivoActivo, closePreview])
+  }, [archivoActivo, closePreview, hasPrev, hasNext, irAnterior, irSiguiente])
 
   // Zoom con rueda de ratón en visor de imagen
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -290,10 +371,29 @@ export function FilePreviewProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       previewFile,
+      previewList,
       closePreview,
       isOpen: Boolean(archivoActivo),
+      archivoActivo,
+      irSiguiente,
+      irAnterior,
+      hasPrev,
+      hasNext,
+      indiceActivo,
+      totalArchivos: colaArchivos.length,
     }),
-    [previewFile, closePreview, archivoActivo]
+    [
+      previewFile,
+      previewList,
+      closePreview,
+      archivoActivo,
+      irSiguiente,
+      irAnterior,
+      hasPrev,
+      hasNext,
+      indiceActivo,
+      colaArchivos.length,
+    ]
   )
 
   const datosCsv = useMemo(() => {
@@ -367,6 +467,36 @@ export function FilePreviewProvider({ children }: { children: ReactNode }) {
 
             {/* Controles de Vista y Acciones */}
             <div className="flex items-center gap-1 sm:gap-2">
+              {/* Carrusel secuencial si hay varios archivos */}
+              {colaArchivos.length > 1 && (
+                <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 p-0.5 mr-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={irAnterior}
+                    disabled={!hasPrev}
+                    className="h-7 w-7 p-0 text-zinc-300 hover:bg-white/10 hover:text-white disabled:opacity-30 cursor-pointer"
+                    title="Archivo anterior (←)"
+                  >
+                    <ChevronLeft className="size-3.5" />
+                  </Button>
+                  <span className="min-w-[48px] text-center font-mono text-[11px] font-semibold text-zinc-300 select-none">
+                    {indiceActivo + 1} / {colaArchivos.length}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={irSiguiente}
+                    disabled={!hasNext}
+                    className="h-7 w-7 p-0 text-zinc-300 hover:bg-white/10 hover:text-white disabled:opacity-30 cursor-pointer"
+                    title="Siguiente archivo (→)"
+                  >
+                    <ChevronRight className="size-3.5" />
+                  </Button>
+                </div>
+              )}
               {tipoFinal === 'image' && (
                 <div className="hidden sm:flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 p-0.5">
                   <Button
