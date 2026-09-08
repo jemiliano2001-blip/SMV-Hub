@@ -79,18 +79,21 @@ export function pareceDescripcionIngles(descripcion: string, proveedor = ""): bo
   if (!d) return false
 
   const tieneEspanolIndustrial =
-    /\b(tornillo|tuerca|arandela|fresa|broca|machuelo|resorte|sujecion|sujeción|herramienta|empaque|valvula|válvula|rodamiento|inserto)\b/i.test(
+    /\b(tornillo|tuerca|arandela|fresa|broca|machuelo|resorte|sujecion|sujeción|herramienta|empaque|valvula|válvula|rodamiento|rodamientos|inserto|guardamotor|guardamotores|balero|baleros|balinera|balineras|relevador|relevadores|variador|variadores|powerflex|clema|clemas|bornera|disyuntor|disyuntores|conmutador|rele|reles|fusible|fusibles|interruptor|interruptores|contactor|contactores|cable|manguera|placa|alambre)\b/i.test(
       d
     )
   if (tieneEspanolIndustrial) return false
 
   if (PATRONES_DESCRIPCION_INGLES.some((re) => re.test(d))) return true
   if (esProbableHerramienta(d, proveedor)) return true
-  const tieneEspanol = /\b(de|del|la|las|el|los|para|con)\b/i.test(d)
+  const tieneEspanol = /\b(de|del|la|las|el|los|para|con|por|en|un|una|unos|unas|sin|al|o|y|aprox|aproximadamente|equivalente|blindado|blindada|rigido|rigida)\b/i.test(d)
   if (tieneEspanol) return false
-  const palabras = d.split(/\s+/).filter((p) => p.length >= 3)
-  const latinBasico = palabras.filter((p) => /^[a-z0-9./-]+$/i.test(p)).length
-  return palabras.length >= 2 && latinBasico / palabras.length >= 0.8
+
+  // Solo considerar inglés si hay al menos una palabra clave de inglés técnico identificable
+  const palabrasInglesComunes = /\b(steel|carbide|inch|drill|tap|set|kit|thread|shank|cutter|round|flat|flute|length|hex|head|pin|mount|plate|bracket|gauge)\b/i
+  if (palabrasInglesComunes.test(d)) return true
+
+  return false
 }
 
 function opcionesBusqueda(descripcion: string, proveedor?: string): BuscarClavesSatOpciones | undefined {

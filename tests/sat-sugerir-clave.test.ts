@@ -481,3 +481,45 @@ describe("sugerirClavesSatLote", () => {
     expect(resultados.every((r) => r.claveProdServ === "31161500")).toBe(true)
   })
 })
+
+describe("prevención de falsas coincidencias grotescas en componentes de automatización", () => {
+  beforeEach(() => {
+    clearSatSugerenciaCache()
+    vi.restoreAllMocks()
+  })
+
+  it("140M-C2E-C16 no sugiere microcontrolador de 16 bits por el número 16", async () => {
+    const res = await sugerirClaveSatItem({
+      descripcion: "140M-C2E-C16 - Guardamotor 10-16 A",
+      proveedor: "Almacén Automatización",
+    }, new Map())
+
+    expect(res.claveProdServ).not.toBe("32101640")
+    expect(res.alternativas?.some((a) => a.clave === "32101640")).toBe(false)
+    expect(res.claveProdServ).toBe("39121601")
+  })
+
+  it("140M-F8E-C32 no sugiere microcontroladores de 32 bits por el número 32", async () => {
+    const res = await sugerirClaveSatItem({
+      descripcion: "140M-F8E-C32 - Guardamotor 23-32 A",
+      proveedor: "Almacén Automatización",
+    }, new Map())
+
+    expect(res.claveProdServ).not.toBe("32101642")
+    expect(res.claveProdServ).not.toBe("32101645")
+    expect(res.alternativas?.some((a) => a.clave.startsWith("3210164"))).toBe(false)
+    expect(res.claveProdServ).toBe("39121601")
+  })
+
+  it("KTA7 con palabra 'equivalente' no sugiere Bachillerato o equivalente", async () => {
+    const res = await sugerirClaveSatItem({
+      descripcion: "KTA7-25S-16A - Guardamotor 10-16 A; equivalente del 140M-C2E",
+      proveedor: "Almacén Automatización",
+    }, new Map())
+
+    expect(res.claveProdServ).not.toBe("86121601")
+    expect(res.alternativas?.some((a) => a.clave === "86121601")).toBe(false)
+    expect(res.claveProdServ).toBe("39121601")
+  })
+})
+

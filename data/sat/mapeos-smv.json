@@ -62,6 +62,51 @@
       "tokensNormalizados": ["oring", "buna"],
       "claveProdServ": "31162411",
       "descripcionEjemplo": "Buna N ORing"
+    },
+    {
+      "tokensNormalizados": ["guardamotor"],
+      "claveProdServ": "39121601",
+      "descripcionEjemplo": "Guardamotor termomagnético de motor"
+    },
+    {
+      "tokensNormalizados": ["guardamotores"],
+      "claveProdServ": "39121601",
+      "descripcionEjemplo": "Guardamotores industriales"
+    },
+    {
+      "tokensNormalizados": ["balero"],
+      "claveProdServ": "31171504",
+      "descripcionEjemplo": "Balero rígido de bolas"
+    },
+    {
+      "tokensNormalizados": ["baleros"],
+      "claveProdServ": "31171504",
+      "descripcionEjemplo": "Baleros industriales"
+    },
+    {
+      "tokensNormalizados": ["relevador"],
+      "claveProdServ": "39122300",
+      "descripcionEjemplo": "Relevador eléctrico de control"
+    },
+    {
+      "tokensNormalizados": ["relevadores"],
+      "claveProdServ": "39122300",
+      "descripcionEjemplo": "Relevadores de control"
+    },
+    {
+      "tokensNormalizados": ["variador"],
+      "claveProdServ": "39121007",
+      "descripcionEjemplo": "Variador de frecuencia para motor"
+    },
+    {
+      "tokensNormalizados": ["variadores"],
+      "claveProdServ": "39121007",
+      "descripcionEjemplo": "Variadores de frecuencia"
+    },
+    {
+      "tokensNormalizados": ["powerflex"],
+      "claveProdServ": "39121007",
+      "descripcionEjemplo": "Variador PowerFlex"
     }
   ]
 }

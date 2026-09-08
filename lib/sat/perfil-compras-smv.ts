@@ -26,6 +26,7 @@ export const AREAS_COMPRAS_SMV: PerfilAreaSmv[] = [
       "rodamiento", "resorte", "arandela", "tuerca", "portaherramienta", "inserto",
       "cutting", "tooling", "flute", "chuck", "countersink", "counterbore",
       "ejector", "expulsor", "botador", "molde", "mold", "punch", "die", "dowel",
+      "balero", "baleros", "balinera", "balineras",
     ],
     proveedores: [
       "mcmaster", "msc", "grainger", "travers", "shars", "ebay", "amazon",
@@ -61,8 +62,11 @@ export const AREAS_COMPRAS_SMV: PerfilAreaSmv[] = [
       "solenoid", "valve", "cylinder", "hmi", "transmitter", "automation",
       "electronic", "electric", "rele", "contacto", "fusible", "interruptor",
       "conector", "alambre", "neumatico", "valvula", "cilindro",
+      "guardamotor", "guardamotores", "relevador", "relevadores",
+      "variador", "variadores", "powerflex", "disyuntor", "disyuntores",
+      "clema", "clemas", "bornera", "automatizacion", "automatización",
     ],
-    proveedores: ["digikey", "mouser", "automation direct", "omega", "festo", "smc"],
+    proveedores: ["digikey", "mouser", "automation direct", "omega", "festo", "smc", "almacen automatizacion", "automatizacion"],
     ejemplos: [
       "Sensores inductivos y encoders",
       "Contactores, relevadores y fusibles",
@@ -173,10 +177,10 @@ export function clasificarAreaComprasSmv(
         confianza: "baja",
       }
     }
-    if (/\b(sensor|relay|plc|motor drive|contactor|encoder|proximity)\b/i.test(descripcion)) {
+    if (/\b(sensor|relay|plc|motor drive|contactor|encoder|proximity|guardamotor|relevador|variador|powerflex|breaker|disyuntor|clema)\b/i.test(descripcion)) {
       return {
         area: "automatizacion",
-        divisiones: ["26", "32"],
+        divisiones: ["26", "32", "39", "31"],
         coincidencias: ["heurística automatización"],
         confianza: "baja",
       }

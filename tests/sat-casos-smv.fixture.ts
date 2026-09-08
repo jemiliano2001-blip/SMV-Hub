@@ -50,4 +50,29 @@ export const CASOS_SMV_SAT: CasoSmvSat[] = [
     patronDescripcionSat: 'anillo|empaque|sello',
     fuentesAceptables: ['glosario', 'mapeo_smv', 'historial_fuzzy', 'traduccion'],
   },
+  {
+    descripcion: '140M-C2E-C20 - Guardamotor 14.5-20 A',
+    proveedor: 'Almacén Automatización',
+    claveEsperada: '39121601',
+    patronDescripcionSat: 'breaker|circuito|interruptor',
+    fuentesAceptables: ['local', 'mapeo_smv', 'glosario', 'historial_fuzzy', 'traduccion', 'ia_rag'],
+  },
+  {
+    descripcion: '6003-2Z - Balero rígido de bolas, blindado',
+    claveEsperada: '31171504',
+    patronDescripcionSat: 'rodamiento|balinera',
+    fuentesAceptables: ['local', 'mapeo_smv', 'glosario', 'historial_fuzzy', 'traduccion', 'ia_rag'],
+  },
+  {
+    descripcion: '2323-DP-115V AC - Relevador o componente 115 VAC; por confirmar',
+    claveEsperada: '39122300',
+    patronDescripcionSat: 'rel[eé]',
+    fuentesAceptables: ['local', 'mapeo_smv', 'glosario', 'historial_fuzzy', 'traduccion', 'ia_rag'],
+  },
+  {
+    descripcion: '25B-D6P0N114 - Variador PowerFlex 525, 3 HP / 2.2 kW',
+    claveEsperada: '39121007',
+    patronDescripcionSat: 'conversor|frecuencia|control',
+    fuentesAceptables: ['local', 'mapeo_smv', 'glosario', 'historial_fuzzy', 'traduccion', 'ia_rag'],
+  },
 ]

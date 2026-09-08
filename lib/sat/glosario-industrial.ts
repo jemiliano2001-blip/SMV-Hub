@@ -67,6 +67,14 @@ const FRASES_EN_ES: Array<[string, string]> = [
   ["printer paper", "papel imprenta"],
   ["sticky notes", "papel notas"],
   ["post-it", "papel notas"],
+  ["guardamotor termomagnetico", "breakers de circuito"],
+  ["balero rigido de bolas", "rodamientos de balineras"],
+  ["balero de bolas", "rodamientos de balineras"],
+  ["relevador de control", "reles electricos y accesorios"],
+  ["variador de frecuencia", "conversores de frecuencia"],
+  ["variador powerflex", "conversores de frecuencia"],
+  ["fuente de poder", "unidades de suministro de energia"],
+  ["fuente de alimentacion", "unidades de suministro de energia"],
 ]
 
 /** Palabras sueltas EN → ES. */
@@ -173,6 +181,20 @@ const PALABRAS_EN_ES: Record<string, string> = {
   highlighter: "marcador resaltador",
   channel: "canal perfil",
   angle: "angulo perfil",
+  guardamotor: "breakers de circuito",
+  guardamotores: "breakers de circuito",
+  balero: "rodamientos balineras",
+  baleros: "rodamientos balineras",
+  relevador: "reles",
+  relevadores: "reles",
+  variador: "conversores de frecuencia",
+  variadores: "conversores de frecuencia",
+  powerflex: "conversores de frecuencia",
+  clema: "terminal",
+  clemas: "terminales",
+  bornera: "terminales",
+  disyuntor: "disyuntores",
+  disyuntores: "disyuntores",
 }
 
 const STOPWORDS_EN = new Set([
@@ -184,10 +206,17 @@ const STOPWORDS_EN = new Set([
 
 const PALABRAS_ES_INDUSTRIAL = new Set([
   "fresa", "broca", "tornillo", "tuerca", "arandela", "resorte", "resortes",
-  "rodamiento",
+  "rodamiento", "rodamientos", "balero", "baleros", "balinera", "balineras",
   "herramienta", "empaque", "valvula", "inserto", "machuelo", "escariador",
   "carburo", "calibre", "calibrador", "micrometro", "avellanador", "desbarbado",
   "cuchilla", "limador", "precision", "agujeros", "corte", "portaherramienta",
+  "guardamotor", "guardamotores", "relevador", "relevadores", "variador", "variadores",
+  "powerflex", "clema", "clemas", "bornera", "disyuntor", "disyuntores",
+  "conmutador", "conmutadores", "rele", "reles", "contactor", "contactores",
+  "fusible", "fusibles", "interruptor", "interruptores",
+  "conversores", "conversor", "frecuencia", "balineras", "balinera",
+  "breakers", "breaker", "circuito", "circuitos", "electricos", "electrico",
+  "suministro", "energia",
   // Modificadores de producto: sin ellos "resorte de compresión" → solo "resorte"
   // y el buscador prioriza máquinas/herramientas que mencionan "resorte".
   "compresion", "extension", "traccion", "torsion", "helicoidal",

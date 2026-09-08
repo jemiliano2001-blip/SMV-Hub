@@ -1,4 +1,5 @@
 import { findSatCatalogEntryByKey, getSatCatalogEntries, type SatCatalogEntry } from "@/lib/sat/catalogo"
+import { traducirConGlosario } from "@/lib/sat/glosario-industrial"
 import {
   normalizarClaveProdServ,
   normalizarTextoSat,
@@ -38,6 +39,10 @@ const PALABRAS_GENERICAS = new Set([
   "METAL", "HERRAMIENTA", "ACERO", "CORTE", "DE", "PARA", "CON", "DEL", "LA",
   "EL", "LOS", "LAS", "SOLIDO", "SOLIDA", "INDUSTRIAL", "PRODUCTO", "OTROS",
   "RECTA", "ESPIRAL", "PRECISION",
+  "APROX", "APROXIMADAMENTE", "EQUIVALENTE", "EQUIVALENTES", "SIN",
+  "IDENTIFICACION", "CONCLUYENTE", "CONFIRMAR", "TIPO", "MODELO", "SERIE",
+  "PZ", "PZA", "PIEZA", "PIEZAS", "BLINDADO", "BLINDADA", "RIGIDO", "RIGIDA",
+  "PAR", "SET", "JUEGO", "KIT", "AL", "POR", "UN", "UNA",
 ])
 
 /** Modificadores de producto que deben pesar (no tirarlos ni tratarlos como ruido). */
@@ -45,6 +50,15 @@ const MODIFICADORES_PRODUCTO = new Set([
   "COMPRESION", "EXTENSION", "TRACCION", "TORSION", "HELICE", "HELICOIDAL",
   "COMPRESSION", "EXTENSION", "TORSION",
 ])
+
+export function esTokenEspecificoSat(token: string): boolean {
+  const t = token.toUpperCase()
+  if (MODIFICADORES_PRODUCTO.has(t)) return true
+  if (PALABRAS_GENERICAS.has(t)) return false
+  // Números puros (ej. "16", "32", "20", "115") nunca deben tratarse como categorías de producto
+  if (/^\d+$/.test(t)) return false
+  return true
+}
 
 /**
  * Tipos de producto de la query → preferimos entradas cuyo título sea ese
@@ -74,6 +88,26 @@ const TIPOS_PRODUCTO: Array<{
     query: /\b(brocas?|drills?)\b/i,
     titulo: /\bbrocas?\b/i,
     ruido: /\b(maquina|máquina|afiladora)\b/i,
+  },
+  {
+    query: /\b(baleros?|rodamientos?|balineras?|bearings?)\b/i,
+    titulo: /\brodamientos?\b/i,
+    ruido: /\b(maquina|máquina|extractor|kit de herramientas|soporte|manga|tuercas de rodamiento)\b/i,
+  },
+  {
+    query: /\b(guardamotor(?:es)?|breakers?|disyuntores?)\b/i,
+    titulo: /\b(breakers? de circuito|disyuntores|interruptor(?:es)? de circuito|protección de circuitos)\b/i,
+    ruido: /\b(probador|analizador)\b/i,
+  },
+  {
+    query: /\b(relevadores?|rel[eé]s?|relays?)\b/i,
+    titulo: /\brel[eé]s?\b/i,
+    ruido: /\b(probador|analizador)\b/i,
+  },
+  {
+    query: /\b(variador(?:es)?|powerflex|vfd|inversor(?:es)?)\b/i,
+    titulo: /\b(conversores de frecuencia|controles de motor)\b/i,
+    ruido: /\b(probador|analizador)\b/i,
   },
 ]
 
@@ -136,6 +170,11 @@ function aplicarSesgoTipoProducto(
   }
     if (tipo.titulo.test(desc) && !tipo.ruido.test(desc)) {
       adjusted += 220
+      const iniciaConTipo = new RegExp(`^\\s*${tipo.titulo.source}`, "i").test(desc)
+      if (iniciaConTipo) {
+        adjusted += 80
+        reasons.push("El catálogo inicia con el tipo de producto")
+      }
       reasons.push("Coincide tipo de producto del catálogo")
     } else if (tipo.ruido.test(desc)) {
       adjusted -= 280
@@ -197,16 +236,10 @@ function scoreEntry(entry: SatCatalogEntry, query: string): SatSearchResult | nu
   }
 
   const matchedTokens = queryTokens.filter((token) => tokenMatchesHaystack(token, haystackStem))
-  const tokensEspecificos = matchedTokens.filter(
-    (t) => !PALABRAS_GENERICAS.has(t) || MODIFICADORES_PRODUCTO.has(t)
-  )
-  const tokensGenericos = matchedTokens.filter(
-    (t) => PALABRAS_GENERICAS.has(t) && !MODIFICADORES_PRODUCTO.has(t)
-  )
+  const tokensEspecificos = matchedTokens.filter(esTokenEspecificoSat)
+  const tokensGenericos = matchedTokens.filter((t) => !esTokenEspecificoSat(t))
 
-  const queryTokensEspecificos = queryTokens.filter(
-    (t) => !PALABRAS_GENERICAS.has(t) || MODIFICADORES_PRODUCTO.has(t)
-  )
+  const queryTokensEspecificos = queryTokens.filter(esTokenEspecificoSat)
   const primerTerminoEspecifico = queryTokensEspecificos[0]
   const coincideTerminoPrincipal =
     !primerTerminoEspecifico || tokensEspecificos.includes(primerTerminoEspecifico)
@@ -331,14 +364,28 @@ export function buscarClavesSat(
       : []
   }
 
-  const ranked = rankear(filtrarEntradas(opciones), cleaned, limite)
+  let ranked = rankear(filtrarEntradas(opciones), cleaned, limite)
 
   const hayFiltroDivision = Boolean(
     opciones?.divisionPrefijos?.length || opciones?.divisionPrefijo?.trim()
   )
   if (opciones?.inyectarFraseExacta !== false && hayFiltroDivision) {
     const extras = matchesFraseExacta(cleaned, limite)
-    if (extras.length > 0) return fusionarResultados(ranked, extras, limite)
+    if (extras.length > 0) ranked = fusionarResultados(ranked, extras, limite)
+  }
+
+  // Si la búsqueda inicial arroja poco o nada (ej. términos coloquiales como "guardamotor",
+  // "balero", o términos en inglés como "compression spring" en búsquedas manuales),
+  // traducir con el glosario industrial y fusionar para garantizar resultados en /claves-sat
+  const topScore = ranked[0]?.score ?? 0
+  if (topScore < 300) {
+    const traduccion = traducirConGlosario(cleaned)
+    if (traduccion && traduccion.terminosBusqueda.toLowerCase() !== cleaned.toLowerCase()) {
+      const extrasGlosario = rankear(filtrarEntradas(opciones), traduccion.terminosBusqueda, limite)
+      if (extrasGlosario.length > 0) {
+        ranked = fusionarResultados(ranked, extrasGlosario, limite)
+      }
+    }
   }
 
   return ranked

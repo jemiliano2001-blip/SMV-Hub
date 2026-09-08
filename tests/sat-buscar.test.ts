@@ -61,4 +61,22 @@ describe("buscarClavesSat con catálogo cargado", () => {
     expect(results[0]?.entry.descripcion).toMatch(/^Resortes?\b/i)
     expect(results[0]?.entry.descripcion).not.toMatch(/máquina|forjado|tester|alicate/i)
   })
+
+  it("query 'guardamotor' resuelve claves de breakers/interruptores de circuito vía glosario", () => {
+    const results = buscarClavesSat("guardamotor", 5)
+    expect(results.length).toBeGreaterThan(0)
+    expect(results.some((r) => /breaker|circuito|interruptor/i.test(r.entry.descripcion))).toBe(true)
+  })
+
+  it("query 'balero' resuelve rodamientos vía glosario", () => {
+    const results = buscarClavesSat("balero", 5)
+    expect(results.length).toBeGreaterThan(0)
+    expect(results.some((r) => /rodamiento|balinera/i.test(r.entry.descripcion))).toBe(true)
+  })
+
+  it("query en inglés 'Compression Spring' resuelve resortes de compresión sin fallar", () => {
+    const results = buscarClavesSat("Compression Spring", 5)
+    expect(results.length).toBeGreaterThan(0)
+    expect(results[0]?.entry.clave).toBe("31161904")
+  })
 })

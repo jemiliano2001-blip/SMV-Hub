@@ -174,6 +174,17 @@ function validarClaveEnCandidatos(clave: string | undefined, candidatos: Candida
   if (candidatos.some((c) => c.clave === claveLimpia)) return claveLimpia
   const enCatalogo = findSatCatalogEntryByKey(claveLimpia)
   if (enCatalogo) return enCatalogo.clave
+
+  // Si la clave específica no está en el catálogo local (subset de 52k),
+  // el SAT autoriza la facturación a nivel clase terminada en 00
+  const nivelClase = `${claveLimpia.slice(0, 6)}00`
+  const claseEnCatalogo = findSatCatalogEntryByKey(nivelClase)
+  if (claseEnCatalogo) return claseEnCatalogo.clave
+
+  const nivelGrupo = `${claveLimpia.slice(0, 4)}0000`
+  const grupoEnCatalogo = findSatCatalogEntryByKey(nivelGrupo)
+  if (grupoEnCatalogo) return grupoEnCatalogo.clave
+
   return null
 }
 
@@ -188,12 +199,12 @@ export async function extraerProductoIndustrial(
     contextoSmvParaIa(clasificarAreaComprasSmv(descripcion, proveedor ?? ""))
   const prompt = `${ctx}
 
-Analiza este producto comprado en USA:
+Analiza este producto industrial:
 ${descripcion}${prov}
 
 Extrae tipo, material, función y términos en español para catálogo c_ClaveProdServ México.
 Taller: escariador/rema, broca, fresa, tornillería, metales (div. 23/30/31).
-Automatización: sensores, contactores, motores, cableado (div. 26/32).
+Automatización: guardamotor, contactores, variadores, relevadores, sensores, cableado (div. 26/32/39).
 Oficina: papel, toner, artículos de escritorio (div. 14/41/55).`
 
   const texto = await llamarGeminiTexto(prompt, EXTRACCION_SCHEMA)
@@ -228,14 +239,18 @@ function construirPromptEleccion(
   const previo = motivoPrevio ? `\nEvaluación previa: ${motivoPrevio}` : ""
   const lista =
     candidatos.length > 0
-      ? `\nCandidatos SAT:\n${candidatos.map((c) => `- ${c.clave}: ${truncarDescripcion(c.descripcion)}`).join("\n")}`
+      ? `\nCandidatos sugeridos por catálogo local:\n${candidatos.map((c) => `- ${c.clave}: ${truncarDescripcion(c.descripcion)}`).join("\n")}`
       : ""
 
   return `${ctx}
 
-Producto USA: ${descripcion}${prov}${contexto}${previo}${lista}
+Producto / Ítem: ${descripcion}${prov}${contexto}${previo}${lista}
 
-Elige la clave SAT más precisa para facturación CFDI en México. No inventes claves. Confianza: alta/media/baja.`
+Instrucción:
+Identifica la clave SAT (c_ClaveProdServ UNSPSC de 8 dígitos) más precisa para facturación CFDI en México.
+- Si alguno de los candidatos sugeridos coincide fielmente con el producto real, elígelo.
+- Si ninguno de los candidatos es adecuado (o si solo son piezas genéricas o herramientas no relacionadas), sugiere la clave UNSPSC oficial de 8 dígitos (o nivel clase terminado en 00) que describa este producto según tu conocimiento técnico industrial (ej. breakers/guardamotores 39121601/39121500, rodamientos/baleros 31171504/31171500, relevadores 39122300, variadores/conversores de frecuencia 39121007).
+- Confianza: alta/media/baja.`
 }
 
 async function elegirClaveConModelo(
