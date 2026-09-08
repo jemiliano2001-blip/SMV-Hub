@@ -4,6 +4,9 @@ import type { ItemParaSugerirSat } from "@/lib/sat/types"
 /** Tope del POST /api/sugerir-clave-sat: Gemini + timeout del SSR. El cliente parte lotes más grandes. */
 export const MAX_ITEMS_SUGERIR_CLAVE_SAT = 50
 
+/** Tamaño de lote recomendado para llamadas desde la UI para evitar timeouts en Hosting (60s). */
+export const TAMANO_LOTE_SUGERIR_SAT_CLIENTE = 5
+
 export type HistorialEntradaSat = {
   descripcion: string
   claveProdServ: string

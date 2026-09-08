@@ -388,8 +388,20 @@ export default function ReporteContableView() {
           historialEntradas: extraerEntradasHistorialSat(ordenesFiltradas),
         }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "No se pudo generar la sugerencia")
+      let data: { error?: string; sugerencias?: unknown[] } | null = null
+      try {
+        data = (await res.json()) as { error?: string; sugerencias?: unknown[] }
+      } catch {
+        // Respuesta no JSON
+      }
+      if (!res.ok || !data) {
+        throw new Error(
+          data?.error ||
+            (res.status === 502 || res.status === 504
+              ? "El servidor tardó demasiado en responder (timeout). Reintenta la sugerencia."
+              : `Error del servidor (${res.status}) al generar la sugerencia`)
+        )
+      }
 
       const sugerencia = data.sugerencias?.[0] as {
         claveProdServ: string | null

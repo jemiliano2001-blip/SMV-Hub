@@ -58,7 +58,7 @@ export type SugerirClaveSatDeps = GeminiSatDeps & {
 const UMBRAL_SCORE_ALTO = 160
 const UMBRAL_SCORE_MEDIO = 80
 const UMBRAL_GAP_SCORE = 40
-const CONCURRENCIA_LOTE_SAT = 3
+const CONCURRENCIA_LOTE_SAT = 5
 
 function resolverMaxCandidatosGemini(): number {
   const raw = process.env.SAT_MAX_CANDIDATOS?.trim()

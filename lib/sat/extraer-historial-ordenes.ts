@@ -6,15 +6,22 @@ import { normalizarClaveProdServ } from "@/lib/sat/normalizar"
  * Vive fuera de `sugerir-clave` / `catalogo` para no meter ~10 MB de catálogo en el bundle.
  */
 export function extraerEntradasHistorialSat(
-  ordenes: OrdenCompra[]
+  ordenes: OrdenCompra[],
+  maxEntradas = 500
 ): Array<{ descripcion: string; claveProdServ: string }> {
-  const entradas: Array<{ descripcion: string; claveProdServ: string }> = []
+  const mapa = new Map<string, { descripcion: string; claveProdServ: string }>()
   for (const orden of ordenes) {
     for (const item of orden.items ?? []) {
       const clave = normalizarClaveProdServ(item.claveProdServ)
-      if (!clave || !item.descripcion?.trim()) continue
-      entradas.push({ descripcion: item.descripcion, claveProdServ: clave })
+      const desc = item.descripcion?.trim()
+      if (!clave || !desc) continue
+      const key = desc.toLowerCase().replace(/\s+/g, " ")
+      if (!mapa.has(key)) {
+        mapa.set(key, { descripcion: desc, claveProdServ: clave })
+        if (mapa.size >= maxEntradas) break
+      }
     }
+    if (mapa.size >= maxEntradas) break
   }
-  return entradas
+  return Array.from(mapa.values())
 }

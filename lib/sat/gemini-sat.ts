@@ -14,7 +14,7 @@ export const MODELO_SAT_ESCALADO = "gemini-3.7-flash"
 const MODELOS_SAT_OBSOLETOS: Readonly<Record<string, string>> = {
   "gemini-3.1-flash-lite-preview": MODELO_SAT_LITE,
 }
-const TIEMPO_MAXIMO_GEMINI_MS = 15_000
+const TIEMPO_MAXIMO_GEMINI_MS = 10_000
 
 type GeminiGenerateResponse = {
   candidates?: Array<{
@@ -298,18 +298,12 @@ export async function traducirYElegirClaveSat(
   if (!necesitaEscalamiento(lite, candidatosScores)) return lite
 
   try {
-    let extraccion: ExtraccionIndustrial | undefined
-    try {
-      extraccion = await extraerProductoIndustrial(descripcion, proveedor)
-    } catch {
-      // The escalated model can still decide from the original description.
-    }
     const escalado = await elegirClaveConModelo(
       descripcion,
       candidatos,
       proveedor,
       resolverModeloEscalado(),
-      extraccion,
+      undefined,
       lite.motivo
     )
     if (escalado.clave || escalado.confianzaIa !== "baja") return escalado

@@ -313,11 +313,26 @@ export default function NuevaCompraForm({
           }],
         }),
       })
-      const data = await res.json() as {
+      let data: {
         error?: string
         sugerencias?: Array<{ claveProdServ: string | null; alternativas?: AlternativaSat[] }>
+      } | null = null
+      try {
+        data = (await res.json()) as {
+          error?: string
+          sugerencias?: Array<{ claveProdServ: string | null; alternativas?: AlternativaSat[] }>
+        }
+      } catch {
+        // Respuesta no JSON
       }
-      if (!res.ok) throw new Error(data.error || 'No se pudo generar la sugerencia SAT')
+      if (!res.ok || !data) {
+        throw new Error(
+          data?.error ||
+            (res.status === 502 || res.status === 504
+              ? 'El servidor tardó demasiado en responder (timeout). Reintenta la sugerencia.'
+              : `Error del servidor (${res.status}) al generar la sugerencia SAT`)
+        )
+      }
       const sugerencia = data.sugerencias?.[0]
       if (!sugerencia) throw new Error('No se encontró una clave SAT para esta descripción.')
 

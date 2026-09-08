@@ -21,6 +21,7 @@ import { extraerEntradasHistorialSat } from '@/lib/sat/extraer-historial-ordenes
 import {
   itemPayloadSugerirClaveSat,
   partirLoteSugerirClaveSat,
+  TAMANO_LOTE_SUGERIR_SAT_CLIENTE,
 } from '@/lib/sat/payload-sugerir-clave'
 import { guardarAsignacionesSatValidadas } from '@/lib/sat/mapeos-persistir'
 import type { AlternativaSat } from '@/lib/sat/types'
@@ -100,6 +101,7 @@ export default function ModalSugerirClavesSat({
 }: Props) {
   const [filas, setFilas] = useState<FilaSugerenciaSat[]>([])
   const [loading, setLoading] = useState(true)
+  const [progreso, setProgreso] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
@@ -111,6 +113,7 @@ export default function ModalSugerirClavesSat({
     async function cargarSugerencias() {
       setLoading(true)
       setError(null)
+      setProgreso(null)
 
       const pendientes: Array<{ orden: OrdenCompra; itemIndex: number }> = []
       for (const orden of ordenes) {
@@ -140,9 +143,16 @@ export default function ModalSugerirClavesSat({
 
         const historialEntradas = extraerEntradasHistorialSat(historialOrdenes)
         const sugerencias: SugerenciaApi[] = []
+        const lotes = partirLoteSugerirClaveSat(items, TAMANO_LOTE_SUGERIR_SAT_CLIENTE)
 
-        for (const lote of partirLoteSugerirClaveSat(items)) {
+        for (let l = 0; l < lotes.length; l++) {
           if (cancelled) return
+          const lote = lotes[l]
+          if (lotes.length > 1) {
+            setProgreso(
+              `Analizando ítems ${sugerencias.length + 1} al ${Math.min(sugerencias.length + lote.length, items.length)} de ${items.length}…`
+            )
+          }
           const res = await fetch('/api/sugerir-clave-sat', {
             method: 'POST',
             signal: controller.signal,
@@ -153,8 +163,21 @@ export default function ModalSugerirClavesSat({
             body: JSON.stringify({ items: lote, historialEntradas }),
           })
 
-          const data = await res.json() as { error?: string; sugerencias?: SugerenciaApi[] }
-          if (!res.ok) throw new Error(data.error || 'Error al obtener sugerencias')
+          let data: { error?: string; sugerencias?: SugerenciaApi[] } | null = null
+          try {
+            data = (await res.json()) as { error?: string; sugerencias?: SugerenciaApi[] }
+          } catch {
+            // Respuesta no es JSON (ej. 502/504 HTML de proxy/hosting)
+          }
+
+          if (!res.ok || !data) {
+            const mensaje =
+              data?.error ||
+              (res.status === 502 || res.status === 504
+                ? 'El servidor tardó demasiado en responder (timeout). Reintenta la sugerencia.'
+                : `Error del servidor (${res.status}) al obtener sugerencias SAT.`)
+            throw new Error(mensaje)
+          }
           sugerencias.push(...(data.sugerencias ?? []))
         }
         if (!cancelled) {
@@ -334,7 +357,7 @@ export default function ModalSugerirClavesSat({
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
               <Loader2 className="mb-3 h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm">Generando sugerencias…</p>
+              <p className="text-sm">{progreso || 'Generando sugerencias…'}</p>
             </div>
           ) : error ? (
             <div className="text-center py-12 space-y-3">

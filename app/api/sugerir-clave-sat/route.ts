@@ -30,6 +30,9 @@ const RequestSchema = z.object({
   historialEntradas: z.unknown().optional().transform(normalizarHistorialEntradasSat),
 })
 
+export const runtime = "nodejs"
+export const maxDuration = 120
+
 export async function POST(req: NextRequest) {
   const auth = await verificarModulo(req, ["nueva-compra", "ordenes", "reportes", "claves-sat", "cotizaciones"], "No tienes acceso a la clasificacion SAT")
   if (!auth.ok) return auth.response
@@ -78,7 +81,7 @@ export async function POST(req: NextRequest) {
     const mensaje = err instanceof Error ? err.message : "error desconocido"
     console.error("[sugerir-clave-sat] error:", mensaje)
     const status =
-      err instanceof ErrorIA && mensaje.includes("GEMINI_API_KEY") ? 503 : 502
+      err instanceof ErrorIA && mensaje.includes("GEMINI_API_KEY") ? 503 : 500
     const error =
       err instanceof ErrorIA ? mensaje : "Error al generar sugerencias de clave SAT"
     return Response.json({ error }, { status })

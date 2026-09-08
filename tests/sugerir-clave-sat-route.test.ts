@@ -94,4 +94,14 @@ describe("POST /api/sugerir-clave-sat", () => {
     expect(body.error).toMatch(/máximo 50/i)
     expect(mockSugerirClaves).not.toHaveBeenCalled()
   })
+
+  it("retorna 500 (no 502) ante error interno para no disparar reemplazo HTML del gateway", async () => {
+    mockSugerirClaves.mockRejectedValueOnce(new Error("Error de base de datos o timeout"))
+    const res = await POST(makeRequest({
+      items: [{ descripcion: "End mill" }],
+    }))
+    expect(res.status).toBe(500)
+    const body = await res.json() as { error: string }
+    expect(body.error).toBe("Error al generar sugerencias de clave SAT")
+  })
 })
