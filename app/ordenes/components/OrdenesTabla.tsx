@@ -4,13 +4,17 @@ import {
   Copy,
   ExternalLink,
   Eye,
+  FileSpreadsheet,
   FileText,
+  Loader2,
   MessageCircle,
   Tags,
   Trash2,
   XCircle,
 } from 'lucide-react'
 import type { OrdenCompra } from '@/lib/schemas'
+import { toast } from 'sonner'
+import { descargarExcelOrden } from '@/lib/orden-excel-export'
 import { formatPrecio } from '@/lib/format'
 import { sanitizarUrl } from '@/lib/importar'
 import {
@@ -108,6 +112,20 @@ export default function OrdenesTabla({
     comprobanteUrl?: string
     abrirWhatsApp: boolean
   } | null>(null)
+  const [descargandoId, setDescargandoId] = useState<string | null>(null)
+
+  async function handleDescargarExcel(orden: OrdenCompra) {
+    try {
+      setDescargandoId(orden.id)
+      await descargarExcelOrden(orden)
+      toast.success(`Excel generado para ${orden.proveedor}`)
+    } catch (err) {
+      console.error('Error al exportar orden:', err)
+      toast.error('No se pudo descargar el Excel de la orden')
+    } finally {
+      setDescargandoId(null)
+    }
+  }
 
   async function notificar(orden: OrdenCompra) {
     const resultado = await notificarOrdenPorWhatsApp(orden)
@@ -325,6 +343,22 @@ export default function OrdenesTabla({
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
+                            void handleDescargarExcel(orden)
+                          }}
+                          disabled={descargandoId === orden.id}
+                          className="p-1 text-muted-foreground hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors disabled:opacity-50 cursor-pointer"
+                          title="Descargar orden en Excel (.xlsx)"
+                          aria-label={`Descargar Excel de orden ${orden.numeroFactura || orden.id}`}
+                        >
+                          {descargandoId === orden.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
+                          ) : (
+                            <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+                          )}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
                             onSelectOrden(orden)
                           }}
                           className="p-1 text-muted-foreground hover:text-primary hover:bg-sky-50 rounded transition-colors"
@@ -417,6 +451,11 @@ export default function OrdenesTabla({
                   <ContextMenuItem onClick={() => void notificar(orden)}>
                     <MessageCircle className="h-4 w-4 mr-2 text-emerald-600" />
                     <span>Notificar por WhatsApp</span>
+                  </ContextMenuItem>
+
+                  <ContextMenuItem onClick={() => void handleDescargarExcel(orden)}>
+                    <FileSpreadsheet className="h-4 w-4 mr-2 text-emerald-600" />
+                    <span>Descargar orden en Excel (.xlsx)</span>
                   </ContextMenuItem>
 
                   {linkNorm && (

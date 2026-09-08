@@ -8,11 +8,13 @@ import WhatsAppIcon from '@/components/WhatsAppIcon'
 import { normalizarClaveProdServ } from '@/lib/sat/normalizar'
 import { sanitizarUrl } from '@/lib/importar'
 import type { OrdenCompra } from '@/lib/schemas'
-import { Calendar, CheckCircle2, Edit2, ExternalLink, Eye, PackageCheck, Tags, Trash2, XCircle } from 'lucide-react'
+import { Calendar, CheckCircle2, Edit2, ExternalLink, Eye, FileSpreadsheet, Loader2, PackageCheck, Tags, Trash2, XCircle } from 'lucide-react'
 import { useFilePreview } from '@/components/FilePreviewProvider'
 import OrdenBadgeEstado from './OrdenBadgeEstado'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { descargarExcelOrden } from '@/lib/orden-excel-export'
 import StepperAbastecimiento from '@/components/abastecimiento/StepperAbastecimiento'
 import ModalRecibirOrdenAlmacen from '@/components/abastecimiento/ModalRecibirOrdenAlmacen'
 import { derivarPasosAbastecimiento } from '@/lib/abastecimiento'
@@ -55,6 +57,7 @@ export default function OrdenDetallesModal({
 }: OrdenDetallesModalProps) {
   const { previewFile } = useFilePreview()
   const [modalRecibirAbierto, setModalRecibirAbierto] = useState(false)
+  const [exportandoExcel, setExportandoExcel] = useState(false)
   const [estadoWhatsApp, setEstadoWhatsApp] = useState<{
     exito: boolean
     mensaje: string
@@ -69,6 +72,19 @@ export default function OrdenDetallesModal({
       : null,
     entradaAlmacenId: orden.entradaAlmacenId,
   })
+
+  const handleExportarExcel = async () => {
+    try {
+      setExportandoExcel(true)
+      await descargarExcelOrden(orden)
+      toast.success('Excel de la orden generado correctamente')
+    } catch (err) {
+      console.error('Error al exportar orden a Excel:', err)
+      toast.error('No se pudo generar el Excel de la orden')
+    } finally {
+      setExportandoExcel(false)
+    }
+  }
 
   const handleNotificarWhatsApp = async () => {
     const resultado = await notificarOrdenPorWhatsApp(orden)
@@ -105,9 +121,27 @@ export default function OrdenDetallesModal({
               </div>
               <p className="mt-0.5 font-mono text-xs text-muted-foreground">ID: {orden.id}</p>
             </div>
-            <Button variant="outline" size="sm" onClick={onEdit} type="button">
-              <Edit2 /> Editar
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportarExcel}
+                disabled={exportandoExcel}
+                type="button"
+                className="border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 font-semibold cursor-pointer"
+                title="Descargar orden formal en Excel (.xlsx)"
+              >
+                {exportandoExcel ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+                )}
+                Exportar Excel
+              </Button>
+              <Button variant="outline" size="sm" onClick={onEdit} type="button">
+                <Edit2 /> Editar
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
@@ -354,6 +388,20 @@ export default function OrdenDetallesModal({
                 <XCircle className="h-3.5 w-3.5" /> Rechazar
               </button>
             )}
+            <button
+              type="button"
+              onClick={handleExportarExcel}
+              disabled={exportandoExcel}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-600/30 bg-card px-3.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 transition-colors active:scale-[0.98] shadow-xs disabled:opacity-50 cursor-pointer"
+              title="Descargar orden formal en Excel (.xlsx)"
+            >
+              {exportandoExcel ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+              )}
+              {exportandoExcel ? 'Generando…' : 'Exportar Excel'}
+            </button>
             <button
               onClick={onClose}
               className="rounded-lg bg-foreground px-3.5 py-1.5 text-xs font-bold text-background hover:bg-foreground/90 transition-colors"

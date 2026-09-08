@@ -17,6 +17,7 @@ import {
   Copy,
   PlusCircle,
   Package,
+  FileSpreadsheet,
 } from 'lucide-react'
 
 import type { Cotizacion, EstatusCotizacion } from '@/lib/schemas'
@@ -40,6 +41,8 @@ import { esCotizacionComprada } from '@/lib/cotizaciones-desde-ordenes'
 import { useCotizaciones } from '@/lib/hooks/useCotizaciones'
 import CotizacionFormModal from './CotizacionFormModal'
 import CotizacionIaModal from './CotizacionIaModal'
+import ModalExportarCotizaciones from './ModalExportarCotizaciones'
+import { descargarExcelCotizacionIndividual } from '@/lib/cotizaciones-excel-export'
 import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
 import ModuleFilterChips from '@/components/layout/ModuleFilterChips'
 import ModuleSurface from '@/components/layout/ModuleSurface'
@@ -84,6 +87,7 @@ type CotizacionCardProps = {
   onComprarUsa: (c: Cotizacion) => void
   onCrearOdoo: (c: Cotizacion) => void
   onCopiarWhatsApp: (c: Cotizacion) => void
+  onExportarExcel: (c: Cotizacion) => void
 }
 
 function CotizacionCard({
@@ -94,6 +98,7 @@ function CotizacionCard({
   onComprarUsa,
   onCrearOdoo,
   onCopiarWhatsApp,
+  onExportarExcel,
 }: CotizacionCardProps) {
   return (
     <div onClick={() => onEditar(c)} className="p-4 space-y-2.5 active:bg-muted cursor-pointer">
@@ -187,6 +192,17 @@ function CotizacionCard({
         <Button
           type="button"
           size="sm"
+          variant="outline"
+          className="h-7 text-[11px] gap-1 px-2 border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 font-semibold cursor-pointer"
+          onClick={() => onExportarExcel(c)}
+          title="Descargar cotización en Excel (.xlsx)"
+        >
+          <FileSpreadsheet className="h-3 w-3 text-emerald-600" />
+          Excel
+        </Button>
+        <Button
+          type="button"
+          size="sm"
           variant="ghost"
           className="h-7 px-2 text-muted-foreground hover:text-foreground"
           onClick={() => onCopiarWhatsApp(c)}
@@ -235,10 +251,25 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isDeletingBulk, setIsDeletingBulk] = useState(false)
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
+  const [exportandoIndividualId, setExportandoIndividualId] = useState<string | null>(null)
   const [isAddingMode, setIsAddingMode] = useState(false)
   const [isIaModalOpen, setIsIaModalOpen] = useState(false)
   const [initialPasteFile, setInitialPasteFile] = useState<File | null>(null)
   const [cotizacionToEdit, setCotizacionToEdit] = useState<Cotizacion | null>(null)
+
+  const handleExportarIndividual = async (c: Cotizacion) => {
+    try {
+      setExportandoIndividualId(c.id)
+      await descargarExcelCotizacionIndividual(c)
+      toast.success(`Excel descargado para ${c.proveedor}`)
+    } catch (err) {
+      console.error('Error al exportar cotización individual:', err)
+      toast.error('No se pudo generar el Excel de la cotización')
+    } finally {
+      setExportandoIndividualId(null)
+    }
+  }
 
   // Acciones de conversión
   const handleComprarUsa = (c: Cotizacion) => {
@@ -627,14 +658,27 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
                 </button>
               )}
               {selectedIds.size > 0 && (
-                <button
-                  onClick={handleDeleteMultiple}
-                  disabled={isDeletingBulk}
-                  className="inline-flex items-center gap-2 rounded-lg bg-red-50 text-red-600 px-4 py-2 text-sm font-semibold hover:bg-red-100 transition-colors border border-red-200 disabled:opacity-50"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  {isDeletingBulk ? 'Eliminando...' : `Eliminar ${selectedIds.size} seleccionadas`}
-                </button>
+                <div className="inline-flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsExportModalOpen(true)}
+                    className="gap-1.5 border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 font-semibold cursor-pointer"
+                    title="Exportar cotizaciones seleccionadas a Excel con opciones de grupos"
+                  >
+                    <FileSpreadsheet className="size-4 text-emerald-600" />
+                    Exportar Excel ({selectedIds.size})
+                  </Button>
+                  <button
+                    onClick={handleDeleteMultiple}
+                    disabled={isDeletingBulk}
+                    className="inline-flex items-center gap-2 rounded-lg bg-rose-50 text-rose-600 px-3 py-1.5 text-xs font-semibold hover:bg-rose-100 transition-colors border border-rose-200 disabled:opacity-50 cursor-pointer"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {isDeletingBulk ? 'Eliminando...' : `Eliminar ${selectedIds.size}`}
+                  </button>
+                </div>
               )}
             </div>
             {paginacion.totalFilas > 0 && (
@@ -645,6 +689,17 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setIsExportModalOpen(true)}
+              className="gap-1.5 border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 font-semibold cursor-pointer"
+              title="Exportar cotizaciones a Excel con opción de agrupar por proveedor, solicitante o moneda"
+            >
+              <FileSpreadsheet className="size-3.5 text-emerald-600" />
+              Exportar Excel
+            </Button>
             <Button
               type="button"
               size="sm"
@@ -801,6 +856,21 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
                                 variant="ghost"
                                 size="sm"
                                 className="h-7 w-7 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                                onClick={() => void handleExportarIndividual(c)}
+                                disabled={exportandoIndividualId === c.id}
+                                title="Descargar cotización en Excel (.xlsx)"
+                              >
+                                {exportandoIndividualId === c.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <FileSpreadsheet className="h-3.5 w-3.5" />
+                                )}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
                                 onClick={() => handleComprarUsa(c)}
                                 title="Comprar en USA (/nueva-compra)"
                               >
@@ -860,6 +930,10 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
                           <Copy className="mr-2 h-4 w-4" />
                           Copiar para WhatsApp
                         </ContextMenuItem>
+                        <ContextMenuItem onClick={() => void handleExportarIndividual(c)}>
+                          <FileSpreadsheet className="mr-2 h-4 w-4 text-emerald-600" />
+                          Exportar a Excel (.xlsx)
+                        </ContextMenuItem>
                         <ContextMenuSeparator />
                         <ContextMenuItem onClick={() => setCotizacionToEdit(c)}>
                           <Edit2 className="mr-2 h-4 w-4" />
@@ -908,6 +982,7 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
                 onComprarUsa={handleComprarUsa}
                 onCrearOdoo={handleCrearOdoo}
                 onCopiarWhatsApp={handleCopiarWhatsApp}
+                onExportarExcel={handleExportarIndividual}
               />
             ))
           )}
@@ -966,6 +1041,15 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
           cotizacionBase={cotizacionToEdit}
           onClose={() => setCotizacionToEdit(null)}
           onSaved={handleFormSaved}
+        />
+      )}
+
+      {isExportModalOpen && (
+        <ModalExportarCotizaciones
+          open={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          cotizacionesSeleccionadas={cotizaciones.filter((c) => selectedIds.has(c.id))}
+          todasCotizacionesFiltradas={filtradas}
         />
       )}
     </>

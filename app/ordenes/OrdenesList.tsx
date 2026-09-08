@@ -8,11 +8,12 @@ import {
   cuentaCargoEfectiva,
   ordenTieneSatPendiente,
 } from '@/lib/ordenes-display'
-import { Loader2, AlertCircle, Package, CheckCircle2, XCircle, Tags, Trash2 } from 'lucide-react'
+import { Loader2, AlertCircle, Package, CheckCircle2, XCircle, Tags, Trash2, FileSpreadsheet } from 'lucide-react'
 import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
 import ModuleSurface from '@/components/layout/ModuleSurface'
 import ModuleBulkBar from '@/components/layout/ModuleBulkBar'
 import { Button } from '@/components/ui/button'
+import { descargarExcelLoteOrdenes } from '@/lib/orden-excel-export'
 
 import OrdenFormModal from './OrdenFormModal'
 import ModalSugerirClavesSat from './ModalSugerirClavesSat'
@@ -66,6 +67,7 @@ export default function OrdenesList({ busquedaInicial }: { busquedaInicial?: str
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isDeletingBulk, setIsDeletingBulk] = useState(false)
   const [isChangingEstadoBulk, setIsChangingEstadoBulk] = useState(false)
+  const [isExportingBulk, setIsExportingBulk] = useState(false)
   const [ordenToEdit, setOrdenToEdit] = useState<OrdenCompra | null>(null)
   const [satModalOrdenes, setSatModalOrdenes] = useState<OrdenCompra[] | null>(null)
 
@@ -279,6 +281,21 @@ export default function OrdenesList({ busquedaInicial }: { busquedaInicial?: str
       toast.error('No se pudieron rechazar las órdenes. Intenta de nuevo.')
     }
     setIsChangingEstadoBulk(false)
+  }
+
+  const handleExportBulk = async () => {
+    const ordenesSeleccionadas = ordenesFiltradas.filter((o) => selectedIds.has(o.id))
+    if (!ordenesSeleccionadas.length) return
+    try {
+      setIsExportingBulk(true)
+      await descargarExcelLoteOrdenes(ordenesSeleccionadas)
+      toast.success(`Consolidado Excel de ${ordenesSeleccionadas.length} órdenes descargado`)
+    } catch (err) {
+      console.error('Error al exportar lote a Excel:', err)
+      toast.error('No se pudo generar el consolidado de órdenes en Excel')
+    } finally {
+      setIsExportingBulk(false)
+    }
   }
 
   const abrirSugerirSat = async (ordenesTarget: OrdenCompra[]) => {
@@ -497,6 +514,23 @@ export default function OrdenesList({ busquedaInicial }: { busquedaInicial?: str
                 Claves SAT ({seleccionConSatPendiente.length})
               </Button>
             )}
+
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleExportBulk}
+              disabled={isExportingBulk}
+              className="h-8 gap-1.5 border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 text-xs font-semibold cursor-pointer"
+              title="Descargar consolidado formal en Excel (.xlsx)"
+            >
+              {isExportingBulk ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="size-3.5 text-emerald-600" />
+              )}
+              Exportar Excel ({selectedIds.size})
+            </Button>
 
             <Button
               type="button"
