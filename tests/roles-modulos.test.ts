@@ -10,6 +10,8 @@ import {
   tieneModulo,
   tienePermiso,
   tienePermisoPorRol,
+  superAdminEstaExpirado,
+  formatearTiempoRestante,
 } from "@/lib/roles"
 
 describe("modulosDePlantilla", () => {
@@ -163,6 +165,48 @@ describe("legacy helpers", () => {
     // super-admin a un usuario con plantilla/rol "admin" (P1 auditoría 2026-07-23).
     expect(esSuperAdminDesdeUsuarioLegacy({ esSuperAdmin: false, rol: "admin" })).toBe(false)
     expect(esSuperAdminDesdeUsuarioLegacy({ esSuperAdmin: false, plantilla: "admin" })).toBe(false)
+    // Super-admin temporal expirado
+    const fechaPasada = new Date(Date.now() - 60000).toISOString()
+    const fechaFutura = new Date(Date.now() + 3600000).toISOString()
+    expect(
+      esSuperAdminDesdeUsuarioLegacy({
+        esSuperAdmin: true,
+        superAdminTipo: "temporal",
+        superAdminExpiraEn: fechaPasada,
+      })
+    ).toBe(false)
+    expect(
+      esSuperAdminDesdeUsuarioLegacy({
+        esSuperAdmin: true,
+        superAdminTipo: "temporal",
+        superAdminExpiraEn: fechaFutura,
+      })
+    ).toBe(true)
+    // Super-admin permanente no expira aunque tenga fecha
+    expect(
+      esSuperAdminDesdeUsuarioLegacy({
+        esSuperAdmin: true,
+        superAdminTipo: "permanente",
+        superAdminExpiraEn: fechaPasada,
+      })
+    ).toBe(true)
+  })
+
+  it("superAdminEstaExpirado", () => {
+    const pasada = new Date(Date.now() - 5000).toISOString()
+    const futura = new Date(Date.now() + 50000).toISOString()
+    expect(superAdminEstaExpirado(pasada)).toBe(true)
+    expect(superAdminEstaExpirado(futura)).toBe(false)
+    expect(superAdminEstaExpirado(null)).toBe(false)
+    expect(superAdminEstaExpirado(undefined)).toBe(false)
+  })
+
+  it("formatearTiempoRestante", () => {
+    const en3Horas = new Date(Date.now() + 3 * 3600 * 1000 + 15 * 60 * 1000).toISOString()
+    expect(formatearTiempoRestante(en3Horas)).toMatch(/3h/)
+    const expirado = new Date(Date.now() - 10000).toISOString()
+    expect(formatearTiempoRestante(expirado)).toBe("Expirado")
+    expect(formatearTiempoRestante(null)).toBe("")
   })
 
   it("esMatrizPersonalizada", () => {

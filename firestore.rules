@@ -86,9 +86,17 @@ service cloud.firestore {
     function esSuperAdminDoc() {
       // Si el documento ya trae el campo explícito, manda sobre el fallback legado
       // (permite revocar super-admin a un usuario con rol/plantilla "admin").
+      // Para super-admin temporal, verifica que la fecha no haya expirado.
       return exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
         (
-          ('esSuperAdmin' in docUsuario() && docUsuario().esSuperAdmin == true) ||
+          (
+            'esSuperAdmin' in docUsuario() && docUsuario().esSuperAdmin == true &&
+            (
+              !('superAdminExpiraEn' in docUsuario()) ||
+              docUsuario().superAdminExpiraEn == null ||
+              request.time < docUsuario().superAdminExpiraEn
+            )
+          ) ||
           (!('esSuperAdmin' in docUsuario()) &&
             (docUsuario().rol == 'admin' || docUsuario().plantilla == 'admin'))
         );
@@ -295,6 +303,7 @@ service cloud.firestore {
                     && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['proveedorId'])
                         || (!resource.data.keys().hasAny(['proveedorId'])
                             && request.resource.data.proveedorId == null)
+                        || tieneModulo('cotizaciones')
                         || esCorreoBreakGlass()
                         || esSuperAdminDoc());
 
@@ -1105,20 +1114,20 @@ service cloud.firestore {
     }
 
     match /cotizaciones_comparador/{cotId} {
-      allow read: if esProveedoresAutorizado();
-      allow delete: if esProveedoresEditor();
-      allow create: if esProveedoresEditor()
+      allow read: if esProveedoresAutorizado() || tieneAlgunModulo(['cotizaciones', 'requisiciones']);
+      allow delete: if esProveedoresEditor() || tieneAlgunModulo(['cotizaciones', 'requisiciones']);
+      allow create: if (esProveedoresEditor() || tieneAlgunModulo(['cotizaciones', 'requisiciones']))
                     && request.resource.data.creadoEn is timestamp;
-      allow update: if esProveedoresEditor()
+      allow update: if (esProveedoresEditor() || tieneAlgunModulo(['cotizaciones', 'requisiciones']))
                     && request.resource.data.creadoEn == resource.data.creadoEn;
     }
 
     match /cotizaciones_requisicion/{cotId} {
-      allow read: if esProveedoresAutorizado();
-      allow delete: if esProveedoresEditor();
-      allow create: if esProveedoresEditor()
+      allow read: if esProveedoresAutorizado() || tieneAlgunModulo(['cotizaciones', 'requisiciones']);
+      allow delete: if esProveedoresEditor() || tieneAlgunModulo(['cotizaciones', 'requisiciones']);
+      allow create: if (esProveedoresEditor() || tieneAlgunModulo(['cotizaciones', 'requisiciones']))
                     && request.resource.data.creadoEn is timestamp;
-      allow update: if esProveedoresEditor()
+      allow update: if (esProveedoresEditor() || tieneAlgunModulo(['cotizaciones', 'requisiciones']))
                     && request.resource.data.creadoEn == resource.data.creadoEn;
     }
 

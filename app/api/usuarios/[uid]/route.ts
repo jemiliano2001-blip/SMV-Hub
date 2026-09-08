@@ -11,6 +11,9 @@ const CambiosUsuarioSchema = z
     rol: RolSchema.optional(),
     modulos: z.array(ModuloIdSchema).optional(),
     esSuperAdmin: z.boolean().optional(),
+    superAdminTipo: z.enum(["permanente", "temporal"]).nullable().optional(),
+    superAdminExpiraEn: z.string().nullable().optional(),
+    superAdminConcedidoPor: z.string().nullable().optional(),
     atiendeDocumentosVenta: z.boolean().optional(),
     editaHorasExtra: z.boolean().optional(),
     operadorId: z.string().nullable().optional(),
@@ -23,6 +26,8 @@ const CambiosUsuarioSchema = z
       c.rol !== undefined ||
       c.modulos !== undefined ||
       c.esSuperAdmin !== undefined ||
+      c.superAdminTipo !== undefined ||
+      c.superAdminExpiraEn !== undefined ||
       c.atiendeDocumentosVenta !== undefined ||
       c.editaHorasExtra !== undefined ||
       c.operadorId !== undefined ||
@@ -47,6 +52,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ui
     const campos = Object.keys(parseResult.data)
     await actualizarUsuarioAdmin(uid, {
       ...rest,
+      ...(rest.superAdminTipo === "temporal" && !rest.superAdminConcedidoPor
+        ? { superAdminConcedidoPor: auth.email }
+        : {}),
       ...(plantilla !== undefined || rol !== undefined
         ? { plantilla: plantilla ?? rol }
         : {}),

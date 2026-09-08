@@ -350,15 +350,61 @@ export function puedeAtenderDocumentosVenta(u: {
   return u.esSuperAdmin === true || u.atiendeDocumentosVenta === true
 }
 
+export function superAdminEstaExpirado(superAdminExpiraEn: unknown): boolean {
+  if (!superAdminExpiraEn) return false
+  const expira =
+    typeof (superAdminExpiraEn as { toMillis?: () => number }).toMillis === "function"
+      ? (superAdminExpiraEn as { toMillis: () => number }).toMillis()
+      : typeof (superAdminExpiraEn as { toDate?: () => Date }).toDate === "function"
+      ? (superAdminExpiraEn as { toDate: () => Date }).toDate().getTime()
+      : new Date(superAdminExpiraEn as string | number | Date).getTime()
+  return !Number.isNaN(expira) && Date.now() > expira
+}
+
+export function formatearTiempoRestante(superAdminExpiraEn: unknown): string {
+  if (!superAdminExpiraEn) return ""
+  const expira =
+    typeof (superAdminExpiraEn as { toMillis?: () => number }).toMillis === "function"
+      ? (superAdminExpiraEn as { toMillis: () => number }).toMillis()
+      : typeof (superAdminExpiraEn as { toDate?: () => Date }).toDate === "function"
+      ? (superAdminExpiraEn as { toDate: () => Date }).toDate().getTime()
+      : new Date(superAdminExpiraEn as string | number | Date).getTime()
+  if (Number.isNaN(expira)) return ""
+  const diffMs = expira - Date.now()
+  if (diffMs <= 0) return "Expirado"
+
+  const diffMin = Math.floor(diffMs / 60000)
+  if (diffMin < 60) return `${diffMin}m`
+  const horas = Math.floor(diffMin / 60)
+  const minRestantes = diffMin % 60
+  if (horas < 24) {
+    return minRestantes > 0 ? `${horas}h ${minRestantes}m` : `${horas}h`
+  }
+  const dias = Math.floor(horas / 24)
+  const horasRestantes = horas % 24
+  return horasRestantes > 0 ? `${dias}d ${horasRestantes}h` : `${dias}d`
+}
+
 export function esSuperAdminDesdeUsuarioLegacy(data: {
   esSuperAdmin?: unknown
+  superAdminTipo?: unknown
+  superAdminExpiraEn?: unknown
   rol?: unknown
   plantilla?: unknown
 }): boolean {
-  // Si el documento ya tiene el campo explícito (true o false), manda sobre
+  if (data.esSuperAdmin === true) {
+    if (data.superAdminTipo === "permanente") {
+      return true
+    }
+    if (superAdminEstaExpirado(data.superAdminExpiraEn)) {
+      return false
+    }
+    return true
+  }
+  // Si el documento ya tiene el campo explícito (false), manda sobre
   // cualquier fallback — permite revocar super-admin a un usuario con
   // plantilla/rol "admin" sin que este fallback lo ignore.
-  if (typeof data.esSuperAdmin === "boolean") return data.esSuperAdmin
+  if (data.esSuperAdmin === false) return false
   // Migración: documentos legacy sin el campo esSuperAdmin, con plantilla/rol admin.
   if (data.rol === "admin" || data.plantilla === "admin") return true
   return false

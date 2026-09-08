@@ -10,6 +10,10 @@ export interface UsuarioAdmin {
   plantilla: Rol
   modulos: ModuloId[]
   esSuperAdmin: boolean
+  superAdminTipo?: "permanente" | "temporal" | null
+  superAdminExpiraEn?: string | null
+  superAdminConcedidoPor?: string | null
+  superAdminConcedidoEn?: string | null
   atiendeDocumentosVenta: boolean
   editaHorasExtra: boolean
   operadorId?: string | null
@@ -26,6 +30,8 @@ export interface CrearUsuarioInput {
   plantilla: Rol
   modulos?: ModuloId[]
   esSuperAdmin?: boolean
+  superAdminTipo?: "permanente" | "temporal" | null
+  superAdminExpiraEn?: string | null
   atiendeDocumentosVenta?: boolean
   editaHorasExtra?: boolean
   operadorId?: string | null
@@ -37,6 +43,9 @@ export interface ActualizarUsuarioInput {
   plantilla?: Rol
   modulos?: ModuloId[]
   esSuperAdmin?: boolean
+  superAdminTipo?: "permanente" | "temporal" | null
+  superAdminExpiraEn?: string | null
+  superAdminConcedidoPor?: string | null
   atiendeDocumentosVenta?: boolean
   editaHorasExtra?: boolean
   operadorId?: string | null
@@ -84,6 +93,10 @@ export function useUsuarios() {
             plantilla: u.plantilla ?? u.rol,
             modulos: u.modulos ?? [],
             esSuperAdmin: u.esSuperAdmin === true,
+            superAdminTipo: u.superAdminTipo ?? (u.esSuperAdmin ? "permanente" : null),
+            superAdminExpiraEn: u.superAdminExpiraEn ?? null,
+            superAdminConcedidoPor: u.superAdminConcedidoPor ?? null,
+            superAdminConcedidoEn: u.superAdminConcedidoEn ?? null,
             atiendeDocumentosVenta: u.atiendeDocumentosVenta === true,
             editaHorasExtra: u.editaHorasExtra === true,
             operadorId: u.operadorId ?? null,
@@ -186,6 +199,23 @@ export function useUsuarios() {
     await fetchUsuarios()
   }
 
+  async function concederSuperAdminTemporal(uid: string, expiraEnFecha: Date | string): Promise<void> {
+    const fechaIso = typeof expiraEnFecha === "string" ? expiraEnFecha : expiraEnFecha.toISOString()
+    await actualizarUsuario(uid, {
+      esSuperAdmin: true,
+      superAdminTipo: "temporal",
+      superAdminExpiraEn: fechaIso,
+    })
+  }
+
+  async function revocarSuperAdmin(uid: string): Promise<void> {
+    await actualizarUsuario(uid, {
+      esSuperAdmin: false,
+      superAdminTipo: null,
+      superAdminExpiraEn: null,
+    })
+  }
+
   return {
     usuarios,
     loading,
@@ -197,5 +227,7 @@ export function useUsuarios() {
     cambiarActivo,
     resetearPassword,
     eliminarUsuario,
+    concederSuperAdminTemporal,
+    revocarSuperAdmin,
   }
 }

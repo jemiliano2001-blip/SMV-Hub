@@ -7,6 +7,7 @@ import {
   modulosDePlantilla,
   modulosDesdeUsuarioLegacy,
   plantillaDesdeUsuarioLegacy,
+  superAdminEstaExpirado,
 } from "@/lib/roles"
 
 const COLECCION = "usuarios"
@@ -28,6 +29,8 @@ export interface InfoUsuarioAdmin {
   plantilla: Rol
   modulos: ModuloId[]
   esSuperAdmin: boolean
+  superAdminTipo?: "permanente" | "temporal" | null
+  superAdminExpiraEn?: string | null
   activo: boolean
 }
 
@@ -45,6 +48,8 @@ export async function obtenerUsuarioAdmin(
       plantilla: "admin",
       modulos: modulosDePlantilla("admin"),
       esSuperAdmin: true,
+      superAdminTipo: "permanente",
+      superAdminExpiraEn: null,
       activo: true,
     }
   }
@@ -57,11 +62,18 @@ export async function obtenerUsuarioAdmin(
     const plantilla = plantillaDesdeUsuarioLegacy(data)
     if (!plantilla) return null
 
+    const esSuper = esSuperAdminDesdeUsuarioLegacy(data)
+    const superAdminExpiraEn = data.superAdminExpiraEn?.toDate?.()
+      ? data.superAdminExpiraEn.toDate().toISOString()
+      : (data.superAdminExpiraEn ? new Date(data.superAdminExpiraEn as string | number | Date).toISOString() : null)
+
     return {
       rol: plantilla,
       plantilla,
       modulos: modulosDesdeUsuarioLegacy(data),
-      esSuperAdmin: esSuperAdminDesdeUsuarioLegacy(data),
+      esSuperAdmin: esSuper,
+      superAdminTipo: data.superAdminTipo === "temporal" ? "temporal" : (esSuper ? "permanente" : null),
+      superAdminExpiraEn,
       activo: data.activo === true,
     }
   } catch (error: unknown) {
@@ -165,6 +177,9 @@ export interface CambiosUsuarioAdmin {
   plantilla?: Rol
   modulos?: ModuloId[]
   esSuperAdmin?: boolean
+  superAdminTipo?: "permanente" | "temporal" | null
+  superAdminExpiraEn?: Date | string | null
+  superAdminConcedidoPor?: string | null
   atiendeDocumentosVenta?: boolean
   editaHorasExtra?: boolean
   operadorId?: string | null
@@ -201,8 +216,15 @@ export async function actualizarUsuarioAdmin(
   const actual = snap.data() ?? {}
   const eraSuper = esSuperAdminDesdeUsuarioLegacy(actual)
   const seguiraActivo = cambios.activo !== undefined ? cambios.activo : actual.activo === true
+
+  const expiraFinal = cambios.superAdminExpiraEn !== undefined
+    ? (cambios.superAdminExpiraEn ? new Date(cambios.superAdminExpiraEn) : null)
+    : (actual.superAdminExpiraEn?.toDate?.() ? actual.superAdminExpiraEn.toDate() : (actual.superAdminExpiraEn ? new Date(actual.superAdminExpiraEn) : null))
+
   const seguiraSuper =
-    cambios.esSuperAdmin !== undefined ? cambios.esSuperAdmin : eraSuper
+    cambios.esSuperAdmin !== undefined
+      ? cambios.esSuperAdmin && !superAdminEstaExpirado(expiraFinal)
+      : eraSuper
 
   if (eraSuper && (!seguiraSuper || !seguiraActivo)) {
     const otros = await contarSuperAdminsActivos(uid)
@@ -239,6 +261,25 @@ export async function actualizarUsuarioAdmin(
 
   if (cambios.esSuperAdmin !== undefined) {
     update.esSuperAdmin = cambios.esSuperAdmin
+    if (!cambios.esSuperAdmin) {
+      update.superAdminTipo = null
+      update.superAdminExpiraEn = null
+      update.superAdminConcedidoPor = null
+      update.superAdminConcedidoEn = null
+    }
+  }
+
+  if (cambios.superAdminTipo !== undefined) {
+    update.superAdminTipo = cambios.superAdminTipo
+  }
+
+  if (cambios.superAdminExpiraEn !== undefined) {
+    update.superAdminExpiraEn = cambios.superAdminExpiraEn ? new Date(cambios.superAdminExpiraEn) : null
+  }
+
+  if (cambios.superAdminConcedidoPor !== undefined) {
+    update.superAdminConcedidoPor = cambios.superAdminConcedidoPor
+    update.superAdminConcedidoEn = new Date()
   }
 
   if (cambios.atiendeDocumentosVenta !== undefined) {
@@ -309,6 +350,10 @@ interface DocUsuarioFirestore {
   plantilla?: unknown
   modulos?: unknown
   esSuperAdmin?: unknown
+  superAdminTipo?: unknown
+  superAdminExpiraEn?: { toDate?: () => Date } | string
+  superAdminConcedidoPor?: unknown
+  superAdminConcedidoEn?: { toDate?: () => Date } | string
   atiendeDocumentosVenta?: unknown
   editaHorasExtra?: unknown
   operadorId?: unknown
@@ -326,6 +371,20 @@ function mapearDocUsuario(id: string, data: DocUsuarioFirestore): Usuario | null
   if (typeof data.email !== "string") return null
 
   const proveedor = data.proveedor === "google" || data.proveedor === "password" ? data.proveedor : "password"
+  const esSuper = esSuperAdminDesdeUsuarioLegacy(data)
+  const superAdminExpiraEn =
+    data.superAdminExpiraEn && typeof (data.superAdminExpiraEn as { toDate?: () => Date }).toDate === "function"
+      ? (data.superAdminExpiraEn as { toDate: () => Date }).toDate()
+      : data.superAdminExpiraEn
+      ? new Date(data.superAdminExpiraEn as string | number | Date)
+      : null
+
+  const superAdminConcedidoEn =
+    data.superAdminConcedidoEn && typeof (data.superAdminConcedidoEn as { toDate?: () => Date }).toDate === "function"
+      ? (data.superAdminConcedidoEn as { toDate: () => Date }).toDate()
+      : data.superAdminConcedidoEn
+      ? new Date(data.superAdminConcedidoEn as string | number | Date)
+      : null
 
   return {
     id,
@@ -333,7 +392,11 @@ function mapearDocUsuario(id: string, data: DocUsuarioFirestore): Usuario | null
     rol: plantilla,
     plantilla,
     modulos: modulosDesdeUsuarioLegacy(data),
-    esSuperAdmin: esSuperAdminDesdeUsuarioLegacy(data),
+    esSuperAdmin: esSuper,
+    superAdminTipo: data.superAdminTipo === "temporal" ? "temporal" : (esSuper ? "permanente" : null),
+    superAdminExpiraEn,
+    superAdminConcedidoPor: typeof data.superAdminConcedidoPor === "string" ? data.superAdminConcedidoPor : null,
+    superAdminConcedidoEn,
     atiendeDocumentosVenta: data.atiendeDocumentosVenta === true,
     editaHorasExtra: data.editaHorasExtra === true,
     operadorId: typeof data.operadorId === "string" ? data.operadorId : null,

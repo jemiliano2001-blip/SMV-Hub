@@ -23,6 +23,8 @@ import {
   Users,
   Layers,
   SlidersHorizontal,
+  Clock,
+  ShieldAlert,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { copiarAlPortapapeles } from '@/lib/portapapeles'
@@ -69,6 +71,7 @@ import {
   MODULOS_POR_PLANTILLA,
   esMatrizPersonalizada,
   modulosDePlantilla,
+  formatearTiempoRestante,
 } from '@/lib/roles'
 import { useConfirmDialog } from '@/components/ConfirmDialogProvider'
 import { descargarCSVUsuarios, exportarExcelUsuarios } from '@/lib/usuarios-export'
@@ -548,6 +551,8 @@ function ModalEditarPermisos({
     plantilla: Rol
     modulos: ModuloId[]
     esSuperAdmin: boolean
+    superAdminTipo?: 'permanente' | 'temporal' | null
+    superAdminExpiraEn?: string | null
     atiendeDocumentosVenta: boolean
     editaHorasExtra: boolean
     operadorId: string | null
@@ -558,6 +563,11 @@ function ModalEditarPermisos({
   const [plantilla, setPlantilla] = useState<Rol>(usuario.plantilla)
   const [modulos, setModulos] = useState<ModuloId[]>(usuario.modulos)
   const [esSuperAdmin, setEsSuperAdmin] = useState(usuario.esSuperAdmin)
+  const [superAdminTipo, setSuperAdminTipo] = useState<'permanente' | 'temporal'>(
+    usuario.superAdminTipo === 'temporal' ? 'temporal' : 'permanente'
+  )
+  const [duracionPreset, setDuracionPreset] = useState<string>('8h')
+  const [fechaPersonalizada, setFechaPersonalizada] = useState<string>('')
   const [atiendeDocumentosVenta, setAtiendeDocumentosVenta] = useState(
     usuario.atiendeDocumentosVenta === true
   )
@@ -614,10 +624,34 @@ function ModalEditarPermisos({
     setGuardando(true)
     setError(null)
     try {
+      let fechaExpiraIso: string | null = null
+      if (esSuperAdmin && superAdminTipo === 'temporal') {
+        const ahora = Date.now()
+        if (duracionPreset === '1h') {
+          fechaExpiraIso = new Date(ahora + 60 * 60 * 1000).toISOString()
+        } else if (duracionPreset === '4h') {
+          fechaExpiraIso = new Date(ahora + 4 * 60 * 60 * 1000).toISOString()
+        } else if (duracionPreset === '8h') {
+          fechaExpiraIso = new Date(ahora + 8 * 60 * 60 * 1000).toISOString()
+        } else if (duracionPreset === '24h') {
+          fechaExpiraIso = new Date(ahora + 24 * 60 * 60 * 1000).toISOString()
+        } else if (duracionPreset === 'fin_dia') {
+          const fin = new Date()
+          fin.setHours(23, 59, 59, 999)
+          fechaExpiraIso = fin.toISOString()
+        } else if (duracionPreset === 'custom' && fechaPersonalizada) {
+          fechaExpiraIso = new Date(fechaPersonalizada).toISOString()
+        } else {
+          fechaExpiraIso = new Date(ahora + 8 * 60 * 60 * 1000).toISOString()
+        }
+      }
+
       await onGuardar({
         plantilla,
         modulos,
         esSuperAdmin,
+        superAdminTipo: esSuperAdmin ? superAdminTipo : null,
+        superAdminExpiraEn: esSuperAdmin && superAdminTipo === 'temporal' ? fechaExpiraIso : null,
         atiendeDocumentosVenta,
         editaHorasExtra,
         operadorId,
@@ -738,7 +772,13 @@ function ModalEditarPermisos({
                 <input
                   type="checkbox"
                   checked={esSuperAdmin}
-                  onChange={(e) => setEsSuperAdmin(e.target.checked)}
+                  onChange={(e) => {
+                    const check = e.target.checked
+                    setEsSuperAdmin(check)
+                    if (check && usuario.superAdminTipo !== 'permanente') {
+                      setSuperAdminTipo('temporal')
+                    }
+                  }}
                   className="rounded border-input text-primary"
                 />
                 <Shield className="h-3.5 w-3.5 text-rose-600" />
@@ -763,6 +803,74 @@ function ModalEditarPermisos({
                 <span>Edita horas extra</span>
               </label>
             </div>
+
+            {esSuperAdmin && (
+              <div className="mt-2.5 rounded-lg border border-amber-300 bg-amber-50/60 p-2.5 dark:border-amber-800/60 dark:bg-amber-950/20">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 font-semibold text-amber-900 dark:text-amber-300">
+                    <Clock className="h-3.5 w-3.5 text-amber-600" />
+                    Modalidad de Super-admin
+                  </span>
+                  {usuario.superAdminTipo === 'temporal' && usuario.superAdminExpiraEn && (
+                    <span className="font-mono text-[10px] font-bold text-amber-800 dark:text-amber-400">
+                      Restante: {formatearTiempoRestante(usuario.superAdminExpiraEn)}
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-2 flex flex-wrap items-center gap-4 text-xs">
+                  <label className="flex cursor-pointer items-center gap-1.5 text-foreground">
+                    <input
+                      type="radio"
+                      name="saTipo"
+                      value="temporal"
+                      checked={superAdminTipo === 'temporal'}
+                      onChange={() => setSuperAdminTipo('temporal')}
+                      className="text-primary"
+                    />
+                    <span className="font-medium">Temporal</span>
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-1.5 text-foreground">
+                    <input
+                      type="radio"
+                      name="saTipo"
+                      value="permanente"
+                      checked={superAdminTipo === 'permanente'}
+                      onChange={() => setSuperAdminTipo('permanente')}
+                      className="text-primary"
+                    />
+                    <span className="text-muted-foreground">Permanente</span>
+                  </label>
+                </div>
+
+                {superAdminTipo === 'temporal' && (
+                  <div className="mt-2.5 flex flex-wrap items-center gap-2 pt-1">
+                    <span className="text-[11px] font-medium text-muted-foreground">Duración:</span>
+                    <select
+                      value={duracionPreset}
+                      onChange={(e) => setDuracionPreset(e.target.value)}
+                      className="rounded border border-input bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      <option value="1h">1 hora</option>
+                      <option value="4h">4 horas</option>
+                      <option value="8h">8 horas (turno)</option>
+                      <option value="24h">24 horas (1 día)</option>
+                      <option value="fin_dia">Hoy hasta las 23:59</option>
+                      <option value="custom">Personalizado...</option>
+                    </select>
+
+                    {duracionPreset === 'custom' && (
+                      <input
+                        type="datetime-local"
+                        value={fechaPersonalizada}
+                        onChange={(e) => setFechaPersonalizada(e.target.value)}
+                        className="rounded border border-input bg-background px-2 py-1 text-xs text-foreground"
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div>
@@ -794,12 +902,14 @@ function AccionesUsuario({
   onCambiarActivo,
   onResetearPassword,
   onEliminar,
+  onRevocarSuperAdmin,
 }: {
   usuario: UsuarioAdmin
   onEditar: () => void
   onCambiarActivo: (uid: string, activo: boolean) => Promise<void>
   onResetearPassword: (uid: string, password?: string) => Promise<void>
   onEliminar: (uid: string) => Promise<void>
+  onRevocarSuperAdmin?: (uid: string) => Promise<void>
 }) {
   const confirmar = useConfirmDialog()
   const [mostrarReset, setMostrarReset] = useState(false)
@@ -850,6 +960,25 @@ function AccionesUsuario({
         <Pencil className="h-3 w-3" />
         Permisos
       </button>
+      {usuario.esSuperAdmin && usuario.superAdminTipo === 'temporal' && onRevocarSuperAdmin && (
+        <button
+          type="button"
+          onClick={async () => {
+            const aceptado = await confirmar({
+              title: 'Revocar Super-admin temporal',
+              description: `¿Revocar privilegios de super-admin a ${usuario.email} de inmediato?`,
+              confirmLabel: 'Revocar ahora',
+              variant: 'destructive',
+            })
+            if (aceptado) await onRevocarSuperAdmin(usuario.id)
+          }}
+          className="flex cursor-pointer items-center gap-1 text-[11px] font-bold text-amber-700 hover:text-amber-800 hover:underline"
+          title="Revocar Super-admin temporal de inmediato"
+        >
+          <Clock className="h-3 w-3 text-amber-600" />
+          Revocar SA
+        </button>
+      )}
       {usuario.proveedor === 'password' &&
         (mostrarReset ? (
           <div className="flex items-center gap-1">
@@ -1034,6 +1163,8 @@ function UsuariosContent() {
     cambiarActivo,
     resetearPassword,
     eliminarUsuario,
+    concederSuperAdminTemporal,
+    revocarSuperAdmin,
   } = useUsuarios()
 
   const { operadores } = useOperadores()
@@ -1071,6 +1202,8 @@ function UsuariosContent() {
     plantilla: Rol
     modulos: ModuloId[]
     esSuperAdmin: boolean
+    superAdminTipo?: 'permanente' | 'temporal' | null
+    superAdminExpiraEn?: string | null
     atiendeDocumentosVenta: boolean
     editaHorasExtra: boolean
     operadorId: string | null
@@ -1079,6 +1212,46 @@ function UsuariosContent() {
     if (!editando) return
     setAccionError(null)
     await actualizarUsuario(editando.id, cambios)
+  }
+
+  async function handleRevocarSuperAdmin(uid: string) {
+    setAccionError(null)
+    try {
+      await revocarSuperAdmin(uid)
+      toast.success('Super-admin temporal revocado')
+    } catch (err) {
+      console.error('Error revocando super-admin:', err)
+      setAccionError(err instanceof Error ? err.message : 'No se pudo revocar super-admin.')
+    }
+  }
+
+  async function handleConcederSATemporal(uid: string, duracion: string) {
+    setAccionError(null)
+    try {
+      const ahora = Date.now()
+      let expiraEn: Date
+      if (duracion === '1h') expiraEn = new Date(ahora + 60 * 60 * 1000)
+      else if (duracion === '4h') expiraEn = new Date(ahora + 4 * 60 * 60 * 1000)
+      else if (duracion === '8h') expiraEn = new Date(ahora + 8 * 60 * 60 * 1000)
+      else if (duracion === '24h') expiraEn = new Date(ahora + 24 * 60 * 60 * 1000)
+      else if (duracion === 'fin_dia') {
+        const fin = new Date()
+        fin.setHours(23, 59, 59, 999)
+        expiraEn = fin
+      } else {
+        expiraEn = new Date(ahora + 8 * 60 * 60 * 1000)
+      }
+      await concederSuperAdminTemporal(uid, expiraEn)
+      toast.success(
+        `Super-admin temporal concedido hasta ${expiraEn.toLocaleTimeString('es-MX', {
+          hour: '2-digit',
+          minute: '2-digit',
+        })}`
+      )
+    } catch (err) {
+      console.error('Error concediendo super-admin temporal:', err)
+      setAccionError(err instanceof Error ? err.message : 'No se pudo conceder super-admin temporal.')
+    }
   }
 
   async function handleCambiarActivo(uid: string, activo: boolean) {
@@ -1118,7 +1291,12 @@ function UsuariosContent() {
   // Métricas
   const totalUsuarios = usuarios.length
   const totalActivos = usuarios.filter((u) => u.activo).length
-  const totalSuperAdmins = usuarios.filter((u) => u.esSuperAdmin).length
+  const totalSuperAdminsTemporales = usuarios.filter(
+    (u) => u.esSuperAdmin && u.superAdminTipo === 'temporal'
+  ).length
+  const totalSuperAdminsPermanentes = usuarios.filter(
+    (u) => u.esSuperAdmin && u.superAdminTipo !== 'temporal'
+  ).length
   const totalCustom = usuarios.filter((u) => esMatrizPersonalizada(u.plantilla, u.modulos)).length
   const totalConOperador = usuarios.filter((u) => u.operadorId).length
   const porcentajeConOperador =
@@ -1230,7 +1408,14 @@ function UsuariosContent() {
           <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             Super-Admins
           </p>
-          <p className="mt-1 text-xl font-bold text-rose-600">{totalSuperAdmins}</p>
+          <div className="mt-1 flex items-baseline gap-1.5">
+            <span className="text-xl font-bold text-rose-600">{totalSuperAdminsPermanentes}</span>
+            {totalSuperAdminsTemporales > 0 && (
+              <span className="font-mono text-xs font-semibold text-amber-700 dark:text-amber-400">
+                (+{totalSuperAdminsTemporales} temp)
+              </span>
+            )}
+          </div>
         </ModuleSurface>
         <ModuleSurface className="p-3">
           <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -1404,9 +1589,19 @@ function UsuariosContent() {
                               </div>
                               <div className="flex shrink-0 items-center gap-1">
                                 {u.esSuperAdmin && (
-                                  <span className="rounded border border-rose-200 bg-rose-50 px-1 py-0.5 font-mono text-[9px] font-bold text-rose-700">
-                                    SA
-                                  </span>
+                                  u.superAdminTipo === 'temporal' && u.superAdminExpiraEn ? (
+                                    <span
+                                      title={`Expira: ${new Date(u.superAdminExpiraEn).toLocaleString('es-MX')}`}
+                                      className="inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 font-mono text-[9px] font-bold text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                                    >
+                                      <Clock className="h-2.5 w-2.5 text-amber-600" />
+                                      <span>SA Temp · {formatearTiempoRestante(u.superAdminExpiraEn)}</span>
+                                    </span>
+                                  ) : (
+                                    <span className="rounded border border-rose-200 bg-rose-50 px-1 py-0.5 font-mono text-[9px] font-bold text-rose-700">
+                                      SA
+                                    </span>
+                                  )
                                 )}
                                 {esMatrizPersonalizada(u.plantilla, u.modulos) && (
                                   <span className="rounded border border-amber-200 bg-amber-50 px-1 py-0.5 font-mono text-[9px] font-bold text-amber-800">
@@ -1424,6 +1619,7 @@ function UsuariosContent() {
                               onCambiarActivo={handleCambiarActivo}
                               onResetearPassword={handleResetPassword}
                               onEliminar={handleEliminar}
+                              onRevocarSuperAdmin={handleRevocarSuperAdmin}
                             />
                           </div>
                         )
@@ -1478,9 +1674,19 @@ function UsuariosContent() {
                                       <div className="flex items-center gap-1.5">
                                         {u.email}
                                         {u.esSuperAdmin && (
-                                          <span className="rounded border border-rose-200 bg-rose-50 px-1 py-0.5 font-mono text-[9px] font-bold text-rose-700">
-                                            SA
-                                          </span>
+                                          u.superAdminTipo === 'temporal' && u.superAdminExpiraEn ? (
+                                            <span
+                                              title={`Expira: ${new Date(u.superAdminExpiraEn).toLocaleString('es-MX')}`}
+                                              className="inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 font-mono text-[9px] font-bold text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                                            >
+                                              <Clock className="h-2.5 w-2.5 text-amber-600" />
+                                              <span>SA Temp · {formatearTiempoRestante(u.superAdminExpiraEn)}</span>
+                                            </span>
+                                          ) : (
+                                            <span className="rounded border border-rose-200 bg-rose-50 px-1 py-0.5 font-mono text-[9px] font-bold text-rose-700">
+                                              SA
+                                            </span>
+                                          )
                                         )}
                                         {esMatrizPersonalizada(u.plantilla, u.modulos) && (
                                           <span className="rounded border border-amber-200 bg-amber-50 px-1 py-0.5 font-mono text-[9px] font-bold text-amber-800">
@@ -1524,6 +1730,7 @@ function UsuariosContent() {
                                           onCambiarActivo={handleCambiarActivo}
                                           onResetearPassword={handleResetPassword}
                                           onEliminar={handleEliminar}
+                                          onRevocarSuperAdmin={handleRevocarSuperAdmin}
                                         />
                                       </div>
                                     </TableCell>
@@ -1557,6 +1764,39 @@ function UsuariosContent() {
                                     <KeyRound className="text-sky-600" />
                                     <span>Generar contraseña temporal</span>
                                   </ContextMenuItem>
+
+                                  {u.esSuperAdmin && u.superAdminTipo === 'temporal' && (
+                                    <ContextMenuItem onClick={() => void handleRevocarSuperAdmin(u.id)}>
+                                      <Clock className="text-amber-600" />
+                                      <span>Revocar Super-admin temporal</span>
+                                    </ContextMenuItem>
+                                  )}
+
+                                  {!u.esSuperAdmin && (
+                                    <ContextMenuSub>
+                                      <ContextMenuSubTrigger>
+                                        <ShieldAlert className="text-amber-600" />
+                                        <span>Hacer Super-admin temporal</span>
+                                      </ContextMenuSubTrigger>
+                                      <ContextMenuSubContent className="w-52">
+                                        <ContextMenuItem onClick={() => void handleConcederSATemporal(u.id, '1h')}>
+                                          <span>Por 1 hora</span>
+                                        </ContextMenuItem>
+                                        <ContextMenuItem onClick={() => void handleConcederSATemporal(u.id, '4h')}>
+                                          <span>Por 4 horas</span>
+                                        </ContextMenuItem>
+                                        <ContextMenuItem onClick={() => void handleConcederSATemporal(u.id, '8h')}>
+                                          <span>Por 8 horas (turno)</span>
+                                        </ContextMenuItem>
+                                        <ContextMenuItem onClick={() => void handleConcederSATemporal(u.id, 'fin_dia')}>
+                                          <span>Hoy hasta 23:59</span>
+                                        </ContextMenuItem>
+                                        <ContextMenuItem onClick={() => void handleConcederSATemporal(u.id, '24h')}>
+                                          <span>Por 24 horas</span>
+                                        </ContextMenuItem>
+                                      </ContextMenuSubContent>
+                                    </ContextMenuSub>
+                                  )}
 
                                   <ContextMenuSeparator />
 
