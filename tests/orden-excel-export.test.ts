@@ -4,6 +4,9 @@ import {
   nombreArchivoOrdenExcel,
   sanitizarNombreArchivo,
   generarBufferExcelLoteOrdenes,
+  armarVistaPreviaOrden,
+  armarVistaPreviaLote,
+  nombreArchivoLoteOrdenesExcel,
 } from '@/lib/orden-excel-export'
 import type { OrdenCompra } from '@/lib/schemas'
 import ExcelJS from 'exceljs'
@@ -52,6 +55,91 @@ describe('orden-excel-export', () => {
   it('genera un nombre de archivo contextual formal', () => {
     const nombre = nombreArchivoOrdenExcel(ordenMock)
     expect(nombre).toBe('OC_EBAY_25-15113-26620_USD.xlsx')
+  })
+
+  it('armarVistaPreviaOrden refleja partidas, totales y nombre de archivo', () => {
+    const vista = armarVistaPreviaOrden(ordenMock)
+
+    expect(vista.nombreArchivo).toBe('OC_EBAY_25-15113-26620_USD.xlsx')
+    expect(vista.meta.titulo).toBe('SMV MAQUINADOS — ORDEN DE COMPRA')
+    expect(vista.meta.proveedor).toBe('EBAY')
+    expect(vista.meta.moneda).toBe('USD')
+    expect(vista.columnas).toContain('Descripción')
+    expect(vista.columnas).toContain('Total (USD)')
+    expect(vista.filas).toHaveLength(1)
+    expect(vista.filas[0][1]).toContain('SMC CDUJB10-6DM')
+    expect(vista.filas[0][2]).toBe('14121702')
+    expect(vista.filas[0][7]).toBe(1)
+    expect(vista.filas[0][8]).toBe(27.88)
+    expect(vista.filas[0][9]).toBe(27.88)
+
+    const totalGeneral = vista.totales.find((t) => t.esTotalGeneral)
+    expect(totalGeneral?.valor).toBe(36.68)
+    expect(totalGeneral?.moneda).toBe('USD')
+    expect(vista.totales.some((t) => t.label.includes('ENVÍO'))).toBe(true)
+    expect(vista.totales.some((t) => t.label.includes('IMPUESTOS'))).toBe(true)
+  })
+
+  it('armarVistaPreviaOrden crea partida de respaldo sin ítems', () => {
+    const ordenSinItems: OrdenCompra = {
+      ...ordenMock,
+      id: 'ORD-VACIA',
+      items: [],
+      subtotal: 100,
+      envio: 0,
+      impuestos: 0,
+      total: 100,
+    }
+    const vista = armarVistaPreviaOrden(ordenSinItems)
+    expect(vista.filas).toHaveLength(1)
+    expect(String(vista.filas[0][1])).toContain('EBAY')
+    expect(vista.filas[0][9]).toBe(100)
+  })
+
+  it('armarVistaPreviaLote no mezcla USD y MXN en un solo total', () => {
+    const ordenMxn: OrdenCompra = {
+      ...ordenMock,
+      id: 'ORD-MXN',
+      moneda: 'MXN',
+      proveedor: 'DigiKey',
+      numeroFactura: 'MX-1',
+      subtotal: 50,
+      envio: 0,
+      impuestos: 0,
+      total: 50,
+      items: [
+        {
+          descripcion: 'Pieza MX',
+          descripcionSimplificada: 'Pieza MX',
+          cantidad: 2,
+          precioUnitario: 25,
+          total: 50,
+          claveProdServ: null,
+          satPendiente: false,
+          empresa: 'SMV',
+          cuentaCargo: 'Stock',
+          requisitor: 'OSCAR',
+          ordenTrabajo: '',
+        },
+      ],
+    }
+
+    const vista = armarVistaPreviaLote([ordenMock, ordenMxn], {
+      generadoEn: new Date('2026-09-08T12:00:00Z'),
+    })
+
+    expect(vista.meta.numOrdenes).toBe(2)
+    expect(vista.filas).toHaveLength(2)
+    expect(vista.nombreArchivo).toBe(
+      nombreArchivoLoteOrdenesExcel({ fecha: new Date('2026-09-08T12:00:00Z') })
+    )
+
+    const totalUsd = vista.totales.find((t) => t.moneda === 'USD')
+    const totalMxn = vista.totales.find((t) => t.moneda === 'MXN')
+    expect(totalUsd?.valor).toBe(27.88)
+    expect(totalMxn?.valor).toBe(50)
+    expect(vista.totales).toHaveLength(2)
+    expect(vista.totales.every((t) => t.moneda === 'USD' || t.moneda === 'MXN')).toBe(true)
   })
 
   it('genera un buffer Excel formal con membrete y datos de orden', async () => {

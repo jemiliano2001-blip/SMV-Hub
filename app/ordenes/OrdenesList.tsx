@@ -13,10 +13,12 @@ import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
 import ModuleSurface from '@/components/layout/ModuleSurface'
 import ModuleBulkBar from '@/components/layout/ModuleBulkBar'
 import { Button } from '@/components/ui/button'
-import { descargarExcelLoteOrdenes } from '@/lib/orden-excel-export'
 
 import OrdenFormModal from './OrdenFormModal'
 import ModalSugerirClavesSat from './ModalSugerirClavesSat'
+import ModalVistaPreviaExcelOrden, {
+  type ModoVistaPreviaExcel,
+} from './components/ModalVistaPreviaExcelOrden'
 import { useOrdenes } from '@/lib/hooks/useOrdenes'
 
 import OrdenesFiltros from './components/OrdenesFiltros'
@@ -67,9 +69,13 @@ export default function OrdenesList({ busquedaInicial }: { busquedaInicial?: str
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isDeletingBulk, setIsDeletingBulk] = useState(false)
   const [isChangingEstadoBulk, setIsChangingEstadoBulk] = useState(false)
-  const [isExportingBulk, setIsExportingBulk] = useState(false)
   const [ordenToEdit, setOrdenToEdit] = useState<OrdenCompra | null>(null)
   const [satModalOrdenes, setSatModalOrdenes] = useState<OrdenCompra[] | null>(null)
+  const [excelPreview, setExcelPreview] = useState<{
+    modo: ModoVistaPreviaExcel
+    orden?: OrdenCompra
+    ordenes?: OrdenCompra[]
+  } | null>(null)
 
   const ordenesFiltradas = useMemo(() => {
     let resultado = ordenes
@@ -283,19 +289,10 @@ export default function OrdenesList({ busquedaInicial }: { busquedaInicial?: str
     setIsChangingEstadoBulk(false)
   }
 
-  const handleExportBulk = async () => {
+  const handleExportBulk = () => {
     const ordenesSeleccionadas = ordenesFiltradas.filter((o) => selectedIds.has(o.id))
     if (!ordenesSeleccionadas.length) return
-    try {
-      setIsExportingBulk(true)
-      await descargarExcelLoteOrdenes(ordenesSeleccionadas)
-      toast.success(`Consolidado Excel de ${ordenesSeleccionadas.length} órdenes descargado`)
-    } catch (err) {
-      console.error('Error al exportar lote a Excel:', err)
-      toast.error('No se pudo generar el consolidado de órdenes en Excel')
-    } finally {
-      setIsExportingBulk(false)
-    }
+    setExcelPreview({ modo: 'lote', ordenes: ordenesSeleccionadas })
   }
 
   const abrirSugerirSat = async (ordenesTarget: OrdenCompra[]) => {
@@ -414,6 +411,7 @@ export default function OrdenesList({ busquedaInicial }: { busquedaInicial?: str
           onRejectClick={onRejectClick}
           onDeleteClick={onDeleteClick}
           onPrepararFiltros={() => void cargarTodas()}
+          onPreviewExcel={(orden) => setExcelPreview({ modo: 'orden', orden })}
         />
       )}
 
@@ -464,6 +462,16 @@ export default function OrdenesList({ busquedaInicial }: { busquedaInicial?: str
           historialOrdenes={ordenes}
           onClose={() => setSatModalOrdenes(null)}
           onApplied={handleSatApplied}
+        />
+      )}
+
+      {excelPreview && (
+        <ModalVistaPreviaExcelOrden
+          open
+          onClose={() => setExcelPreview(null)}
+          modo={excelPreview.modo}
+          orden={excelPreview.orden}
+          ordenes={excelPreview.ordenes}
         />
       )}
 
@@ -520,15 +528,10 @@ export default function OrdenesList({ busquedaInicial }: { busquedaInicial?: str
               size="sm"
               variant="outline"
               onClick={handleExportBulk}
-              disabled={isExportingBulk}
               className="h-8 gap-1.5 border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 text-xs font-semibold cursor-pointer"
-              title="Descargar consolidado formal en Excel (.xlsx)"
+              title="Vista previa del consolidado formal en Excel (.xlsx)"
             >
-              {isExportingBulk ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <FileSpreadsheet className="size-3.5 text-emerald-600" />
-              )}
+              <FileSpreadsheet className="size-3.5 text-emerald-600" />
               Exportar Excel ({selectedIds.size})
             </Button>
 

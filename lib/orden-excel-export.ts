@@ -35,6 +35,300 @@ export function nombreArchivoOrdenExcel(orden: OrdenCompra): string {
   return `OC_${proveedor}_${ref}_${moneda}.xlsx`
 }
 
+export function nombreArchivoLoteOrdenesExcel(opts?: { fecha?: Date }): string {
+  const fechaHoy = (opts?.fecha ?? new Date()).toISOString().slice(0, 10)
+  return `Ordenes_Compra_Consolidado_${fechaHoy}.xlsx`
+}
+
+/** Celda de vista previa (texto o número; el formato lo aplica la UI). */
+export type VistaPreviaExcelCelda = string | number
+
+export type VistaPreviaExcelTotalLinea = {
+  label: string
+  valor: number
+  moneda?: string
+  esTotalGeneral?: boolean
+}
+
+export type VistaPreviaExcelMeta = {
+  titulo: string
+  subtitulo?: string
+  proveedor?: string
+  numeroFactura?: string
+  requisitor?: string
+  empresa?: string
+  moneda?: string
+  estado?: string
+  fecha?: string
+  cuentaCargo?: string
+  ordenTrabajo?: string
+  fechaEntrega?: string
+  recepcion?: string
+  numOrdenes?: number
+}
+
+export type VistaPreviaExcelOrden = {
+  meta: VistaPreviaExcelMeta
+  columnas: string[]
+  filas: VistaPreviaExcelCelda[][]
+  totales: VistaPreviaExcelTotalLinea[]
+  nombreArchivo: string
+}
+
+type ItemOrdenParaExcel = {
+  descripcion: string
+  cantidad: number
+  precioUnitario: number
+  total: number
+  claveProdServ: string | null
+  requisitor: string
+  cuentaCargo: string
+  empresa: string
+  ordenTrabajo: string
+}
+
+/**
+ * Resuelve partidas de una orden con el mismo fallback que el Excel formal.
+ */
+export function resolverItemsOrdenParaExcel(
+  orden: OrdenCompra,
+  opts?: { fallbackDescripcion?: 'formal' | 'lote' }
+): ItemOrdenParaExcel[] {
+  const modo = opts?.fallbackDescripcion ?? 'formal'
+  if (orden.items && orden.items.length > 0) {
+    return orden.items.map((it) => {
+      const cantidad = it.cantidad ?? 1
+      const precioUnitario = it.precioUnitario ?? 0
+      return {
+        descripcion: it.descripcion || '—',
+        cantidad,
+        precioUnitario,
+        total: it.total ?? cantidad * precioUnitario,
+        claveProdServ: it.claveProdServ ?? null,
+        requisitor: it.requisitor || orden.requisitor || '—',
+        cuentaCargo: it.cuentaCargo || cuentaCargoEfectiva(orden) || '—',
+        empresa: it.empresa || orden.empresa || orden.destino || 'SMV',
+        ordenTrabajo: it.ordenTrabajo || orden.ordenTrabajo || '—',
+      }
+    })
+  }
+
+  const descripcion =
+    modo === 'lote'
+      ? `Compra general - ${orden.proveedor}`
+      : `Compra / Partida única — ${orden.proveedor}`
+
+  return [
+    {
+      descripcion,
+      cantidad: 1,
+      precioUnitario: orden.subtotal ?? orden.total ?? 0,
+      total: orden.subtotal ?? orden.total ?? 0,
+      claveProdServ: null,
+      requisitor: orden.requisitor || '—',
+      cuentaCargo: cuentaCargoEfectiva(orden) || '—',
+      empresa: orden.empresa || orden.destino || 'SMV',
+      ordenTrabajo: orden.ordenTrabajo || '—',
+    },
+  ]
+}
+
+function totalesFinancierosOrden(
+  orden: OrdenCompra,
+  items: ItemOrdenParaExcel[]
+): { subtotal: number; envio: number; impuestos: number; total: number } {
+  const sumaPartidas = items.reduce((s, it) => s + it.total, 0)
+  const subtotal =
+    typeof orden.subtotal === 'number' && Number.isFinite(orden.subtotal)
+      ? orden.subtotal
+      : sumaPartidas
+  const envio =
+    typeof orden.envio === 'number' && Number.isFinite(orden.envio) ? orden.envio : 0
+  const impuestos =
+    typeof orden.impuestos === 'number' && Number.isFinite(orden.impuestos)
+      ? orden.impuestos
+      : 0
+  const total =
+    typeof orden.total === 'number' && Number.isFinite(orden.total)
+      ? orden.total
+      : subtotal + envio + impuestos
+  return { subtotal, envio, impuestos, total }
+}
+
+/**
+ * Arma la vista previa tabular de una orden individual (sin ExcelJS).
+ */
+export function armarVistaPreviaOrden(orden: OrdenCompra): VistaPreviaExcelOrden {
+  const moneda = (orden.moneda || 'USD').toUpperCase()
+  const items = resolverItemsOrdenParaExcel(orden, { fallbackDescripcion: 'formal' })
+  const montos = totalesFinancierosOrden(orden, items)
+  const recepcionTxt =
+    orden.estadoRecepcion === 'recibida'
+      ? `Recibido (${orden.recibidoPor || 'Almacén'})`
+      : 'Pendiente'
+
+  const columnas = [
+    '#',
+    'Descripción',
+    'Clave SAT',
+    'Requisitor',
+    'Cuenta Cargo',
+    'Empresa / Destino',
+    'OT',
+    'Cant.',
+    `P. Unitario (${moneda})`,
+    `Total (${moneda})`,
+  ]
+
+  const filas: VistaPreviaExcelCelda[][] = items.map((it, i) => [
+    i + 1,
+    it.descripcion,
+    it.claveProdServ || '—',
+    it.requisitor,
+    it.cuentaCargo,
+    it.empresa,
+    it.ordenTrabajo,
+    it.cantidad,
+    it.precioUnitario,
+    it.total,
+  ])
+
+  const totales: VistaPreviaExcelTotalLinea[] = [
+    { label: 'SUBTOTAL MERCANCÍA:', valor: montos.subtotal, moneda },
+  ]
+  if (montos.envio > 0) {
+    totales.push({ label: 'ENVÍO / FLETE (SHIPPING):', valor: montos.envio, moneda })
+  }
+  if (montos.impuestos > 0) {
+    totales.push({
+      label: `IMPUESTOS (${moneda === 'USD' ? 'SALES TAX' : 'IVA'}):`,
+      valor: montos.impuestos,
+      moneda,
+    })
+  }
+  totales.push({
+    label: `TOTAL ORDEN (${moneda}):`,
+    valor: montos.total,
+    moneda,
+    esTotalGeneral: true,
+  })
+
+  return {
+    meta: {
+      titulo: 'SMV MAQUINADOS — ORDEN DE COMPRA',
+      proveedor: orden.proveedor,
+      numeroFactura: orden.numeroFactura || 'S/N',
+      requisitor: displayOGuion(orden.requisitor),
+      empresa: orden.empresa || orden.destino || 'SMV',
+      moneda,
+      estado: (orden.estado || 'pendiente').toUpperCase(),
+      fecha: orden.fechaFactura || fechaIso(orden.creadoEn),
+      cuentaCargo: displayOGuion(cuentaCargoEfectiva(orden)),
+      ordenTrabajo: displayOGuion(orden.ordenTrabajo),
+      fechaEntrega: displayOGuion(orden.fechaEntrega),
+      recepcion: recepcionTxt,
+    },
+    columnas,
+    filas,
+    totales,
+    nombreArchivo: nombreArchivoOrdenExcel(orden),
+  }
+}
+
+/**
+ * Arma la vista previa tabular del consolidado de órdenes (sin ExcelJS).
+ */
+export function armarVistaPreviaLote(
+  ordenes: OrdenCompra[],
+  opts?: { titulo?: string; subtitulo?: string; generadoEn?: Date }
+): VistaPreviaExcelOrden {
+  const generadoEn = opts?.generadoEn ?? new Date()
+  const columnas = [
+    '#',
+    'Fecha',
+    'N° Factura',
+    'Proveedor',
+    'Descripción Partida',
+    'Clave SAT',
+    'Cant.',
+    'P. Unitario',
+    'Total Partida',
+    'Moneda',
+    'Requisitor',
+    'Cuenta Cargo',
+    'Empresa',
+    'OT',
+    'Estado',
+    'Recepción',
+  ]
+
+  const filas: VistaPreviaExcelCelda[][] = []
+  let partidaIndex = 1
+  let totalUSD = 0
+  let totalMXN = 0
+
+  for (const orden of ordenes) {
+    const items = resolverItemsOrdenParaExcel(orden, { fallbackDescripcion: 'lote' })
+    const moneda = (orden.moneda || 'USD').toUpperCase()
+
+    for (const it of items) {
+      if (moneda === 'USD') totalUSD += it.total
+      else totalMXN += it.total
+
+      filas.push([
+        partidaIndex++,
+        orden.fechaFactura || fechaIso(orden.creadoEn),
+        orden.numeroFactura || 'S/N',
+        orden.proveedor,
+        it.descripcion,
+        it.claveProdServ || '—',
+        it.cantidad,
+        it.precioUnitario,
+        it.total,
+        moneda,
+        it.requisitor,
+        it.cuentaCargo,
+        it.empresa,
+        it.ordenTrabajo,
+        (orden.estado || 'pendiente').toUpperCase(),
+        orden.estadoRecepcion === 'recibida' ? 'Recibida' : 'Pendiente',
+      ])
+    }
+  }
+
+  const totales: VistaPreviaExcelTotalLinea[] = []
+  if (totalUSD > 0) {
+    totales.push({
+      label: 'TOTAL CONSOLIDADO USD:',
+      valor: totalUSD,
+      moneda: 'USD',
+      esTotalGeneral: true,
+    })
+  }
+  if (totalMXN > 0) {
+    totales.push({
+      label: 'TOTAL CONSOLIDADO MXN:',
+      valor: totalMXN,
+      moneda: 'MXN',
+      esTotalGeneral: true,
+    })
+  }
+
+  return {
+    meta: {
+      titulo: opts?.titulo ?? 'SMV MAQUINADOS — CONSOLIDADO DE ÓRDENES DE COMPRA',
+      subtitulo:
+        opts?.subtitulo ??
+        `${ordenes.length} órdenes seleccionadas  ·  Generado el ${generadoEn.toLocaleDateString('es-MX')}`,
+      numOrdenes: ordenes.length,
+    },
+    columnas,
+    filas,
+    totales,
+    nombreArchivo: nombreArchivoLoteOrdenesExcel({ fecha: generadoEn }),
+  }
+}
+
 /**
  * Genera el buffer ArrayBuffer del libro Excel formal (.xlsx) para una orden individual.
  */
@@ -536,7 +830,6 @@ export async function descargarExcelLoteOrdenes(
   nombreArchivo?: string
 ): Promise<void> {
   const buffer = await generarBufferExcelLoteOrdenes(ordenes)
-  const fechaHoy = new Date().toISOString().slice(0, 10)
-  const nombreFinal = nombreArchivo ?? `Ordenes_Compra_Consolidado_${fechaHoy}.xlsx`
+  const nombreFinal = nombreArchivo ?? nombreArchivoLoteOrdenesExcel()
   descargarExcelEnNavegador(buffer, nombreFinal)
 }

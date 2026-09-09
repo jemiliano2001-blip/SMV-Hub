@@ -8,13 +8,12 @@ import WhatsAppIcon from '@/components/WhatsAppIcon'
 import { normalizarClaveProdServ } from '@/lib/sat/normalizar'
 import { sanitizarUrl } from '@/lib/importar'
 import type { OrdenCompra } from '@/lib/schemas'
-import { Calendar, CheckCircle2, Edit2, ExternalLink, Eye, FileSpreadsheet, Loader2, PackageCheck, Tags, Trash2, XCircle } from 'lucide-react'
+import { Calendar, CheckCircle2, Edit2, ExternalLink, Eye, FileSpreadsheet, PackageCheck, Tags, Trash2, XCircle } from 'lucide-react'
 import { useFilePreview } from '@/components/FilePreviewProvider'
 import OrdenBadgeEstado from './OrdenBadgeEstado'
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { descargarExcelOrden } from '@/lib/orden-excel-export'
+import ModalVistaPreviaExcelOrden from './ModalVistaPreviaExcelOrden'
 import StepperAbastecimiento from '@/components/abastecimiento/StepperAbastecimiento'
 import ModalRecibirOrdenAlmacen from '@/components/abastecimiento/ModalRecibirOrdenAlmacen'
 import { derivarPasosAbastecimiento } from '@/lib/abastecimiento'
@@ -57,7 +56,7 @@ export default function OrdenDetallesModal({
 }: OrdenDetallesModalProps) {
   const { previewFile } = useFilePreview()
   const [modalRecibirAbierto, setModalRecibirAbierto] = useState(false)
-  const [exportandoExcel, setExportandoExcel] = useState(false)
+  const [excelPreviewAbierto, setExcelPreviewAbierto] = useState(false)
   const [estadoWhatsApp, setEstadoWhatsApp] = useState<{
     exito: boolean
     mensaje: string
@@ -72,19 +71,6 @@ export default function OrdenDetallesModal({
       : null,
     entradaAlmacenId: orden.entradaAlmacenId,
   })
-
-  const handleExportarExcel = async () => {
-    try {
-      setExportandoExcel(true)
-      await descargarExcelOrden(orden)
-      toast.success('Excel de la orden generado correctamente')
-    } catch (err) {
-      console.error('Error al exportar orden a Excel:', err)
-      toast.error('No se pudo generar el Excel de la orden')
-    } finally {
-      setExportandoExcel(false)
-    }
-  }
 
   const handleNotificarWhatsApp = async () => {
     const resultado = await notificarOrdenPorWhatsApp(orden)
@@ -110,6 +96,7 @@ export default function OrdenDetallesModal({
   }
 
   return (
+    <>
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl">
         <DialogHeader className="border-b border-border bg-muted/30 px-6 py-4 pr-12">
@@ -125,17 +112,12 @@ export default function OrdenDetallesModal({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleExportarExcel}
-                disabled={exportandoExcel}
+                onClick={() => setExcelPreviewAbierto(true)}
                 type="button"
                 className="border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 font-semibold cursor-pointer"
-                title="Descargar orden formal en Excel (.xlsx)"
+                title="Vista previa y descarga de orden formal en Excel (.xlsx)"
               >
-                {exportandoExcel ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
-                )}
+                <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
                 Exportar Excel
               </Button>
               <Button variant="outline" size="sm" onClick={onEdit} type="button">
@@ -390,17 +372,12 @@ export default function OrdenDetallesModal({
             )}
             <button
               type="button"
-              onClick={handleExportarExcel}
-              disabled={exportandoExcel}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-600/30 bg-card px-3.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 transition-colors active:scale-[0.98] shadow-xs disabled:opacity-50 cursor-pointer"
-              title="Descargar orden formal en Excel (.xlsx)"
+              onClick={() => setExcelPreviewAbierto(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-600/30 bg-card px-3.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 transition-colors active:scale-[0.98] shadow-xs cursor-pointer"
+              title="Vista previa y descarga de orden formal en Excel (.xlsx)"
             >
-              {exportandoExcel ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
-              )}
-              {exportandoExcel ? 'Generando…' : 'Exportar Excel'}
+              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+              Exportar Excel
             </button>
             <button
               onClick={onClose}
@@ -460,5 +437,12 @@ export default function OrdenDetallesModal({
         }}
       />
     </Dialog>
+    <ModalVistaPreviaExcelOrden
+      open={excelPreviewAbierto}
+      onClose={() => setExcelPreviewAbierto(false)}
+      modo="orden"
+      orden={orden}
+    />
+    </>
   )
 }

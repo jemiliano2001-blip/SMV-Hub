@@ -6,15 +6,12 @@ import {
   Eye,
   FileSpreadsheet,
   FileText,
-  Loader2,
   MessageCircle,
   Tags,
   Trash2,
   XCircle,
 } from 'lucide-react'
 import type { OrdenCompra } from '@/lib/schemas'
-import { toast } from 'sonner'
-import { descargarExcelOrden } from '@/lib/orden-excel-export'
 import { formatPrecio } from '@/lib/format'
 import { sanitizarUrl } from '@/lib/importar'
 import {
@@ -68,6 +65,7 @@ interface OrdenesTablaProps {
   onRejectClick: (id: string, e: React.MouseEvent) => void;
   onDeleteClick: (id: string, e: React.MouseEvent) => void;
   onPrepararFiltros: () => void;
+  onPreviewExcel: (orden: OrdenCompra) => void;
 }
 
 const thFiltro = 'h-auto px-3 py-2.5 align-top font-bold whitespace-normal'
@@ -88,6 +86,7 @@ export default function OrdenesTabla({
   onRejectClick,
   onDeleteClick,
   onPrepararFiltros,
+  onPreviewExcel,
 }: OrdenesTablaProps) {
   const { previewFile } = useFilePreview()
   const [filaActivaIdx, setFilaActivaIdx] = useState<number | null>(0)
@@ -112,20 +111,6 @@ export default function OrdenesTabla({
     comprobanteUrl?: string
     abrirWhatsApp: boolean
   } | null>(null)
-  const [descargandoId, setDescargandoId] = useState<string | null>(null)
-
-  async function handleDescargarExcel(orden: OrdenCompra) {
-    try {
-      setDescargandoId(orden.id)
-      await descargarExcelOrden(orden)
-      toast.success(`Excel generado para ${orden.proveedor}`)
-    } catch (err) {
-      console.error('Error al exportar orden:', err)
-      toast.error('No se pudo descargar el Excel de la orden')
-    } finally {
-      setDescargandoId(null)
-    }
-  }
 
   async function notificar(orden: OrdenCompra) {
     const resultado = await notificarOrdenPorWhatsApp(orden)
@@ -343,18 +328,13 @@ export default function OrdenesTabla({
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            void handleDescargarExcel(orden)
+                            onPreviewExcel(orden)
                           }}
-                          disabled={descargandoId === orden.id}
-                          className="p-1 text-muted-foreground hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors disabled:opacity-50 cursor-pointer"
-                          title="Descargar orden en Excel (.xlsx)"
-                          aria-label={`Descargar Excel de orden ${orden.numeroFactura || orden.id}`}
+                          className="p-1 text-muted-foreground hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors cursor-pointer"
+                          title="Vista previa Excel de la orden"
+                          aria-label={`Vista previa Excel de orden ${orden.numeroFactura || orden.id}`}
                         >
-                          {descargandoId === orden.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
-                          ) : (
-                            <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
-                          )}
+                          <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
                         </button>
                         <button
                           onClick={(e) => {
@@ -453,9 +433,9 @@ export default function OrdenesTabla({
                     <span>Notificar por WhatsApp</span>
                   </ContextMenuItem>
 
-                  <ContextMenuItem onClick={() => void handleDescargarExcel(orden)}>
+                  <ContextMenuItem onClick={() => onPreviewExcel(orden)}>
                     <FileSpreadsheet className="h-4 w-4 mr-2 text-emerald-600" />
-                    <span>Descargar orden en Excel (.xlsx)</span>
+                    <span>Vista previa Excel (.xlsx)</span>
                   </ContextMenuItem>
 
                   {linkNorm && (
