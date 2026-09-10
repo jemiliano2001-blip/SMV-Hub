@@ -61,108 +61,100 @@ type VistaModal = 'seleccion' | 'vista_previa'
  */
 function TarjetaValeContenido({ movimiento: m }: { movimiento: MovimientoCajaChica }) {
   return (
-    <div className="flex flex-col justify-between h-full p-3 sm:p-3.5 box-border bg-[#ffffff] text-[#111111]">
-      {/* Cabecera del vale */}
-      <div>
-        <div className="flex items-center justify-between border-b-2 border-[#111111] pb-1">
+    <div className="flex flex-col justify-between h-full p-3.5 sm:p-4 box-border bg-[#ffffff] text-[#111111]">
+      {/* Sección Superior: Encabezado y Datos Principales */}
+      <div className="space-y-2">
+        {/* Cabecera del vale */}
+        <div className="flex items-center justify-between border-b-2 border-[#111111] pb-1.5">
           <div>
-            <h4 className="text-[11.5px] font-black uppercase tracking-wider text-[#111111] leading-tight font-mono">
+            <h4 className="text-xs sm:text-[13.5px] font-black uppercase tracking-wider text-[#111111] leading-tight font-mono">
               SMV MAQUINADOS
             </h4>
-            <p className="text-[7.5px] font-bold tracking-widest text-[#4b5563] uppercase">
+            <p className="text-[8.5px] sm:text-[9.5px] font-bold tracking-widest text-[#4b5563] uppercase">
               Vale de Caja Chica · Gasto Menor
             </p>
           </div>
           <div className="text-right font-mono leading-tight">
-            <span className="text-[8.5px] font-bold text-[#111111] block">
+            <span className="text-xs sm:text-[13px] font-black text-[#111111] block">
               {obtenerFolioCortoVale(m.id)}
             </span>
-            <span className="text-[8px] text-[#4b5563] block">
+            <span className="text-[9.5px] sm:text-[10.5px] font-bold text-[#4b5563] block">
               {m.fecha}
             </span>
           </div>
         </div>
 
-        {/* Bloque destacado de Monto */}
-        <div className="my-2 bg-[#f4f4f5] border border-[#d4d4d8] rounded-xs px-2.5 py-1.5 flex items-center justify-between">
+        {/* Bloque destacado de Monto (Hero Block con tipografía grande y clara) */}
+        <div className="bg-[#f4f4f5] border border-[#d4d4d8] rounded-xs px-3 py-2 flex items-center justify-between">
           <div>
-            <span className="text-[7px] uppercase font-bold tracking-wider text-[#71717a] block">
+            <span className="text-[8px] sm:text-[9px] uppercase font-bold tracking-wider text-[#52525b] block">
               Importe Pagado (Efectivo)
             </span>
-            <span className="text-[14px] font-black font-mono text-[#111111] leading-none">
+            <span className="text-lg sm:text-[22px] font-black font-mono text-[#111111] leading-none">
               {formatPrecio(m.monto, 'MXN')}
             </span>
           </div>
-          <span className="text-[7.5px] font-mono font-bold bg-[#ffffff] border border-[#a1a1aa] px-1.5 py-0.5 rounded-xs text-[#18181b]">
+          <span className="text-[8.5px] sm:text-[9.5px] font-mono font-black bg-[#ffffff] border border-[#71717a] px-2 py-1 rounded-xs text-[#18181b]">
             SIN FACTURA
           </span>
         </div>
 
-        {/* Detalle descriptivo */}
-        <div className="space-y-1 text-[8.5px] leading-tight">
+        {/* Detalle descriptivo amplio y muy legible */}
+        <div className="space-y-1.5 text-[#111111]">
           <div>
-            <span className="font-bold text-[#52525b] uppercase text-[7px] block">Concepto / Motivo:</span>
-            <p className="font-semibold text-[#111111] line-clamp-2">
+            <span className="font-bold text-[#52525b] uppercase text-[8px] sm:text-[9px] block">
+              Concepto / Motivo:
+            </span>
+            <p className="font-bold text-xs sm:text-[13px] text-[#111111] leading-snug line-clamp-2" title={m.descripcion}>
               {m.descripcion}
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-2 pt-0.5">
             <div>
-              <span className="font-bold text-[#52525b] uppercase text-[7px] block">Establecimiento / Prov:</span>
-              <span className="text-[#18181b] truncate block font-medium">
+              <span className="font-bold text-[#52525b] uppercase text-[8px] sm:text-[9px] block">
+                Establecimiento / Prov:
+              </span>
+              <span className="text-xs sm:text-[12px] text-[#18181b] font-semibold truncate block">
                 {m.proveedor || 'No especificado'}
               </span>
             </div>
             <div>
-              <span className="font-bold text-[#52525b] uppercase text-[7px] block">Categoría:</span>
-              <span className="text-[#18181b] truncate block font-medium">
+              <span className="font-bold text-[#52525b] uppercase text-[8px] sm:text-[9px] block">
+                Categoría:
+              </span>
+              <span className="text-xs sm:text-[12px] text-[#18181b] font-semibold truncate block">
                 {m.categoria || 'General'}
               </span>
             </div>
           </div>
 
-          <div className="pt-0.5">
-            <span className="font-bold text-[#52525b] uppercase text-[7px] block">Quien realizó el gasto:</span>
-            <span className="text-[#18181b] font-bold">
-              {m.solicitante || 'Personal autorizado'}
+          <div className="pt-0.5 flex items-baseline justify-between gap-2">
+            <div>
+              <span className="font-bold text-[#52525b] uppercase text-[8px] sm:text-[9px] block">
+                Quien realizó el gasto:
+              </span>
+              <span className="text-xs sm:text-[12.5px] text-[#18181b] font-black">
+                {m.solicitante || 'Personal autorizado'}
+              </span>
+            </div>
+            <span className="text-[8px] sm:text-[9px] font-mono text-[#52525b] bg-[#f4f4f5] px-1.5 py-0.5 rounded-xs border border-[#e4e4e7]">
+              Caja Chica SMV
             </span>
           </div>
-
-          <p className="text-[6.5px] text-[#71717a] italic pt-0.5">
-            * Comprobante interno emitido por falta de ticket o recibo en comercio.
-          </p>
         </div>
       </div>
 
-      {/* Firmas de conformidad */}
-      <div className="pt-2">
-        <div className="grid grid-cols-2 gap-4 text-center">
-          <div>
-            <div className="border-b border-[#111111] mb-1 mx-2" />
-            <p className="text-[7px] font-bold text-[#111111] uppercase leading-none">
-              Recibió / Compró
-            </p>
-            <p className="text-[6.5px] text-[#52525b] truncate">
-              {m.solicitante || 'Firma'}
-            </p>
-          </div>
+      {/* Sección Inferior: Nota institucional y guía de corte (sin firmas) */}
+      <div className="pt-2 border-t border-dashed border-[#d4d4d8] mt-2">
+        <p className="text-[7.5px] sm:text-[8.5px] text-[#71717a] italic text-center pb-1">
+          * Comprobante interno válido para arqueo de caja chica por falta de comprobante fiscal.
+        </p>
 
-          <div>
-            <div className="border-b border-[#111111] mb-1 mx-2" />
-            <p className="text-[7px] font-bold text-[#111111] uppercase leading-none">
-              Autorizó
-            </p>
-            <p className="text-[6.5px] text-[#52525b]">
-              Caja Chica / Gerencia
-            </p>
-          </div>
-        </div>
-
-        {/* Guía de tijera */}
-        <div className="flex items-center justify-center gap-1 text-[6.5px] text-[#9ca3af] pt-1.5 select-none font-mono">
-          <Scissors className="h-2.5 w-2.5" />
-          <span>corte</span>
+        {/* Guía de tijera centrada */}
+        <div className="flex items-center justify-center gap-1.5 text-[8px] sm:text-[9px] text-[#9ca3af] select-none font-mono">
+          <Scissors className="h-3 w-3 text-[#71717a]" />
+          <span>--- línea de corte ---</span>
         </div>
       </div>
     </div>
@@ -289,7 +281,7 @@ export default function ModalImprimirVales({
                     Imprimir Vales de Gastos sin Comprobante
                   </DialogTitle>
                   <DialogDescription className="text-xs text-muted-foreground">
-                    Cuadrícula exacta de {VALES_POR_HOJA} vales por hoja (formato Carta) con firmas y guías de corte.
+                    Cuadrícula exacta de {VALES_POR_HOJA} vales por hoja (formato Carta) con tipografía ampliada y guías de corte.
                   </DialogDescription>
                 </div>
               </div>
