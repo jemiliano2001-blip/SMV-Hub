@@ -16,8 +16,10 @@ import {
   RefreshCw,
   Copy,
   CheckCircle2,
+  Printer,
 } from 'lucide-react'
 import ModalMovimientoCaja from './ModalMovimientoCaja'
+import ModalImprimirVales from './ModalImprimirVales'
 import type { MovimientoCajaChica } from '@/lib/schemas'
 import { listarCortesCaja, type CorteCaja, type ModoFiltroCaja } from '@/lib/caja-chica'
 import { toast } from 'sonner'
@@ -403,11 +405,13 @@ export default function MovimientosCaja() {
   const [initialValores, setInitialValores] = useState<Partial<MovimientoCajaChica> | undefined>(undefined)
   const [movimientoABorrar, setMovimientoABorrar] = useState<MovimientoCajaChica | null>(null)
 
-  // Modal para confirmar Corte de Caja
   const [modalCorteOpen, setModalCorteOpen] = useState(false)
   const [notaCorte, setNotaCorte] = useState('')
   const [montoReabastecimientoInput, setMontoReabastecimientoInput] = useState('')
   const [haciendoCorte, setHaciendoCorte] = useState(false)
+
+  // Modal para Imprimir Vales de gastos sin comprobante
+  const [modalValesOpen, setModalValesOpen] = useState(false)
 
   const cargarHistorialCortes = useCallback(() => {
     listarCortesCaja()
@@ -436,6 +440,10 @@ export default function MovimientosCaja() {
       totalSalidasAcumuladas: totalSalidas,
       saldoCalculado: totalEntradas - totalSalidas,
     }
+  }, [movimientos])
+
+  const totalSinComprobante = useMemo(() => {
+    return movimientos.filter((m) => !m.anulado && m.tipo === 'SALIDA' && m.comprobante === 'NINGUNO').length
   }, [movimientos])
 
   const handleConfirmarCorte = async () => {
@@ -567,6 +575,20 @@ export default function MovimientosCaja() {
           >
             <UserCheck className="h-4 w-4" />
             Nuevo Vale
+          </button>
+
+          <button
+            onClick={() => setModalValesOpen(true)}
+            className="bg-card hover:bg-muted text-foreground border border-border px-3.5 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 justify-center active:scale-[0.98] flex-1 sm:flex-none shadow-xs"
+            title="Imprimir vales físicos para gastos sin comprobante (6 por hoja carta)"
+          >
+            <Printer className="h-4 w-4 text-muted-foreground" />
+            <span>Imprimir Vales</span>
+            {totalSinComprobante > 0 && (
+              <span className="bg-rose-100 text-rose-800 text-[10px] font-mono font-bold px-1.5 py-0.2 rounded border border-rose-200">
+                {totalSinComprobante}
+              </span>
+            )}
           </button>
 
           <button
@@ -868,6 +890,15 @@ export default function MovimientosCaja() {
             setModalOpen(false)
             setMovimientoEditar(null)
           }}
+        />
+      )}
+
+      {/* Modal Imprimir Vales de Caja Chica (6 por hoja) */}
+      {modalValesOpen && (
+        <ModalImprimirVales
+          movimientos={movimientos}
+          open={modalValesOpen}
+          onClose={() => setModalValesOpen(false)}
         />
       )}
     </div>
