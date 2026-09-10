@@ -127,10 +127,10 @@ export default function ModalImprimirVales({
 
   return (
     <>
-      {/* ── DIÁLOGO EN PANTALLA (oculto en impresión) ── */}
+      {/* ── DIÁLOGO EN PANTALLA Y ENVOLTORIO DE IMPRESIÓN ── */}
       <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-        <DialogContent className="max-w-4xl max-h-[92vh] flex flex-col gap-4 p-5 print:hidden">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[92vh] flex flex-col gap-4 p-5 print:p-0 print:border-0 print:max-h-none print:shadow-none print:bg-white print:block">
+          <DialogHeader className="print:hidden">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20">
@@ -149,7 +149,7 @@ export default function ModalImprimirVales({
           </DialogHeader>
 
           {/* Resumen numérico y selector de vista */}
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between p-3 rounded-lg bg-muted/40 border border-border">
+          <div className="print:hidden flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between p-3 rounded-lg bg-muted/40 border border-border">
             <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
               <span className="px-2.5 py-1 rounded-md bg-card border border-border font-bold text-foreground flex items-center gap-1">
                 <FileText className="h-3.5 w-3.5 text-primary" />
@@ -194,7 +194,7 @@ export default function ModalImprimirVales({
           </div>
 
           {/* Filtros rápidos de gastos a considerar */}
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="print:hidden flex flex-wrap items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-1.5">
               <span className="text-muted-foreground font-medium">Filtrar por comprobante:</span>
               <div className="flex gap-1">
@@ -252,7 +252,7 @@ export default function ModalImprimirVales({
           </div>
 
           {/* Contenido principal scrolleable */}
-          <div className="flex-1 overflow-y-auto min-h-[300px] max-h-[50vh] border border-border rounded-lg bg-card">
+          <div className="print:hidden flex-1 overflow-y-auto min-h-[300px] max-h-[50vh] border border-border rounded-lg bg-card">
             {vista === 'seleccion' ? (
               candidatos.length === 0 ? (
                 <div className="p-8 text-center text-xs font-mono text-muted-foreground flex flex-col items-center gap-2">
@@ -401,7 +401,7 @@ export default function ModalImprimirVales({
             )}
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="print:hidden gap-2 sm:gap-0">
             <Button variant="outline" onClick={onClose}>
               Cerrar
             </Button>
@@ -414,170 +414,175 @@ export default function ModalImprimirVales({
               Imprimir {movimientosSeleccionados.length} {movimientosSeleccionados.length === 1 ? 'Vale' : 'Vales'} ({hojasTotal} {hojasTotal === 1 ? 'página' : 'páginas'})
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
-      {/* ── PLANTILLA FÍSICA PARA IMPRESIÓN (visible exclusivamente en @media print) ── */}
-      <div className="vales-print-root hidden print:block">
-        <style dangerouslySetInnerHTML={{ __html: `
-          @media print {
-            @page {
-              size: letter portrait;
-              margin: 0.35in;
-            }
-            body {
-              background: #ffffff !important;
-              color: #111111 !important;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
-            .vales-print-root {
-              display: block !important;
-              width: 100% !important;
-            }
-            .vales-print-hoja {
-              width: 100% !important;
-              height: 10.2in !important;
-              max-height: 10.2in !important;
-              display: grid !important;
-              grid-template-columns: 1fr 1fr !important;
-              grid-template-rows: 1fr 1fr 1fr !important;
-              gap: 0.22in !important;
-              box-sizing: border-box !important;
-              break-after: page !important;
-              page-break-after: always !important;
-            }
-            .vales-print-hoja:last-child {
-              break-after: auto !important;
-              page-break-after: auto !important;
-            }
-            .vale-tarjeta-fisica {
-              border: 1.5px dashed #4b5563 !important;
-              border-radius: 4px !important;
-              padding: 0.14in 0.16in !important;
-              display: flex !important;
-              flex-direction: column !important;
-              justify-content: space-between !important;
-              box-sizing: border-box !important;
-              background-color: #ffffff !important;
-              color: #111111 !important;
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-            }
-          }
-        `}} />
+          {/* ── PLANTILLA FÍSICA PARA IMPRESIÓN (visible exclusivamente en @media print) ── */}
+          <div className="vales-print-root hidden print:block">
+            <style dangerouslySetInnerHTML={{ __html: `
+              @media print {
+                @page {
+                  size: letter portrait;
+                  margin: 0.3in;
+                }
+                body {
+                  background: #ffffff !important;
+                  color: #111111 !important;
+                  -webkit-print-color-adjust: exact !important;
+                  print-color-adjust: exact !important;
+                }
+                .vales-print-root {
+                  display: block !important;
+                  width: 100% !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                }
+                .vales-print-hoja {
+                  width: 100% !important;
+                  height: 10.0in !important;
+                  max-height: 10.0in !important;
+                  display: grid !important;
+                  grid-template-columns: 1fr 1fr !important;
+                  grid-template-rows: 1fr 1fr 1fr !important;
+                  gap: 0.18in !important;
+                  box-sizing: border-box !important;
+                  break-after: page !important;
+                  page-break-after: always !important;
+                  overflow: hidden !important;
+                }
+                .vales-print-hoja:last-child {
+                  break-after: auto !important;
+                  page-break-after: auto !important;
+                }
+                .vale-tarjeta-fisica {
+                  border: 1.5px dashed #4b5563 !important;
+                  border-radius: 4px !important;
+                  padding: 0.12in 0.14in !important;
+                  display: flex !important;
+                  flex-direction: column !important;
+                  justify-content: space-between !important;
+                  box-sizing: border-box !important;
+                  background-color: #ffffff !important;
+                  color: #111111 !important;
+                  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+                  page-break-inside: avoid !important;
+                  break-inside: avoid !important;
+                }
+              }
+            `}} />
 
-        {hojasParaImpresion.map((hoja, hojaIndex) => (
-          <div key={hojaIndex} className="vales-print-hoja">
-            {hoja.map((m) => (
-              <div key={m.id} className="vale-tarjeta-fisica">
-                {/* Cabecera del vale */}
-                <div>
-                  <div className="flex items-center justify-between border-b-2 border-[#111111] pb-1">
+            {hojasParaImpresion.map((hoja, hojaIndex) => (
+              <div key={hojaIndex} className="vales-print-hoja">
+                {hoja.map((m) => (
+                  <div key={m.id} className="vale-tarjeta-fisica">
+                    {/* Cabecera del vale */}
                     <div>
-                      <h4 className="text-[11.5px] font-black uppercase tracking-wider text-[#111111] leading-tight">
-                        SMV MAQUINADOS
-                      </h4>
-                      <p className="text-[7.5px] font-bold tracking-widest text-[#4b5563] uppercase">
-                        Vale de Caja Chica · Gasto Menor
-                      </p>
-                    </div>
-                    <div className="text-right font-mono leading-tight">
-                      <span className="text-[8.5px] font-bold text-[#111111] block">
-                        {obtenerFolioCortoVale(m.id)}
-                      </span>
-                      <span className="text-[8px] text-[#4b5563] block">
-                        {m.fecha}
-                      </span>
-                    </div>
-                  </div>
+                      <div className="flex items-center justify-between border-b-2 border-[#111111] pb-1">
+                        <div>
+                          <h4 className="text-[11.5px] font-black uppercase tracking-wider text-[#111111] leading-tight">
+                            SMV MAQUINADOS
+                          </h4>
+                          <p className="text-[7.5px] font-bold tracking-widest text-[#4b5563] uppercase">
+                            Vale de Caja Chica · Gasto Menor
+                          </p>
+                        </div>
+                        <div className="text-right font-mono leading-tight">
+                          <span className="text-[8.5px] font-bold text-[#111111] block">
+                            {obtenerFolioCortoVale(m.id)}
+                          </span>
+                          <span className="text-[8px] text-[#4b5563] block">
+                            {m.fecha}
+                          </span>
+                        </div>
+                      </div>
 
-                  {/* Bloque destacado de Monto */}
-                  <div className="my-2 bg-[#f4f4f5] border border-[#d4d4d8] rounded px-2.5 py-1.5 flex items-center justify-between">
-                    <div>
-                      <span className="text-[7px] uppercase font-bold tracking-wider text-[#71717a] block">
-                        Importe Pagado (Efectivo)
-                      </span>
-                      <span className="text-[14px] font-black font-mono text-[#111111] leading-none">
-                        {formatPrecio(m.monto, 'MXN')}
-                      </span>
-                    </div>
-                    <span className="text-[7.5px] font-mono font-bold bg-[#ffffff] border border-[#a1a1aa] px-1.5 py-0.5 rounded text-[#18181b]">
-                      SIN FACTURA
-                    </span>
-                  </div>
-
-                  {/* Detalle descriptivo */}
-                  <div className="space-y-1 text-[8.5px] leading-tight">
-                    <div>
-                      <span className="font-bold text-[#52525b] uppercase text-[7px] block">Concepto / Motivo:</span>
-                      <p className="font-semibold text-[#111111] line-clamp-2">
-                        {m.descripcion}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 pt-0.5">
-                      <div>
-                        <span className="font-bold text-[#52525b] uppercase text-[7px] block">Establecimiento / Prov:</span>
-                        <span className="text-[#18181b] truncate block font-medium">
-                          {m.proveedor || 'No especificado'}
+                      {/* Bloque destacado de Monto */}
+                      <div className="my-2 bg-[#f4f4f5] border border-[#d4d4d8] rounded px-2.5 py-1.5 flex items-center justify-between">
+                        <div>
+                          <span className="text-[7px] uppercase font-bold tracking-wider text-[#71717a] block">
+                            Importe Pagado (Efectivo)
+                          </span>
+                          <span className="text-[14px] font-black font-mono text-[#111111] leading-none">
+                            {formatPrecio(m.monto, 'MXN')}
+                          </span>
+                        </div>
+                        <span className="text-[7.5px] font-mono font-bold bg-[#ffffff] border border-[#a1a1aa] px-1.5 py-0.5 rounded text-[#18181b]">
+                          SIN FACTURA
                         </span>
                       </div>
-                      <div>
-                        <span className="font-bold text-[#52525b] uppercase text-[7px] block">Categoría:</span>
-                        <span className="text-[#18181b] truncate block font-medium">
-                          {m.categoria || 'General'}
-                        </span>
+
+                      {/* Detalle descriptivo */}
+                      <div className="space-y-1 text-[8.5px] leading-tight">
+                        <div>
+                          <span className="font-bold text-[#52525b] uppercase text-[7px] block">Concepto / Motivo:</span>
+                          <p className="font-semibold text-[#111111] line-clamp-2">
+                            {m.descripcion}
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 pt-0.5">
+                          <div>
+                            <span className="font-bold text-[#52525b] uppercase text-[7px] block">Establecimiento / Prov:</span>
+                            <span className="text-[#18181b] truncate block font-medium">
+                              {m.proveedor || 'No especificado'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-bold text-[#52525b] uppercase text-[7px] block">Categoría:</span>
+                            <span className="text-[#18181b] truncate block font-medium">
+                              {m.categoria || 'General'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="pt-0.5">
+                          <span className="font-bold text-[#52525b] uppercase text-[7px] block">Quien realizó el gasto:</span>
+                          <span className="text-[#18181b] font-bold">
+                            {m.solicitante || 'Personal autorizado'}
+                          </span>
+                        </div>
+
+                        <p className="text-[6.5px] text-[#71717a] italic pt-0.5">
+                          * Comprobante interno emitido por falta de ticket o recibo en comercio.
+                        </p>
                       </div>
                     </div>
 
-                    <div className="pt-0.5">
-                      <span className="font-bold text-[#52525b] uppercase text-[7px] block">Quien realizó el gasto:</span>
-                      <span className="text-[#18181b] font-bold">
-                        {m.solicitante || 'Personal autorizado'}
-                      </span>
-                    </div>
+                    {/* Firmas de conformidad */}
+                    <div className="pt-2">
+                      <div className="grid grid-cols-2 gap-4 text-center">
+                        <div>
+                          <div className="border-b border-[#111111] mb-1 mx-2"></div>
+                          <p className="text-[7px] font-bold text-[#111111] uppercase leading-none">
+                            Recibió / Compró
+                          </p>
+                          <p className="text-[6.5px] text-[#52525b] truncate">
+                            {m.solicitante || 'Firma'}
+                          </p>
+                        </div>
 
-                    <p className="text-[6.5px] text-[#71717a] italic pt-0.5">
-                      * Comprobante interno emitido por falta de ticket o recibo en comercio.
-                    </p>
-                  </div>
-                </div>
+                        <div>
+                          <div className="border-b border-[#111111] mb-1 mx-2"></div>
+                          <p className="text-[7px] font-bold text-[#111111] uppercase leading-none">
+                            Autorizó
+                          </p>
+                          <p className="text-[6.5px] text-[#52525b]">
+                            Caja Chica / Gerencia
+                          </p>
+                        </div>
+                      </div>
 
-                {/* Firmas de conformidad */}
-                <div className="pt-2">
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div>
-                      <div className="border-b border-[#111111] mb-1 mx-2"></div>
-                      <p className="text-[7px] font-bold text-[#111111] uppercase leading-none">
-                        Recibió / Compró
-                      </p>
-                      <p className="text-[6.5px] text-[#52525b] truncate">
-                        {m.solicitante || 'Firma'}
-                      </p>
-                    </div>
-
-                    <div>
-                      <div className="border-b border-[#111111] mb-1 mx-2"></div>
-                      <p className="text-[7px] font-bold text-[#111111] uppercase leading-none">
-                        Autorizó
-                      </p>
-                      <p className="text-[6.5px] text-[#52525b]">
-                        Caja Chica / Gerencia
-                      </p>
+                      {/* Guía de tijera */}
+                      <div className="flex items-center justify-center gap-1 text-[6.5px] text-[#9ca3af] pt-1.5 select-none font-mono">
+                        <Scissors className="h-2.5 w-2.5" />
+                        <span>corte</span>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Guía de tijera */}
-                  <div className="flex items-center justify-center gap-1 text-[6.5px] text-[#9ca3af] pt-1.5 select-none font-mono">
-                    <Scissors className="h-2.5 w-2.5" />
-                    <span>corte</span>
-                  </div>
-                </div>
+                ))}
               </div>
             ))}
           </div>
-        ))}
-      </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
