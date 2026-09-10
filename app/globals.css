@@ -95,6 +95,8 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   body {
+    display: block !important;
+    width: 100% !important;
     background: white !important;
     color: #111111 !important;
     font-size: 11px;
@@ -181,7 +183,7 @@ h1, h2, h3, h4, h5, h6 {
     border-top: 1px solid #111111 !important;
   }
 
-  /* ── Impresión desde un diálogo (POs, etiquetas de endmills) ──────────────
+  /* ── Impresión desde un diálogo (POs, etiquetas de endmills, vales de caja) ─
      El Dialog se monta en un portal a nivel de <body> y es `position: fixed`,
      mientras que la página que quedó atrás sigue en el DOM. Sin estas reglas el
      PDF sale con el listado de fondo y el modal recortado encima — el clásico
@@ -196,13 +198,28 @@ h1, h2, h3, h4, h5, h6 {
     display: none !important;
   }
 
+  [data-slot="dialog-portal"],
+  [data-floating-ui-portal] {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
   [data-slot="dialog-content"] {
     position: static !important;
     display: block !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
     transform: none !important;
+    translate: none !important;
     width: 100% !important;
     max-width: none !important;
     max-height: none !important;
+    height: auto !important;
     overflow: visible !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -211,5 +228,55 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 0 !important;
     box-shadow: none !important;
     background: #ffffff !important;
+  }
+
+  /* ── Vales Físicos de Caja Chica (Exactamente 6 por hoja Carta) ────────── */
+  .vales-print-root {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .vales-print-hoja {
+    width: 100% !important;
+    height: 10.0in !important;
+    max-height: 10.0in !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(3, minmax(0, 1fr)) !important;
+    gap: 0.22in !important;
+    box-sizing: border-box !important;
+    break-after: page !important;
+    page-break-after: always !important;
+    overflow: hidden !important;
+  }
+
+  .vales-print-hoja:last-child {
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+
+  .vale-tarjeta-fisica {
+    border: 1.5px dashed #374151 !important;
+    border-radius: 4px !important;
+    padding: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+    background-color: #ffffff !important;
+    color: #111111 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .vale-tarjeta-fisica > div {
+    height: 100% !important;
+    box-sizing: border-box !important;
+    padding: 0.10in 0.12in !important;
   }
 }

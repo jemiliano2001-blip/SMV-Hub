@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import {
   Printer,
   Scissors,
@@ -12,6 +12,9 @@ import {
   ListFilter,
   Eye,
   AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  Info,
 } from 'lucide-react'
 import type { MovimientoCajaChica } from '@/lib/schemas'
 import {
@@ -51,6 +54,121 @@ interface ModalImprimirValesProps {
 type FiltroModal = 'NINGUNO' | 'NINGUNO_Y_VALES' | 'TODOS_GASTOS'
 type VistaModal = 'seleccion' | 'vista_previa'
 
+/**
+ * Contenido canónico de un vale impreso / previsualizado.
+ * Utiliza colores hexadecimales de alto contraste aptos tanto para el lienzo digital
+ * como para la salida monocromática en papel físico.
+ */
+function TarjetaValeContenido({ movimiento: m }: { movimiento: MovimientoCajaChica }) {
+  return (
+    <div className="flex flex-col justify-between h-full p-3 sm:p-3.5 box-border bg-[#ffffff] text-[#111111]">
+      {/* Cabecera del vale */}
+      <div>
+        <div className="flex items-center justify-between border-b-2 border-[#111111] pb-1">
+          <div>
+            <h4 className="text-[11.5px] font-black uppercase tracking-wider text-[#111111] leading-tight font-mono">
+              SMV MAQUINADOS
+            </h4>
+            <p className="text-[7.5px] font-bold tracking-widest text-[#4b5563] uppercase">
+              Vale de Caja Chica · Gasto Menor
+            </p>
+          </div>
+          <div className="text-right font-mono leading-tight">
+            <span className="text-[8.5px] font-bold text-[#111111] block">
+              {obtenerFolioCortoVale(m.id)}
+            </span>
+            <span className="text-[8px] text-[#4b5563] block">
+              {m.fecha}
+            </span>
+          </div>
+        </div>
+
+        {/* Bloque destacado de Monto */}
+        <div className="my-2 bg-[#f4f4f5] border border-[#d4d4d8] rounded-xs px-2.5 py-1.5 flex items-center justify-between">
+          <div>
+            <span className="text-[7px] uppercase font-bold tracking-wider text-[#71717a] block">
+              Importe Pagado (Efectivo)
+            </span>
+            <span className="text-[14px] font-black font-mono text-[#111111] leading-none">
+              {formatPrecio(m.monto, 'MXN')}
+            </span>
+          </div>
+          <span className="text-[7.5px] font-mono font-bold bg-[#ffffff] border border-[#a1a1aa] px-1.5 py-0.5 rounded-xs text-[#18181b]">
+            SIN FACTURA
+          </span>
+        </div>
+
+        {/* Detalle descriptivo */}
+        <div className="space-y-1 text-[8.5px] leading-tight">
+          <div>
+            <span className="font-bold text-[#52525b] uppercase text-[7px] block">Concepto / Motivo:</span>
+            <p className="font-semibold text-[#111111] line-clamp-2">
+              {m.descripcion}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 pt-0.5">
+            <div>
+              <span className="font-bold text-[#52525b] uppercase text-[7px] block">Establecimiento / Prov:</span>
+              <span className="text-[#18181b] truncate block font-medium">
+                {m.proveedor || 'No especificado'}
+              </span>
+            </div>
+            <div>
+              <span className="font-bold text-[#52525b] uppercase text-[7px] block">Categoría:</span>
+              <span className="text-[#18181b] truncate block font-medium">
+                {m.categoria || 'General'}
+              </span>
+            </div>
+          </div>
+
+          <div className="pt-0.5">
+            <span className="font-bold text-[#52525b] uppercase text-[7px] block">Quien realizó el gasto:</span>
+            <span className="text-[#18181b] font-bold">
+              {m.solicitante || 'Personal autorizado'}
+            </span>
+          </div>
+
+          <p className="text-[6.5px] text-[#71717a] italic pt-0.5">
+            * Comprobante interno emitido por falta de ticket o recibo en comercio.
+          </p>
+        </div>
+      </div>
+
+      {/* Firmas de conformidad */}
+      <div className="pt-2">
+        <div className="grid grid-cols-2 gap-4 text-center">
+          <div>
+            <div className="border-b border-[#111111] mb-1 mx-2" />
+            <p className="text-[7px] font-bold text-[#111111] uppercase leading-none">
+              Recibió / Compró
+            </p>
+            <p className="text-[6.5px] text-[#52525b] truncate">
+              {m.solicitante || 'Firma'}
+            </p>
+          </div>
+
+          <div>
+            <div className="border-b border-[#111111] mb-1 mx-2" />
+            <p className="text-[7px] font-bold text-[#111111] uppercase leading-none">
+              Autorizó
+            </p>
+            <p className="text-[6.5px] text-[#52525b]">
+              Caja Chica / Gerencia
+            </p>
+          </div>
+        </div>
+
+        {/* Guía de tijera */}
+        <div className="flex items-center justify-center gap-1 text-[6.5px] text-[#9ca3af] pt-1.5 select-none font-mono">
+          <Scissors className="h-2.5 w-2.5" />
+          <span>corte</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ModalImprimirVales({
   movimientos,
   open,
@@ -58,6 +176,7 @@ export default function ModalImprimirVales({
 }: ModalImprimirValesProps) {
   const [filtroTipo, setFiltroTipo] = useState<FiltroModal>('NINGUNO')
   const [vista, setVista] = useState<VistaModal>('seleccion')
+  const [hojaSeleccionada, setHojaSeleccionada] = useState<number>(0)
 
   // Candidatos disponibles según filtro
   const candidatos = useMemo(() => {
@@ -96,6 +215,9 @@ export default function ModalImprimirVales({
     return calcularHojasRequeridas(movimientosSeleccionados.length)
   }, [movimientosSeleccionados])
 
+  // Derivación matemática pura para evitar cascading renders (cero setState en useEffect)
+  const hojaActual = Math.min(Math.max(0, hojaSeleccionada), Math.max(0, hojasTotal - 1))
+
   const todosSeleccionados = candidatos.length > 0 && candidatos.every((m) => seleccionados.has(m.id))
 
   const handleToggleSeleccionarTodos = () => {
@@ -118,18 +240,44 @@ export default function ModalImprimirVales({
     })
   }
 
-  const handleImprimir = () => {
+  const handleImprimir = useCallback(() => {
     if (movimientosSeleccionados.length === 0) return
     const fecha = fechaHoyLocal()
     const tituloDoc = `Vales_CajaChica_SinComprobante_${fecha}_${movimientosSeleccionados.length}vales`
     imprimirComoDocumento(tituloDoc)
-  }
+  }, [movimientosSeleccionados.length])
+
+  // Atajos de teclado para Power Users (Linear/SaaS Style)
+  useEffect(() => {
+    if (!open) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+P / Cmd+P manda a imprimir los vales seleccionados
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+        e.preventDefault()
+        handleImprimir()
+      }
+      // Flechas izquierda y derecha para pasar de hoja en la vista previa
+      if (vista === 'vista_previa' && hojasTotal > 1) {
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault()
+          setHojaSeleccionada((p) => Math.max(0, p - 1))
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault()
+          setHojaSeleccionada((p) => Math.min(hojasTotal - 1, p + 1))
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [open, vista, hojasTotal, handleImprimir])
+
+  const hojaMostrada = hojasParaImpresion[hojaActual] ?? hojasParaImpresion[0] ?? []
 
   return (
     <>
       {/* ── DIÁLOGO EN PANTALLA Y ENVOLTORIO DE IMPRESIÓN ── */}
       <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-        <DialogContent className="max-w-4xl max-h-[92vh] flex flex-col gap-4 p-5 print:p-0 print:border-0 print:max-h-none print:shadow-none print:bg-white print:block">
+        <DialogContent className="max-w-5xl max-h-[94vh] flex flex-col gap-4 p-5 print:!static print:!top-auto print:!left-auto print:!translate-none print:!w-full print:!max-w-none print:!p-0 print:!m-0 print:!border-0 print:!shadow-none print:!bg-white print:!block print:!overflow-visible">
           <DialogHeader className="print:hidden">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
@@ -141,14 +289,14 @@ export default function ModalImprimirVales({
                     Imprimir Vales de Gastos sin Comprobante
                   </DialogTitle>
                   <DialogDescription className="text-xs text-muted-foreground">
-                    Modo de selección: exactamente {VALES_POR_HOJA} vales por hoja (formato Carta) con guías de corte y firmas.
+                    Cuadrícula exacta de {VALES_POR_HOJA} vales por hoja (formato Carta) con firmas y guías de corte.
                   </DialogDescription>
                 </div>
               </div>
             </div>
           </DialogHeader>
 
-          {/* Resumen numérico y selector de vista */}
+          {/* Resumen numérico de control y conmutador de pestañas */}
           <div className="print:hidden flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between p-3 rounded-lg bg-muted/40 border border-border">
             <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
               <span className="px-2.5 py-1 rounded-md bg-card border border-border font-bold text-foreground flex items-center gap-1">
@@ -161,7 +309,7 @@ export default function ModalImprimirVales({
               </span>
               <span className="px-2.5 py-1 rounded-md bg-card border border-border font-bold text-foreground flex items-center gap-1">
                 <Layers className="h-3.5 w-3.5 text-muted-foreground" />
-                {hojasTotal} {hojasTotal === 1 ? 'hoja' : 'hojas'} ({VALES_POR_HOJA} vales/hoja)
+                {hojasTotal} {hojasTotal === 1 ? 'hoja' : 'hojas'} ({VALES_POR_HOJA} por hoja)
               </span>
             </div>
 
@@ -169,7 +317,7 @@ export default function ModalImprimirVales({
               <button
                 type="button"
                 onClick={() => setVista('seleccion')}
-                className={`px-3 py-1 rounded-md transition-colors font-medium flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-md transition-colors font-medium flex items-center gap-1.5 cursor-pointer ${
                   vista === 'seleccion'
                     ? 'bg-card text-foreground shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
@@ -181,81 +329,83 @@ export default function ModalImprimirVales({
               <button
                 type="button"
                 onClick={() => setVista('vista_previa')}
-                className={`px-3 py-1 rounded-md transition-colors font-medium flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-md transition-colors font-medium flex items-center gap-1.5 cursor-pointer ${
                   vista === 'vista_previa'
                     ? 'bg-card text-foreground shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 <Eye className="h-3.5 w-3.5" />
-                Vista Previa ({hojasTotal})
+                Vista Previa Carta ({hojasTotal})
               </button>
             </div>
           </div>
 
-          {/* Filtros rápidos de gastos a considerar */}
-          <div className="print:hidden flex flex-wrap items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground font-medium">Filtrar por comprobante:</span>
-              <div className="flex gap-1">
-                <button
-                  type="button"
-                  onClick={() => setFiltroTipo('NINGUNO')}
-                  className={`px-2.5 py-1 rounded border text-xs font-medium transition-colors ${
-                    filtroTipo === 'NINGUNO'
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-card text-muted-foreground border-border hover:text-foreground'
-                  }`}
-                >
-                  Solo NINGUNO
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFiltroTipo('NINGUNO_Y_VALES')}
-                  className={`px-2.5 py-1 rounded border text-xs font-medium transition-colors ${
-                    filtroTipo === 'NINGUNO_Y_VALES'
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-card text-muted-foreground border-border hover:text-foreground'
-                  }`}
-                >
-                  NINGUNO + VALES
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFiltroTipo('TODOS_GASTOS')}
-                  className={`px-2.5 py-1 rounded border text-xs font-medium transition-colors ${
-                    filtroTipo === 'TODOS_GASTOS'
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-card text-muted-foreground border-border hover:text-foreground'
-                  }`}
-                >
-                  Todos los gastos
-                </button>
+          {/* Filtros rápidos de gastos (solo visibles en pestaña de selección) */}
+          {vista === 'seleccion' && (
+            <div className="print:hidden flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="text-muted-foreground font-medium">Filtrar por comprobante:</span>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setFiltroTipo('NINGUNO')}
+                    className={`px-2.5 py-1 rounded border text-xs font-medium transition-colors cursor-pointer ${
+                      filtroTipo === 'NINGUNO'
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-card text-muted-foreground border-border hover:text-foreground'
+                    }`}
+                  >
+                    Solo NINGUNO
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFiltroTipo('NINGUNO_Y_VALES')}
+                    className={`px-2.5 py-1 rounded border text-xs font-medium transition-colors cursor-pointer ${
+                      filtroTipo === 'NINGUNO_Y_VALES'
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-card text-muted-foreground border-border hover:text-foreground'
+                    }`}
+                  >
+                    NINGUNO + VALES
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFiltroTipo('TODOS_GASTOS')}
+                    className={`px-2.5 py-1 rounded border text-xs font-medium transition-colors cursor-pointer ${
+                      filtroTipo === 'TODOS_GASTOS'
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-card text-muted-foreground border-border hover:text-foreground'
+                    }`}
+                  >
+                    Todos los gastos
+                  </button>
+                </div>
               </div>
+
+              <button
+                type="button"
+                onClick={handleToggleSeleccionarTodos}
+                className="text-primary hover:underline font-medium flex items-center gap-1 cursor-pointer"
+              >
+                {todosSeleccionados ? (
+                  <>
+                    <Square className="h-3.5 w-3.5" /> Desmarcar todos
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare className="h-3.5 w-3.5" /> Marcar todos los mostrados ({candidatos.length})
+                  </>
+                )}
+              </button>
             </div>
+          )}
 
-            <button
-              type="button"
-              onClick={handleToggleSeleccionarTodos}
-              className="text-primary hover:underline font-medium flex items-center gap-1"
-            >
-              {todosSeleccionados ? (
-                <>
-                  <Square className="h-3.5 w-3.5" /> Desmarcar todos
-                </>
-              ) : (
-                <>
-                  <CheckSquare className="h-3.5 w-3.5" /> Marcar todos los mostrados ({candidatos.length})
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Contenido principal scrolleable */}
-          <div className="print:hidden flex-1 overflow-y-auto min-h-[300px] max-h-[50vh] border border-border rounded-lg bg-card">
+          {/* Contenido principal interactivo */}
+          <div className="print:hidden flex-1 overflow-y-auto min-h-[360px] max-h-[58vh] border border-border rounded-lg bg-card">
             {vista === 'seleccion' ? (
               candidatos.length === 0 ? (
-                <div className="p-8 text-center text-xs font-mono text-muted-foreground flex flex-col items-center gap-2">
+                <div className="p-12 text-center text-xs font-mono text-muted-foreground flex flex-col items-center gap-2">
                   <AlertCircle className="h-6 w-6 text-muted-foreground/60" />
                   <span>No hay gastos que coincidan con el filtro seleccionado.</span>
                 </div>
@@ -295,7 +445,7 @@ export default function ModalImprimirVales({
                             />
                           </TableCell>
                           <TableCell className="px-3 py-2 font-mono text-foreground">{m.fecha}</TableCell>
-                          <TableCell className="px-3 py-2 font-medium text-foreground max-w-[220px] truncate" title={m.descripcion}>
+                          <TableCell className="px-3 py-2 font-medium text-foreground max-w-[240px] truncate" title={m.descripcion}>
                             {m.descripcion}
                           </TableCell>
                           <TableCell className="px-3 py-2 text-muted-foreground">{m.proveedor}</TableCell>
@@ -328,254 +478,178 @@ export default function ModalImprimirVales({
                 </Table>
               )
             ) : (
-              /* Vista previa en miniatura */
-              <div className="p-4 space-y-6">
-                {hojasParaImpresion.length === 0 ? (
-                  <div className="p-8 text-center text-xs font-mono text-muted-foreground">
-                    Selecciona al menos un gasto para previsualizar las hojas de impresión.
+              /* ── VISTA PREVIA WYSIWYG: LIENZO DE HOJA CARTA ── */
+              <div className="p-4 sm:p-6 bg-muted/30 flex flex-col items-center gap-4">
+                {movimientosSeleccionados.length === 0 ? (
+                  <div className="p-12 text-center text-xs font-mono text-muted-foreground flex flex-col items-center gap-3">
+                    <FileText className="h-8 w-8 text-muted-foreground/50" />
+                    <p className="font-semibold text-foreground text-sm">No hay vales seleccionados para previsualizar</p>
+                    <p>Regresa a la pestaña de Selección para elegir los gastos que deseas imprimir.</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setVista('seleccion')}
+                      className="mt-2 text-xs"
+                    >
+                      <ListFilter className="h-3.5 w-3.5 mr-1" />
+                      Ir a Selección
+                    </Button>
                   </div>
                 ) : (
-                  hojasParaImpresion.map((hoja, hojaIdx) => (
-                    <div key={hojaIdx} className="space-y-2">
-                      <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
-                        <span className="font-bold text-foreground">
-                          Hoja {hojaIdx + 1} de {hojasTotal}
+                  <>
+                    {/* Barra de control y paginación de la hoja */}
+                    <div className="w-full max-w-[700px] flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg bg-card border border-border text-xs">
+                      <div className="flex items-center gap-2">
+                        {hojasTotal > 1 ? (
+                          <>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={hojaActual === 0}
+                              onClick={() => setHojaSeleccionada((p) => Math.max(0, p - 1))}
+                              className="h-7 px-2.5 text-xs font-medium cursor-pointer"
+                            >
+                              <ChevronLeft className="h-3.5 w-3.5 mr-0.5" />
+                              Anterior
+                            </Button>
+                            <span className="font-mono font-bold text-foreground px-1.5">
+                              Hoja {hojaActual + 1} de {hojasTotal}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={hojaActual >= hojasTotal - 1}
+                              onClick={() => setHojaSeleccionada((p) => Math.min(hojasTotal - 1, p + 1))}
+                              className="h-7 px-2.5 text-xs font-medium cursor-pointer"
+                            >
+                              Siguiente
+                              <ChevronRight className="h-3.5 w-3.5 ml-0.5" />
+                            </Button>
+                          </>
+                        ) : (
+                          <span className="font-mono font-bold text-foreground">
+                            Hoja 1 de 1 · {hojaMostrada.length} vales
+                          </span>
+                        )}
+                        <span className="text-muted-foreground hidden sm:inline">
+                          ({hojaMostrada.length} de {VALES_POR_HOJA} vales en esta hoja)
                         </span>
-                        <span>{hoja.length} de {VALES_POR_HOJA} vales en esta hoja</span>
                       </div>
 
-                      {/* Simulación miniatura de la cuadrícula 2x3 */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-muted/30 border border-border rounded-lg">
-                        {hoja.map((m) => (
-                          <div
-                            key={m.id}
-                            className="border border-dashed border-border bg-card p-3 rounded-md space-y-2 text-xs"
-                          >
-                            <div className="flex justify-between items-start border-b border-border pb-1.5 text-[10px] font-mono">
-                              <div>
-                                <span className="font-bold text-foreground block">SMV MAQUINADOS</span>
-                                <span className="text-muted-foreground">VALE DE CAJA CHICA</span>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-muted-foreground block">{obtenerFolioCortoVale(m.id)}</span>
-                                <span className="font-bold text-foreground">{m.fecha}</span>
-                              </div>
-                            </div>
-
-                            <div className="flex justify-between items-center py-1">
-                              <span className="text-[10px] uppercase font-mono text-muted-foreground">Importe:</span>
-                              <span className="text-sm font-bold font-mono text-rose-700">
-                                {formatPrecio(m.monto, 'MXN')}
-                              </span>
-                            </div>
-
-                            <div className="text-[11px] space-y-0.5">
-                              <p className="font-medium text-foreground truncate" title={m.descripcion}>
-                                <strong className="text-muted-foreground font-normal">Concepto: </strong>
-                                {m.descripcion}
-                              </p>
-                              <div className="grid grid-cols-2 gap-1 text-[10px] text-muted-foreground">
-                                <span className="truncate">Prov: {m.proveedor}</span>
-                                <span className="truncate">Cat: {m.categoria}</span>
-                              </div>
-                              <p className="text-[10px] text-muted-foreground truncate">
-                                Solicitó: <strong className="text-foreground">{m.solicitante}</strong>
-                              </p>
-                            </div>
-
-                            <div className="pt-2 border-t border-dashed border-border flex justify-between gap-2 text-[9px] text-muted-foreground font-mono text-center">
-                              <div className="flex-1 border-t border-muted-foreground/40 pt-0.5">
-                                Recibió: {m.solicitante}
-                              </div>
-                              <div className="flex-1 border-t border-muted-foreground/40 pt-0.5">
-                                Autorizó Caja
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border">
+                          Formato Carta · 2 col × 3 ren
+                        </span>
+                        <Button
+                          size="sm"
+                          onClick={handleImprimir}
+                          className="h-7 px-3 text-xs bg-primary text-primary-foreground hover:bg-primary/90 gap-1 cursor-pointer"
+                        >
+                          <Printer className="h-3.5 w-3.5" />
+                          Imprimir
+                        </Button>
                       </div>
                     </div>
-                  ))
+
+                    {/* Lienzo digital que simula exactamente la hoja de papel Carta */}
+                    <div className="w-full max-w-[700px] bg-[#ffffff] text-[#111111] shadow-2xl border border-border/80 rounded-sm p-4 sm:p-5 flex flex-col gap-3 select-none">
+                      {/* Cabecera del lienzo */}
+                      <div className="flex items-center justify-between border-b border-[#e5e7eb] pb-2 text-[10px] font-mono text-[#6b7280]">
+                        <span>SMV HUB · CAJA CHICA — VALES DE GASTO MENOR</span>
+                        <span>HOJA {hojaActual + 1} DE {hojasTotal} · {fechaHoyLocal()}</span>
+                      </div>
+
+                      {/* Cuadrícula 2x3 con exactamente 6 espacios (activos + vacíos de corte) */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-h-[500px]">
+                        {/* Vales activos en esta hoja */}
+                        {hojaMostrada.map((m) => (
+                          <div
+                            key={m.id}
+                            className="border border-dashed border-[#374151] rounded-xs bg-[#ffffff] overflow-hidden shadow-xs"
+                          >
+                            <TarjetaValeContenido movimiento={m} />
+                          </div>
+                        ))}
+
+                        {/* Espacios vacíos restantes en la hoja (guía visual de corte) */}
+                        {Array.from({ length: VALES_POR_HOJA - hojaMostrada.length }).map((_, vacioIdx) => {
+                          const slotNum = hojaMostrada.length + vacioIdx + 1
+                          return (
+                            <div
+                              key={`vacio-${vacioIdx}`}
+                              className="border border-dashed border-[#d4d4d8] bg-[#fafafa] rounded-xs p-4 flex flex-col items-center justify-center text-center gap-1 min-h-[160px]"
+                            >
+                              <Scissors className="h-4 w-4 text-[#a1a1aa]" />
+                              <span className="text-[10px] font-mono text-[#71717a] font-medium">
+                                Espacio disponible para corte
+                              </span>
+                              <span className="text-[8.5px] font-mono text-[#a1a1aa]">
+                                Slot {slotNum} de {VALES_POR_HOJA} (libre en papel)
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      {/* Pie del lienzo simulado */}
+                      <div className="pt-2 border-t border-[#e5e7eb] flex items-center justify-between text-[9px] font-mono text-[#9ca3af]">
+                        <span>Tolerancia de recorte: 3.8&quot; × 3.2&quot; por vale</span>
+                        <span>Página lista para impresión en bandeja estándar</span>
+                      </div>
+                    </div>
+
+                    {/* Alerta de instrucción amigable */}
+                    <div className="w-full max-w-[700px] flex items-center gap-2 p-2.5 rounded-md bg-muted/60 border border-border text-[11px] text-muted-foreground">
+                      <Info className="h-4 w-4 text-primary shrink-0" />
+                      <span>
+                        En el diálogo de impresión de tu navegador, asegúrate de mantener la escala en <strong>100%</strong> y los márgenes en <strong>Predeterminado</strong>.
+                      </span>
+                    </div>
+                  </>
                 )}
               </div>
             )}
           </div>
 
-          <DialogFooter className="print:hidden gap-2 sm:gap-0">
-            <Button variant="outline" onClick={onClose}>
-              Cerrar
-            </Button>
-            <Button
-              onClick={handleImprimir}
-              disabled={movimientosSeleccionados.length === 0}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5"
-            >
-              <Printer className="h-4 w-4" />
-              Imprimir {movimientosSeleccionados.length} {movimientosSeleccionados.length === 1 ? 'Vale' : 'Vales'} ({hojasTotal} {hojasTotal === 1 ? 'página' : 'páginas'})
-            </Button>
+          <DialogFooter className="print:hidden gap-2 sm:gap-0 flex items-center justify-between sm:justify-between w-full">
+            <div className="text-xs text-muted-foreground font-mono">
+              <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px]">Ctrl+P</kbd> Imprimir directo
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={onClose}>
+                Cerrar
+              </Button>
+              {vista === 'seleccion' && movimientosSeleccionados.length > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => setVista('vista_previa')}
+                  className="gap-1 text-xs"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  Ver Vista Previa ({hojasTotal})
+                </Button>
+              )}
+              <Button
+                onClick={handleImprimir}
+                disabled={movimientosSeleccionados.length === 0}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5"
+              >
+                <Printer className="h-4 w-4" />
+                Imprimir {movimientosSeleccionados.length} {movimientosSeleccionados.length === 1 ? 'Vale' : 'Vales'} ({hojasTotal} {hojasTotal === 1 ? 'pág' : 'págs'})
+              </Button>
+            </div>
           </DialogFooter>
 
-          {/* ── PLANTILLA FÍSICA PARA IMPRESIÓN (visible exclusivamente en @media print) ── */}
+          {/* ── PLANTILLA FÍSICA PARA IMPRESIÓN (Visible exclusivamente en @media print) ── */}
           <div className="vales-print-root hidden print:block">
-            <style dangerouslySetInnerHTML={{ __html: `
-              @media print {
-                @page {
-                  size: letter portrait;
-                  margin: 0.3in;
-                }
-                body {
-                  background: #ffffff !important;
-                  color: #111111 !important;
-                  -webkit-print-color-adjust: exact !important;
-                  print-color-adjust: exact !important;
-                }
-                .vales-print-root {
-                  display: block !important;
-                  width: 100% !important;
-                  margin: 0 !important;
-                  padding: 0 !important;
-                }
-                .vales-print-hoja {
-                  width: 100% !important;
-                  height: 10.0in !important;
-                  max-height: 10.0in !important;
-                  display: grid !important;
-                  grid-template-columns: 1fr 1fr !important;
-                  grid-template-rows: 1fr 1fr 1fr !important;
-                  gap: 0.18in !important;
-                  box-sizing: border-box !important;
-                  break-after: page !important;
-                  page-break-after: always !important;
-                  overflow: hidden !important;
-                }
-                .vales-print-hoja:last-child {
-                  break-after: auto !important;
-                  page-break-after: auto !important;
-                }
-                .vale-tarjeta-fisica {
-                  border: 1.5px dashed #4b5563 !important;
-                  border-radius: 4px !important;
-                  padding: 0.12in 0.14in !important;
-                  display: flex !important;
-                  flex-direction: column !important;
-                  justify-content: space-between !important;
-                  box-sizing: border-box !important;
-                  background-color: #ffffff !important;
-                  color: #111111 !important;
-                  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-                  page-break-inside: avoid !important;
-                  break-inside: avoid !important;
-                }
-              }
-            `}} />
-
             {hojasParaImpresion.map((hoja, hojaIndex) => (
               <div key={hojaIndex} className="vales-print-hoja">
                 {hoja.map((m) => (
                   <div key={m.id} className="vale-tarjeta-fisica">
-                    {/* Cabecera del vale */}
-                    <div>
-                      <div className="flex items-center justify-between border-b-2 border-[#111111] pb-1">
-                        <div>
-                          <h4 className="text-[11.5px] font-black uppercase tracking-wider text-[#111111] leading-tight">
-                            SMV MAQUINADOS
-                          </h4>
-                          <p className="text-[7.5px] font-bold tracking-widest text-[#4b5563] uppercase">
-                            Vale de Caja Chica · Gasto Menor
-                          </p>
-                        </div>
-                        <div className="text-right font-mono leading-tight">
-                          <span className="text-[8.5px] font-bold text-[#111111] block">
-                            {obtenerFolioCortoVale(m.id)}
-                          </span>
-                          <span className="text-[8px] text-[#4b5563] block">
-                            {m.fecha}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Bloque destacado de Monto */}
-                      <div className="my-2 bg-[#f4f4f5] border border-[#d4d4d8] rounded px-2.5 py-1.5 flex items-center justify-between">
-                        <div>
-                          <span className="text-[7px] uppercase font-bold tracking-wider text-[#71717a] block">
-                            Importe Pagado (Efectivo)
-                          </span>
-                          <span className="text-[14px] font-black font-mono text-[#111111] leading-none">
-                            {formatPrecio(m.monto, 'MXN')}
-                          </span>
-                        </div>
-                        <span className="text-[7.5px] font-mono font-bold bg-[#ffffff] border border-[#a1a1aa] px-1.5 py-0.5 rounded text-[#18181b]">
-                          SIN FACTURA
-                        </span>
-                      </div>
-
-                      {/* Detalle descriptivo */}
-                      <div className="space-y-1 text-[8.5px] leading-tight">
-                        <div>
-                          <span className="font-bold text-[#52525b] uppercase text-[7px] block">Concepto / Motivo:</span>
-                          <p className="font-semibold text-[#111111] line-clamp-2">
-                            {m.descripcion}
-                          </p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 pt-0.5">
-                          <div>
-                            <span className="font-bold text-[#52525b] uppercase text-[7px] block">Establecimiento / Prov:</span>
-                            <span className="text-[#18181b] truncate block font-medium">
-                              {m.proveedor || 'No especificado'}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-bold text-[#52525b] uppercase text-[7px] block">Categoría:</span>
-                            <span className="text-[#18181b] truncate block font-medium">
-                              {m.categoria || 'General'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="pt-0.5">
-                          <span className="font-bold text-[#52525b] uppercase text-[7px] block">Quien realizó el gasto:</span>
-                          <span className="text-[#18181b] font-bold">
-                            {m.solicitante || 'Personal autorizado'}
-                          </span>
-                        </div>
-
-                        <p className="text-[6.5px] text-[#71717a] italic pt-0.5">
-                          * Comprobante interno emitido por falta de ticket o recibo en comercio.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Firmas de conformidad */}
-                    <div className="pt-2">
-                      <div className="grid grid-cols-2 gap-4 text-center">
-                        <div>
-                          <div className="border-b border-[#111111] mb-1 mx-2"></div>
-                          <p className="text-[7px] font-bold text-[#111111] uppercase leading-none">
-                            Recibió / Compró
-                          </p>
-                          <p className="text-[6.5px] text-[#52525b] truncate">
-                            {m.solicitante || 'Firma'}
-                          </p>
-                        </div>
-
-                        <div>
-                          <div className="border-b border-[#111111] mb-1 mx-2"></div>
-                          <p className="text-[7px] font-bold text-[#111111] uppercase leading-none">
-                            Autorizó
-                          </p>
-                          <p className="text-[6.5px] text-[#52525b]">
-                            Caja Chica / Gerencia
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Guía de tijera */}
-                      <div className="flex items-center justify-center gap-1 text-[6.5px] text-[#9ca3af] pt-1.5 select-none font-mono">
-                        <Scissors className="h-2.5 w-2.5" />
-                        <span>corte</span>
-                      </div>
-                    </div>
+                    <TarjetaValeContenido movimiento={m} />
                   </div>
                 ))}
               </div>
