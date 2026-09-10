@@ -26,6 +26,14 @@ import { validarClaveProdServCatalogo } from '@/lib/sat/validar-clave'
 import { obtenerProveedores } from '@/lib/proveedores'
 import { Button } from '@/components/ui/button'
 import { useFilePreview } from '@/components/FilePreviewProvider'
+import SelectorCuentaCargoOdoo from '@/components/compras/SelectorCuentaCargoOdoo'
+import {
+  EMPRESAS_FRECUENTES,
+  REQUISITORES_FRECUENTES,
+  calcularTotalPartida,
+  calcularSubtotalFactura,
+  calcularTotalFactura,
+} from '@/lib/captura-rapida-compras'
 
 type FormInput = z.input<typeof NuevaCompraFormSchema>
 
@@ -44,6 +52,7 @@ const ITEM_VACIO: ItemFactura = {
   cuentaCargo: '',
   requisitor: '',
   ordenTrabajo: '',
+  ordenCompra: '',
 }
 
 const cls = {
@@ -153,6 +162,7 @@ export default function NuevaCompraForm({
       ],
       requisitor: initialData?.requisitor ?? '',
       ordenTrabajo: '',
+      ordenCompra: '',
       empresa: '',
       cuentaCargo: '',
       destino: '',
@@ -163,6 +173,15 @@ export default function NuevaCompraForm({
 
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
+
+  const recalcularTotales = useCallback(() => {
+    const items = getValues('items') || []
+    const sub = calcularSubtotalFactura(items)
+    setValue('subtotal', sub, { shouldDirty: true, shouldValidate: true })
+    const env = getValues('envio')
+    const imp = getValues('impuestos')
+    setValue('total', calcularTotalFactura(sub, env, imp), { shouldDirty: true, shouldValidate: true })
+  }, [getValues, setValue])
 
   const proveedorWatch = useWatch({ control, name: 'proveedor' })
   const numeroFacturaWatch = useWatch({ control, name: 'numeroFactura' })
@@ -419,6 +438,7 @@ export default function NuevaCompraForm({
               cuentaCargo: item.cuentaCargo ?? '',
               requisitor: item.requisitor ?? '',
               ordenTrabajo: item.ordenTrabajo ?? '',
+              ordenCompra: item.ordenCompra ?? '',
             }))
           : [{ ...ITEM_VACIO }]
 
@@ -442,6 +462,7 @@ export default function NuevaCompraForm({
         items,
         requisitor: '',
         ordenTrabajo: '',
+        ordenCompra: '',
         empresa: '',
         cuentaCargo: '',
         destino: '',
@@ -726,17 +747,62 @@ export default function NuevaCompraForm({
 
           <div>
             <label className={cls.label}>Subtotal (mercancía)</label>
-            <input {...numReg('subtotal')} type="number" step="any" min="0" className={cls.input} placeholder="0.00" disabled={extrayendo} />
+            <input
+              {...numReg('subtotal')}
+              type="number"
+              step="any"
+              min="0"
+              className={cls.input}
+              placeholder="0.00"
+              disabled={extrayendo}
+              onChange={(e) => {
+                const sub = e.target.value === '' ? null : Number(e.target.value)
+                setValue('subtotal', sub, { shouldDirty: true, shouldValidate: true })
+                const env = getValues('envio')
+                const imp = getValues('impuestos')
+                setValue('total', calcularTotalFactura(sub, env, imp), { shouldDirty: true, shouldValidate: true })
+              }}
+            />
           </div>
 
           <div>
             <label className={cls.label}>Envío / Shipping</label>
-            <input {...numReg('envio')} type="number" step="any" min="0" className={cls.input} placeholder="0.00" disabled={extrayendo} />
+            <input
+              {...numReg('envio')}
+              type="number"
+              step="any"
+              min="0"
+              className={cls.input}
+              placeholder="0.00"
+              disabled={extrayendo}
+              onChange={(e) => {
+                const env = e.target.value === '' ? null : Number(e.target.value)
+                setValue('envio', env, { shouldDirty: true, shouldValidate: true })
+                const sub = getValues('subtotal')
+                const imp = getValues('impuestos')
+                setValue('total', calcularTotalFactura(sub, env, imp), { shouldDirty: true, shouldValidate: true })
+              }}
+            />
           </div>
 
           <div>
             <label className={cls.label}>Impuestos / Tax (~8.25% TX)</label>
-            <input {...numReg('impuestos')} type="number" step="any" min="0" className={cls.input} placeholder="0.00" disabled={extrayendo} />
+            <input
+              {...numReg('impuestos')}
+              type="number"
+              step="any"
+              min="0"
+              className={cls.input}
+              placeholder="0.00"
+              disabled={extrayendo}
+              onChange={(e) => {
+                const imp = e.target.value === '' ? null : Number(e.target.value)
+                setValue('impuestos', imp, { shouldDirty: true, shouldValidate: true })
+                const sub = getValues('subtotal')
+                const env = getValues('envio')
+                setValue('total', calcularTotalFactura(sub, env, imp), { shouldDirty: true, shouldValidate: true })
+              }}
+            />
           </div>
 
           <div>
@@ -775,7 +841,10 @@ export default function NuevaCompraForm({
           <h2 className={cls.heading + ' mb-0'}>Ítems de la factura</h2>
           <button
             type="button"
-            onClick={() => append({ ...ITEM_VACIO })}
+            onClick={() => {
+              append({ ...ITEM_VACIO })
+              setTimeout(recalcularTotales, 0)
+            }}
             disabled={extrayendo}
             className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-blue-800 disabled:opacity-50"
           >
@@ -800,7 +869,10 @@ export default function NuevaCompraForm({
                 {fields.length > 1 && (
                   <button
                     type="button"
-                    onClick={() => remove(i)}
+                    onClick={() => {
+                      remove(i)
+                      setTimeout(recalcularTotales, 0)
+                    }}
                     disabled={extrayendo}
                     className="p-1 text-red-400 hover:text-red-600 rounded"
                     aria-label={`Quitar ítem ${i + 1}`}
@@ -872,52 +944,184 @@ export default function NuevaCompraForm({
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className={cls.label}>Cant.</label>
-                  <input {...numReg(`items.${i}.cantidad`)} type="number" step="1" min="0" className={cls.input} disabled={extrayendo} />
+                  <input
+                    {...numReg(`items.${i}.cantidad`)}
+                    type="number"
+                    step="any"
+                    min="0"
+                    className={cls.input}
+                    disabled={extrayendo}
+                    onChange={(e) => {
+                      const cant = e.target.value === '' ? null : Number(e.target.value)
+                      setValue(`items.${i}.cantidad`, cant, { shouldDirty: true, shouldValidate: true })
+                      const pUnit = getValues(`items.${i}.precioUnitario`)
+                      const tot = calcularTotalPartida(cant, pUnit)
+                      if (tot !== null) {
+                        setValue(`items.${i}.total`, tot, { shouldDirty: true, shouldValidate: true })
+                      }
+                      recalcularTotales()
+                    }}
+                  />
                 </div>
                 <div>
                   <label className={cls.label}>P. unitario</label>
-                  <input {...numReg(`items.${i}.precioUnitario`)} type="number" step="any" min="0" className={cls.input} disabled={extrayendo} />
+                  <input
+                    {...numReg(`items.${i}.precioUnitario`)}
+                    type="number"
+                    step="any"
+                    min="0"
+                    className={cls.input}
+                    disabled={extrayendo}
+                    onChange={(e) => {
+                      const pUnit = e.target.value === '' ? null : Number(e.target.value)
+                      setValue(`items.${i}.precioUnitario`, pUnit, { shouldDirty: true, shouldValidate: true })
+                      const cant = getValues(`items.${i}.cantidad`)
+                      const tot = calcularTotalPartida(cant, pUnit)
+                      if (tot !== null) {
+                        setValue(`items.${i}.total`, tot, { shouldDirty: true, shouldValidate: true })
+                      }
+                      recalcularTotales()
+                    }}
+                  />
                 </div>
                 <div>
                   <label className={cls.label}>Total</label>
-                  <input {...numReg(`items.${i}.total`)} type="number" step="any" min="0" className={cls.input} disabled={extrayendo} />
+                  <input
+                    {...numReg(`items.${i}.total`)}
+                    type="number"
+                    step="any"
+                    min="0"
+                    className={cls.input}
+                    disabled={extrayendo}
+                    onChange={(e) => {
+                      const tot = e.target.value === '' ? null : Number(e.target.value)
+                      setValue(`items.${i}.total`, tot, { shouldDirty: true, shouldValidate: true })
+                      recalcularTotales()
+                    }}
+                  />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-border">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2 border-t border-border">
+                {/* Empresa / destino */}
                 <div>
                   <label className={cls.label}>Empresa / destino *</label>
+                  <div className="flex flex-wrap gap-1 mb-1.5">
+                    {EMPRESAS_FRECUENTES.slice(0, 6).map((emp) => {
+                      const seleccionada = itemsWatch?.[i]?.empresa === emp.codigo
+                      return (
+                        <button
+                          key={emp.codigo}
+                          type="button"
+                          onClick={() => {
+                            setValue(`items.${i}.empresa`, emp.codigo, { shouldDirty: true, shouldValidate: true })
+                            if (emp.cuentaCargoDefault && !getValues(`items.${i}.cuentaCargo`)) {
+                              setValue(`items.${i}.cuentaCargo`, emp.cuentaCargoDefault, { shouldDirty: true })
+                            }
+                          }}
+                          className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+                            seleccionada
+                              ? 'border-primary bg-primary/10 text-primary font-semibold'
+                              : 'border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground'
+                          }`}
+                        >
+                          {emp.label}
+                        </button>
+                      )
+                    })}
+                  </div>
                   <input
                     {...register(`items.${i}.empresa`)}
+                    list={`catalogo-empresas-${i}`}
                     className={cls.input}
                     placeholder="APX / OHD / SMV"
                     disabled={extrayendo}
                   />
+                  <datalist id={`catalogo-empresas-${i}`}>
+                    {EMPRESAS_FRECUENTES.map((e) => (
+                      <option key={e.codigo} value={e.codigo}>
+                        {e.label}
+                      </option>
+                    ))}
+                  </datalist>
                   {errors.items?.[i]?.empresa && (
                     <p className={cls.error}>{errors.items[i]?.empresa?.message}</p>
                   )}
                 </div>
+
+                {/* Cuenta cargo (SO) con selector inteligente de Odoo */}
                 <div>
                   <label className={cls.label}>Cuenta cargo (SO)</label>
-                  <input
-                    {...register(`items.${i}.cuentaCargo`)}
-                    className={cls.input}
-                    placeholder="SO1148"
+                  <SelectorCuentaCargoOdoo
+                    value={itemsWatch?.[i]?.cuentaCargo || ''}
+                    onChange={(val) => setValue(`items.${i}.cuentaCargo`, val, { shouldDirty: true })}
+                    onSelectSo={(data) => {
+                      setValue(`items.${i}.cuentaCargo`, data.cuentaCargo, { shouldDirty: true })
+                      if (data.empresa && !getValues(`items.${i}.empresa`)) {
+                        setValue(`items.${i}.empresa`, data.empresa, { shouldDirty: true, shouldValidate: true })
+                      }
+                      if (data.ordenCompra && !getValues(`items.${i}.ordenCompra`)) {
+                        setValue(`items.${i}.ordenCompra`, data.ordenCompra, { shouldDirty: true })
+                      }
+                    }}
                     disabled={extrayendo}
                   />
                 </div>
+
+                {/* Orden de compra (PO cliente) */}
+                <div>
+                  <label className={cls.label}>Orden de compra (PO cliente)</label>
+                  <input
+                    {...register(`items.${i}.ordenCompra`)}
+                    className={cls.input}
+                    placeholder="ej. 00089165"
+                    disabled={extrayendo}
+                  />
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    PO del cliente / Orden de compra Odoo
+                  </p>
+                </div>
+
+                {/* Requisitor */}
                 <div>
                   <label className={cls.label}>Requisitor *</label>
+                  <div className="flex flex-wrap gap-1 mb-1.5">
+                    {REQUISITORES_FRECUENTES.slice(0, 6).map((req) => {
+                      const seleccionado = itemsWatch?.[i]?.requisitor === req
+                      return (
+                        <button
+                          key={req}
+                          type="button"
+                          onClick={() => setValue(`items.${i}.requisitor`, req, { shouldDirty: true, shouldValidate: true })}
+                          className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+                            seleccionado
+                              ? 'border-primary bg-primary/10 text-primary font-semibold'
+                              : 'border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground'
+                          }`}
+                        >
+                          {req}
+                        </button>
+                      )
+                    })}
+                  </div>
                   <input
                     {...register(`items.${i}.requisitor`)}
+                    list={`catalogo-requisitores-${i}`}
                     className={cls.input}
                     placeholder="Nombre completo"
                     disabled={extrayendo}
                   />
+                  <datalist id={`catalogo-requisitores-${i}`}>
+                    {REQUISITORES_FRECUENTES.map((r) => (
+                      <option key={r} value={r} />
+                    ))}
+                  </datalist>
                   {errors.items?.[i]?.requisitor && (
                     <p className={cls.error}>{errors.items[i]?.requisitor?.message}</p>
                   )}
                 </div>
+
+                {/* Orden de trabajo (OT) */}
                 <div>
                   <label className={cls.label}>Orden de trabajo</label>
                   <input

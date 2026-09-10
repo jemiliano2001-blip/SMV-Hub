@@ -15,6 +15,7 @@ export const ItemFacturaSchema = z.object({
   cuentaCargo: z.string().optional().default(""),
   requisitor: z.string().optional().default(""),
   ordenTrabajo: z.string().optional().default(""),
+  ordenCompra: z.string().optional(),
 })
 
 export type ItemFactura = z.infer<typeof ItemFacturaSchema>
@@ -46,6 +47,7 @@ export const CamposManualSchema = z.object({
   empresa: z.string().optional().default(""),
   cuentaCargo: z.string().optional().default(""),
   destino: z.string().optional().default(""),
+  ordenCompra: z.string().optional(),
   linkProveedor: z.string().nullable().optional(),
   fechaEntrega: z.string().nullable().optional(),
 })
@@ -56,7 +58,7 @@ export type CamposManual = z.infer<typeof CamposManualSchema>
 export function resolverCampoItem(
   item: ItemFactura,
   orden: CamposManual,
-  campo: "empresa" | "cuentaCargo" | "requisitor" | "ordenTrabajo"
+  campo: "empresa" | "cuentaCargo" | "requisitor" | "ordenTrabajo" | "ordenCompra"
 ): string {
   const enItem = item[campo]?.trim()
   if (enItem) return enItem
@@ -85,6 +87,7 @@ export function sincronizarCamposLegacyOrden<
     empresa,
     destino: empresa,
     cuentaCargo: resolverCampoItem(primero, datos, "cuentaCargo"),
+    ordenCompra: resolverCampoItem(primero, datos, "ordenCompra"),
   }
 }
 

@@ -1259,8 +1259,13 @@ service cloud.firestore {
       );
     }
 
+    function puedeLeerVentasOdooSo() {
+      return esUsuarioAutorizado() &&
+        (esCorreoBreakGlass() || tieneAlgunModulo(['documentos-venta', 'nueva-compra', 'ordenes', 'compras']));
+    }
+
     match /ventas_odoo_so/{soId} {
-      allow read: if esDocumentosVentaAutorizado();
+      allow read: if puedeLeerVentasOdooSo();
       allow write: if false;
     }
 

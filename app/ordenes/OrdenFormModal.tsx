@@ -18,6 +18,14 @@ import { crearOrden, actualizarOrden, buscarPorFacturaYProveedor } from '@/lib/o
 import { esOrdenDuplicada } from '@/lib/importar'
 import { getClienteAuth } from '@/lib/firebase'
 import { obtenerProveedores } from '@/lib/proveedores'
+import SelectorCuentaCargoOdoo from '@/components/compras/SelectorCuentaCargoOdoo'
+import {
+  EMPRESAS_FRECUENTES,
+  REQUISITORES_FRECUENTES,
+  calcularTotalPartida,
+  calcularSubtotalFactura,
+  calcularTotalFactura,
+} from '@/lib/captura-rapida-compras'
 
 import { validarClaveProdServCatalogo } from '@/lib/sat/validar-clave'
 import { toast } from 'sonner'
@@ -31,6 +39,7 @@ type ItemForm = {
   cuentaCargo: string
   requisitor: string
   ordenTrabajo: string
+  ordenCompra: string
   claveProdServ: string
   url: string
 }
@@ -45,6 +54,7 @@ function itemVacio(): ItemForm {
     cuentaCargo: '',
     requisitor: '',
     ordenTrabajo: '',
+    ordenCompra: '',
     claveProdServ: '',
     url: '',
   }
@@ -67,6 +77,7 @@ function itemsDesdeOrden(orden?: OrdenCompra): ItemForm[] {
       cuentaCargo: i.cuentaCargo?.trim() || orden.cuentaCargo?.trim() || '',
       requisitor: i.requisitor?.trim() || orden.requisitor?.trim() || '',
       ordenTrabajo: i.ordenTrabajo?.trim() || orden.ordenTrabajo?.trim() || '',
+      ordenCompra: i.ordenCompra?.trim() || orden.ordenCompra?.trim() || '',
       claveProdServ: i.claveProdServ ?? '',
       url: '',
     }))
@@ -196,19 +207,65 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
     }
   }
 
+  const handleMontoChange = (field: 'subtotal' | 'envio' | 'impuestos' | 'total', value: string) => {
+    const next = { ...formData, [field]: value }
+    if (field !== 'total') {
+      const tot = calcularTotalFactura(next.subtotal, next.envio, next.impuestos)
+      if (tot !== null) next.total = tot.toString()
+    }
+    setFormData(next)
+  }
+
   const handleItemChange = (index: number, field: string, value: string) => {
     const newItems = [...formData.items]
-    newItems[index] = { ...newItems[index], [field]: value }
-    setFormData({ ...formData, items: newItems })
+    const updated = { ...newItems[index], [field]: value }
+
+    if (field === 'cantidad' || field === 'precioUnitario') {
+      const cant = field === 'cantidad' ? value : updated.cantidad
+      const pUnit = field === 'precioUnitario' ? value : updated.precioUnitario
+      const tot = calcularTotalPartida(cant, pUnit)
+      if (tot !== null) {
+        updated.total = tot.toString()
+      }
+    }
+    newItems[index] = updated
+
+    const sub = calcularSubtotalFactura(newItems)
+    const newSubtotal = sub !== null ? sub.toString() : formData.subtotal
+    const newTotal = calcularTotalFactura(newSubtotal, formData.envio, formData.impuestos)
+
+    setFormData({
+      ...formData,
+      items: newItems,
+      subtotal: newSubtotal,
+      total: newTotal !== null ? newTotal.toString() : formData.total,
+    })
   }
 
   const handleAddItem = () => {
-    setFormData({ ...formData, items: [...formData.items, itemVacio()] })
+    const newItems = [...formData.items, itemVacio()]
+    const sub = calcularSubtotalFactura(newItems)
+    const newSubtotal = sub !== null ? sub.toString() : formData.subtotal
+    const newTotal = calcularTotalFactura(newSubtotal, formData.envio, formData.impuestos)
+    setFormData({
+      ...formData,
+      items: newItems,
+      subtotal: newSubtotal,
+      total: newTotal !== null ? newTotal.toString() : formData.total,
+    })
   }
 
   const handleRemoveItem = (index: number) => {
     const newItems = formData.items.filter((_, i) => i !== index)
-    setFormData({ ...formData, items: newItems })
+    const sub = calcularSubtotalFactura(newItems)
+    const newSubtotal = sub !== null ? sub.toString() : ''
+    const newTotal = calcularTotalFactura(newSubtotal, formData.envio, formData.impuestos)
+    setFormData({
+      ...formData,
+      items: newItems,
+      subtotal: newSubtotal,
+      total: newTotal !== null ? newTotal.toString() : '',
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -238,6 +295,7 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
           cuentaCargo: i.cuentaCargo,
           requisitor: i.requisitor,
           ordenTrabajo: i.ordenTrabajo,
+          ordenCompra: i.ordenCompra || '',
         }
       })
 
@@ -334,19 +392,19 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Subtotal</label>
-                <input type="number" step="any" value={formData.subtotal} onChange={e => setFormData({ ...formData, subtotal: e.target.value })} className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" />
+                <input type="number" step="any" value={formData.subtotal} onChange={e => handleMontoChange('subtotal', e.target.value)} className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Envío</label>
-                <input type="number" step="any" value={formData.envio} onChange={e => setFormData({ ...formData, envio: e.target.value })} className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" />
+                <input type="number" step="any" value={formData.envio} onChange={e => handleMontoChange('envio', e.target.value)} className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Impuestos</label>
-                <input type="number" step="any" value={formData.impuestos} onChange={e => setFormData({ ...formData, impuestos: e.target.value })} className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" />
+                <input type="number" step="any" value={formData.impuestos} onChange={e => handleMontoChange('impuestos', e.target.value)} className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Total</label>
-                <input type="number" step="any" value={formData.total} onChange={e => setFormData({ ...formData, total: e.target.value })} className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" />
+                <input type="number" step="any" value={formData.total} onChange={e => handleMontoChange('total', e.target.value)} className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">N° Factura</label>
@@ -395,17 +453,132 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
                       </button>
                     </div>
                     <input placeholder="Descripción" value={item.descripcion} onChange={e => handleItemChange(index, 'descripcion', e.target.value)} className="w-full rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none" />
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                      <input required placeholder="Empresa *" value={item.empresa} onChange={e => handleItemChange(index, 'empresa', e.target.value)} className="rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none" />
-                      <input placeholder="Cuenta cargo" value={item.cuentaCargo} onChange={e => handleItemChange(index, 'cuentaCargo', e.target.value)} className="rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none" />
-                      <input required placeholder="Requisitor *" value={item.requisitor} onChange={e => handleItemChange(index, 'requisitor', e.target.value)} className="rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none" />
-                      <input placeholder="OT" value={item.ordenTrabajo} onChange={e => handleItemChange(index, 'ordenTrabajo', e.target.value)} className="rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none" />
-                    </div>
                     <div className="flex gap-2">
                       <input type="number" step="any" placeholder="Cant." value={item.cantidad} onChange={e => handleItemChange(index, 'cantidad', e.target.value)} className="w-1/4 rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none" />
                       <input type="number" step="any" placeholder="P.Unit." value={item.precioUnitario} onChange={e => handleItemChange(index, 'precioUnitario', e.target.value)} className="w-1/4 rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none" />
                       <input type="number" step="any" placeholder="Total" value={item.total} onChange={e => handleItemChange(index, 'total', e.target.value)} className="w-1/4 rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none" />
                       <input placeholder="Clave SAT (8 díg.)" value={item.claveProdServ} onChange={e => handleItemChange(index, 'claveProdServ', e.target.value)} className="w-1/4 rounded-lg border border-input bg-card px-2 py-1.5 text-sm font-mono text-foreground focus:border-primary focus:outline-none" />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-2 border-t border-border">
+                      {/* Empresa */}
+                      <div>
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-[11px] font-semibold text-muted-foreground">Empresa *</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mb-1">
+                          {EMPRESAS_FRECUENTES.slice(0, 5).map((emp) => (
+                            <button
+                              key={emp.codigo}
+                              type="button"
+                              onClick={() => {
+                                const newItems = [...formData.items]
+                                const curr = { ...newItems[index], empresa: emp.codigo }
+                                if (emp.cuentaCargoDefault && !curr.cuentaCargo) {
+                                  curr.cuentaCargo = emp.cuentaCargoDefault
+                                }
+                                newItems[index] = curr
+                                setFormData({ ...formData, items: newItems })
+                              }}
+                              className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+                                item.empresa === emp.codigo
+                                  ? 'border-primary bg-primary/10 text-primary font-semibold'
+                                  : 'border-border bg-card text-muted-foreground hover:bg-muted'
+                              }`}
+                            >
+                              {emp.label}
+                            </button>
+                          ))}
+                        </div>
+                        <input
+                          required
+                          placeholder="Empresa *"
+                          value={item.empresa}
+                          list={`modal-empresas-${index}`}
+                          onChange={e => handleItemChange(index, 'empresa', e.target.value)}
+                          className="w-full rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
+                        />
+                        <datalist id={`modal-empresas-${index}`}>
+                          {EMPRESAS_FRECUENTES.map((e) => (
+                            <option key={e.codigo} value={e.codigo}>{e.label}</option>
+                          ))}
+                        </datalist>
+                      </div>
+
+                      {/* Cuenta cargo con selector Odoo */}
+                      <div>
+                        <span className="block text-[11px] font-semibold text-muted-foreground mb-1">Cuenta cargo (SO)</span>
+                        <SelectorCuentaCargoOdoo
+                          value={item.cuentaCargo}
+                          onChange={(val) => handleItemChange(index, 'cuentaCargo', val)}
+                          onSelectSo={(data) => {
+                            const newItems = [...formData.items]
+                            const curr = { ...newItems[index], cuentaCargo: data.cuentaCargo }
+                            if (data.empresa && !curr.empresa) curr.empresa = data.empresa
+                            if (data.ordenCompra && !curr.ordenCompra) curr.ordenCompra = data.ordenCompra
+                            newItems[index] = curr
+                            setFormData({ ...formData, items: newItems })
+                          }}
+                        />
+                      </div>
+
+                      {/* Orden de compra / PO cliente */}
+                      <div>
+                        <span className="block text-[11px] font-semibold text-muted-foreground mb-1">Orden de compra (PO)</span>
+                        <input
+                          placeholder="ej. 00089165"
+                          value={item.ordenCompra}
+                          onChange={e => handleItemChange(index, 'ordenCompra', e.target.value)}
+                          className="w-full rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
+                        />
+                      </div>
+
+                      {/* Requisitor */}
+                      <div>
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-[11px] font-semibold text-muted-foreground">Requisitor *</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mb-1">
+                          {REQUISITORES_FRECUENTES.slice(0, 5).map((req) => (
+                            <button
+                              key={req}
+                              type="button"
+                              onClick={() => handleItemChange(index, 'requisitor', req)}
+                              className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+                                item.requisitor === req
+                                  ? 'border-primary bg-primary/10 text-primary font-semibold'
+                                  : 'border-border bg-card text-muted-foreground hover:bg-muted'
+                              }`}
+                            >
+                              {req}
+                            </button>
+                          ))}
+                        </div>
+                        <input
+                          required
+                          placeholder="Requisitor *"
+                          value={item.requisitor}
+                          list={`modal-requisitores-${index}`}
+                          onChange={e => handleItemChange(index, 'requisitor', e.target.value)}
+                          className="w-full rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
+                        />
+                        <datalist id={`modal-requisitores-${index}`}>
+                          {REQUISITORES_FRECUENTES.map((r) => (
+                            <option key={r} value={r} />
+                          ))}
+                        </datalist>
+                      </div>
+
+                      {/* OT */}
+                      <div>
+                        <span className="block text-[11px] font-semibold text-muted-foreground mb-1">Orden de trabajo</span>
+                        <input
+                          placeholder="OT-100"
+                          value={item.ordenTrabajo}
+                          onChange={e => handleItemChange(index, 'ordenTrabajo', e.target.value)}
+                          className="w-full rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
+                        />
+                      </div>
                     </div>
                   </div>
                   {formData.items.length > 1 && (
