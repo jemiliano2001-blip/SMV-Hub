@@ -23,6 +23,7 @@ const eslintConfig = defineConfig([
     ".worktrees/**",
     "coverage/**",
     "graphify-out/**",
+    "Mobile app redesign discussion/**",
   ]),
 ]);
 

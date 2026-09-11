@@ -2,66 +2,28 @@ import { describe, expect, it } from 'vitest'
 import { calcularDestinosBottomNav } from '@/components/layout/BottomNavBar'
 import type { ModuloId } from '@/lib/schemas'
 
-describe('BottomNavBar Destinos Inteligentes por Rol', () => {
-  it('incluye Inicio siempre como primer elemento', () => {
+describe('BottomNavBar Arquitectura 4 Pilares (Cross-Platform Mobile)', () => {
+  it('incluye Inicio siempre como primer elemento y Más como último elemento', () => {
     const destinos = calcularDestinosBottomNav([], false, false)
     expect(destinos[0].href).toBe('/')
+    expect(destinos[destinos.length - 1].action).toBe('mas')
+    expect(destinos[destinos.length - 1].label).toBe('Más')
   })
 
-  it('calcula destinos para rol Almacén (sin compras ni órdenes)', () => {
-    const modulos: ModuloId[] = ['almacen', 'pedidos-almacen', 'banos', 'documentos-venta', 'notificaciones']
+  it('calcula los 4 pilares para rol Almacén (Inicio, Pedidos, Alertas, Más)', () => {
+    const modulos: ModuloId[] = ['almacen', 'pedidos-almacen', 'banos', 'notificaciones']
     const destinos = calcularDestinosBottomNav(modulos, false, false)
 
-    const hrefs = destinos.map((d) => d.href)
-    expect(hrefs).toContain('/')
-    expect(hrefs).toContain('/pedidos-almacen')
-    expect(hrefs).toContain('/almacen')
-    expect(hrefs).toContain('/notificaciones')
-    // No debe contener compras ni órdenes
-    expect(hrefs).not.toContain('/nueva-compra')
-    expect(hrefs).not.toContain('/ordenes')
+    expect(destinos).toHaveLength(4)
+    expect(destinos[0].href).toBe('/')
+    expect(destinos[1].href).toBe('/pedidos-almacen')
+    expect(destinos[1].badgeKey).toBe('pedidos')
+    expect(destinos[2].href).toBe('/notificaciones')
+    expect(destinos[2].badgeKey).toBe('notificaciones')
+    expect(destinos[3].action).toBe('mas')
   })
 
-  it('calcula destinos para rol Diseño (requisiciones, cotizaciones, horas extra)', () => {
-    const modulos: ModuloId[] = ['cotizaciones', 'requisiciones', 'horas-extra']
-    const destinos = calcularDestinosBottomNav(modulos, false, false)
-
-    const hrefs = destinos.map((d) => d.href)
-    expect(hrefs).toContain('/')
-    expect(hrefs).toContain('/requisiciones')
-    expect(hrefs).toContain('/cotizaciones')
-    expect(hrefs).toContain('/horas-extra')
-    expect(hrefs).toContain('/notificaciones')
-    expect(hrefs).not.toContain('/nueva-compra')
-    expect(hrefs).not.toContain('/ordenes')
-    expect(hrefs).not.toContain('/almacen')
-  })
-
-  it('calcula destinos para rol Automatización (cotizaciones, requisiciones, horas extra, notificaciones)', () => {
-    const modulos: ModuloId[] = ['cotizaciones', 'requisiciones', 'horas-extra', 'notificaciones']
-    const destinos = calcularDestinosBottomNav(modulos, false, false)
-
-    const hrefs = destinos.map((d) => d.href)
-    expect(hrefs).toContain('/')
-    expect(hrefs).toContain('/requisiciones')
-    expect(hrefs).toContain('/cotizaciones')
-    expect(hrefs).toContain('/horas-extra')
-    expect(hrefs).toContain('/notificaciones')
-  })
-
-  it('calcula destinos para rol Ventas (documentos de venta)', () => {
-    const modulos: ModuloId[] = ['documentos-venta', 'notificaciones']
-    const destinos = calcularDestinosBottomNav(modulos, false, false, true)
-
-    const hrefs = destinos.map((d) => d.href)
-    expect(hrefs).toContain('/')
-    expect(hrefs).toContain('/documentos-venta')
-    expect(hrefs).toContain('/notificaciones')
-    expect(hrefs).not.toContain('/nueva-compra')
-    expect(hrefs).not.toContain('/ordenes')
-  })
-
-  it('calcula destinos para rol Compras (nueva compra, requisiciones, pedidos)', () => {
+  it('calcula los 4 pilares para rol Compras (Inicio, Pedidos/Comprar, Alertas, Más)', () => {
     const modulos: ModuloId[] = [
       'nueva-compra',
       'compras-odoo',
@@ -73,28 +35,35 @@ describe('BottomNavBar Destinos Inteligentes por Rol', () => {
     ]
     const destinos = calcularDestinosBottomNav(modulos, false, false)
 
-    const hrefs = destinos.map((d) => d.href)
-    expect(hrefs).toContain('/')
-    expect(hrefs).toContain('/nueva-compra')
-    expect(hrefs).toContain('/requisiciones')
-    expect(hrefs).toContain('/pedidos-almacen')
-    expect(hrefs).toContain('/notificaciones')
+    expect(destinos).toHaveLength(4)
+    expect(destinos[0].href).toBe('/')
+    expect(destinos[1].href).toBe('/pedidos-almacen')
+    expect(destinos[2].href).toBe('/notificaciones')
+    expect(destinos[3].action).toBe('mas')
   })
 
-  it('calcula destinos para rol Super-Admin (nueva compra, órdenes, requisiciones)', () => {
-    const modulos: ModuloId[] = ['nueva-compra', 'ordenes', 'requisiciones', 'notificaciones']
-    const destinos = calcularDestinosBottomNav(modulos, true, false)
+  it('calcula los 4 pilares para rol Diseño/Automatización (Inicio, Requisiciones, Alertas, Más)', () => {
+    const modulos: ModuloId[] = ['cotizaciones', 'requisiciones', 'horas-extra', 'notificaciones']
+    const destinos = calcularDestinosBottomNav(modulos, false, false)
 
-    const hrefs = destinos.map((d) => d.href)
-    expect(hrefs).toContain('/')
-    expect(hrefs).toContain('/nueva-compra')
-    expect(hrefs).toContain('/ordenes')
-    expect(hrefs).toContain('/requisiciones')
-    expect(hrefs).toContain('/notificaciones')
+    expect(destinos).toHaveLength(4)
+    expect(destinos[0].href).toBe('/')
+    expect(destinos[1].href).toBe('/requisiciones')
+    expect(destinos[2].href).toBe('/notificaciones')
+    expect(destinos[3].action).toBe('mas')
   })
 
-  it('limita a máximo 5 items para no saturar la pantalla móvil', () => {
-    const destinos = calcularDestinosBottomNav([], true, true) // superadmin / bypass
-    expect(destinos.length).toBeLessThanOrEqual(5)
+  it('calcula los 4 pilares para Super-Admin / Bypass', () => {
+    const destinos = calcularDestinosBottomNav([], true, true)
+    expect(destinos).toHaveLength(4)
+    expect(destinos[0].href).toBe('/')
+    expect(destinos[1].href).toBe('/pedidos-almacen')
+    expect(destinos[2].href).toBe('/notificaciones')
+    expect(destinos[3].action).toBe('mas')
+  })
+
+  it('mantiene exactamente 4 destinos ergonómicos táctiles (nunca satura la pantalla)', () => {
+    const destinos = calcularDestinosBottomNav([], true, false)
+    expect(destinos.length).toBeLessThanOrEqual(4)
   })
 })

@@ -5,6 +5,7 @@ import PedidoAlmacenBadge from '@/app/pedidos-almacen/PedidoAlmacenBadge'
 import PageHeader from '@/components/layout/PageHeader'
 import PageShell from '@/components/layout/PageShell'
 import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
+import { MobileHomeCockpit } from '@/components/mobile/MobileHomeCockpit'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -533,99 +534,107 @@ export default function Home() {
 
   return (
     <PageShell maxWidth="6xl">
-      <PageHeader
-        title="Inicio"
-        badge={!cargando ? nombreRol : undefined}
-        icon={LayoutDashboard}
-        description="Centro de operación del taller: compras, finanzas, piso y personal."
-        actions={
-          !cargando ? (
-            <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 font-mono text-[11px] font-semibold text-emerald-700">
-              {tarjetasVisibles.length} módulos
-            </span>
-          ) : null
-        }
-      />
+      {/* ── Vista Móvil: Cabina Táctil por Rol (md:hidden) ── */}
+      <div className="block md:hidden">
+        <MobileHomeCockpit />
+      </div>
 
-      <div className="relative">
-        <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          ref={searchInputRef}
-          type="text"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Buscar módulo (caja chica, odoo, almacén)…"
-          className="h-11 bg-card pr-24 pl-10"
+      {/* ── Vista Escritorio: Tablero Completo (hidden md:block) ── */}
+      <div className="hidden md:block space-y-6">
+        <PageHeader
+          title="Inicio"
+          badge={!cargando ? nombreRol : undefined}
+          icon={LayoutDashboard}
+          description="Centro de operación del taller: compras, finanzas, piso y personal."
+          actions={
+            !cargando ? (
+              <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 font-mono text-[11px] font-semibold text-emerald-700">
+                {tarjetasVisibles.length} módulos
+              </span>
+            ) : null
+          }
         />
+
+        <div className="relative">
+          <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            ref={searchInputRef}
+            type="text"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar módulo (caja chica, odoo, almacén)…"
+            className="h-11 bg-card pr-24 pl-10"
+          />
+          {busqueda ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setBusqueda('')}
+              className="absolute top-1/2 right-3 -translate-y-1/2"
+              aria-label="Limpiar búsqueda"
+            >
+              <X />
+            </Button>
+          ) : (
+            <div className="pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 items-center gap-1 rounded border border-border bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground sm:flex">
+              <Command className="size-3" />
+              <span>K</span>
+            </div>
+          )}
+        </div>
+
         {busqueda ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => setBusqueda('')}
-            className="absolute top-1/2 right-3 -translate-y-1/2"
-            aria-label="Limpiar búsqueda"
-          >
-            <X />
-          </Button>
+          <p className="font-mono text-xs text-muted-foreground">
+            Mostrando {tarjetasFiltradas.length} resultados para &ldquo;{busqueda}&rdquo;
+          </p>
+        ) : null}
+
+        {cargando ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Skeleton key={i} className="h-24 rounded-lg" />
+            ))}
+          </div>
+        ) : tarjetasFiltradas.length === 0 ? (
+          <ModuleEmptyState
+            icon={Search}
+            title="No se encontraron módulos"
+            description={`No hay ninguna sección autorizada que coincida con “${busqueda}”.`}
+            action={
+              <Button type="button" variant="outline" size="sm" onClick={() => setBusqueda('')}>
+                Limpiar búsqueda
+              </Button>
+            }
+          />
         ) : (
-          <div className="pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 items-center gap-1 rounded border border-border bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground sm:flex">
-            <Command className="size-3" />
-            <span>K</span>
+          <div className="flex flex-col gap-6">
+            {SECCIONES.map((seccion) => {
+              const tarjetasEnSeccion = tarjetasFiltradas.filter((t) => t.grupo === seccion.id)
+              if (tarjetasEnSeccion.length === 0) return null
+
+              return (
+                <section key={seccion.id} className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between border-b border-border pb-2">
+                    <h2 className="text-xs font-bold tracking-wider text-foreground uppercase">
+                      {seccion.titulo}
+                    </h2>
+                    <span className={`rounded border px-2 py-0.5 font-mono text-[10px] font-bold ${seccion.badgeStyle}`}>
+                      {tarjetasEnSeccion.length} {tarjetasEnSeccion.length === 1 ? 'acceso' : 'accesos'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {tarjetasEnSeccion.map((tarjeta) => (
+                      <TarjetaAcceso key={tarjeta.href} {...tarjeta} />
+                    ))}
+                  </div>
+                </section>
+              )
+            })}
           </div>
         )}
       </div>
-
-      {busqueda ? (
-        <p className="font-mono text-xs text-muted-foreground">
-          Mostrando {tarjetasFiltradas.length} resultados para &ldquo;{busqueda}&rdquo;
-        </p>
-      ) : null}
-
-      {cargando ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-24 rounded-lg" />
-          ))}
-        </div>
-      ) : tarjetasFiltradas.length === 0 ? (
-        <ModuleEmptyState
-          icon={Search}
-          title="No se encontraron módulos"
-          description={`No hay ninguna sección autorizada que coincida con “${busqueda}”.`}
-          action={
-            <Button type="button" variant="outline" size="sm" onClick={() => setBusqueda('')}>
-              Limpiar búsqueda
-            </Button>
-          }
-        />
-      ) : (
-        <div className="flex flex-col gap-6">
-          {SECCIONES.map((seccion) => {
-            const tarjetasEnSeccion = tarjetasFiltradas.filter((t) => t.grupo === seccion.id)
-            if (tarjetasEnSeccion.length === 0) return null
-
-            return (
-              <section key={seccion.id} className="flex flex-col gap-3">
-                <div className="flex items-center justify-between border-b border-border pb-2">
-                  <h2 className="text-xs font-bold tracking-wider text-foreground uppercase">
-                    {seccion.titulo}
-                  </h2>
-                  <span className={`rounded border px-2 py-0.5 font-mono text-[10px] font-bold ${seccion.badgeStyle}`}>
-                    {tarjetasEnSeccion.length} {tarjetasEnSeccion.length === 1 ? 'acceso' : 'accesos'}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {tarjetasEnSeccion.map((tarjeta) => (
-                    <TarjetaAcceso key={tarjeta.href} {...tarjeta} />
-                  ))}
-                </div>
-              </section>
-            )
-          })}
-        </div>
-      )}
 
       <footer className="flex flex-col items-center justify-between gap-2 border-t border-border pt-4 text-center font-mono text-xs text-muted-foreground sm:flex-row">
         <span>SMV Maquinados · Hub operativo</span>

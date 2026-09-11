@@ -119,3 +119,7 @@ tsc-errors.txt
 # accidente si un script de un solo uso muere antes de borrar su archivo.
 .tmp-*
 *-key.json
+
+# prototipos locales de diseño
+Mobile app redesign discussion/
+*.zip

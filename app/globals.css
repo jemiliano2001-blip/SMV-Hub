@@ -83,6 +83,25 @@ h1, h2, h3, h4, h5, h6 {
   font-style: normal;
 }
 
+/* ── Optimizaciones Móviles y Ergonomía Táctil (Anti-Zoom & 60 FPS) ──────── */
+@media (hover: none) and (pointer: coarse) {
+  /* Prevenir zoom forzado en iOS Safari al enfocar inputs */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+.overscroll-contain {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 @media print {
   /* Ocultar toda navegación, encabezados web, barras móviles y elementos interactivos */
   .no-print,
