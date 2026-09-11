@@ -12,11 +12,13 @@ import type { VentaOdooSo } from '@/lib/schemas'
 
 export interface SelectorCuentaCargoOdooProps {
   value: string
+  empresa?: string
   onChange: (value: string) => void
   onSelectSo?: (data: {
     cuentaCargo: string
     empresa?: string
     ordenCompra?: string
+    ordenTrabajo?: string
   }) => void
   placeholder?: string
   disabled?: boolean
@@ -26,6 +28,7 @@ export interface SelectorCuentaCargoOdooProps {
 
 export default function SelectorCuentaCargoOdoo({
   value,
+  empresa,
   onChange,
   onSelectSo,
   placeholder = 'SO1148 / Stock...',
@@ -57,11 +60,11 @@ export default function SelectorCuentaCargoOdoo({
     }
   }, [abierto])
 
-  // Filtra órdenes de Odoo por nombre (SO), cliente o PO
-  const sosFiltradas = useMemo(() => {
+  // Separa y prioriza las órdenes según la empresa seleccionada
+  const { sosDeEmpresa, otrasSos, totalFiltradas } = useMemo(() => {
     const q = filtro.trim().toLowerCase()
-    if (!q) return sos
-    return sos.filter((so) => {
+    const filtradas = sos.filter((so) => {
+      if (!q) return true
       const nombre = (so.name || '').toLowerCase()
       const partner = (so.partnerName || '').toLowerCase()
       const oc = (so.ordenCompra || '').toLowerCase()
@@ -73,25 +76,91 @@ export default function SelectorCuentaCargoOdoo({
         ref.includes(q)
       )
     })
-  }, [sos, filtro])
+
+    const empLimpia = empresa?.trim().toUpperCase()
+    if (!empLimpia || empLimpia === 'SMV') {
+      return { sosDeEmpresa: [], otrasSos: filtradas, totalFiltradas: filtradas.length }
+    }
+
+    const deEmpresa: VentaOdooSo[] = []
+    const otras: VentaOdooSo[] = []
+
+    for (const so of filtradas) {
+      const empSo = mapearPartnerAEmpresa(so.partnerName).toUpperCase()
+      if (empSo === empLimpia) {
+        deEmpresa.push(so)
+      } else {
+        otras.push(so)
+      }
+    }
+
+    return { sosDeEmpresa: deEmpresa, otrasSos: otras, totalFiltradas: filtradas.length }
+  }, [sos, filtro, empresa])
 
   function handleSeleccionarOdoo(so: VentaOdooSo) {
     const cuenta = so.name.trim()
-    const empresa = mapearPartnerAEmpresa(so.partnerName)
+    const empMapeada = mapearPartnerAEmpresa(so.partnerName)
     const ordenCompra = extraerPoClienteDeSo(so)
 
     onChange(cuenta)
-    onSelectSo?.({ cuentaCargo: cuenta, empresa, ordenCompra })
+    onSelectSo?.({
+      cuentaCargo: cuenta,
+      empresa: empMapeada,
+      ordenCompra,
+      ordenTrabajo: cuenta,
+    })
     setAbierto(false)
     setFiltro('')
   }
 
   function handleSeleccionarRapida(cuenta: string) {
-    const empresa = cuenta === 'Stock' ? 'SMV' : undefined
+    const empMapeada = cuenta === 'Stock' ? 'SMV' : undefined
     onChange(cuenta)
-    onSelectSo?.({ cuentaCargo: cuenta, empresa })
+    onSelectSo?.({ cuentaCargo: cuenta, empresa: empMapeada })
     setAbierto(false)
     setFiltro('')
+  }
+
+  const renderBotonSo = (so: VentaOdooSo, esDeEstaEmpresa = false) => {
+    const seleccionada = value === so.name
+    const poCliente = extraerPoClienteDeSo(so)
+    return (
+      <button
+        key={so.id}
+        type="button"
+        onClick={() => handleSeleccionarOdoo(so)}
+        className={`w-full text-left px-2.5 py-2 rounded transition-colors flex flex-col gap-0.5 ${
+          seleccionada
+            ? 'bg-primary/10 text-primary'
+            : esDeEstaEmpresa
+              ? 'hover:bg-primary/5 text-foreground bg-primary/2'
+              : 'hover:bg-muted/80 text-foreground'
+        }`}
+      >
+        <div className="flex items-center justify-between gap-1.5">
+          <span className="font-mono text-xs font-bold text-foreground flex items-center gap-1">
+            <Hash className="h-3 w-3 text-muted-foreground" />
+            {so.name}
+          </span>
+          <div className="flex items-center gap-1">
+            {esDeEstaEmpresa && (
+              <span className="rounded border border-primary/30 bg-primary/10 px-1.5 py-0.2 text-[9px] font-bold text-primary">
+                {empresa}
+              </span>
+            )}
+            {poCliente && (
+              <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold text-sky-800 dark:bg-sky-950/60 dark:text-sky-300">
+                PO: {poCliente}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground truncate">
+          <Building2 className="h-3 w-3 shrink-0 text-muted-foreground/70" />
+          <span className="truncate">{so.partnerName || 'Sin cliente asignado'}</span>
+        </div>
+      </button>
+    )
   }
 
   return (
@@ -144,6 +213,7 @@ export default function SelectorCuentaCargoOdoo({
             <div className="flex flex-wrap gap-1">
               {CUENTAS_CARGO_RAPIDAS.map((cuenta) => {
                 const activa = value === cuenta
+                const esStockPropia = cuenta === 'Stock' && (!empresa || empresa === 'SMV')
                 return (
                   <button
                     key={cuenta}
@@ -152,7 +222,9 @@ export default function SelectorCuentaCargoOdoo({
                     className={`inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] font-medium transition-colors ${
                       activa
                         ? 'border-primary bg-primary/10 text-primary font-semibold'
-                        : 'border-border bg-card text-foreground hover:bg-muted'
+                        : esStockPropia
+                          ? 'border-amber-300 bg-amber-50/70 text-amber-900 font-medium'
+                          : 'border-border bg-card text-foreground hover:bg-muted'
                     }`}
                   >
                     {cuenta === 'Stock' && <Sparkles className="h-3 w-3 text-amber-500" />}
@@ -167,7 +239,7 @@ export default function SelectorCuentaCargoOdoo({
           {/* Lista scrollable de órdenes Odoo */}
           <div className="max-h-60 overflow-y-auto divide-y divide-border/40 p-1">
             <div className="px-2 py-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              <span>Órdenes Odoo ({sosFiltradas.length})</span>
+              <span>Órdenes Odoo ({totalFiltradas})</span>
               {loading && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
             </div>
 
@@ -176,45 +248,35 @@ export default function SelectorCuentaCargoOdoo({
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 Cargando órdenes de Odoo...
               </div>
-            ) : sosFiltradas.length === 0 ? (
+            ) : totalFiltradas === 0 ? (
               <div className="py-4 px-3 text-center text-xs text-muted-foreground">
                 {sos.length === 0
                   ? 'No hay órdenes sincronizadas desde Odoo aún.'
                   : 'No se encontraron órdenes con ese filtro.'}
               </div>
             ) : (
-              sosFiltradas.map((so) => {
-                const seleccionada = value === so.name
-                const poCliente = extraerPoClienteDeSo(so)
-                return (
-                  <button
-                    key={so.id}
-                    type="button"
-                    onClick={() => handleSeleccionarOdoo(so)}
-                    className={`w-full text-left px-2.5 py-2 rounded transition-colors flex flex-col gap-0.5 ${
-                      seleccionada
-                        ? 'bg-primary/10 text-primary'
-                        : 'hover:bg-muted/80 text-foreground'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1.5">
-                      <span className="font-mono text-xs font-bold text-foreground flex items-center gap-1">
-                        <Hash className="h-3 w-3 text-muted-foreground" />
-                        {so.name}
-                      </span>
-                      {poCliente && (
-                        <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold text-sky-800 dark:bg-sky-950/60 dark:text-sky-300">
-                          PO: {poCliente}
-                        </span>
-                      )}
+              <>
+                {sosDeEmpresa.length > 0 && (
+                  <div className="space-y-0.5 mb-1.5">
+                    <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 rounded flex items-center justify-between">
+                      <span>Órdenes de {empresa} ({sosDeEmpresa.length})</span>
+                      <Sparkles className="h-3 w-3" />
                     </div>
-                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground truncate">
-                      <Building2 className="h-3 w-3 shrink-0 text-muted-foreground/70" />
-                      <span className="truncate">{so.partnerName || 'Sin cliente asignado'}</span>
-                    </div>
-                  </button>
-                )
-              })
+                    {sosDeEmpresa.map((so) => renderBotonSo(so, true))}
+                  </div>
+                )}
+
+                {otrasSos.length > 0 && (
+                  <div className="space-y-0.5">
+                    {sosDeEmpresa.length > 0 && (
+                      <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <span>Otras órdenes Odoo ({otrasSos.length})</span>
+                      </div>
+                    )}
+                    {otrasSos.map((so) => renderBotonSo(so, false))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

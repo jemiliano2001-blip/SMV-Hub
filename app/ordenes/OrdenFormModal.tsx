@@ -19,12 +19,15 @@ import { esOrdenDuplicada } from '@/lib/importar'
 import { getClienteAuth } from '@/lib/firebase'
 import { obtenerProveedores } from '@/lib/proveedores'
 import SelectorCuentaCargoOdoo from '@/components/compras/SelectorCuentaCargoOdoo'
+import { useVentasOdoo } from '@/lib/hooks/useVentasOdoo'
 import {
   EMPRESAS_FRECUENTES,
   REQUISITORES_FRECUENTES,
   calcularTotalPartida,
   calcularSubtotalFactura,
   calcularTotalFactura,
+  extraerPoClienteDeSo,
+  mapearPartnerAEmpresa,
 } from '@/lib/captura-rapida-compras'
 
 import { validarClaveProdServCatalogo } from '@/lib/sat/validar-clave'
@@ -86,6 +89,7 @@ function itemsDesdeOrden(orden?: OrdenCompra): ItemForm[] {
 }
 
 export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
+  const { sos } = useVentasOdoo()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -474,8 +478,10 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
                               onClick={() => {
                                 const newItems = [...formData.items]
                                 const curr = { ...newItems[index], empresa: emp.codigo }
-                                if (emp.cuentaCargoDefault && !curr.cuentaCargo) {
-                                  curr.cuentaCargo = emp.cuentaCargoDefault
+                                if (emp.codigo === 'SMV') {
+                                  curr.cuentaCargo = 'Stock'
+                                } else if (curr.cuentaCargo === 'Stock') {
+                                  curr.cuentaCargo = ''
                                 }
                                 newItems[index] = curr
                                 setFormData({ ...formData, items: newItems })
@@ -510,12 +516,18 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
                         <span className="block text-[11px] font-semibold text-muted-foreground mb-1">Cuenta cargo (SO)</span>
                         <SelectorCuentaCargoOdoo
                           value={item.cuentaCargo}
+                          empresa={item.empresa}
                           onChange={(val) => handleItemChange(index, 'cuentaCargo', val)}
                           onSelectSo={(data) => {
                             const newItems = [...formData.items]
-                            const curr = { ...newItems[index], cuentaCargo: data.cuentaCargo }
-                            if (data.empresa && !curr.empresa) curr.empresa = data.empresa
-                            if (data.ordenCompra && !curr.ordenCompra) curr.ordenCompra = data.ordenCompra
+                            const prev = newItems[index]
+                            const curr = {
+                              ...prev,
+                              cuentaCargo: data.cuentaCargo,
+                              empresa: data.empresa || prev.empresa,
+                              ordenCompra: data.ordenCompra || prev.ordenCompra,
+                              ordenTrabajo: prev.ordenTrabajo || data.cuentaCargo,
+                            }
                             newItems[index] = curr
                             setFormData({ ...formData, items: newItems })
                           }}
@@ -573,11 +585,34 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
                       <div>
                         <span className="block text-[11px] font-semibold text-muted-foreground mb-1">Orden de trabajo</span>
                         <input
-                          placeholder="OT-100"
+                          placeholder="OT-100 / SO..."
                           value={item.ordenTrabajo}
-                          onChange={e => handleItemChange(index, 'ordenTrabajo', e.target.value)}
+                          list={`modal-ots-${index}`}
+                          onChange={e => {
+                            const val = e.target.value
+                            const newItems = [...formData.items]
+                            const curr = { ...newItems[index], ordenTrabajo: val }
+                            const soMatch = sos.find((s) => s.name.toLowerCase() === val.trim().toLowerCase())
+                            if (soMatch) {
+                              if (!curr.cuentaCargo) curr.cuentaCargo = soMatch.name
+                              const empMapeada = mapearPartnerAEmpresa(soMatch.partnerName)
+                              if (empMapeada && (!curr.empresa || curr.empresa === 'SMV')) curr.empresa = empMapeada
+                              const po = extraerPoClienteDeSo(soMatch)
+                              if (po && !curr.ordenCompra) curr.ordenCompra = po
+                            }
+                            newItems[index] = curr
+                            setFormData({ ...formData, items: newItems })
+                          }}
                           className="w-full rounded-lg border border-input bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
                         />
+                        <datalist id={`modal-ots-${index}`}>
+                          {sos.map((so) => (
+                            <option key={so.id} value={so.name}>
+                              {so.partnerName ? `${so.name} — ${so.partnerName}` : so.name}
+                              {so.clientOrderRef ? ` (PO: ${so.clientOrderRef})` : ''}
+                            </option>
+                          ))}
+                        </datalist>
                       </div>
                     </div>
                   </div>

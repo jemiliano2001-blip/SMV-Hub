@@ -47,6 +47,7 @@ export const REQUISITORES_FRECUENTES: string[] = [
 /** Cuentas de cargo rápidas recurrentes en el taller. */
 export const CUENTAS_CARGO_RAPIDAS: string[] = [
   'Stock',
+  'Brownsville',
   'HERRAMIENTA',
   'PENDIENTE',
 ]

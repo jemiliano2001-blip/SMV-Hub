@@ -27,12 +27,15 @@ import { obtenerProveedores } from '@/lib/proveedores'
 import { Button } from '@/components/ui/button'
 import { useFilePreview } from '@/components/FilePreviewProvider'
 import SelectorCuentaCargoOdoo from '@/components/compras/SelectorCuentaCargoOdoo'
+import { useVentasOdoo } from '@/lib/hooks/useVentasOdoo'
 import {
   EMPRESAS_FRECUENTES,
   REQUISITORES_FRECUENTES,
   calcularTotalPartida,
   calcularSubtotalFactura,
   calcularTotalFactura,
+  extraerPoClienteDeSo,
+  mapearPartnerAEmpresa,
 } from '@/lib/captura-rapida-compras'
 
 type FormInput = z.input<typeof NuevaCompraFormSchema>
@@ -104,6 +107,7 @@ export default function NuevaCompraForm({
   initialData?: InitialDataCompra
 }) {
   const { previewFile } = useFilePreview()
+  const { sos } = useVentasOdoo()
   const [imagen, setImagen] = useState<File | null>(null)
   const [catalogoProveedores, setCatalogoProveedores] = useState<Proveedor[]>([])
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -1015,7 +1019,11 @@ export default function NuevaCompraForm({
                           type="button"
                           onClick={() => {
                             setValue(`items.${i}.empresa`, emp.codigo, { shouldDirty: true, shouldValidate: true })
-                            if (emp.cuentaCargoDefault && !getValues(`items.${i}.cuentaCargo`)) {
+                            if (emp.codigo === 'SMV') {
+                              setValue(`items.${i}.cuentaCargo`, 'Stock', { shouldDirty: true })
+                            } else if (getValues(`items.${i}.cuentaCargo`) === 'Stock') {
+                              setValue(`items.${i}.cuentaCargo`, '', { shouldDirty: true })
+                            } else if (emp.cuentaCargoDefault && !getValues(`items.${i}.cuentaCargo`)) {
                               setValue(`items.${i}.cuentaCargo`, emp.cuentaCargoDefault, { shouldDirty: true })
                             }
                           }}
@@ -1054,14 +1062,18 @@ export default function NuevaCompraForm({
                   <label className={cls.label}>Cuenta cargo (SO)</label>
                   <SelectorCuentaCargoOdoo
                     value={itemsWatch?.[i]?.cuentaCargo || ''}
+                    empresa={itemsWatch?.[i]?.empresa}
                     onChange={(val) => setValue(`items.${i}.cuentaCargo`, val, { shouldDirty: true })}
                     onSelectSo={(data) => {
                       setValue(`items.${i}.cuentaCargo`, data.cuentaCargo, { shouldDirty: true })
-                      if (data.empresa && !getValues(`items.${i}.empresa`)) {
+                      if (data.empresa) {
                         setValue(`items.${i}.empresa`, data.empresa, { shouldDirty: true, shouldValidate: true })
                       }
-                      if (data.ordenCompra && !getValues(`items.${i}.ordenCompra`)) {
+                      if (data.ordenCompra) {
                         setValue(`items.${i}.ordenCompra`, data.ordenCompra, { shouldDirty: true })
+                      }
+                      if (!getValues(`items.${i}.ordenTrabajo`)) {
+                        setValue(`items.${i}.ordenTrabajo`, data.cuentaCargo, { shouldDirty: true })
                       }
                     }}
                     disabled={extrayendo}
@@ -1126,10 +1138,38 @@ export default function NuevaCompraForm({
                   <label className={cls.label}>Orden de trabajo</label>
                   <input
                     {...register(`items.${i}.ordenTrabajo`)}
+                    list={`nueva-compra-ots-${i}`}
                     className={cls.input}
-                    placeholder="OT-100"
+                    placeholder="OT-100 / SO..."
                     disabled={extrayendo}
+                    onChange={(e) => {
+                      register(`items.${i}.ordenTrabajo`).onChange(e)
+                      const val = e.target.value
+                      const soMatch = sos.find((s) => s.name.toLowerCase() === val.trim().toLowerCase())
+                      if (soMatch) {
+                        if (!getValues(`items.${i}.cuentaCargo`)) {
+                          setValue(`items.${i}.cuentaCargo`, soMatch.name, { shouldDirty: true })
+                        }
+                        const empMapeada = mapearPartnerAEmpresa(soMatch.partnerName)
+                        const currEmp = getValues(`items.${i}.empresa`)
+                        if (empMapeada && (!currEmp || currEmp === 'SMV')) {
+                          setValue(`items.${i}.empresa`, empMapeada, { shouldDirty: true, shouldValidate: true })
+                        }
+                        const po = extraerPoClienteDeSo(soMatch)
+                        if (po && !getValues(`items.${i}.ordenCompra`)) {
+                          setValue(`items.${i}.ordenCompra`, po, { shouldDirty: true })
+                        }
+                      }
+                    }}
                   />
+                  <datalist id={`nueva-compra-ots-${i}`}>
+                    {sos.map((so) => (
+                      <option key={so.id} value={so.name}>
+                        {so.partnerName ? `${so.name} — ${so.partnerName}` : so.name}
+                        {so.clientOrderRef ? ` (PO: ${so.clientOrderRef})` : ''}
+                      </option>
+                    ))}
+                  </datalist>
                 </div>
               </div>
             </div>
