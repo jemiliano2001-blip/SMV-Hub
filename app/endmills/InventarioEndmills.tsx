@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useDeferredValue } from "react"
 import {
   AlertTriangle,
   ArrowDown,
@@ -101,6 +101,7 @@ export default function InventarioEndmills({
   onReordenarMedidas?: (items: readonly ReordenarMedidaItem[]) => Promise<void>
 }) {
   const [busqueda, setBusqueda] = useState("")
+  const deferredBusqueda = useDeferredValue(busqueda)
   const [categoria, setCategoria] = useState<CategoriaEndmill | "todas">("todas")
   const [medidaSeleccionada, setMedidaSeleccionada] = useState<EndmillMedida | null>(null)
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false)
@@ -137,7 +138,7 @@ export default function InventarioEndmills({
     if (reordenHabilitado && ordenLocal.length > 0) {
       return ordenLocal
     }
-    const q = busqueda.trim().toLowerCase()
+    const q = deferredBusqueda.trim().toLowerCase()
     return medidas.filter((medida) => {
       if (categoria !== "todas" && medida.categoria !== categoria) return false
       if (filtroEstadoExterno !== "todas") {
@@ -154,7 +155,7 @@ export default function InventarioEndmills({
         .toLowerCase()
         .includes(q)
     })
-  }, [medidas, ordenLocal, reordenHabilitado, busqueda, categoria, filtroEstadoExterno])
+  }, [medidas, ordenLocal, reordenHabilitado, deferredBusqueda, categoria, filtroEstadoExterno])
 
   function moverPosicion(fromIndex: number, toIndex: number) {
     if (toIndex < 0 || toIndex >= ordenLocal.length) return

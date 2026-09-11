@@ -1,5 +1,6 @@
-import { useMemo, useState, useEffect, useCallback, useRef } from 'react'
+import { useMemo, useState, useEffect, useCallback, useRef, useDeferredValue, memo } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import {
   Loader2,
   AlertCircle,
@@ -39,10 +40,11 @@ import {
 } from '@/lib/cotizaciones-tabla'
 import { esCotizacionComprada } from '@/lib/cotizaciones-desde-ordenes'
 import { useCotizaciones } from '@/lib/hooks/useCotizaciones'
-import CotizacionFormModal from './CotizacionFormModal'
-import CotizacionIaModal from './CotizacionIaModal'
-import ModalExportarCotizaciones from './ModalExportarCotizaciones'
 import { descargarExcelCotizacionIndividual } from '@/lib/cotizaciones-excel-export'
+
+const CotizacionFormModal = dynamic(() => import('./CotizacionFormModal'), { ssr: false })
+const CotizacionIaModal = dynamic(() => import('./CotizacionIaModal'), { ssr: false })
+const ModalExportarCotizaciones = dynamic(() => import('./ModalExportarCotizaciones'), { ssr: false })
 import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
 import ModuleFilterChips from '@/components/layout/ModuleFilterChips'
 import ModuleSurface from '@/components/layout/ModuleSurface'
@@ -90,7 +92,7 @@ type CotizacionCardProps = {
   onExportarExcel: (c: Cotizacion) => void
 }
 
-function CotizacionCard({
+const CotizacionCard = memo(function CotizacionCard({
   c,
   selected,
   onToggleSelect,
@@ -213,7 +215,222 @@ function CotizacionCard({
       </div>
     </div>
   )
+})
+
+type CotizacionTableRowProps = {
+  c: Cotizacion
+  isSelected: boolean
+  exportando: boolean
+  onToggleSelect: (id: string, e: React.MouseEvent) => void
+  onEditar: (c: Cotizacion) => void
+  onExportarIndividual: (c: Cotizacion) => void
+  onComprarUsa: (c: Cotizacion) => void
+  onCrearOdoo: (c: Cotizacion) => void
+  onCopiarWhatsApp: (c: Cotizacion) => void
+  onEliminar: (c: Cotizacion) => void
+  onIrAOrdenes: () => void
 }
+
+const CotizacionTableRow = memo(function CotizacionTableRow({
+  c,
+  isSelected,
+  exportando,
+  onToggleSelect,
+  onEditar,
+  onExportarIndividual,
+  onComprarUsa,
+  onCrearOdoo,
+  onCopiarWhatsApp,
+  onEliminar,
+  onIrAOrdenes,
+}: CotizacionTableRowProps) {
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <TableRow
+          onClick={() => onEditar(c)}
+          className={`cursor-pointer transition-colors hover:bg-muted/50 ${
+            isSelected ? 'bg-primary/5' : ''
+          }`}
+        >
+          <TableCell className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={(e) => onToggleSelect(c.id, e as unknown as React.MouseEvent)}
+              className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
+            />
+          </TableCell>
+          <TableCell className="px-4 py-3 text-xs font-mono">
+            {formatFecha(c.fecha)}
+          </TableCell>
+          <TableCell className="px-4 py-3 text-xs text-foreground font-medium truncate max-w-[120px]">
+            {c.solicitante || '—'}
+          </TableCell>
+          <TableCell className="px-4 py-3 text-xs text-foreground font-semibold truncate max-w-[140px]">
+            {c.proveedor}
+          </TableCell>
+          <TableCell className="px-4 py-3 font-mono text-xs text-foreground truncate max-w-[120px]">
+            {c.numeroParte || '—'}
+          </TableCell>
+          <TableCell className="px-4 py-3 text-xs text-foreground max-w-[220px] truncate" title={c.descripcion}>
+            {c.descripcion}
+          </TableCell>
+          <TableCell className="px-4 py-3 text-xs">
+            <span
+              className={`inline-block rounded px-2 py-0.5 text-[11px] font-semibold ${
+                c.ubicacion === 'USA'
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'bg-indigo-50 text-indigo-700'
+              }`}
+            >
+              {c.ubicacion === 'USA' ? 'EUA' : 'MX'}
+            </span>
+          </TableCell>
+          <TableCell className="px-4 py-3 text-right font-mono text-xs">
+            {c.cantidad ?? '—'}
+          </TableCell>
+          <TableCell className="px-4 py-3 text-right font-mono text-xs">
+            {formatPrecio(c.precioUnitario, c.moneda)}
+          </TableCell>
+          <TableCell className="px-4 py-3 text-right font-mono text-xs font-bold text-foreground">
+            {formatPrecio(c.total, c.moneda)}
+          </TableCell>
+          <TableCell className="px-4 py-3">
+            <div className="flex flex-col items-start gap-1">
+              <span
+                className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ring-1 ring-inset ${
+                  ESTATUS_BADGE[c.estatus]
+                }`}
+              >
+                {c.estatus}
+              </span>
+              {esCotizacionComprada(c.origen) && <BadgeComprada />}
+            </div>
+          </TableCell>
+          <TableCell className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+            {c.link && /^https?:\/\//i.test(c.link) ? (
+              <a
+                href={c.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors"
+                title="Abrir enlace del producto"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            ) : (
+              <span className="text-muted-foreground text-xs">—</span>
+            )}
+          </TableCell>
+          <TableCell className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-end gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                onClick={() => void onExportarIndividual(c)}
+                disabled={exportando}
+                title="Descargar cotización en Excel (.xlsx)"
+              >
+                {exportando ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <FileSpreadsheet className="h-3.5 w-3.5" />
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                onClick={() => onComprarUsa(c)}
+                title="Comprar en USA (/nueva-compra)"
+              >
+                <ShoppingCart className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
+                onClick={() => onCrearOdoo(c)}
+                title="Crear RFQ en Odoo (/compras-odoo)"
+              >
+                <PlusCircle className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                onClick={() => onCopiarWhatsApp(c)}
+                title="Copiar formato WhatsApp"
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                onClick={() => onEditar(c)}
+                title="Editar cotización"
+              >
+                <Edit2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </TableCell>
+        </TableRow>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onClick={() => onComprarUsa(c)}>
+          <ShoppingCart className="mr-2 h-4 w-4 text-emerald-600" />
+          Comprar en USA (/nueva-compra)
+        </ContextMenuItem>
+        {c.ordenIdOrigen && (
+          <ContextMenuItem onClick={onIrAOrdenes}>
+            <Package className="mr-2 h-4 w-4 text-sky-700" />
+            Ir a órdenes
+            {c.notas ? ` (${c.notas})` : ''}
+          </ContextMenuItem>
+        )}
+        <ContextMenuItem onClick={() => onCrearOdoo(c)}>
+          <PlusCircle className="mr-2 h-4 w-4 text-indigo-600" />
+          Crear RFQ en Odoo (/compras-odoo)
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => onCopiarWhatsApp(c)}>
+          <Copy className="mr-2 h-4 w-4" />
+          Copiar para WhatsApp
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => void onExportarIndividual(c)}>
+          <FileSpreadsheet className="mr-2 h-4 w-4 text-emerald-600" />
+          Exportar a Excel (.xlsx)
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={() => onEditar(c)}>
+          <Edit2 className="mr-2 h-4 w-4" />
+          Editar cotización
+        </ContextMenuItem>
+        {c.link && (
+          <ContextMenuItem onClick={() => window.open(c.link || '', '_blank')}>
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Abrir enlace
+          </ContextMenuItem>
+        )}
+        <ContextMenuSeparator />
+        <ContextMenuItem
+          className="text-red-600 focus:text-red-600 focus:bg-red-50"
+          onClick={() => onEliminar(c)}
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Eliminar
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  )
+})
 
 
 interface CotizacionesListProps {
@@ -239,6 +456,7 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
   } = useCotizaciones()
 
   const [busqueda, setBusqueda] = useState('')
+  const deferredBusqueda = useDeferredValue(busqueda)
   const [filtroUbicacion, setFiltroUbicacion] = useState<FiltroUbicacion>('todas')
   const [filtroEstatus, setFiltroEstatus] = useState<FiltroEstatus>('todos')
   const [filtroOrigen, setFiltroOrigen] = useState<FiltroOrigenCotizacion>('todas')
@@ -258,7 +476,7 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
   const [initialPasteFile, setInitialPasteFile] = useState<File | null>(null)
   const [cotizacionToEdit, setCotizacionToEdit] = useState<Cotizacion | null>(null)
 
-  const handleExportarIndividual = async (c: Cotizacion) => {
+  const handleExportarIndividual = useCallback(async (c: Cotizacion) => {
     try {
       setExportandoIndividualId(c.id)
       await descargarExcelCotizacionIndividual(c)
@@ -269,10 +487,10 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
     } finally {
       setExportandoIndividualId(null)
     }
-  }
+  }, [])
 
   // Acciones de conversión
-  const handleComprarUsa = (c: Cotizacion) => {
+  const handleComprarUsa = useCallback((c: Cotizacion) => {
     const params = new URLSearchParams()
     if (c.proveedor) params.set('proveedor', c.proveedor)
     if (c.numeroParte) params.set('numeroParte', c.numeroParte)
@@ -286,9 +504,9 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
     params.set('cotizacionId', c.id)
 
     router.push(`/nueva-compra?${params.toString()}`)
-  }
+  }, [router])
 
-  const handleCrearOdoo = (c: Cotizacion) => {
+  const handleCrearOdoo = useCallback((c: Cotizacion) => {
     const params = new URLSearchParams()
     if (c.proveedor) params.set('proveedor', c.proveedor)
     if (c.numeroParte) params.set('numeroParte', c.numeroParte)
@@ -299,9 +517,9 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
     if (c.numeroParte) params.set('referencia', c.numeroParte)
 
     router.push(`/compras-odoo?${params.toString()}`)
-  }
+  }, [router])
 
-  const handleCopiarWhatsApp = (c: Cotizacion) => {
+  const handleCopiarWhatsApp = useCallback((c: Cotizacion) => {
     const lineas = [
       `📋 *COTIZACIÓN SMV*`,
       c.numeroParte ? `*No. Parte:* ${c.numeroParte}` : null,
@@ -320,7 +538,7 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
       .writeText(texto)
       .then(() => toast.success('Cotización copiada al portapapeles en formato WhatsApp'))
       .catch(() => toast.error('No se pudo copiar al portapapeles'))
-  }
+  }, [])
 
 
   // Listener global para Ctrl+V en la página de cotizaciones
@@ -369,12 +587,12 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
 
   const filtros = useMemo(
     () => ({
-      busqueda,
+      busqueda: deferredBusqueda,
       ubicacion: filtroUbicacion,
       estatus: filtroEstatus,
       origen: filtroOrigen,
     }),
-    [busqueda, filtroUbicacion, filtroEstatus, filtroOrigen]
+    [deferredBusqueda, filtroUbicacion, filtroEstatus, filtroOrigen]
   )
 
   const filtradas = useMemo(
@@ -768,198 +986,25 @@ export default function CotizacionesList({ onIrAImportar }: CotizacionesListProp
                   </TableCell>
                 </TableRow>
               ) : (
-                filasPagina.map((c) => {
-                  const isSelected = selectedIds.has(c.id)
-                  return (
-                    <ContextMenu key={c.id}>
-                      <ContextMenuTrigger asChild>
-                        <TableRow
-                          onClick={() => setCotizacionToEdit(c)}
-                          className={`cursor-pointer transition-colors hover:bg-muted/50 ${
-                            isSelected ? 'bg-primary/5' : ''
-                          }`}
-                        >
-                          <TableCell className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={(e) => toggleSelection(c.id, e as unknown as React.MouseEvent)}
-                              className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
-                            />
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-xs font-mono">
-                            {formatFecha(c.fecha)}
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-xs text-foreground font-medium truncate max-w-[120px]">
-                            {c.solicitante || '—'}
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-xs text-foreground font-semibold truncate max-w-[140px]">
-                            {c.proveedor}
-                          </TableCell>
-                          <TableCell className="px-4 py-3 font-mono text-xs text-foreground truncate max-w-[120px]">
-                            {c.numeroParte || '—'}
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-xs text-foreground max-w-[220px] truncate" title={c.descripcion}>
-                            {c.descripcion}
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-xs">
-                            <span
-                              className={`inline-block rounded px-2 py-0.5 text-[11px] font-semibold ${
-                                c.ubicacion === 'USA'
-                                  ? 'bg-blue-50 text-blue-700'
-                                  : 'bg-indigo-50 text-indigo-700'
-                              }`}
-                            >
-                              {c.ubicacion === 'USA' ? 'EUA' : 'MX'}
-                            </span>
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-right font-mono text-xs">
-                            {c.cantidad ?? '—'}
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-right font-mono text-xs">
-                            {formatPrecio(c.precioUnitario, c.moneda)}
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-right font-mono text-xs font-bold text-foreground">
-                            {formatPrecio(c.total, c.moneda)}
-                          </TableCell>
-                          <TableCell className="px-4 py-3">
-                            <div className="flex flex-col items-start gap-1">
-                              <span
-                                className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ring-1 ring-inset ${
-                                  ESTATUS_BADGE[c.estatus]
-                                }`}
-                              >
-                                {c.estatus}
-                              </span>
-                              {esCotizacionComprada(c.origen) && <BadgeComprada />}
-                            </div>
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                            {c.link && /^https?:\/\//i.test(c.link) ? (
-                              <a
-                                href={c.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors"
-                                title="Abrir enlace del producto"
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </a>
-                            ) : (
-                              <span className="text-muted-foreground text-xs">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
-                                onClick={() => void handleExportarIndividual(c)}
-                                disabled={exportandoIndividualId === c.id}
-                                title="Descargar cotización en Excel (.xlsx)"
-                              >
-                                {exportandoIndividualId === c.id ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <FileSpreadsheet className="h-3.5 w-3.5" />
-                                )}
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
-                                onClick={() => handleComprarUsa(c)}
-                                title="Comprar en USA (/nueva-compra)"
-                              >
-                                <ShoppingCart className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
-                                onClick={() => handleCrearOdoo(c)}
-                                title="Crear RFQ en Odoo (/compras-odoo)"
-                              >
-                                <PlusCircle className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
-                                onClick={() => handleCopiarWhatsApp(c)}
-                                title="Copiar formato WhatsApp"
-                              >
-                                <Copy className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
-                                onClick={() => setCotizacionToEdit(c)}
-                                title="Editar cotización"
-                              >
-                                <Edit2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      </ContextMenuTrigger>
-                      <ContextMenuContent>
-                        <ContextMenuItem onClick={() => handleComprarUsa(c)}>
-                          <ShoppingCart className="mr-2 h-4 w-4 text-emerald-600" />
-                          Comprar en USA (/nueva-compra)
-                        </ContextMenuItem>
-                        {c.ordenIdOrigen && (
-                          <ContextMenuItem onClick={() => router.push('/ordenes')}>
-                            <Package className="mr-2 h-4 w-4 text-sky-700" />
-                            Ir a órdenes
-                            {c.notas ? ` (${c.notas})` : ''}
-                          </ContextMenuItem>
-                        )}
-                        <ContextMenuItem onClick={() => handleCrearOdoo(c)}>
-                          <PlusCircle className="mr-2 h-4 w-4 text-indigo-600" />
-                          Crear RFQ en Odoo (/compras-odoo)
-                        </ContextMenuItem>
-                        <ContextMenuItem onClick={() => handleCopiarWhatsApp(c)}>
-                          <Copy className="mr-2 h-4 w-4" />
-                          Copiar para WhatsApp
-                        </ContextMenuItem>
-                        <ContextMenuItem onClick={() => void handleExportarIndividual(c)}>
-                          <FileSpreadsheet className="mr-2 h-4 w-4 text-emerald-600" />
-                          Exportar a Excel (.xlsx)
-                        </ContextMenuItem>
-                        <ContextMenuSeparator />
-                        <ContextMenuItem onClick={() => setCotizacionToEdit(c)}>
-                          <Edit2 className="mr-2 h-4 w-4" />
-                          Editar cotización
-                        </ContextMenuItem>
-                        {c.link && (
-                          <ContextMenuItem onClick={() => window.open(c.link || '', '_blank')}>
-                            <ExternalLink className="mr-2 h-4 w-4" />
-                            Abrir enlace
-                          </ContextMenuItem>
-                        )}
-                        <ContextMenuSeparator />
-                        <ContextMenuItem
-                          className="text-red-600 focus:text-red-600 focus:bg-red-50"
-                          onClick={() => {
-                            setSelectedIds(new Set([c.id]))
-                            void handleDeleteMultiple()
-                          }}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Eliminar
-                        </ContextMenuItem>
-                      </ContextMenuContent>
-                    </ContextMenu>
-                  )
-                })
+                filasPagina.map((c) => (
+                  <CotizacionTableRow
+                    key={c.id}
+                    c={c}
+                    isSelected={selectedIds.has(c.id)}
+                    exportando={exportandoIndividualId === c.id}
+                    onToggleSelect={toggleSelection}
+                    onEditar={(cot) => setCotizacionToEdit(cot)}
+                    onExportarIndividual={handleExportarIndividual}
+                    onComprarUsa={handleComprarUsa}
+                    onCrearOdoo={handleCrearOdoo}
+                    onCopiarWhatsApp={handleCopiarWhatsApp}
+                    onEliminar={(cot) => {
+                      setSelectedIds(new Set([cot.id]))
+                      void handleDeleteMultiple()
+                    }}
+                    onIrAOrdenes={() => router.push('/ordenes')}
+                  />
+                ))
               )}
             </TableBody>
           </Table>

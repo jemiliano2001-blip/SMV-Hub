@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useMemo, useEffect } from 'react'
+import { useState, useRef, useMemo, useEffect, useDeferredValue } from 'react'
 import { calcularMinutos, useBanos } from '@/lib/hooks/useBanos'
 import { useOperadores } from '@/lib/hooks/useOperadores'
 import type { Bano, Operador, RegistroBano } from '@/lib/schemas'
@@ -78,6 +78,7 @@ export default function RegistroBanoList() {
   const [errorCaptura, setErrorCaptura] = useState<string | null>(null)
   const [mensajeExito, setMensajeExito] = useState<string | null>(null)
   const [busqueda, setBusqueda] = useState('')
+  const deferredBusqueda = useDeferredValue(busqueda)
 
   // Reloj en vivo para actualizar el tiempo transcurrido en pantalla
   const [relojMinuto, setRelojMinuto] = useState(() => horaAhoraLocal())
@@ -308,7 +309,7 @@ export default function RegistroBanoList() {
     return registrosHoy.filter((r) => r.horaLlegada)
   }, [registrosHoy])
 
-  const filtro = busqueda.toLowerCase().trim()
+  const filtro = deferredBusqueda.toLowerCase().trim()
   const terminados = useMemo(() => {
     if (!filtro) return terminadosTodos
     return terminadosTodos.filter((r) => r.operador.toLowerCase().includes(filtro))

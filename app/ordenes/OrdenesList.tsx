@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useDeferredValue } from 'react'
+import dynamic from 'next/dynamic'
 
 import type { OrdenCompra, EstadoOrden } from '@/lib/schemas'
 import { normalizar } from '@/lib/format'
@@ -14,11 +15,11 @@ import ModuleSurface from '@/components/layout/ModuleSurface'
 import ModuleBulkBar from '@/components/layout/ModuleBulkBar'
 import { Button } from '@/components/ui/button'
 
-import OrdenFormModal from './OrdenFormModal'
-import ModalSugerirClavesSat from './ModalSugerirClavesSat'
-import ModalVistaPreviaExcelOrden, {
-  type ModoVistaPreviaExcel,
-} from './components/ModalVistaPreviaExcelOrden'
+import type { ModoVistaPreviaExcel } from './components/ModalVistaPreviaExcelOrden'
+
+const OrdenFormModal = dynamic(() => import('./OrdenFormModal'), { ssr: false })
+const ModalSugerirClavesSat = dynamic(() => import('./ModalSugerirClavesSat'), { ssr: false })
+const ModalVistaPreviaExcelOrden = dynamic(() => import('./components/ModalVistaPreviaExcelOrden'), { ssr: false })
 import { useOrdenes } from '@/lib/hooks/useOrdenes'
 
 import OrdenesFiltros from './components/OrdenesFiltros'
@@ -51,7 +52,9 @@ export default function OrdenesList({ busquedaInicial }: { busquedaInicial?: str
   
   // States para búsqueda y filtrado
   const [query, setQuery] = useState(busquedaInicial ?? '')
+  const deferredQuery = useDeferredValue(query)
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoOrden | 'todos'>('todos')
+  const [visibleLimit, setVisibleLimit] = useState(50)
 
   const [colFiltros, setColFiltros] = useState({
     proveedor: '',
@@ -59,6 +62,14 @@ export default function OrdenesList({ busquedaInicial }: { busquedaInicial?: str
     empresa: '',
     cuentaCargo: ''
   })
+
+  // Resetear límite visible al cambiar cualquier filtro (patrón React sin cascading render)
+  const filtrosKey = `${query}|${estadoFiltro}|${colFiltros.proveedor}|${colFiltros.requisitor}|${colFiltros.empresa}|${colFiltros.cuentaCargo}`
+  const [prevFiltrosKey, setPrevFiltrosKey] = useState(filtrosKey)
+  if (prevFiltrosKey !== filtrosKey) {
+    setPrevFiltrosKey(filtrosKey)
+    setVisibleLimit(50)
+  }
 
   const proveedoresUnicos = useMemo(() => Array.from(new Set(ordenes.map(o => o.proveedor).filter(Boolean))).sort(), [ordenes])
   const requisitoresUnicos = useMemo(() => Array.from(new Set(ordenes.map(o => o.requisitor).filter(Boolean))).sort(), [ordenes])
@@ -97,7 +108,7 @@ export default function OrdenesList({ busquedaInicial }: { busquedaInicial?: str
       resultado = resultado.filter(o => cuentaCargoEfectiva(o) === colFiltros.cuentaCargo)
     }
 
-    const q = normalizar(query.trim())
+    const q = normalizar(deferredQuery.trim())
     if (q) {
       resultado = resultado.filter(o => {
         const matchBase = [
@@ -118,8 +129,9 @@ export default function OrdenesList({ busquedaInicial }: { busquedaInicial?: str
               item.descripcion, 
               item.claveProdServ, 
               item.empresa, 
-              item.cuentaCargo, 
-              item.requisitor
+              item.requisitor, 
+              item.cuentaCargo,
+              item.ordenTrabajo
             ].some(campo => normalizar(campo ?? '').includes(q))
           )
         }
@@ -129,7 +141,12 @@ export default function OrdenesList({ busquedaInicial }: { busquedaInicial?: str
     }
 
     return resultado
-  }, [ordenes, query, estadoFiltro, colFiltros])
+  }, [ordenes, deferredQuery, estadoFiltro, colFiltros])
+
+  const ordenesVisibles = useMemo(
+    () => ordenesFiltradas.slice(0, visibleLimit),
+    [ordenesFiltradas, visibleLimit]
+  )
 
   const hayFiltrosActivos = query.trim() !== '' || estadoFiltro !== 'todos' || Object.values(colFiltros).some(v => v !== '')
 
@@ -396,7 +413,7 @@ export default function OrdenesList({ busquedaInicial }: { busquedaInicial?: str
 
       {ordenesFiltradas.length > 0 && (
         <OrdenesTabla 
-          ordenesFiltradas={ordenesFiltradas}
+          ordenesFiltradas={ordenesVisibles}
           selectedIds={selectedIds}
           toggleAllSelection={toggleAllSelection}
           toggleSelection={toggleSelection}
@@ -418,19 +435,42 @@ export default function OrdenesList({ busquedaInicial }: { busquedaInicial?: str
       {!cargandoCompleto && ordenesFiltradas.length > 0 && (
         <div className="mt-3 flex flex-col items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 sm:flex-row">
           <p className="text-xs font-medium text-muted-foreground" aria-live="polite">
-            Mostrando <span className="font-bold text-foreground">{ordenesFiltradas.length}</span> de{' '}
-            <span className="font-bold text-foreground">{totalOrdenes}</span> órdenes
+            Mostrando <span className="font-bold text-foreground">{Math.min(visibleLimit, ordenesFiltradas.length)}</span> de{' '}
+            <span className="font-bold text-foreground">{ordenesFiltradas.length}</span> órdenes
+            {totalOrdenes > ordenesFiltradas.length && (
+              <span> ({totalOrdenes} en base de datos)</span>
+            )}
           </p>
-          {hayMas && (
-            <button
-              type="button"
-              onClick={() => void cargarMas()}
-              disabled={cargandoMas}
-              className="min-h-10 min-w-32 rounded-lg border border-input bg-card px-4 py-2 text-xs font-bold text-primary hover:bg-muted disabled:opacity-50"
-            >
-              {cargandoMas ? 'Cargando…' : 'Cargar más'}
-            </button>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {visibleLimit < ordenesFiltradas.length && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setVisibleLimit((prev) => Math.min(prev + 50, ordenesFiltradas.length))}
+                  className="min-h-9 rounded-lg border border-input bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted cursor-pointer"
+                >
+                  Cargar 50 más
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVisibleLimit(ordenesFiltradas.length)}
+                  className="min-h-9 rounded-lg border border-input bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer"
+                >
+                  Mostrar todas ({ordenesFiltradas.length})
+                </button>
+              </>
+            )}
+            {hayMas && (
+              <button
+                type="button"
+                onClick={() => void cargarMas()}
+                disabled={cargandoMas}
+                className="min-h-9 min-w-32 rounded-lg border border-input bg-card px-4 py-1.5 text-xs font-bold text-primary hover:bg-muted disabled:opacity-50 cursor-pointer"
+              >
+                {cargandoMas ? 'Cargando…' : 'Cargar más de BD'}
+              </button>
+            )}
+          </div>
         </div>
       )}
 

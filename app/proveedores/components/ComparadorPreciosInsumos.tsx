@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useDeferredValue } from 'react'
 import {
   Search,
   Trophy,
@@ -101,6 +101,8 @@ export default function ComparadorPreciosInsumos({
   usdToMxn = TIPO_CAMBIO_DEFAULT_USD_MXN,
 }: Props) {
   const [busqueda, setBusqueda] = useState('')
+  const deferredBusqueda = useDeferredValue(busqueda)
+  const [visibleLimit, setVisibleLimit] = useState(50)
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>('todas')
   const [proveedorFiltro, setProveedorFiltro] = useState<string>('todos')
   const [tipoDocFiltro, setTipoDocFiltro] = useState<'todos' | 'po_confirmada' | 'rfq' | 'factura'>('todos')
@@ -108,6 +110,14 @@ export default function ComparadorPreciosInsumos({
   const [soloComparables, setSoloComparables] = useState(true)
   const [agregados, setAgregados] = useState<Set<string>>(new Set())
   const [itemDetalle, setItemDetalle] = useState<CompraOdooItem | null>(null)
+
+  // Resetear límite visible al cambiar búsqueda o filtros (patrón React sin cascading render)
+  const filtrosKey = `${deferredBusqueda}|${categoriaFiltro}|${proveedorFiltro}|${tipoDocFiltro}|${soloComparables}`
+  const [prevFiltrosKey, setPrevFiltrosKey] = useState(filtrosKey)
+  if (prevFiltrosKey !== filtrosKey) {
+    setPrevFiltrosKey(filtrosKey)
+    setVisibleLimit(50)
+  }
 
   // Lista única de proveedores para el filtro
   const listaProveedores = useMemo(() => {
@@ -122,7 +132,7 @@ export default function ComparadorPreciosInsumos({
 
   // Filtrar ítems por precio comprable, texto, categoría, proveedor y tipo de documento
   const itemsCoincidentes = useMemo(() => {
-    const qNorm = normalizarTexto(busqueda)
+    const qNorm = normalizarTexto(deferredBusqueda)
     const tokens = qNorm.split(/\s+/).filter(Boolean)
 
     const filtrados = items.filter((it) => {
@@ -169,7 +179,7 @@ export default function ComparadorPreciosInsumos({
       const pxB = aMXN(b.precioUnitario, (b.moneda ?? 'MXN') as 'USD' | 'MXN', usdToMxn)
       return pxA - pxB
     })
-  }, [items, busqueda, categoriaFiltro, proveedorFiltro, tipoDocFiltro, usdToMxn])
+  }, [items, deferredBusqueda, categoriaFiltro, proveedorFiltro, tipoDocFiltro, usdToMxn])
 
   const comparacionesPorItem = useMemo(() => {
     const comparaciones = new Map<string, { min: number; max: number; proveedores: Set<number> }>()
@@ -479,7 +489,7 @@ export default function ComparadorPreciosInsumos({
             {!hayCriterio
               ? 'Busca un material, SKU o filtra una familia para empezar a comparar'
               : `${itemsFiltrados.length} resultados ${soloComparables ? 'comparables' : 'encontrados'}${proveedorFiltro !== 'todos' ? ` para "${proveedorFiltro}"` : ''}`}
-            {itemsFiltrados.length > 300 ? ` (mostrando 300)` : ''}
+            {itemsFiltrados.length > visibleLimit ? ` (mostrando ${Math.min(visibleLimit, itemsFiltrados.length)})` : ''}
           </span>
           {busqueda && (
             <span className="text-[11px] text-muted-foreground font-mono">
@@ -518,7 +528,7 @@ export default function ComparadorPreciosInsumos({
                 </TableRow>
               )}
 
-              {hayCriterio && itemsFiltrados.slice(0, 300).map((it) => {
+              {hayCriterio && itemsFiltrados.slice(0, visibleLimit).map((it) => {
                 const grupo = comparacionesPorItem.get(claveHibridaItem(it))
                 const rangoFila = rangosHistoricos.get(
                   llaveRangoHistorico(claveHibridaItem(it), monedaItem(it)),
@@ -731,6 +741,33 @@ export default function ComparadorPreciosInsumos({
             </TableBody>
           </Table>
         </div>
+
+        {hayCriterio && itemsFiltrados.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 border-t border-border bg-card">
+            <p className="text-xs text-muted-foreground">
+              Mostrando <span className="font-bold text-foreground">{Math.min(visibleLimit, itemsFiltrados.length)}</span> de{' '}
+              <span className="font-bold text-foreground">{itemsFiltrados.length}</span> insumos
+            </p>
+            {visibleLimit < itemsFiltrados.length && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setVisibleLimit((prev) => Math.min(prev + 50, itemsFiltrados.length))}
+                  className="rounded-md border border-input bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted cursor-pointer"
+                >
+                  Cargar 50 más
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVisibleLimit(itemsFiltrados.length)}
+                  className="rounded-md border border-input bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer"
+                >
+                  Mostrar todos ({itemsFiltrados.length})
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </ModuleSurface>
 
       <Dialog open={itemDetalle != null} onOpenChange={(open) => !open && setItemDetalle(null)}>

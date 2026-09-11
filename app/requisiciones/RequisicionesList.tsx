@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useDeferredValue } from 'react'
 import Link from 'next/link'
 import {
   Loader2,
@@ -398,6 +398,7 @@ export default function RequisicionesList() {
   const [filtroEstado, setFiltroEstado] = useState<EstatusRequisicion | 'todos'>('todos')
   const [filtroEmpresa, setFiltroEmpresa] = useState('')
   const [busqueda, setBusqueda] = useState('')
+  const deferredBusqueda = useDeferredValue(busqueda)
 
   // Modales de Flujo de Compras End-to-End
   const [modalNuevaFlujo, setModalNuevaFlujo] = useState(false)
@@ -411,7 +412,7 @@ export default function RequisicionesList() {
   const isAuto = tipoActivo === 'automatizacion'
 
   const filtradas = useMemo(() => {
-    const q = normalizar(busqueda.trim())
+    const q = normalizar(deferredBusqueda.trim())
     return requisiciones.filter((r) => {
       if ((r.tipo ?? 'general') !== tipoActivo) return false
       if (filtroEstado !== 'todos' && r.estado !== filtroEstado) return false
@@ -424,7 +425,7 @@ export default function RequisicionesList() {
       }
       return true
     })
-  }, [requisiciones, tipoActivo, filtroEstado, filtroEmpresa, busqueda])
+  }, [requisiciones, tipoActivo, filtroEstado, filtroEmpresa, deferredBusqueda])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
