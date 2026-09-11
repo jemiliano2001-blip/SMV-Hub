@@ -83,7 +83,7 @@ h1, h2, h3, h4, h5, h6 {
   font-style: normal;
 }
 
-/* ── Optimizaciones Móviles y Ergonomía Táctil (Anti-Zoom & 60 FPS) ──────── */
+/* ── Optimizaciones Móviles y Ergonomía Táctil (Anti-Zoom) ───────────────── */
 @media (hover: none) and (pointer: coarse) {
   /* Prevenir zoom forzado en iOS Safari al enfocar inputs */
   input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
@@ -91,15 +91,6 @@ h1, h2, h3, h4, h5, h6 {
   textarea {
     font-size: 16px !important;
   }
-}
-
-.touch-manipulation {
-  touch-action: manipulation;
-}
-
-.overscroll-contain {
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
 }
 
 @media print {

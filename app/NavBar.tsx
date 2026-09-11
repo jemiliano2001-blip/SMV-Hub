@@ -223,10 +223,10 @@ export default function NavBar() {
             </div>
           </nav>
 
-          {/* Menú Móvil Limpio y Sin Ruido Redundante */}
+          {/* Menú Móvil Limpio y Sin Ruido Redundante — "Cerrar sesión" vive
+              solo dentro del cajón (abajo) para no competir por espacio aquí. */}
           <div className="flex items-center gap-1.5 md:hidden">
             <BuscadorGlobalCommand />
-            <BotonSesion />
             <Sheet open={menuMovil} onOpenChange={setMenuMovil}>
               <SheetTrigger asChild>
                 <button

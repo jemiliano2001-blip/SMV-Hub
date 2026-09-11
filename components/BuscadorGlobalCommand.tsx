@@ -204,11 +204,12 @@ export default function BuscadorGlobalCommand() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg text-xs font-semibold transition-colors"
+        aria-label="Buscar en SMV-Hub"
+        className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-200 hover:text-slate-900 sm:px-3"
       >
-        <Search className="h-3.5 w-3.5 text-slate-400" />
+        <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
         <span className="hidden sm:inline">Buscar en SMV-Hub...</span>
-        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-0.5 rounded border border-slate-300 bg-white px-1.5 font-mono text-[10px] font-bold text-slate-500 shadow-2xs">
+        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-0.5 rounded border border-slate-300 bg-white px-1.5 font-mono text-[10px] font-bold text-slate-500 shadow-2xs sm:inline-flex">
           <span className="text-xs">⌘</span>K
         </kbd>
       </button>
