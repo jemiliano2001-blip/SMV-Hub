@@ -162,7 +162,7 @@ cuando no** (era "≥ 90 %": el 15 % restante son datos malos, no fallas del par
   Usa `lib/proveedores-vinculacion.ts` (ya existe) + las acciones nuevas de T1.3. Solo visible con
   `esSuperAdmin`.
 
-### T1.7 · Ejecutar en producción (Emiliano, desde el panel) — ⏳ pendiente del merge de B1
+### T1.7 · Ejecutar en producción (Emiliano, desde el panel) — ✅ HECHO (2026-09-14)
 1. Analizar → Aplicar automáticas (48 órdenes + 143 cotizaciones, McMaster y Mouser).
 2. Altas marketplace: eBay, Amazon, AliExpress, Mercado Libre → vincula 43 órdenes + 98 cotizaciones.
 3. Altas nuevas de ≥ 2 docs: MSC Industrial Supply → *vincular a MSC Industrial Direct* con alias
@@ -226,7 +226,7 @@ Va **primero** en ejecución: es un bug real, está aislado en `functions/` y no
 - `lib/compras-odoo-store.ts`: nada que cambiar (lee el doc). `PanelClasificacionIA.tsx`: badge
   "por mapeo" cuando `clasificadoPorMapeo`; `aplicarMapeosAprobados` queda como vista previa.
 
-### T2.5 · Deploy y verificación — ⏳ pendiente de ok de Emiliano
+### T2.5 · Deploy y verificación — ✅ HECHO (deploy 2026-09-13, verificado 2026-09-14)
 ```bash
 cd functions && npm run build && cd ..
 firebase deploy --only "functions:smv-hub:syncOdooComprasScheduled,functions:smv-hub:syncOdooComprasManual" --project smv-brain
@@ -251,6 +251,36 @@ de `emulators:exec`). Detalles de implementación que difieren del plan original
   heurística, para que el comparador agrupe igual que lo que el equipo aprobó.
 
 ---
+
+## Resultados B1 + B2 en producción — antes / después (2026-09-14)
+
+`npx tsx scripts/diagnostico-datos.ts smv-brain` el 2026-09-13 (antes) y el 2026-09-14 tras el
+deploy de B1/B2 y la corrida de T1.7 por Emiliano desde `/proveedores`:
+
+| Métrica | Antes | Después | Criterio | |
+|---|---|---|---|---|
+| Órdenes sin `proveedorId` | 132 (93 %) | **20 (14 %)** | ≤ 15 % | ✅ |
+| Cotizaciones sin `proveedorId` | 825 (97 %) | **233 (27 %)** — 54 son internos que se dejan así → 21 % efectivo | ≤ 40 % | ✅ |
+| Proveedores en catálogo | 104 | 110 (altas desde el panel: marketplaces y USA faltantes) | — | |
+| Ítems Odoo en `otros` | 978 (42 %) | **614 (26 %)** | ≤ 25 % | ≈ (1 pt arriba; proyección B0 era 25 %) |
+| Ítems Odoo sin tipo de insumo | 978 (42 %) | 469 (20 %) | — | |
+| Fantasmas restantes en órdenes | 26 nombres | 15 nombres, todos de 1–2 órdenes | — | |
+
+Lo que queda sin FK en órdenes son proveedores de una sola compra (Tool Balancers, MRO Supply,
+PCS Company, Changzhou…): se vinculan solos la próxima vez que se capture algo de ellos y alguien
+los dé de alta desde el chip. En cotizaciones, los 90 fantasmas restantes son en su mayoría de
+1–3 filas; los internos (Almacén Automatización 25, Linea 17, AUTOMATION 12) quedan sin
+vincular por decisión.
+
+`otros` quedó en 26 % con la regla D tal cual; el punto que falta al criterio no justifica
+relajar la regla (los falsos positivos costarían más). Si se quiere bajar más, es la segunda
+pasada IA (fuera de v1 por decisión) o seguir aprobando mapeos en el panel — cada aprobación
+ahora sí sobrevive al sync.
+
+Deploy: B2 Functions a mano (2026-09-13); B1 rules + storage y hosting a mano (2026-09-14). CI
+validó todo pero su paso de deploy falló por falta de `secretmanager.versions.get` en la cuenta
+de servicio de CI (brecha preexistente; pendiente de Emiliano dar rol *Secret Manager Secret
+Accessor* en `smv-brain`). CI nunca despliega hosting: siempre `npm run deploy:hosting`.
 
 ## B3 — Lead time numérico
 
