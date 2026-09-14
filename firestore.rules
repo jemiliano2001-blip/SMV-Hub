@@ -1079,14 +1079,30 @@ service cloud.firestore {
         (esCorreoBreakGlass() || tieneModulo('proveedores') || esSuperAdminDoc());
     }
 
+    // Alias y marketplace (frente B, B1): los alias son los nombres con los que el
+    // proveedor aparece en facturas y con ellos la captura vincula sola, así que
+    // se acota su forma. Las rules no iteran listas: se valida tamaño y tipo de
+    // contenedor; el contenido lo valida el schema Zod en el cliente.
+    function proveedorAliasValidos(d) {
+      return !d.keys().hasAny(['aliases'])
+             || (d.aliases is list && d.aliases.size() <= 20);
+    }
+    function proveedorMarketplaceValido(d) {
+      return !d.keys().hasAny(['esMarketplace']) || d.esMarketplace is bool;
+    }
+
     match /proveedores/{proveedorId} {
       allow read: if esProveedoresAutorizado();
       allow delete: if esProveedoresEditor();
       allow create: if esProveedoresEditor()
-                    && request.resource.data.creadoEn is timestamp;
+                    && request.resource.data.creadoEn is timestamp
+                    && proveedorAliasValidos(request.resource.data)
+                    && proveedorMarketplaceValido(request.resource.data);
       allow update: if esProveedoresEditor()
                     && request.resource.data.creadoEn == resource.data.creadoEn
-                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn;
+                    && request.resource.data.actualizadoEn >= resource.data.actualizadoEn
+                    && proveedorAliasValidos(request.resource.data)
+                    && proveedorMarketplaceValido(request.resource.data);
     }
 
     // Matriz de proveedor primario/backup por categoría (antes solo en useState local).

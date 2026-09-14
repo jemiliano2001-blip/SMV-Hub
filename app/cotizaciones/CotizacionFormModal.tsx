@@ -3,6 +3,10 @@
 import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ChipProveedorVinculado } from '@/components/proveedores/ChipProveedorVinculado'
+import { authBypassActivo, useUsuario } from '@/lib/auth'
+import { usePermisos } from '@/lib/hooks/useRol'
+import { tieneModulo } from '@/lib/roles'
 import {
   Dialog,
   DialogContent,
@@ -53,9 +57,15 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
       .catch((err) => console.error('Error cargando catálogo de proveedores:', err))
   }, [])
 
+  // El vínculo al catálogo lo resuelve el chip (nombre + alias, con confirmación cuando no es
+  // exacto); aquí solo se guarda el nombre tal como lo escribió el usuario.
+  const [proveedorIdElegido, setProveedorIdElegido] = useState<string | null>(cotizacionBase?.proveedorId ?? null)
+  const { usuario } = useUsuario()
+  const { modulos, esSuperAdmin } = usePermisos(authBypassActivo() ? null : usuario)
+  const puedeEditarCatalogo = esSuperAdmin || authBypassActivo() || tieneModulo(modulos, 'proveedores')
+
   function handleProveedorChange(nombre: string) {
-    const match = catalogoProveedores.find((p) => p.nombre === nombre)
-    setFormData({ ...formData, proveedor: nombre, proveedorId: match?.id ?? null })
+    setFormData((prev) => ({ ...prev, proveedor: nombre }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -161,6 +171,24 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
                     <option key={p.id} value={p.nombre} />
                   ))}
                 </datalist>
+                <ChipProveedorVinculado
+                  nombreLibre={formData.proveedor}
+                  catalogo={catalogoProveedores}
+                  proveedorIdElegido={proveedorIdElegido}
+                  onElegir={setProveedorIdElegido}
+                  onVincular={(id) => setFormData((prev) => (prev.proveedorId === id ? prev : { ...prev, proveedorId: id }))}
+                  puedeEditarCatalogo={puedeEditarCatalogo}
+                  moneda={formData.ubicacion === 'MX' ? 'MXN' : 'USD'}
+                  onCatalogoActualizado={(p) =>
+                    setCatalogoProveedores((prev) => {
+                      const i = prev.findIndex((x) => x.id === p.id)
+                      if (i === -1) return [...prev, p].sort((a, b) => a.nombre.localeCompare(b.nombre))
+                      const copia = [...prev]
+                      copia[i] = p
+                      return copia
+                    })
+                  }
+                />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-foreground">No. de parte</label>

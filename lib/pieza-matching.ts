@@ -99,29 +99,96 @@ export function normalizarNombreProveedor(nombre: string): string {
     .trim()
 }
 
+/** Proveedor mínimo para matching: nombre y, si existen, los alias con que aparece en facturas. */
+export type ProveedorParaMatch = { id: string; nombre: string; aliases?: readonly string[] }
+
+export type NivelMatchProveedor = "exacto" | "sugerido"
+
+export type ResolucionProveedor<T extends ProveedorParaMatch> = {
+  proveedor: T
+  /**
+   * `exacto`: el nombre normalizado coincide con el nombre o un alias de UN solo proveedor — se
+   * puede vincular sin preguntar. `sugerido`: coincidencia parcial (empieza con / incluye) o alias
+   * ambiguo entre varios proveedores — hay que confirmar con el usuario.
+   */
+  nivel: NivelMatchProveedor
+}
+
+/** Nombres normalizados (nombre + alias) de un proveedor, sin vacíos. */
+function nombresNormalizados(p: ProveedorParaMatch): string[] {
+  const todos = [p.nombre, ...(p.aliases ?? [])].map(normalizarNombreProveedor).filter(Boolean)
+  return Array.from(new Set(todos))
+}
+
 /**
- * Busca el mejor match de un nombre libre contra un catálogo de proveedores.
- * Estrategia: exacto → empieza-con → incluye.
+ * Resuelve un nombre libre contra el catálogo distinguiendo el nivel de confianza.
+ * Estrategia: exacto por nombre o alias (único) → empieza-con → incluye. Un alias repetido en dos
+ * proveedores nunca vincula solo: baja a `sugerido`.
  */
-export function matchProveedorPorNombre<T extends { id: string; nombre: string }>(
+export function resolverProveedor<T extends ProveedorParaMatch>(
   nombreLibre: string,
-  catalogo: T[]
-): T | null {
+  catalogo: readonly T[]
+): ResolucionProveedor<T> | null {
   const target = normalizarNombreProveedor(nombreLibre)
   if (!target) return null
 
-  const exacto = catalogo.find((p) => normalizarNombreProveedor(p.nombre) === target)
-  if (exacto) return exacto
+  const exactos = catalogo.filter((p) => nombresNormalizados(p).includes(target))
+  if (exactos.length === 1) return { proveedor: exactos[0], nivel: "exacto" }
+  if (exactos.length > 1) return { proveedor: exactos[0], nivel: "sugerido" }
 
-  const empieza = catalogo.find((p) => {
-    const n = normalizarNombreProveedor(p.nombre)
-    return n.startsWith(target) || target.startsWith(n)
-  })
-  if (empieza) return empieza
+  const empieza = catalogo.find((p) =>
+    nombresNormalizados(p).some((n) => n.startsWith(target) || target.startsWith(n))
+  )
+  if (empieza) return { proveedor: empieza, nivel: "sugerido" }
 
-  const incluye = catalogo.find((p) => {
-    const n = normalizarNombreProveedor(p.nombre)
-    return n.includes(target) || target.includes(n)
-  })
-  return incluye ?? null
+  const incluye = catalogo.find((p) =>
+    nombresNormalizados(p).some((n) => n.includes(target) || target.includes(n))
+  )
+  if (incluye) return { proveedor: incluye, nivel: "sugerido" }
+
+  // Último nivel, solo sugerencia: comparten tokens distintivos. Cubre "MSC Industrial Supply"
+  // vs "MSC Industrial Direct" (misma marca, distinto sufijo), que ni empieza-con ni incluye
+  // detectan. Las palabras genéricas no cuentan para no sugerir "Aceros Fortuna" por "Aceros
+  // Levinson".
+  const tokensTarget = tokensDistintivos(target)
+  if (tokensTarget.length === 0) return null
+  let mejor: { proveedor: T; comunes: number } | null = null
+  for (const p of catalogo) {
+    for (const n of nombresNormalizados(p)) {
+      const comunes = tokensDistintivos(n).filter((t) => tokensTarget.includes(t)).length
+      if (comunes > 0 && (!mejor || comunes > mejor.comunes)) mejor = { proveedor: p, comunes }
+    }
+  }
+  return mejor ? { proveedor: mejor.proveedor, nivel: "sugerido" } : null
+}
+
+/**
+ * Palabras que aparecen en muchos nombres de proveedor y no identifican a ninguno. Un token
+ * compartido de esta lista no cuenta como coincidencia.
+ */
+const TOKENS_GENERICOS_PROVEEDOR = new Set([
+  "s", "a", "sa", "de", "cv", "rl", "inc", "llc", "ltd", "co", "corp", "company", "cia",
+  "the", "and", "y", "e", "usa", "us", "mx", "mexico", "monterrey", "mty",
+  "industrial", "industrias", "industries", "supply", "supplies", "distribuciones",
+  "distribuidora", "comercial", "comercializadora", "grupo", "servicios", "servicio",
+  "tool", "tools", "tooling", "machinery", "electronics", "electronica", "aceros", "acero",
+  "metals", "metales", "direct", "online", "store", "shop", "tienda", "local",
+])
+
+function tokensDistintivos(nombreNormalizado: string): string[] {
+  return nombreNormalizado
+    .split(" ")
+    .filter((t) => t.length >= 3 && !TOKENS_GENERICOS_PROVEEDOR.has(t))
+}
+
+/**
+ * Busca el mejor match de un nombre libre contra un catálogo de proveedores, sin distinguir
+ * nivel. Estrategia: exacto (nombre o alias) → empieza-con → incluye. Para decidir si se puede
+ * vincular sin preguntar usa `resolverProveedor`.
+ */
+export function matchProveedorPorNombre<T extends ProveedorParaMatch>(
+  nombreLibre: string,
+  catalogo: readonly T[]
+): T | null {
+  return resolverProveedor(nombreLibre, catalogo)?.proveedor ?? null
 }

@@ -26,7 +26,10 @@ vi.mock("@/lib/firebase-admin", () => ({
   },
 }))
 vi.mock("firebase-admin/firestore", () => ({
-  FieldValue: { serverTimestamp: mockServerTimestamp },
+  FieldValue: {
+    serverTimestamp: mockServerTimestamp,
+    arrayUnion: (...valores: unknown[]) => ({ arrayUnion: valores }),
+  },
 }))
 
 import { POST } from "@/app/api/proveedores/vinculacion/route"
@@ -120,6 +123,222 @@ describe("POST /api/proveedores/vinculacion", () => {
       "BACKFILL_PROVEEDOR_ID",
       expect.stringContaining("1 órdenes")
     )
+  })
+
+  it("vincula por alias en 'aplicarAutomaticas' (B1: los alias son exactos)", async () => {
+    const actualizar = vi.fn()
+    configurarBase({
+      ordenes: [documento("orden-1", { proveedor: "MSC Industrial Supply", proveedorId: null })],
+      proveedores: [
+        documento("proveedor-msc", { nombre: "MSC Industrial Direct", aliases: ["MSC Industrial Supply"] }),
+      ],
+    })
+    mockBatch.mockReturnValue({ update: actualizar, commit: vi.fn().mockResolvedValue(undefined) })
+
+    const respuesta = await POST(solicitud({ accion: "aplicarAutomaticas" }))
+
+    expect(respuesta.status).toBe(200)
+    expect(actualizar).toHaveBeenCalledWith(
+      { coleccion: "ordenes", id: "orden-1" },
+      expect.objectContaining({ proveedorId: "proveedor-msc" })
+    )
+  })
+
+  it("en 'analizar' los fantasmas traen sugerencia y los internos no aparecen", async () => {
+    configurarBase({
+      ordenes: [documento("orden-1", { proveedor: "Mouser", proveedorId: null })],
+      cotizaciones: [
+        documento("cot-1", { proveedor: "Almacén Automatización", proveedorId: null }),
+        documento("cot-2", { proveedor: "EBAY", proveedorId: null }),
+      ],
+      proveedores: [documento("proveedor-mouser", { nombre: "MOUSER ELECTRONICS." })],
+    })
+
+    const respuesta = await POST(solicitud({ accion: "analizar" }))
+    const body = (await respuesta.json()) as {
+      cotizaciones: { ignoradosInternos?: number; sinMatch: number }
+      fantasmas: Array<{ nombreLibre: string; sugerenciaCatalogo: { id: string } | null; marketplaceProbable: boolean }>
+    }
+
+    expect(respuesta.status).toBe(200)
+    expect(body.cotizaciones.ignoradosInternos).toBe(1)
+    expect(body.cotizaciones.sinMatch).toBe(1)
+    const mouser = body.fantasmas.find((f) => f.nombreLibre === "Mouser")
+    expect(mouser?.sugerenciaCatalogo?.id).toBe("proveedor-mouser")
+    const ebay = body.fantasmas.find((f) => f.nombreLibre === "EBAY")
+    expect(ebay?.marketplaceProbable).toBe(true)
+    expect(body.fantasmas.some((f) => f.nombreLibre === "Almacén Automatización")).toBe(false)
+  })
+
+  it("vincularManual con guardarAlias aprende el nombre libre en el proveedor", async () => {
+    const actualizarProveedor = vi.fn().mockResolvedValue(undefined)
+    const proveedorRef = { coleccion: "proveedores", id: "proveedor-msc", update: actualizarProveedor }
+    mockCollection.mockImplementation((nombre: string) => ({
+      get: vi.fn().mockResolvedValue({ docs: [] }),
+      doc: (id: string) => (nombre === "proveedores" ? proveedorRef : { coleccion: nombre, id }),
+    }))
+    mockGetAll.mockResolvedValueOnce([
+      { exists: true, data: () => ({ nombre: "MSC Industrial Direct", aliases: [] }) },
+      { exists: true },
+    ])
+
+    const respuesta = await POST(
+      solicitud({
+        accion: "vincularManual",
+        coleccion: "ordenes",
+        idsDocs: ["orden-1"],
+        proveedorId: "proveedor-msc",
+        nombreLibre: "MSC Industrial Supply",
+        guardarAlias: true,
+      })
+    )
+
+    expect(respuesta.status).toBe(200)
+    expect(await respuesta.json()).toEqual({ ok: true, aliasAprendido: true })
+    expect(actualizarProveedor).toHaveBeenCalledWith(
+      expect.objectContaining({ actualizadoEn: "server-timestamp" })
+    )
+    expect(mockRegistrarAuditoriaServer).toHaveBeenCalledWith(
+      "super@smv.com",
+      "EDITAR",
+      "ordenes",
+      "VINCULACION_MANUAL",
+      expect.stringContaining('Alias aprendido: "MSC Industrial Supply"')
+    )
+  })
+
+  it("vincularManual no aprende un alias redundante (igual al nombre) ni repetido", async () => {
+    const actualizarProveedor = vi.fn()
+    const proveedorRef = { coleccion: "proveedores", id: "proveedor-msc", update: actualizarProveedor }
+    mockCollection.mockImplementation((nombre: string) => ({
+      get: vi.fn().mockResolvedValue({ docs: [] }),
+      doc: (id: string) => (nombre === "proveedores" ? proveedorRef : { coleccion: nombre, id }),
+    }))
+    mockGetAll.mockResolvedValue([
+      { exists: true, data: () => ({ nombre: "MSC Industrial Direct", aliases: ["msc industrial supply"] }) },
+      { exists: true },
+    ])
+
+    for (const nombreLibre of ["msc industrial direct", "MSC Industrial Supply"]) {
+      const respuesta = await POST(
+        solicitud({
+          accion: "vincularManual",
+          coleccion: "ordenes",
+          idsDocs: ["orden-1"],
+          proveedorId: "proveedor-msc",
+          nombreLibre,
+          guardarAlias: true,
+        })
+      )
+      expect(respuesta.status).toBe(200)
+      expect(await respuesta.json()).toEqual({ ok: true, aliasAprendido: false })
+    }
+    expect(actualizarProveedor).not.toHaveBeenCalled()
+  })
+
+  it("altaYVincular crea el proveedor con defaults, sin alias redundante, y vincula", async () => {
+    const setProveedor = vi.fn().mockResolvedValue(undefined)
+    const actualizar = vi.fn()
+    mockCollection.mockImplementation((nombre: string) => ({
+      get: vi.fn().mockResolvedValue({ docs: [] }),
+      doc: (id?: string) =>
+        nombre === "proveedores" && id === undefined
+          ? { id: "proveedor-nuevo", set: setProveedor }
+          : { coleccion: nombre, id },
+    }))
+    mockGetAll.mockResolvedValueOnce([{ exists: true }, { exists: true }])
+    mockBatch.mockReturnValue({ update: actualizar, commit: vi.fn().mockResolvedValue(undefined) })
+
+    const respuesta = await POST(
+      solicitud({
+        accion: "altaYVincular",
+        coleccion: "ordenes",
+        idsDocs: ["orden-1", "orden-2"],
+        nombre: "eBay",
+        mercado: "usa",
+        esMarketplace: true,
+        nombreLibre: "EBAY",
+      })
+    )
+
+    expect(respuesta.status).toBe(200)
+    expect(await respuesta.json()).toEqual({ ok: true, proveedorId: "proveedor-nuevo" })
+    expect(setProveedor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nombre: "eBay",
+        esMarketplace: true,
+        mercado: "usa",
+        moneda: "USD",
+        origenProveedor: "manual",
+        odooPartnerId: null,
+        aliases: [], // "EBAY" normaliza igual que "eBay": no es alias
+        categorias: ["otros"],
+        creadoEn: "server-timestamp",
+      })
+    )
+    expect(actualizar).toHaveBeenCalledTimes(2)
+    expect(actualizar).toHaveBeenCalledWith(
+      { coleccion: "ordenes", id: "orden-1" },
+      expect.objectContaining({ proveedorId: "proveedor-nuevo" })
+    )
+    expect(mockRegistrarAuditoriaServer).toHaveBeenCalledWith(
+      "super@smv.com",
+      "CREAR",
+      "proveedores",
+      "proveedor-nuevo",
+      expect.stringContaining("marketplace")
+    )
+  })
+
+  it("altaYVincular guarda el nombre libre como alias cuando difiere del nombre elegido", async () => {
+    const setProveedor = vi.fn().mockResolvedValue(undefined)
+    mockCollection.mockImplementation((nombre: string) => ({
+      get: vi.fn().mockResolvedValue({ docs: [] }),
+      doc: (id?: string) =>
+        nombre === "proveedores" && id === undefined
+          ? { id: "proveedor-nuevo", set: setProveedor }
+          : { coleccion: nombre, id },
+    }))
+    mockGetAll.mockResolvedValueOnce([{ exists: true }])
+
+    const respuesta = await POST(
+      solicitud({
+        accion: "altaYVincular",
+        coleccion: "cotizaciones",
+        idsDocs: ["cot-1"],
+        nombre: "DigiKey Electronics",
+        mercado: "usa",
+        nombreLibre: "Digikey",
+      })
+    )
+
+    expect(respuesta.status).toBe(200)
+    expect(setProveedor).toHaveBeenCalledWith(
+      expect.objectContaining({ aliases: ["Digikey"], moneda: "USD", pais: "Estados Unidos" })
+    )
+  })
+
+  it("altaYVincular rechaza con 409 si ya existe un proveedor con ese nombre o alias", async () => {
+    configurarBase({
+      proveedores: [
+        documento("proveedor-msc", { nombre: "MSC Industrial Direct", aliases: ["MSC Industrial Supply"] }),
+      ],
+    })
+
+    const respuesta = await POST(
+      solicitud({
+        accion: "altaYVincular",
+        coleccion: "ordenes",
+        idsDocs: ["orden-1"],
+        nombre: "msc industrial supply",
+        mercado: "usa",
+      })
+    )
+
+    expect(respuesta.status).toBe(409)
+    expect(await respuesta.json()).toMatchObject({ proveedorExistenteId: "proveedor-msc" })
+    expect(mockGetAll).not.toHaveBeenCalled()
+    expect(mockRegistrarAuditoriaServer).not.toHaveBeenCalled()
   })
 
   it("rechaza una vinculación manual si el proveedor ya no existe", async () => {

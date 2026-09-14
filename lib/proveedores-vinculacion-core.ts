@@ -1,4 +1,4 @@
-import { normalizarNombreProveedor } from "@/lib/pieza-matching"
+import { matchProveedorPorNombre, normalizarNombreProveedor } from "@/lib/pieza-matching"
 
 export interface DocumentoProveedorHistorico {
   id: string
@@ -9,6 +9,8 @@ export interface DocumentoProveedorHistorico {
 export interface ProveedorCatalogoMinimo {
   id: string
   nombre: string
+  /** Nombres con los que aparece en facturas; empatan como exacto igual que `nombre`. */
+  aliases?: string[]
 }
 
 export interface ResultadoBackfill {
@@ -16,6 +18,11 @@ export interface ResultadoBackfill {
   vinculados: number
   sinMatch: number
   yaTenianId: number
+  /**
+   * Documentos cuyo "proveedor" es un origen interno (almacén, línea) y no un vendedor: no se
+   * vinculan ni cuentan como fantasma. Opcional por compatibilidad con respuestas previas.
+   */
+  ignoradosInternos?: number
 }
 
 export interface ProveedorFantasma {
@@ -24,7 +31,31 @@ export interface ProveedorFantasma {
   cantidadDocs: number
   /** Se limita a 20 para que una corrección manual sea una operación acotada. */
   idsDocs: string[]
+  /** Mejor candidato del catálogo por "empieza con" / "incluye" (nunca exacto: eso ya vinculó). */
   sugerenciaCatalogo: { id: string; nombre: string } | null
+  /** Parece un canal de compra (eBay, Amazon…): el alta se prellena con `esMarketplace`. */
+  marketplaceProbable: boolean
+}
+
+/**
+ * Valores del campo `proveedor` que no son proveedores sino origen interno del Excel de
+ * automatización (decisión de Emiliano, 2026-09-13). Normalizados con `normalizarNombreProveedor`.
+ */
+export const NOMBRES_INTERNOS_IGNORADOS: readonly string[] = [
+  "almacen automatizacion",
+  "linea",
+  "automation",
+]
+
+export function esNombreInterno(nombreLibre: string): boolean {
+  const norm = normalizarNombreProveedor(nombreLibre)
+  return norm !== "" && NOMBRES_INTERNOS_IGNORADOS.includes(norm)
+}
+
+const MARKETPLACE_RE = /\b(ebay|amazon|ali\s?express|alibaba|mercado\s?libre|walmart|temu)\b/i
+
+export function esMarketplaceProbable(nombreLibre: string): boolean {
+  return MARKETPLACE_RE.test(nombreLibre)
 }
 
 export interface VinculoProveedorPendiente {
@@ -45,11 +76,16 @@ type IndiceProveedores = Map<string, ProveedorCatalogoMinimo[]>
 function crearIndiceProveedores(catalogo: ProveedorCatalogoMinimo[]): IndiceProveedores {
   const indice: IndiceProveedores = new Map()
   for (const proveedor of catalogo) {
-    const nombre = normalizarNombreProveedor(proveedor.nombre)
-    if (!nombre) continue
-    const coincidencias = indice.get(nombre) ?? []
-    coincidencias.push(proveedor)
-    indice.set(nombre, coincidencias)
+    // Nombre y alias entran al mismo índice: un alias empata como exacto. Si dos proveedores
+    // comparten un nombre/alias, `proveedorExacto` ve > 1 coincidencia y no vincula solo.
+    const claves = new Set(
+      [proveedor.nombre, ...(proveedor.aliases ?? [])].map(normalizarNombreProveedor).filter(Boolean)
+    )
+    for (const clave of claves) {
+      const coincidencias = indice.get(clave) ?? []
+      coincidencias.push(proveedor)
+      indice.set(clave, coincidencias)
+    }
   }
   return indice
 }
@@ -77,6 +113,7 @@ function analizarColeccion(
     vinculados: 0,
     sinMatch: 0,
     yaTenianId: 0,
+    ignoradosInternos: 0,
   }
   const vinculos: VinculoProveedorPendiente[] = []
 
@@ -84,6 +121,11 @@ function analizarColeccion(
     resultado.revisados++
     if (documento.proveedorId && idsCatalogo.has(documento.proveedorId)) {
       resultado.yaTenianId++
+      continue
+    }
+
+    if (esNombreInterno(documento.proveedor)) {
+      resultado.ignoradosInternos = (resultado.ignoradosInternos ?? 0) + 1
       continue
     }
 
@@ -95,7 +137,15 @@ function analizarColeccion(
     }
 
     resultado.sinMatch++
-    agregarFantasma(fantasmas, documento.proveedor, origen, documento.id, null)
+    // Sugerencia por "empieza con" / "incluye": solo orienta al humano, nunca se aplica sola.
+    const sugerido = matchProveedorPorNombre(documento.proveedor, catalogo)
+    agregarFantasma(
+      fantasmas,
+      documento.proveedor,
+      origen,
+      documento.id,
+      sugerido ? { id: sugerido.id, nombre: sugerido.nombre } : null
+    )
   }
 
   return { resultado, vinculos }
@@ -149,5 +199,6 @@ function agregarFantasma(
     cantidadDocs: 1,
     idsDocs: [idDoc],
     sugerenciaCatalogo: sugerencia,
+    marketplaceProbable: esMarketplaceProbable(nombreLibre),
   })
 }

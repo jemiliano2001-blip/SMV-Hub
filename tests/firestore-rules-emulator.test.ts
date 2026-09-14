@@ -330,6 +330,36 @@ describeWithEmulator("reglas Firestore de Integridad", () => {
     )
   })
 
+  it("valida aliases y esMarketplace de proveedores (frente B, B1)", async () => {
+    const editor = userDb("provider-user")
+    const ahora = new Date()
+    const base = { nombre: "MSC Industrial Direct", creadoEn: ahora, actualizadoEn: ahora }
+
+    // Sin los campos nuevos: los documentos históricos y los clientes viejos siguen pasando.
+    await assertSucceeds(editor.doc("proveedores/prov-sin-campos").set(base))
+    // Con forma válida.
+    await assertSucceeds(
+      editor.doc("proveedores/prov-alias").set({
+        ...base,
+        aliases: ["MSC Industrial Supply", "MSC"],
+        esMarketplace: false,
+      })
+    )
+    // Un alias por confirmación humana: arrayUnion respeta el tope de 20.
+    await assertSucceeds(
+      editor.doc("proveedores/prov-alias").update({ aliases: ["MSC Industrial Supply", "MSC", "mscdirect.com"], actualizadoEn: new Date() })
+    )
+    // Forma inválida: alias que no es lista, más de 20 alias, marketplace que no es bool.
+    await assertFails(editor.doc("proveedores/prov-mal-1").set({ ...base, aliases: "MSC" }))
+    await assertFails(
+      editor.doc("proveedores/prov-mal-2").set({ ...base, aliases: Array.from({ length: 21 }, (_, i) => `alias-${i}`) })
+    )
+    await assertFails(editor.doc("proveedores/prov-mal-3").set({ ...base, esMarketplace: "sí" }))
+    await assertFails(editor.doc("proveedores/prov-alias").update({ esMarketplace: 1, actualizadoEn: new Date() }))
+    // Sin módulo proveedores no se crea ni con forma válida.
+    await assertFails(userDb("report-user").doc("proveedores/prov-ajeno").set({ ...base, aliases: [] }))
+  })
+
   it("solo permite clasificar campos aprobados de items Odoo", async () => {
     const item = userDb("provider-user").doc("compras_odoo_items/item-1")
     await assertSucceeds(
