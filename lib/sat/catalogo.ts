@@ -12,7 +12,29 @@ export const SatCatalogEntrySchema = z.object({
   palabrasClave: z.array(z.string()).default([]),
 })
 
-export type SatCatalogEntry = z.infer<typeof SatCatalogEntrySchema>
+type SatCatalogEntryParsed = z.infer<typeof SatCatalogEntrySchema>
+
+/**
+ * Entrada del catálogo tal como se publica hacia afuera: **inmutable por tipo**.
+ *
+ * `lib/sat/buscar.ts` usa cada entrada como llave de un caché por identidad
+ * (`textoEntrada`) que da por hecho que una entrada nunca cambia después de
+ * creada; si alguien la mutara, el texto cacheado quedaría obsoleto en
+ * silencio. Con este tipo, asignar a un campo o hacer `push` a `palabrasClave`
+ * no compila (`tsc --noEmit` corre en CI y cubre `tests/`).
+ *
+ * La garantía es de compilación a propósito, no de runtime. Congelar con
+ * `Object.freeze` / Zod `.readonly()` se midió el 2026-09-14 (Node 24, 52,513
+ * entradas, patrón de acceso de `scoreEntry`): el arreglo `palabrasClave`
+ * congelado sale del fast path de V8 (`PACKED_FROZEN_ELEMENTS`) y
+ * `entry.palabrasClave.some(...)` pasa de ~20 ms a ~75 ms por pasada sobre el
+ * catálogo (3–4×); congelar solo el objeto es gratis, pero protegería 5 de los 6
+ * campos que forman el texto cacheado y no evitaría el caché obsoleto. Mejor una
+ * sola garantía uniforme (el tipo) que una parcial en runtime.
+ */
+export type SatCatalogEntry = Readonly<
+  Omit<SatCatalogEntryParsed, "palabrasClave"> & { palabrasClave: readonly string[] }
+>
 
 const SatCatalogFileSchema = z.object({
   version: z.string(),
@@ -36,7 +58,7 @@ function getParsedCatalog(): SatCatalogFile {
   return parsedCatalogCache
 }
 
-export function getSatCatalogEntries(): SatCatalogEntry[] {
+export function getSatCatalogEntries(): readonly SatCatalogEntry[] {
   return getParsedCatalog().entries
 }
 
