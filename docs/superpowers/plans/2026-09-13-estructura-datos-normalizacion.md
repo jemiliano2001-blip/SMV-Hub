@@ -328,26 +328,40 @@ Criterio #5.
 
 ## B4 — `mercado` persistido
 
-### T4.1 · Backfill (acción super-admin)
+### T4.1 · Backfill (acción super-admin) — ✅ HECHO (2026-09-14)
 - `app/api/proveedores/backfill-mercado/route.ts`: previsualizar → lista (nombre, regla aplicada,
   valor propuesto); aplicar → `mercado` según regla (`odooPartnerId` → mexico, si no usa) y
   `origenProveedor: "odoo"` a los 89 con Odoo sin origen. Las 4 filas Odoo+USD toman el valor que
   Emiliano decida en la pregunta #2 (override explícito en la previsualización).
 
-### T4.2 · Sync Odoo
+### T4.2 · Sync Odoo — ✅ HECHO (2026-09-14)
 - `odoo-compras-sync.ts:353` (upsert de existentes): `...(existente.data().mercado ? {} : { mercado: "mexico" })`,
   `...(existente.data().origenProveedor ? {} : { origenProveedor: "odoo" })`. Test unitario del mapeo.
 
-### T4.3 · Indexador
+### T4.3 · Indexador — ✅ HECHO (2026-09-14)
 - `functions/src/busqueda-indice-escritura.ts:51` → `proveedorDesdeDoc`: mismo default que
   `lib/proveedores.ts` como defensa. Tras el backfill, `syncBusquedaIndiceManual` (super-admin):
   cambia metadata, no `textoHash` → **no re-embebe** nada.
 
-### T4.4 · Verificación
+### T4.4 · Verificación — ⏳ tras deploy + backfill + reindex
 `diagnostico-datos.ts` → `sin campo mercado` = 0; `busqueda_indice` con `mercado` en 104/104.
 Criterio #6.
 
 ---
+
+**Estado B4 al 2026-09-14 (rama `frente-b/b4-mercado`):**
+- Regla única en `lib/proveedor-mercado.ts` (copia byte a byte en `functions/src/`): la usan el
+  mapper del cliente, el backfill, el upsert del sync de Odoo y el indexador.
+- Ruta `POST /api/proveedores/backfill-mercado` (super-admin; previsualizar / aplicar, auditada)
+  y panel *Mercado persistido* en la tab **Mantenimiento** de `/proveedores` (la tab se renombró:
+  ahora agrupa vinculación histórica + mercado).
+- Hallazgo: el indexador saltaba por completo las entradas cuyo `textoHash` no cambiaba, así que
+  `mercado` nunca habría llegado al índice. Ahora compara metadata/título/ruta (claves ordenadas)
+  y hace `update` parcial sin re-embeber; el resultado del sync reporta `metadataActualizadas`.
+- La callable `syncBusquedaIndiceManual` no tenía botón desde agosto: ahora *Refrescar índice de
+  búsqueda* en el mismo panel (`lib/services/busqueda-indice-sync.ts`).
+- Gates: tsc, lint, `npm test` (1,295), functions build, `npm run build`. Deploy pendiente:
+  Functions `syncOdooCompras*` + `syncBusquedaIndice*` y hosting.
 
 ## B5 — Validación y cierre
 

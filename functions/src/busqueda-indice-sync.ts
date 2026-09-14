@@ -25,7 +25,7 @@ async function ejecutarSyncConLogging() {
       ...resultado,
     })
     console.log(
-      `Sync índice de búsqueda: ${resultado.entradasEsperadas} entradas (${resultado.reembebidas} reembebidas, ${resultado.sinCambios} sin cambios, ${resultado.podadas} podadas)`
+      `Sync índice de búsqueda: ${resultado.entradasEsperadas} entradas (${resultado.reembebidas} reembebidas, ${resultado.metadataActualizadas} con metadata refrescada, ${resultado.sinCambios} sin cambios, ${resultado.podadas} podadas)`
     )
     return resultado
   } catch (error) {

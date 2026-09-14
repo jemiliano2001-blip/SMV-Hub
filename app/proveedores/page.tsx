@@ -37,6 +37,7 @@ import { obtenerMatrizBackupProveedores } from '@/lib/proveedores'
 import type { NuevaCompraPayload } from '@/lib/proveedores-inteligencia'
 import PanelComprasOdoo from '@/app/proveedores/PanelComprasOdoo'
 import PanelVinculacionHistorica from '@/app/proveedores/PanelVinculacionHistorica'
+import PanelBackfillMercado from '@/app/proveedores/PanelBackfillMercado'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
 import HeaderCentroMando from './components/HeaderCentroMando'
@@ -1213,10 +1214,15 @@ function ProveedoresContent() {
                     label: (
                       <span className="inline-flex items-center gap-2">
                         <Link2 className="size-4 text-primary" aria-hidden />
-                        Vinculación histórica
+                        Mantenimiento
                       </span>
                     ),
-                    content: <PanelVinculacionHistorica />,
+                    content: (
+                      <div className="space-y-4">
+                        <PanelVinculacionHistorica />
+                        <PanelBackfillMercado />
+                      </div>
+                    ),
                   },
                 ]
               : []),
