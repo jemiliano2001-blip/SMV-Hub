@@ -104,6 +104,7 @@ function aNormalizado(item: CompraOdooItem): CompraOdooItemNormalizado {
     odooCostoEstandar: item.odooCostoEstandar ?? null,
     odooRefInterna: item.odooRefInterna ?? null,
     clasificadoPorIa: item.clasificadoPorIa ?? false,
+    clasificadoPorMapeo: item.clasificadoPorMapeo ?? false,
   }
 }
 

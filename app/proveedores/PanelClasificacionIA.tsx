@@ -48,6 +48,9 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
   const [itemsAutoAprobados, setItemsAutoAprobados] = useState(0)
 
   const itemsSinClasificar = items.filter((i) => i.categoriaId === 'otros')
+  // Desde B2 el sync aplica los mapeos aprobados al reconstruir el espejo: este conteo es la
+  // prueba visible de que lo aprobado sobrevive a cada corrida.
+  const itemsPorMapeo = items.filter((i) => i.clasificadoPorMapeo).length
 
   async function reclasificarHeuristica() {
     if (itemsSinClasificar.length === 0) return
@@ -104,6 +107,7 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
         odooCostoEstandar: i.odooCostoEstandar ?? null,
         odooRefInterna: i.odooRefInterna ?? null,
         clasificadoPorIa: i.clasificadoPorIa ?? false,
+        clasificadoPorMapeo: i.clasificadoPorMapeo ?? false,
       }))
 
       const { aplicados, pendientes } = aplicarMapeosAprobados(itemsNormalizados, mapeosExistentes)
@@ -260,6 +264,13 @@ export default function PanelClasificacionIA({ items, onActualizado }: Props) {
               Hay{' '}
               <span className="font-bold text-sky-700">{itemsSinClasificar.length} ítems</span> en
               &quot;Otros&quot; sin categoría asignada.
+              {itemsPorMapeo > 0 && (
+                <>
+                  {' '}
+                  <span className="font-semibold text-foreground">{itemsPorMapeo}</span> ya vienen
+                  clasificados por mapeo aprobado desde el sync.
+                </>
+              )}
             </p>
           </div>
         </div>

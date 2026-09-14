@@ -5,6 +5,7 @@
 
 import { resolverCategoriaProducto, detectarTipoInsumo, type CategoriaProductoDef } from "./categorias-registro"
 import { generarLlaveItem } from "./llave-item"
+import { buscarMapeoAprobadoSync, type IndiceMapeosAprobados } from "./mapeos-aprobados"
 import { parseAtributosMetal } from "./parse-metal"
 
 export type FuenteCompraOdoo = "po" | "factura"
@@ -76,6 +77,16 @@ export type CompraOdooItemNormalizado = {
   odooRefInterna: string | null
   /** Indica si fue re-clasificado por IA (Gemini). */
   clasificadoPorIa: boolean
+  /**
+   * Indica que la clasificación viene de un mapeo aprobado por el equipo
+   * (`clasificacion_ia_mapeos`) aplicado en el sync, no de la heurística.
+   */
+  clasificadoPorMapeo: boolean
+}
+
+export type OpcionesConstruirItem = {
+  /** Índice de mapeos aprobados; si se omite, la clasificación es puramente heurística. */
+  mapeosAprobados?: IndiceMapeosAprobados | null
 }
 
 function normalizarClaveSat(clave: string | null | undefined): string | null {
@@ -85,22 +96,39 @@ function normalizarClaveSat(clave: string | null | undefined): string | null {
   return digits
 }
 
-export function construirItemDesdeLinea(linea: LineaCompraInput): CompraOdooItemNormalizado {
+export function construirItemDesdeLinea(
+  linea: LineaCompraInput,
+  opciones: OpcionesConstruirItem = {}
+): CompraOdooItemNormalizado {
   const claveProdServ = normalizarClaveSat(linea.claveProdServ)
   const satPendiente = claveProdServ === null
   const metal = parseAtributosMetal(linea.descripcion)
-  const categoriaId = resolverCategoriaProducto({
+  const categoriaHeuristica = resolverCategoriaProducto({
     claveProdServ,
     descripcion: linea.descripcion,
     registro: linea.registroCategorias,
     odooCategoria: linea.odooCategoria,
   })
-  const tipoInsumo =
+  const tipoHeuristico =
     metal.tipoMetal ??
-    detectarTipoInsumo(linea.descripcion, categoriaId, linea.registroCategorias)
+    detectarTipoInsumo(linea.descripcion, categoriaHeuristica, linea.registroCategorias)
+
+  // Un mapeo aprobado por el equipo manda sobre la heurística. Se aplica con la misma forma
+  // que `aprobarYGuardarClasificacion` en el cliente: tipoMetal solo cuando la familia es
+  // metals, y los campos que el mapeo no trae conservan el valor heurístico.
+  const mapeo = opciones.mapeosAprobados
+    ? buscarMapeoAprobadoSync(linea.descripcion, opciones.mapeosAprobados)
+    : null
+  const categoriaId = mapeo?.categoriaId ?? categoriaHeuristica
+  const tipoInsumo = mapeo ? (mapeo.tipoInsumo ?? tipoHeuristico) : tipoHeuristico
+  const medida = mapeo ? (mapeo.medida ?? metal.medida) : metal.medida
+  const tipoMetal = mapeo ? (categoriaId === "metals" ? tipoInsumo : null) : metal.tipoMetal
+
+  // La llave se calcula sobre la clasificación final para que dos corridas (con y sin mapeo
+  // nuevo) agrupen igual que lo que el equipo ve en el comparador.
   const llaveItem = generarLlaveItem({
     descripcion: linea.descripcion,
-    medida: metal.medida,
+    medida,
     tipoMetal: tipoInsumo,
     odooPartnerId: linea.odooPartnerId,
   })
@@ -126,9 +154,9 @@ export function construirItemDesdeLinea(linea: LineaCompraInput): CompraOdooItem
     claveProdServ,
     satPendiente,
     categoriaId,
-    tipoMetal: metal.tipoMetal,
+    tipoMetal,
     tipoInsumo,
-    medida: metal.medida,
+    medida,
     unidad: metal.unidad,
     esRfq: linea.esRfq ?? false,
     origen: "odoo",
@@ -136,6 +164,9 @@ export function construirItemDesdeLinea(linea: LineaCompraInput): CompraOdooItem
     odooUom: linea.odooUom ?? null,
     odooCostoEstandar: linea.odooCostoEstandar ?? null,
     odooRefInterna: linea.odooRefInterna ?? null,
-    clasificadoPorIa: false,
+    // Un mapeo aprobado nace de IA + validación humana: el ítem queda en el mismo estado que
+    // deja `aprobarYGuardarClasificacion` (clasificadoPorIa) y además marcado como de mapeo.
+    clasificadoPorIa: mapeo !== null,
+    clasificadoPorMapeo: mapeo !== null,
   }
 }

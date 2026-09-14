@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:rules": "vitest run tests/firestore-rules-emulator.test.ts",
-    "test:emulator": "vitest run tests/firestore-rules-emulator.test.ts tests/reportes-integridad-emulator.test.ts",
+    "test:emulator": "vitest run tests/firestore-rules-emulator.test.ts tests/reportes-integridad-emulator.test.ts tests/odoo-compras-sync-mapeos.emulator.test.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",

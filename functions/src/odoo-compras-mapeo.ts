@@ -4,7 +4,11 @@
  * Sin firebase-admin — testeable con Vitest.
  */
 
-import { construirItemDesdeLinea, type CompraOdooItemNormalizado } from "./compras-odoo/construir-item"
+import {
+  construirItemDesdeLinea,
+  type CompraOdooItemNormalizado,
+  type OpcionesConstruirItem,
+} from "./compras-odoo/construir-item"
 import { idsHuerfanosCompras } from "./compras-odoo/huerfanos"
 
 export { idsHuerfanosCompras }
@@ -248,9 +252,13 @@ export function mapearFacturaProveedorOdoo(
 }
 
 /** Capa intermedia derivada — no se escribe en docs crudos. */
-export function itemsDesdePoCrudo(po: PoCrudoNormalizado): CompraOdooItemNormalizado[] {
+export function itemsDesdePoCrudo(
+  po: PoCrudoNormalizado,
+  opciones: OpcionesConstruirItem = {}
+): CompraOdooItemNormalizado[] {
   return po.lineas.map((l) =>
-    construirItemDesdeLinea({
+    construirItemDesdeLinea(
+      {
       fuente: "po",
       odooDocId: po.odooId,
       odooLineId: l.odooLineId,
@@ -270,15 +278,19 @@ export function itemsDesdePoCrudo(po: PoCrudoNormalizado): CompraOdooItemNormali
       odooUom: l.odooUom,
       odooCostoEstandar: l.odooCostoEstandar,
       odooRefInterna: l.odooRefInterna,
-    })
+      },
+      opciones
+    )
   )
 }
 
 export function itemsDesdeFacturaCrudo(
-  factura: FacturaProveedorCrudoNormalizado
+  factura: FacturaProveedorCrudoNormalizado,
+  opciones: OpcionesConstruirItem = {}
 ): CompraOdooItemNormalizado[] {
   return factura.lineas.map((l) =>
-    construirItemDesdeLinea({
+    construirItemDesdeLinea(
+      {
       fuente: "factura",
       odooDocId: factura.odooId,
       odooLineId: l.odooLineId,
@@ -299,7 +311,9 @@ export function itemsDesdeFacturaCrudo(
       odooUom: l.odooUom,
       odooCostoEstandar: l.odooCostoEstandar,
       odooRefInterna: l.odooRefInterna,
-    })
+      },
+      opciones
+    )
   )
 }
 

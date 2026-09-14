@@ -5,6 +5,7 @@ import {
   principalHasLegacyPurchasingSyncAccess,
 } from "./auth"
 import { getDb } from "./firestore-db"
+import { cargarMapeosAprobados } from "./compras-odoo/mapeos-aprobados"
 import {
   idsHuerfanosCompras,
   itemsDesdeFacturaCrudo,
@@ -543,10 +544,15 @@ async function sincronizarComprasOdoo(options: {
     viCreado
   )
 
+  const mapeosAprobados = await cargarMapeosAprobados(db)
   const items = [
-    ...posMapped.flatMap(itemsDesdePoCrudo),
-    ...billsMapped.flatMap(itemsDesdeFacturaCrudo),
+    ...posMapped.flatMap((po) => itemsDesdePoCrudo(po, { mapeosAprobados })),
+    ...billsMapped.flatMap((f) => itemsDesdeFacturaCrudo(f, { mapeosAprobados })),
   ]
+  const itemsPorMapeo = items.filter((it) => it.clasificadoPorMapeo).length
+  console.log(
+    `Compras Odoo: ${items.length} ítems, ${itemsPorMapeo} clasificados por mapeo aprobado (${mapeosAprobados?.total ?? 0} mapeos cargados)`
+  )
   await escribirLotes(
     "compras_odoo_items",
     items.map((it) => ({

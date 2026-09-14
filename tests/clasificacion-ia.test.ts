@@ -139,6 +139,7 @@ describe('mapeos-clasificacion', () => {
         odooCostoEstandar: null,
         odooRefInterna: null,
         clasificadoPorIa: false,
+        clasificadoPorMapeo: false,
       },
       {
         id: '2',
@@ -171,6 +172,7 @@ describe('mapeos-clasificacion', () => {
         odooCostoEstandar: null,
         odooRefInterna: null,
         clasificadoPorIa: false,
+        clasificadoPorMapeo: false,
       },
     ]
 

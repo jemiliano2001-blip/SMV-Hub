@@ -260,6 +260,7 @@ describe("esItemComprable", () => {
       odooCostoEstandar: null,
       odooRefInterna: null,
       clasificadoPorIa: false,
+      clasificadoPorMapeo: false,
     }
     const items: CompraOdooItemNormalizado[] = [
       { ...base, id: "sin-precio", precioUnitario: 0, moneda: "MXN", esRfq: true },

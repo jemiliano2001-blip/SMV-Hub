@@ -1306,6 +1306,8 @@ export const CompraOdooItemSchema = z.object({
   odooRefInterna: z.string().nullable().optional().default(null),
   /** Re-clasificado por IA (Gemini). */
   clasificadoPorIa: z.boolean().optional().default(false),
+  /** Clasificación aplicada en el sync desde un mapeo aprobado por el equipo (`clasificacion_ia_mapeos`). */
+  clasificadoPorMapeo: z.boolean().optional().default(false),
   sincronizadoEn: z.date(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
