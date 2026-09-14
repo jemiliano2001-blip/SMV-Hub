@@ -21,6 +21,12 @@ describe("buscarClavesSat con catálogo cargado", () => {
   })
 
   it("no confunde end mill con semillas por tokens cortos", () => {
+    // Es la búsqueda más pesada del archivo: descripción larga (9 tokens, 16
+    // frases) y el top score queda <300, así que el glosario dispara una
+    // segunda pasada completa sobre las ~52k claves. Si vuelve a acercarse al
+    // timeout, el costo está en el scan lineal de `lib/sat/buscar.ts`
+    // (`scoreEntry`), no en la carga del catálogo: el JSON se importa una vez
+    // por archivo y el parse Zod queda cacheado en `getParsedCatalog()`.
     const desc = "1/4 SE 4 Flute STUB ALTIN Solid Carbide End Mill"
     const results = buscarClavesSat(desc, 5)
     expect(results.length).toBeGreaterThan(0)

@@ -148,45 +148,100 @@ function filtrarEntradas(opciones?: BuscarClavesSatOpciones): SatCatalogEntry[] 
   )
 }
 
-function aplicarSesgoTipoProducto(
-  entry: SatCatalogEntry,
-  query: string,
-  score: number,
-  reasons: string[]
-): number {
-  const tokensEspecificosQuery = tokenizarTextoSat(query).filter(
+/**
+ * Tipo de producto de TIPOS_PRODUCTO que aplica a la query, resuelto una vez
+ * por búsqueda. `iniciaConTipo` es la regex `^\s*<titulo>` ya compilada para
+ * no construirla por cada entrada que coincide.
+ */
+type TipoProductoResuelto = (typeof TIPOS_PRODUCTO)[number] & { iniciaConTipo: RegExp }
+
+/**
+ * Todo lo que `scoreEntry` necesita del query y que NO depende de la entrada.
+ *
+ * Se construye una sola vez por búsqueda (`crearContextoQuery`). Antes cada una
+ * de estas derivaciones (normalizar, tokenizar, stem, frases, tipo de producto)
+ * se recalculaba dentro de `scoreEntry`, es decir ~52k veces por búsqueda —
+ * una por entrada del catálogo. En descripciones largas de factura (8–10
+ * tokens) eso era ~2/3 del costo de la pasada y llevaba una búsqueda a ~1.5 s.
+ * El scoring es exactamente el mismo; solo cambia dónde se calcula.
+ */
+interface ContextoQuery {
+  /** Clave de 8 dígitos si la query ES una clave; entonces solo empata exacto. */
+  normalizedKey: string | null
+  normalizedQuery: string
+  queryStem: string
+  queryTokens: string[]
+  /** Stem de cada token de `queryTokens`, en el mismo orden. */
+  queryTokenStems: string[]
+  /** Frases de la query con longitud >= 6 (sin stem) y su versión stem, en orden. */
+  frases: Array<{ frase: string; stem: string }>
+  primerTerminoEspecifico: string | undefined
+  modsQuery: string[]
+  tipoProducto: TipoProductoResuelto | null
+}
+
+function resolverTipoProducto(query: string, queryTokens: string[]): TipoProductoResuelto | null {
+  const tokensEspecificosQuery = queryTokens.filter(
     (t) => !PALABRAS_GENERICAS.has(t) || MODIFICADORES_PRODUCTO.has(t)
   )
   const primerTipo = tokensEspecificosQuery[0] ?? ""
-  let adjusted = score
-  const desc = entry.descripcion
 
   for (const tipo of TIPOS_PRODUCTO) {
     if (!tipo.query.test(query)) continue
-  // Solo sesgar si el tipo es el núcleo de la query (primer término específico).
-  // Evita que "perno de resorte…" se trate como producto "resorte".
-  if (!tipo.query.test(primerTipo) && tokensEspecificosQuery.length > 1) {
-    continue
-  }
-    if (tipo.titulo.test(desc) && !tipo.ruido.test(desc)) {
-      adjusted += 220
-      const iniciaConTipo = new RegExp(`^\\s*${tipo.titulo.source}`, "i").test(desc)
-      if (iniciaConTipo) {
-        adjusted += 80
-        reasons.push("El catálogo inicia con el tipo de producto")
-      }
-      reasons.push("Coincide tipo de producto del catálogo")
-    } else if (tipo.ruido.test(desc)) {
-      adjusted -= 280
-      reasons.push("Penalizado: menciona el tipo pero no es el producto")
+    // Solo sesgar si el tipo es el núcleo de la query (primer término específico).
+    // Evita que "perno de resorte…" se trate como producto "resorte".
+    if (!tipo.query.test(primerTipo) && tokensEspecificosQuery.length > 1) {
+      continue
     }
-    break
+    return { ...tipo, iniciaConTipo: new RegExp(`^\\s*${tipo.titulo.source}`, "i") }
+  }
+  return null
+}
+
+function crearContextoQuery(query: string): ContextoQuery {
+  const normalizedQuery = normalizarTextoSat(query)
+  const queryTokens = tokenizarTextoSat(query)
+  return {
+    normalizedKey: normalizarClaveProdServ(query),
+    normalizedQuery,
+    queryStem: stemTextoSat(normalizedQuery),
+    queryTokens,
+    queryTokenStems: queryTokens.map(stemPalabraSat),
+    frases: extraerFrasesQuery(query)
+      .filter((frase) => frase.length >= 6)
+      .map((frase) => ({ frase, stem: stemTextoSat(frase) })),
+    primerTerminoEspecifico: queryTokens.filter(esTokenEspecificoSat)[0],
+    modsQuery: queryTokens.filter((t) => MODIFICADORES_PRODUCTO.has(t)),
+    tipoProducto: resolverTipoProducto(query, queryTokens),
+  }
+}
+
+function aplicarSesgoTipoProducto(
+  entry: SatCatalogEntry,
+  tipo: TipoProductoResuelto | null,
+  score: number,
+  reasons: string[]
+): number {
+  if (!tipo) return score
+  let adjusted = score
+  const desc = entry.descripcion
+
+  if (tipo.titulo.test(desc) && !tipo.ruido.test(desc)) {
+    adjusted += 220
+    if (tipo.iniciaConTipo.test(desc)) {
+      adjusted += 80
+      reasons.push("El catálogo inicia con el tipo de producto")
+    }
+    reasons.push("Coincide tipo de producto del catálogo")
+  } else if (tipo.ruido.test(desc)) {
+    adjusted -= 280
+    reasons.push("Penalizado: menciona el tipo pero no es el producto")
   }
   return adjusted
 }
 
-function scoreEntry(entry: SatCatalogEntry, query: string): SatSearchResult | null {
-  const normalizedKey = normalizarClaveProdServ(query)
+function scoreEntry(entry: SatCatalogEntry, ctx: ContextoQuery): SatSearchResult | null {
+  const { normalizedKey, normalizedQuery, queryStem, queryTokens, queryTokenStems } = ctx
   if (normalizedKey) {
     if (entry.clave !== normalizedKey) return null
     return {
@@ -197,8 +252,6 @@ function scoreEntry(entry: SatCatalogEntry, query: string): SatSearchResult | nu
     }
   }
 
-  const normalizedQuery = normalizarTextoSat(query)
-  const queryTokens = tokenizarTextoSat(query)
   if (!normalizedQuery || queryTokens.length === 0) return null
 
   const haystack = normalizarTextoSat(
@@ -214,7 +267,6 @@ function scoreEntry(entry: SatCatalogEntry, query: string): SatSearchResult | nu
   let score = 0
   const reasons: string[] = []
 
-  const queryStem = stemTextoSat(normalizedQuery)
   if (descStem === queryStem || haystackStem.includes(queryStem)) {
     // Preferir igualdad/contención en la descripción del producto, no en división/grupo.
     if (descStem === queryStem || descStem.includes(queryStem)) {
@@ -226,9 +278,8 @@ function scoreEntry(entry: SatCatalogEntry, query: string): SatSearchResult | nu
     }
   }
 
-  const frases = extraerFrasesQuery(query)
-  for (const frase of frases) {
-    if (frase.length >= 6 && descStem.includes(stemTextoSat(frase))) {
+  for (const { frase, stem } of ctx.frases) {
+    if (descStem.includes(stem)) {
       score += 150
       reasons.push(`Coincide frase: ${frase}`)
       break
@@ -239,8 +290,7 @@ function scoreEntry(entry: SatCatalogEntry, query: string): SatSearchResult | nu
   const tokensEspecificos = matchedTokens.filter(esTokenEspecificoSat)
   const tokensGenericos = matchedTokens.filter((t) => !esTokenEspecificoSat(t))
 
-  const queryTokensEspecificos = queryTokens.filter(esTokenEspecificoSat)
-  const primerTerminoEspecifico = queryTokensEspecificos[0]
+  const { primerTerminoEspecifico } = ctx
   const coincideTerminoPrincipal =
     !primerTerminoEspecifico || tokensEspecificos.includes(primerTerminoEspecifico)
 
@@ -252,8 +302,7 @@ function scoreEntry(entry: SatCatalogEntry, query: string): SatSearchResult | nu
   }
 
   // Modificadores de la query (compresión, extensión…) que también están en la descripción.
-  const modsQuery = queryTokens.filter((t) => MODIFICADORES_PRODUCTO.has(t))
-  const modsMatched = modsQuery.filter((t) => tokenMatchesHaystack(t, descStem))
+  const modsMatched = ctx.modsQuery.filter((t) => tokenMatchesHaystack(t, descStem))
   if (modsMatched.length > 0) {
     score += modsMatched.length * 120
     reasons.push(`Modificador de producto: ${unique(modsMatched).join(", ")}`)
@@ -267,16 +316,16 @@ function scoreEntry(entry: SatCatalogEntry, query: string): SatSearchResult | nu
   }
 
   const exactKeywordMatches = queryTokens.filter(
-    (token) =>
+    (token, i) =>
       token.length >= 2 &&
-      entry.palabrasClave.some((kw) => stemPalabraSat(kw) === stemPalabraSat(token))
+      entry.palabrasClave.some((kw) => stemPalabraSat(kw) === queryTokenStems[i])
   )
   if (exactKeywordMatches.length > 0) {
     score += exactKeywordMatches.length * 40
     reasons.push(`Palabras clave del catálogo: ${unique(exactKeywordMatches).join(", ")}`)
   }
 
-  score = aplicarSesgoTipoProducto(entry, query, score, reasons)
+  score = aplicarSesgoTipoProducto(entry, ctx.tipoProducto, score, reasons)
 
   if (score <= 0) return null
 
@@ -288,8 +337,9 @@ function rankear(
   query: string,
   limite: number
 ): SatSearchResult[] {
+  const ctx = crearContextoQuery(query)
   return entries
-    .map((entry) => scoreEntry(entry, query))
+    .map((entry) => scoreEntry(entry, ctx))
     .filter((result): result is SatSearchResult => result !== null)
     .sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score
@@ -304,9 +354,9 @@ function rankear(
  * haya sesgado el pool.
  */
 function matchesFraseExacta(query: string, limit: number): SatSearchResult[] {
-  const normalizedQuery = normalizarTextoSat(query)
+  const ctx = crearContextoQuery(query)
+  const { normalizedQuery, queryStem } = ctx
   if (!normalizedQuery || normalizedQuery.length < 6) return []
-  const queryStem = stemTextoSat(normalizedQuery)
   const hits: SatSearchResult[] = []
 
   for (const entry of getSatCatalogEntries()) {
@@ -314,7 +364,7 @@ function matchesFraseExacta(query: string, limit: number): SatSearchResult[] {
     // Solo contención de la query en la descripción (no al revés: evita que
     // títulos cortos del catálogo "enganchen" queries largas no relacionadas).
     if (descStem === queryStem || (queryStem.length >= 8 && descStem.includes(queryStem))) {
-      const scored = scoreEntry(entry, query)
+      const scored = scoreEntry(entry, ctx)
       if (scored && scored.score >= 400) hits.push(scored)
     }
   }
