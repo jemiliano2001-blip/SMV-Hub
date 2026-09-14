@@ -343,7 +343,7 @@ Criterio #5.
   `lib/proveedores.ts` como defensa. Tras el backfill, `syncBusquedaIndiceManual` (super-admin):
   cambia metadata, no `textoHash` → **no re-embebe** nada.
 
-### T4.4 · Verificación — ⏳ tras deploy + backfill + reindex
+### T4.4 · Verificación — ✅ HECHO (2026-09-14)
 `diagnostico-datos.ts` → `sin campo mercado` = 0; `busqueda_indice` con `mercado` en 104/104.
 Criterio #6.
 
@@ -362,6 +362,17 @@ Criterio #6.
   búsqueda* en el mismo panel (`lib/services/busqueda-indice-sync.ts`).
 - Gates: tsc, lint, `npm test` (1,295), functions build, `npm run build`. Deploy pendiente:
   Functions `syncOdooCompras*` + `syncBusquedaIndice*` y hosting.
+
+**Resultado B4 en producción (2026-09-14):** backfill aplicado por Emiliano desde el panel →
+`proveedores` sin `mercado`: 101 → **0** (94 México, 16 USA). Reindex manual: 524 entradas · 6
+re-embebidas (los 6 proveedores nuevos de T1.7) · **101 con metadata refrescada** · 417 sin
+cambios · 0 podadas; `busqueda_indice` con `mercado` en **110/110** proveedores. Criterio #6 ✅.
+
+Hallazgo transversal en el camino: el botón de reindex (y **todos** los callables manuales del
+Hub) fallaba con "App Check verification failed" — desde julio el cliente no inicializa App
+Check y las rules no lo exigen, pero los callables sí. Se alineó con `functions/.env` →
+`APP_CHECK_ENFORCE=false` (commit `fe7b4b04`, redeploy de los 7 callables) y quedó como tarea
+aparte completar App Check y reactivar el enforcement en los tres niveles.
 
 ## B5 — Validación y cierre
 
