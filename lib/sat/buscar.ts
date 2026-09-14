@@ -133,12 +133,15 @@ interface TextoEntrada {
  *
  * Antes `scoreEntry` y `matchesFraseExacta` recomputaban esto para las ~52k
  * entradas en cada búsqueda (~200 ms de los ~300 ms que costaba una pasada de
- * `rankear`, y la mayoría de búsquedas hace dos pasadas). Las entradas son
- * inmutables y viven en `parsedCatalogCache` mientras dure el proceso, así que
- * el resultado es determinista por entrada. Se usa `WeakMap` con la entrada
- * como llave (no la clave SAT) para que también funcione con catálogos
- * alternos o mockeados sin invalidación manual, y para que entradas sueltas
- * (`buildSatCatalogEntry`) se liberen con su objeto.
+ * `rankear`, y la mayoría de búsquedas hace dos pasadas). `SatCatalogEntry` es
+ * inmutable por tipo (ver `lib/sat/catalogo.ts`: mutar una entrada no compila),
+ * así que el resultado es determinista por entrada; las entradas viven en
+ * `parsedCatalogCache` mientras dure el proceso. No se congelan en runtime a
+ * propósito: se midió y encarece las búsquedas 1.5–2× (detalle en catalogo.ts).
+ * Se usa `WeakMap` con la entrada como llave (no la clave SAT) para
+ * que también funcione con catálogos alternos o mockeados sin invalidación
+ * manual, y para que entradas sueltas (`buildSatCatalogEntry`) se liberen con
+ * su objeto.
  *
  * Costo en memoria medido el 2026-09-14 con el catálogo real (52,513 entradas):
  * ~12 MB de heap retenidos tras la primera búsqueda completa (~236 bytes por
@@ -186,7 +189,7 @@ function extraerFrasesQuery(query: string): string[] {
   return frases
 }
 
-function filtrarEntradas(opciones?: BuscarClavesSatOpciones): SatCatalogEntry[] {
+function filtrarEntradas(opciones?: BuscarClavesSatOpciones): readonly SatCatalogEntry[] {
   const todas = getSatCatalogEntries()
   const prefijos = opciones?.divisionPrefijos?.length
     ? opciones.divisionPrefijos
@@ -376,7 +379,7 @@ function scoreEntry(entry: SatCatalogEntry, ctx: ContextoQuery): SatSearchResult
 }
 
 function rankear(
-  entries: SatCatalogEntry[],
+  entries: readonly SatCatalogEntry[],
   query: string,
   limite: number
 ): SatSearchResult[] {
