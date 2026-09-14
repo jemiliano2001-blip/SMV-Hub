@@ -3,6 +3,7 @@ import { FieldValue } from "firebase-admin/firestore"
 import { verificarSuperAdmin } from "@/lib/api-auth"
 import { registrarAuditoriaServer } from "@/lib/auditoria-server"
 import { adminDb } from "@/lib/firebase-admin"
+import { normalizarNombreProveedor } from "@/lib/pieza-matching"
 import {
   analizarVinculacionHistoricaEnMemoria,
   type AnalisisVinculacionHistorica,
@@ -14,6 +15,9 @@ import {
 
 const BATCH_SIZE = 400
 const MAX_VINCULOS_MANUALES = 20
+const MAX_ALIASES = 20
+
+const IdsDocsSchema = z.array(z.string().trim().min(1)).min(1).max(MAX_VINCULOS_MANUALES)
 
 const RequestSchema = z.discriminatedUnion("accion", [
   z.object({ accion: z.literal("analizar") }),
@@ -21,8 +25,24 @@ const RequestSchema = z.discriminatedUnion("accion", [
   z.object({
     accion: z.literal("vincularManual"),
     coleccion: z.enum(["ordenes", "cotizaciones"]),
-    idsDocs: z.array(z.string().trim().min(1)).min(1).max(MAX_VINCULOS_MANUALES),
+    idsDocs: IdsDocsSchema,
     proveedorId: z.string().trim().min(1),
+    /**
+     * Aprendizaje de alias: el nombre libre con el que venían los documentos se agrega a
+     * `proveedor.aliases` para que la próxima captura con ese nombre vincule sola.
+     */
+    nombreLibre: z.string().trim().min(1).max(80).optional(),
+    guardarAlias: z.boolean().optional().default(false),
+  }),
+  z.object({
+    accion: z.literal("altaYVincular"),
+    coleccion: z.enum(["ordenes", "cotizaciones"]),
+    idsDocs: IdsDocsSchema,
+    nombre: z.string().trim().min(1).max(120),
+    mercado: z.enum(["usa", "mexico"]),
+    esMarketplace: z.boolean().optional().default(false),
+    /** Nombre crudo en los documentos; si difiere del nombre elegido, nace como alias. */
+    nombreLibre: z.string().trim().min(1).max(80).optional(),
   }),
 ])
 
@@ -34,9 +54,38 @@ function documentoHistorico(id: string, data: Record<string, unknown>): Document
   }
 }
 
+function aliasesDeDoc(data: Record<string, unknown>): string[] {
+  return Array.isArray(data.aliases)
+    ? data.aliases.filter((a): a is string => typeof a === "string" && a.trim() !== "")
+    : []
+}
+
 function proveedorCatalogo(id: string, data: Record<string, unknown>): ProveedorCatalogoMinimo | null {
   const nombre = typeof data.nombre === "string" ? data.nombre.trim() : ""
-  return nombre ? { id, nombre } : null
+  return nombre ? { id, nombre, aliases: aliasesDeDoc(data) } : null
+}
+
+/**
+ * Agrega `nombreLibre` a los alias del proveedor si aporta algo: no es el nombre mismo, no está
+ * ya, y hay lugar (tope 20). Devuelve si escribió.
+ */
+async function aprenderAlias(
+  proveedorRef: FirebaseFirestore.DocumentReference,
+  proveedorData: Record<string, unknown>,
+  nombreLibre: string
+): Promise<boolean> {
+  const nombre = typeof proveedorData.nombre === "string" ? proveedorData.nombre : ""
+  const alias = nombreLibre.trim()
+  const existentes = aliasesDeDoc(proveedorData)
+  const norm = normalizarNombreProveedor(alias)
+  if (!norm || norm === normalizarNombreProveedor(nombre)) return false
+  if (existentes.some((a) => normalizarNombreProveedor(a) === norm)) return false
+  if (existentes.length >= MAX_ALIASES) return false
+  await proveedorRef.update({
+    aliases: FieldValue.arrayUnion(alias),
+    actualizadoEn: FieldValue.serverTimestamp(),
+  })
+  return true
 }
 
 async function cargarAnalisis(): Promise<AnalisisVinculacionHistorica> {
@@ -127,6 +176,95 @@ export async function POST(request: Request) {
       return Response.json(resultado)
     }
 
+    if (parsed.data.accion === "altaYVincular") {
+      const solicitud = parsed.data
+      const idsDocs = [...new Set(solicitud.idsDocs)]
+
+      // No duplicar catálogo: si ya existe un proveedor con ese nombre o alias, la acción
+      // correcta es vincular al existente, no dar de alta otro.
+      const proveedoresSnap = await adminDb.collection("proveedores").get()
+      const normNombre = normalizarNombreProveedor(solicitud.nombre)
+      const existente = proveedoresSnap.docs.find((doc) => {
+        const p = proveedorCatalogo(doc.id, doc.data())
+        if (!p) return false
+        return [p.nombre, ...(p.aliases ?? [])].some((n) => normalizarNombreProveedor(n) === normNombre)
+      })
+      if (existente) {
+        return Response.json(
+          {
+            error: `Ya existe "${existente.data().nombre}" en el catálogo. Vincula a ese proveedor en vez de dar de alta otro.`,
+            proveedorExistenteId: existente.id,
+          },
+          { status: 409 }
+        )
+      }
+
+      const documentos = await adminDb.getAll(
+        ...idsDocs.map((id) => adminDb.collection(solicitud.coleccion).doc(id))
+      )
+      if (documentos.some((documento) => !documento.exists)) {
+        return Response.json({ error: "Uno de los registros históricos ya no existe. Actualiza el análisis." }, { status: 409 })
+      }
+
+      const nombreLibre = solicitud.nombreLibre?.trim() ?? ""
+      const aliases =
+        nombreLibre && normalizarNombreProveedor(nombreLibre) !== normNombre ? [nombreLibre] : []
+      const esMexico = solicitud.mercado === "mexico"
+      const proveedorRef = adminDb.collection("proveedores").doc()
+      // Mismos defaults que `crearProveedor` en el cliente; lo que no se sabe queda neutro para
+      // que el equipo lo complete en /proveedores cuando le toque.
+      await proveedorRef.set({
+        id: proveedorRef.id,
+        nombre: solicitud.nombre,
+        estatus: "actual",
+        tipoProveedor: "estandar",
+        barato: false,
+        recomendado: false,
+        categorias: ["otros"],
+        pais: esMexico ? "México" : "Estados Unidos",
+        ubicacion: "",
+        shippingAddressUSA: "",
+        brokerAduanal: "",
+        web: "",
+        contacto: "",
+        email: "",
+        telefono: "",
+        whatsapp: "",
+        marcas: [],
+        aliases,
+        esMarketplace: solicitud.esMarketplace,
+        moneda: esMexico ? "MXN" : "USD",
+        facturaUSD: !esMexico,
+        metodosPago: ["tarjeta"],
+        tiempoRespuesta: "mismo_dia",
+        frecuenciaCompra: "mensual",
+        prioridad: "media",
+        leadTimeDias: null,
+        pedidoMinimo: null,
+        calificacion: 5,
+        notas: "",
+        experienciaCompra: "",
+        odooPartnerId: null,
+        mercado: solicitud.mercado,
+        origenProveedor: "manual",
+        creadoEn: FieldValue.serverTimestamp(),
+        actualizadoEn: FieldValue.serverTimestamp(),
+      })
+
+      await aplicarVinculos(
+        solicitud.coleccion,
+        idsDocs.map((id) => ({ id, proveedorId: proveedorRef.id }))
+      )
+      await registrarAuditoriaServer(
+        auth.email,
+        "CREAR",
+        "proveedores",
+        proveedorRef.id,
+        `Alta desde vinculación histórica: "${solicitud.nombre}" (${solicitud.mercado}${solicitud.esMarketplace ? ", marketplace" : ""}); vinculó ${idsDocs.length} registro(s) de ${solicitud.coleccion}.`
+      )
+      return Response.json({ ok: true, proveedorId: proveedorRef.id })
+    }
+
     if (parsed.data.accion !== "vincularManual") {
       return Response.json({ error: "Acción de vinculación no soportada" }, { status: 400 })
     }
@@ -148,14 +286,20 @@ export async function POST(request: Request) {
       solicitud.coleccion,
       idsDocs.map((id) => ({ id, proveedorId: solicitud.proveedorId }))
     )
+    let aliasAprendido = false
+    if (solicitud.guardarAlias && solicitud.nombreLibre) {
+      aliasAprendido = await aprenderAlias(proveedorRef, proveedor.data() ?? {}, solicitud.nombreLibre)
+    }
     await registrarAuditoriaServer(
       auth.email,
       "EDITAR",
       solicitud.coleccion,
       "VINCULACION_MANUAL",
-      `Vinculó ${idsDocs.length} registro(s) a proveedorId=${solicitud.proveedorId}.`
+      `Vinculó ${idsDocs.length} registro(s) a proveedorId=${solicitud.proveedorId}.${
+        aliasAprendido ? ` Alias aprendido: "${solicitud.nombreLibre}".` : ""
+      }`
     )
-    return Response.json({ ok: true })
+    return Response.json({ ok: true, aliasAprendido })
   } catch (error) {
     console.error("[proveedores/vinculacion]", error)
     return Response.json({ error: "No se pudo completar la vinculación histórica." }, { status: 500 })

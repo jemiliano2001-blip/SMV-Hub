@@ -1095,6 +1095,20 @@ export const ProveedorSchema = z.object({
   telefono: z.string().optional().default(""),
   whatsapp: z.string().optional().default(""),
   marcas: z.array(z.string()).default([]),
+  /**
+   * Nombres con los que este proveedor aparece en facturas y cotizaciones
+   * ("MSC Industrial Supply" para "MSC Industrial Direct", "Digikey" para "DigiKey
+   * Electronics"). Se aprenden al vincular: cada confirmación humana agrega el nombre crudo.
+   * El matcher los trata como igualdad exacta (vincula solo), a diferencia de "empieza con" /
+   * "incluye", que solo sugieren.
+   */
+  aliases: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
+  /**
+   * Canal de compra (eBay, Amazon, AliExpress, Mercado Libre), no un vendedor: el proveedor
+   * real detrás de la compra es desconocido. Se da de alta como proveedor para poder vincular
+   * las órdenes (29 % de las compras americanas), sin fingir que hay un vendedor identificado.
+   */
+  esMarketplace: z.boolean().default(false),
   moneda: z.enum(["USD", "MXN"]).default("USD"),
   facturaUSD: z.boolean().default(true),
   metodosPago: z.array(MetodoPagoSchema).default(["tarjeta"]),

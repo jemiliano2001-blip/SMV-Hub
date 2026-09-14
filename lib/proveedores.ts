@@ -61,6 +61,10 @@ export function mapearProveedorDocumento(id: string, data: DocumentData): Provee
     telefono: data.telefono ?? "",
     whatsapp: data.whatsapp ?? "",
     marcas: Array.isArray(data.marcas) ? data.marcas : [],
+    aliases: Array.isArray(data.aliases)
+      ? data.aliases.filter((a: unknown): a is string => typeof a === "string" && a.trim() !== "")
+      : [],
+    esMarketplace: data.esMarketplace === true,
     moneda: data.moneda === "MXN" ? "MXN" : "USD",
     facturaUSD: data.facturaUSD !== false,
     metodosPago: (data.metodosPago as MetodoPago[]) ?? ["tarjeta"],

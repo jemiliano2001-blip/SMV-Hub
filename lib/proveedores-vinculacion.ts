@@ -27,15 +27,33 @@ export interface ResultadoAplicacionVinculacion {
   cotizaciones: ResultadoBackfill
 }
 
+export type ColeccionVinculable = "ordenes" | "cotizaciones"
+
+export interface OpcionesVinculoManual {
+  /** Nombre crudo con el que venían los documentos; con `guardarAlias` se agrega al proveedor. */
+  nombreLibre?: string
+  guardarAlias?: boolean
+}
+
+export interface AltaYVinculoPayload {
+  coleccion: ColeccionVinculable
+  idsDocs: string[]
+  nombre: string
+  mercado: "usa" | "mexico"
+  esMarketplace?: boolean
+  nombreLibre?: string
+}
+
 type SolicitudVinculacion =
   | { accion: "analizar" }
   | { accion: "aplicarAutomaticas" }
-  | {
+  | ({
       accion: "vincularManual"
-      coleccion: "ordenes" | "cotizaciones"
+      coleccion: ColeccionVinculable
       idsDocs: string[]
       proveedorId: string
-    }
+    } & OpcionesVinculoManual)
+  | ({ accion: "altaYVincular" } & AltaYVinculoPayload)
 
 async function solicitarVinculacion<T>(payload: SolicitudVinculacion): Promise<T> {
   const usuario = getClienteAuth().currentUser
@@ -64,14 +82,29 @@ export async function aplicarVinculacionesAutomaticas(): Promise<ResultadoAplica
 }
 
 export async function vincularProveedorManual(
-  coleccion: "ordenes" | "cotizaciones",
+  coleccion: ColeccionVinculable,
   idsDocs: string[],
-  proveedorId: string
-): Promise<void> {
-  await solicitarVinculacion<{ ok: true }>({
+  proveedorId: string,
+  opciones: OpcionesVinculoManual = {}
+): Promise<{ aliasAprendido: boolean }> {
+  const respuesta = await solicitarVinculacion<{ ok: true; aliasAprendido?: boolean }>({
     accion: "vincularManual",
     coleccion,
     idsDocs,
     proveedorId,
+    ...opciones,
   })
+  return { aliasAprendido: respuesta.aliasAprendido === true }
+}
+
+/**
+ * Da de alta un proveedor mínimo desde un fantasma y vincula sus documentos en un solo paso.
+ * Si ya existe uno con ese nombre o alias, la ruta responde 409 y hay que vincular al existente.
+ */
+export async function darDeAltaYVincular(payload: AltaYVinculoPayload): Promise<{ proveedorId: string }> {
+  const respuesta = await solicitarVinculacion<{ ok: true; proveedorId: string }>({
+    accion: "altaYVincular",
+    ...payload,
+  })
+  return { proveedorId: respuesta.proveedorId }
 }

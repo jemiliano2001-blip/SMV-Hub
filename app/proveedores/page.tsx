@@ -108,6 +108,8 @@ function FormularioProveedorModal({
   const [telefono, setTelefono] = useState(proveedorEdicion?.telefono ?? '')
   const [whatsapp, setWhatsapp] = useState(proveedorEdicion?.whatsapp ?? '')
   const [marcasTexto, setMarcasTexto] = useState(proveedorEdicion?.marcas.join(', ') ?? '')
+  const [aliasesTexto, setAliasesTexto] = useState(proveedorEdicion?.aliases.join(', ') ?? '')
+  const [esMarketplace, setEsMarketplace] = useState(proveedorEdicion?.esMarketplace ?? false)
   const [moneda, setMoneda] = useState<'USD' | 'MXN'>(proveedorEdicion?.moneda ?? 'USD')
   const [facturaUSD, setFacturaUSD] = useState(proveedorEdicion?.facturaUSD ?? true)
   const [metodosPago, setMetodosPago] = useState<MetodoPago[]>(proveedorEdicion?.metodosPago ?? ['tarjeta'])
@@ -159,6 +161,14 @@ function FormularioProveedorModal({
         .split(',')
         .map((m) => m.trim())
         .filter(Boolean)
+      const aliases = Array.from(
+        new Set(
+          aliasesTexto
+            .split(',')
+            .map((a) => a.trim().slice(0, 80))
+            .filter(Boolean)
+        )
+      ).slice(0, 20)
 
       await onGuardar({
         nombre: nombre.trim(),
@@ -177,6 +187,8 @@ function FormularioProveedorModal({
         telefono: telefono.trim(),
         whatsapp: whatsapp.trim(),
         marcas,
+        aliases,
+        esMarketplace,
         moneda,
         facturaUSD,
         metodosPago,
@@ -494,6 +506,31 @@ function FormularioProveedorModal({
               className="w-full px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
             />
           </div>
+
+          <div className="space-y-1">
+            <label className="font-bold text-foreground">Otros nombres con los que aparece (separados por coma)</label>
+            <input
+              type="text"
+              value={aliasesTexto}
+              onChange={(e) => setAliasesTexto(e.target.value)}
+              placeholder="Ej. MSC Industrial Supply, MSC"
+              className="w-full px-3 py-2 border border-input rounded-lg text-xs focus:outline-none focus:border-primary"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Como viene en facturas y cotizaciones. Con estos nombres las compras se vinculan solas;
+              también se aprenden al confirmar una vinculación.
+            </p>
+          </div>
+
+          <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-foreground">
+            <input
+              type="checkbox"
+              checked={esMarketplace}
+              onChange={(e) => setEsMarketplace(e.target.checked)}
+              className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
+            />
+            Es un marketplace (eBay, Amazon, AliExpress): canal de compra, no un vendedor identificado
+          </label>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="space-y-1">
