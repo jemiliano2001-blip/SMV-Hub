@@ -12,6 +12,14 @@ web de SMV Hub usa reCAPTCHA v3 mediante `lib/app-check.ts`.
 - Los callables de Hub validan `context.app` por defecto en
   `functions/src/auth.ts`. `APP_CHECK_ENFORCE=false` desactiva esa validación de
   manera temporal.
+- **Desde 2026-09-14 los callables tampoco lo exigen:** `functions/.env` (commiteado, no
+  secreto) fija `APP_CHECK_ENFORCE=false`. Motivo: el cliente no inicializa App Check
+  (`NEXT_PUBLIC_APP_CHECK_ENABLED` inactivo) y las rules no lo exigen, pero los callables sí —
+  todos los botones manuales del Hub fallaban con "App Check verification failed" y solo los
+  schedulers funcionaban. Siguen protegidos por Firebase Auth + super-admin/módulos. Para
+  reactivar: completar las secciones 1–3 de este documento, activar
+  `NEXT_PUBLIC_APP_CHECK_ENABLED=true` en `.env.production`, quitar la línea de
+  `functions/.env` y redesplegar los callables del codebase `smv-hub`.
 
 No describas App Check como una barrera activa para Firestore/Storage hasta
 completar la reactivación siguiente.

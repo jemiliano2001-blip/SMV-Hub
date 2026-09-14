@@ -43,6 +43,8 @@ functions/firebase-debug.log
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+# Config no secreta de Functions (APP_CHECK_ENFORCE); los secretos viven en Secret Manager.
+!functions/.env
 
 # vercel
 .vercel
