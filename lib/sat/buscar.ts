@@ -115,6 +115,57 @@ function unique<T>(values: T[]): T[] {
   return Array.from(new Set(values))
 }
 
+/**
+ * Texto de una entrada del catálogo ya normalizado y estematizado, listo para
+ * comparar contra el query. Depende SOLO de la entrada (no del query), así que
+ * se calcula una vez por proceso y se reutiliza en todas las búsquedas.
+ */
+interface TextoEntrada {
+  /** descripción + división + grupo + clase + palabrasClave, normalizado y con stem. */
+  haystackStem: string
+  /** Solo la descripción, normalizada y con stem. */
+  descStem: string
+}
+
+/**
+ * Caché por entrada de `TextoEntrada`, poblado perezosamente la primera vez que
+ * una búsqueda toca cada entrada.
+ *
+ * Antes `scoreEntry` y `matchesFraseExacta` recomputaban esto para las ~52k
+ * entradas en cada búsqueda (~200 ms de los ~300 ms que costaba una pasada de
+ * `rankear`, y la mayoría de búsquedas hace dos pasadas). Las entradas son
+ * inmutables y viven en `parsedCatalogCache` mientras dure el proceso, así que
+ * el resultado es determinista por entrada. Se usa `WeakMap` con la entrada
+ * como llave (no la clave SAT) para que también funcione con catálogos
+ * alternos o mockeados sin invalidación manual, y para que entradas sueltas
+ * (`buildSatCatalogEntry`) se liberen con su objeto.
+ *
+ * Costo en memoria medido el 2026-09-14 con el catálogo real (52,513 entradas):
+ * ~12 MB de heap retenidos tras la primera búsqueda completa (~236 bytes por
+ * entrada: dos strings, el objeto y el slot del WeakMap). El JSON del catálogo ya
+ * pesa 10.9 MB en disco y bastante más en heap; la función SSR corre con 1 GiB.
+ */
+const textoEntradaCache = new WeakMap<SatCatalogEntry, TextoEntrada>()
+
+function textoEntrada(entry: SatCatalogEntry): TextoEntrada {
+  const cached = textoEntradaCache.get(entry)
+  if (cached) return cached
+
+  const haystack = normalizarTextoSat(
+    [entry.descripcion, entry.division, entry.grupo, entry.clase, ...entry.palabrasClave]
+      .filter(Boolean)
+      .join(" ")
+  )
+  const texto: TextoEntrada = {
+    // Estematizado (quita plurales simples) para que "resorte" encuentre
+    // "Resortes de compresión" en el catálogo y viceversa.
+    haystackStem: stemTextoSat(haystack),
+    descStem: stemTextoSat(normalizarTextoSat(entry.descripcion)),
+  }
+  textoEntradaCache.set(entry, texto)
+  return texto
+}
+
 function tokenMatchesHaystack(token: string, haystackStem: string): boolean {
   if (token.length < 3) return false
   const padded = ` ${haystackStem} `
@@ -254,15 +305,7 @@ function scoreEntry(entry: SatCatalogEntry, ctx: ContextoQuery): SatSearchResult
 
   if (!normalizedQuery || queryTokens.length === 0) return null
 
-  const haystack = normalizarTextoSat(
-    [entry.descripcion, entry.division, entry.grupo, entry.clase, ...entry.palabrasClave]
-      .filter(Boolean)
-      .join(" ")
-  )
-  // Estematizado (quita plurales simples) para que "resorte" encuentre
-  // "Resortes de compresión" en el catálogo y viceversa.
-  const haystackStem = stemTextoSat(haystack)
-  const descStem = stemTextoSat(normalizarTextoSat(entry.descripcion))
+  const { haystackStem, descStem } = textoEntrada(entry)
 
   let score = 0
   const reasons: string[] = []
@@ -360,7 +403,7 @@ function matchesFraseExacta(query: string, limit: number): SatSearchResult[] {
   const hits: SatSearchResult[] = []
 
   for (const entry of getSatCatalogEntries()) {
-    const descStem = stemTextoSat(normalizarTextoSat(entry.descripcion))
+    const { descStem } = textoEntrada(entry)
     // Solo contención de la query en la descripción (no al revés: evita que
     // títulos cortos del catálogo "enganchen" queries largas no relacionadas).
     if (descStem === queryStem || (queryStem.length >= 8 && descStem.includes(queryStem))) {
