@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ChipProveedorVinculado } from '@/components/proveedores/ChipProveedorVinculado'
+import { describirLeadTime, parsearDiasHabiles } from '@/lib/lead-time'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
 import { tieneModulo } from '@/lib/roles'
@@ -216,7 +217,13 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-foreground">Días hábiles</label>
-                <input placeholder="Ej. 3 dias" value={formData.diasHabiles} onChange={e => setFormData({ ...formData, diasHabiles: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+                <input placeholder="Ej. 3 dias, 2-3 semanas, stock" value={formData.diasHabiles} onChange={e => setFormData({ ...formData, diasHabiles: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+                {/* Interpretación en vivo del lead time (B3): informa, nunca bloquea el guardado. */}
+                {describirLeadTime(formData.diasHabiles) && (
+                  <p className={`mt-1 text-[11px] ${parsearDiasHabiles(formData.diasHabiles).ok ? 'text-muted-foreground' : 'text-amber-700'}`}>
+                    → {describirLeadTime(formData.diasHabiles)}
+                  </p>
+                )}
               </div>
             </div>
 

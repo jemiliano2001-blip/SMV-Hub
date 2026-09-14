@@ -410,6 +410,26 @@ describe("Inteligencia cruzada", () => {
     expect(ofertas.every((o) => o.precioUnitario > 0)).toBe(true)
   })
 
+  it("lead time de las ofertas: persistido → parseado del texto → catálogo → 0 (B3; nunca 5 inventado)", () => {
+    const base = historico[0]
+    const casos: Cotizacion[] = [
+      // Persistido por el backfill: manda aunque el texto diga otra cosa.
+      { ...base, id: "p", proveedor: "Shars Tool Company", proveedorId: "shars-tool", diasHabiles: "2 - 3 semanas", leadTimeMinDias: 10, leadTimeMaxDias: 15 },
+      // Sin persistir (previa al backfill): se parsea el texto — semanas ×5, no "2 días".
+      { ...base, id: "t", proveedor: "OnlineCarbide", proveedorId: "onlinecarbide", diasHabiles: "2 - 3 semanas" },
+      // Texto no parseable y sin lead time en catálogo: 0 → el recomendador la excluye.
+      { ...base, id: "n", proveedor: "Otro", proveedorId: null, diasHabiles: "precios 2026" },
+    ]
+    const ofertas = ofertasDesdeHistorico("Endmill 1/2 AlTiN", "EM-12", casos, [
+      { ...provShars, leadTimeDias: 7 },
+      { ...provOnline, leadTimeDias: null },
+    ])
+    const porProv = new Map(ofertas.map((o) => [o.proveedorNombre, o.leadTimeDias]))
+    expect(porProv.get("Shars Tool Company")).toBe(15)
+    expect(porProv.get("OnlineCarbide")).toBe(15)
+    expect(porProv.get("Otro")).toBe(0)
+  })
+
   it("motor usa tipo de cambio y confiabilidad", () => {
     const conf = mapaConfiabilidad(calcularConfiabilidadLeadTime(compras, cotReq))
     const res = evaluarYRecomendarProveedores(

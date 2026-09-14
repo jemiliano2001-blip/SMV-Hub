@@ -19,6 +19,7 @@ import type {
 } from "@/lib/schemas"
 import { CotizacionRequisicionSchema } from "@/lib/schemas"
 import { aUSD, TIPO_CAMBIO_DEFAULT_USD_MXN } from "@/lib/tipo-cambio"
+import { parsearDiasHabiles } from "@/lib/lead-time"
 import {
   generarLlavePieza,
   llavesCoinciden,
@@ -724,7 +725,11 @@ export function ofertasDesdeHistorico(
       proveedorNombre: match?.nombre || c.proveedor,
       precioUnitario: c.precioUnitario,
       moneda: c.moneda,
-      leadTimeDias: parseLeadTimeTexto(c.diasHabiles) ?? match?.leadTimeDias ?? 5,
+      // B3: lead time real, no inventado. Orden: campo derivado persistido (max, conservador) →
+      // parseo del texto (cotizaciones previas al backfill) → lead time del proveedor en catálogo
+      // → 0, que el recomendador excluye ("leadTimeDias > 0"). Antes caía a 5 y "2-3 semanas"
+      // se leía como 2 días.
+      leadTimeDias: leadTimeDesdeCotizacion(c) ?? match?.leadTimeDias ?? 0,
       MOQ: 1,
       marca: "",
       disponible: true,
@@ -743,10 +748,11 @@ function simplificaIncluye(a: string, b: string): boolean {
   return na.includes(nb) || nb.includes(na)
 }
 
-function parseLeadTimeTexto(texto: string | null): number | null {
-  if (!texto) return null
-  const m = texto.match(/(\d+)/)
-  return m ? Number(m[1]) : null
+/** Lead time máximo en días hábiles de una cotización: persistido si existe, si no parseado del texto. */
+export function leadTimeDesdeCotizacion(c: Pick<Cotizacion, "diasHabiles" | "leadTimeMaxDias">): number | null {
+  if (typeof c.leadTimeMaxDias === "number" && c.leadTimeMaxDias >= 0) return c.leadTimeMaxDias
+  const r = parsearDiasHabiles(c.diasHabiles)
+  return r.ok ? r.max : null
 }
 
 /** Carga cotizaciones de requisición (helper para inteligencia). */

@@ -38,6 +38,7 @@ import type { NuevaCompraPayload } from '@/lib/proveedores-inteligencia'
 import PanelComprasOdoo from '@/app/proveedores/PanelComprasOdoo'
 import PanelVinculacionHistorica from '@/app/proveedores/PanelVinculacionHistorica'
 import PanelBackfillMercado from '@/app/proveedores/PanelBackfillMercado'
+import PanelBackfillLeadTime from '@/app/proveedores/PanelBackfillLeadTime'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
 import HeaderCentroMando from './components/HeaderCentroMando'
@@ -1221,6 +1222,7 @@ function ProveedoresContent() {
                       <div className="space-y-4">
                         <PanelVinculacionHistorica />
                         <PanelBackfillMercado />
+                        <PanelBackfillLeadTime />
                       </div>
                     ),
                   },
