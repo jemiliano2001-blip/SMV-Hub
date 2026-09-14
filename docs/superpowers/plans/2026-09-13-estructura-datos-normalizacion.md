@@ -112,7 +112,7 @@ cuando no** (era "≥ 90 %": el 15 % restante son datos malos, no fallas del par
 
 ## B1 — Alias, captura y UI de vinculación
 
-### T1.1 · Schema y rules
+### T1.1 · Schema y rules — ✅ HECHO (2026-09-13)
 - `lib/schemas.ts` → `ProveedorSchema`: `aliases: z.array(z.string().trim().min(1).max(80)).max(20).default([])`,
   `esMarketplace: z.boolean().default(false)`.
 - `lib/proveedores.ts`: mapear ambos campos al leer (`aliases` default `[]`, `esMarketplace` default
@@ -121,7 +121,7 @@ cuando no** (era "≥ 90 %": el 15 % restante son datos malos, no fallas del par
   ≤ 20 strings y `esMarketplace` es bool. Test en `tests/firestore-rules*.test.ts` (emulator).
 - `app/proveedores/` formulario de proveedor: campo aliases (chips) y toggle marketplace.
 
-### T1.2 · Matcher con alias
+### T1.2 · Matcher con alias — ✅ HECHO (2026-09-13)
 - `lib/pieza-matching.ts` → `matchProveedorPorNombre`: el nivel exacto compara también contra cada
   alias normalizado. Nuevo `resolverProveedor(nombre, catalogo): { proveedor, nivel: "exacto" | "sugerido" } | null`
   que expone el nivel (exacto → aplica solo; sugerido → pregunta). Si hay > 1 exacto (alias
@@ -131,7 +131,7 @@ cuando no** (era "≥ 90 %": el 15 % restante son datos malos, no fallas del par
   PTSOLUTIONS, ALI EXPRESS, DigiKey) contra un catálogo fixture con alias → ≥ 9/10 exacto o
   sugerido correcto (criterio #2).
 
-### T1.3 · Vinculación histórica: sugerencias y aprendizaje de alias
+### T1.3 · Vinculación histórica: sugerencias y aprendizaje de alias — ✅ HECHO (2026-09-13)
 - `lib/proveedores-vinculacion-core.ts`: `proveedorExacto()` también empata por alias;
   `agregarFantasma()` recibe `sugerenciaCatalogo` de `matchProveedorPorNombre` en vez de `null`.
 - `app/api/proveedores/vinculacion/route.ts`: `vincularManual` acepta `guardarAlias: boolean` y, si
@@ -141,7 +141,7 @@ cuando no** (era "≥ 90 %": el 15 % restante son datos malos, no fallas del par
 - Tests: `tests/usa-tooling-vinculacion.test.ts` (alias en core) y
   `tests/proveedores-vinculacion-route.test.ts` (dos acciones nuevas).
 
-### T1.4 · Captura en `/nueva-compra`
+### T1.4 · Captura en `/nueva-compra` — ✅ HECHO (2026-09-13)
 - `app/nueva-compra/NuevaCompraForm.tsx:258`: `proveedorId` sale de `resolverProveedor`, no de
   `find(p.nombre === nombre)`.
 - Componente nuevo `components/proveedores/ChipProveedorVinculado.tsx` con tres estados:
@@ -152,17 +152,17 @@ cuando no** (era "≥ 90 %": el 15 % restante son datos malos, no fallas del par
   el chip solo informa.
 - Tokens semánticos y primitivas `components/ui` (`smv-ui-consistencia`).
 
-### T1.5 · Captura en `/cotizaciones`
+### T1.5 · Captura en `/cotizaciones` — ✅ HECHO (2026-09-13)
 - `CotizacionFormModal.tsx:57` y `CotizacionIaModal.tsx`: mismo `resolverProveedor` + mismo chip.
 
-### T1.6 · Panel de vinculación histórica (super-admin)
+### T1.6 · Panel de vinculación histórica (super-admin) — ✅ HECHO (2026-09-13)
 - `app/proveedores/PanelVinculacionHistorica.tsx`: *Analizar* → resumen (revisados / ya tenían /
   exactos / fantasmas) + tabla de fantasmas (nombre, # docs, sugerencia, acciones: *vincular a
   sugerido*, *elegir otro*, *alta nuevo*, *alta marketplace*). *Aplicar automáticas* → confirm.
   Usa `lib/proveedores-vinculacion.ts` (ya existe) + las acciones nuevas de T1.3. Solo visible con
   `esSuperAdmin`.
 
-### T1.7 · Ejecutar en producción (Emiliano, desde el panel)
+### T1.7 · Ejecutar en producción (Emiliano, desde el panel) — ⏳ pendiente del merge de B1
 1. Analizar → Aplicar automáticas (48 órdenes + 143 cotizaciones, McMaster y Mouser).
 2. Altas marketplace: eBay, Amazon, AliExpress, Mercado Libre → vincula 43 órdenes + 98 cotizaciones.
 3. Altas nuevas de ≥ 2 docs: MSC Industrial Supply → *vincular a MSC Industrial Direct* con alias
@@ -170,6 +170,29 @@ cuando no** (era "≥ 90 %": el 15 % restante son datos malos, no fallas del par
    Novotechnik, Online Carbide, Keyence USA, SMC, Calvek, FYT, Kilowatito, Valley Supply…
 4. Sugeridos: confirmar Higoh, SISA, Risoul, Acomee, Levinson, Universal, ROSAAN, Fierros y T.
 5. `npx tsx scripts/diagnostico-datos.ts smv-brain` → criterio #1.
+
+**Estado B1 al 2026-09-14:** código en rama `frente-b/b1-alias-captura` (3 commits). Gates
+verdes: `tsc`, `lint`, `npm test` (1,280; `tests/sat-buscar.test.ts` es flaky por timeout bajo
+carga — tarea aparte), `npm run build`, rules en emulator (24/24). **Pase de navegador real**
+en local contra `smv-brain-dev` con la cuenta break-glass de Emiliano (hubo que habilitar Google
+como proveedor de Auth en el proyecto dev):
+- `/nueva-compra`: "mcmaster carr" → *Vinculado a McMaster-Carr* (exacto por normalización);
+  "MSC Industrial Supply" → *¿Es MSC Industrial Direct?* → Sí → alias persistido → tras recargar
+  vincula solo; "EBAY" → *No está en el catálogo* → Dar de alta (mercado USA y marketplace
+  prellenados) → *Vinculado a eBay · marketplace*.
+- `/cotizaciones` (Añadir manual): "Shars" → *¿Es Shars Tool Company?*.
+- `/proveedores`: tab *Vinculación histórica* visible para super-admin; *Analizar* falla limpio en
+  local (la ruta necesita Admin SDK, que no hay en dev) — se prueba en producción en T1.7.
+
+Ajuste al matcher que salió del pase: `resolverProveedor` ganó un cuarto nivel, **tokens
+distintivos compartidos** (solo sugerencia), porque "MSC Industrial Supply" vs "MSC Industrial
+Direct" no lo detectan ni empieza-con ni incluye. Las palabras genéricas (industrial, supply,
+tools, aceros, s.a. de c.v., usa, mexico…) no cuentan, para no sugerir "Aceros Fortuna" por
+"Aceros Levinson". Con esto la cifra de "sugerir" de B0.2 sube (MSC, DigiKey Electronics, etc.).
+
+Hallazgo colateral: con la cuenta break-glass sin doc en `usuarios` de dev, el listener de
+notificaciones del NavBar reintenta con `permission-denied` en bucle (59 errores de consola en
+minutos). No es de este frente; queda anotado.
 
 ---
 

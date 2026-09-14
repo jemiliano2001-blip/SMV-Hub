@@ -78,6 +78,32 @@ describe("resolverProveedor — niveles", () => {
     expect(resolverProveedor("   ", CATALOGO)).toBeNull()
   })
 
+  it("tokens distintivos compartidos = sugerido: 'MSC Industrial Supply' → MSC Industrial Direct aunque no haya alias", () => {
+    const sinAlias = CATALOGO.map((p) => ({ ...p, aliases: [] }))
+    const r = resolverProveedor("MSC Industrial Supply", sinAlias)
+    expect(r?.proveedor.id).toBe("msc")
+    expect(r?.nivel).toBe("sugerido")
+  })
+
+  it("las palabras genéricas no sugieren: 'Aceros Levinson' no propone 'Aceros Fortuna'", () => {
+    const aceros = [
+      { id: "fortuna", nombre: "ACEROS FORTUNA S.A. DE C.V." },
+      { id: "sisa", nombre: "SERVICIO INDUSTRIAL S.A DE C.V. * ACERO SISA*" },
+    ]
+    expect(resolverProveedor("Aceros Levinson", aceros)).toBeNull()
+    expect(resolverProveedor("Distribuidora Industrial del Norte", aceros)).toBeNull()
+    // Pero un token distintivo sí: "SISA" está en el nombre de SISA.
+    expect(resolverProveedor("Aceros SISA", aceros)?.proveedor.id).toBe("sisa")
+  })
+
+  it("con varios candidatos por tokens gana el que comparte más", () => {
+    const catalogo = [
+      { id: "a", nombre: "Grainger Industrial" },
+      { id: "b", nombre: "Grainger Mexico Tornillos" },
+    ]
+    expect(resolverProveedor("Grainger Tornillos MX", catalogo)?.proveedor.id).toBe("b")
+  })
+
   it("los alias vacíos o con solo puntuación se ignoran", () => {
     const conBasura = [{ id: "x", nombre: "ACME", aliases: ["", "  ", "---"] }]
     expect(resolverProveedor("---", conBasura)).toBeNull()

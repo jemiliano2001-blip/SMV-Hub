@@ -144,7 +144,41 @@ export function resolverProveedor<T extends ProveedorParaMatch>(
   const incluye = catalogo.find((p) =>
     nombresNormalizados(p).some((n) => n.includes(target) || target.includes(n))
   )
-  return incluye ? { proveedor: incluye, nivel: "sugerido" } : null
+  if (incluye) return { proveedor: incluye, nivel: "sugerido" }
+
+  // Último nivel, solo sugerencia: comparten tokens distintivos. Cubre "MSC Industrial Supply"
+  // vs "MSC Industrial Direct" (misma marca, distinto sufijo), que ni empieza-con ni incluye
+  // detectan. Las palabras genéricas no cuentan para no sugerir "Aceros Fortuna" por "Aceros
+  // Levinson".
+  const tokensTarget = tokensDistintivos(target)
+  if (tokensTarget.length === 0) return null
+  let mejor: { proveedor: T; comunes: number } | null = null
+  for (const p of catalogo) {
+    for (const n of nombresNormalizados(p)) {
+      const comunes = tokensDistintivos(n).filter((t) => tokensTarget.includes(t)).length
+      if (comunes > 0 && (!mejor || comunes > mejor.comunes)) mejor = { proveedor: p, comunes }
+    }
+  }
+  return mejor ? { proveedor: mejor.proveedor, nivel: "sugerido" } : null
+}
+
+/**
+ * Palabras que aparecen en muchos nombres de proveedor y no identifican a ninguno. Un token
+ * compartido de esta lista no cuenta como coincidencia.
+ */
+const TOKENS_GENERICOS_PROVEEDOR = new Set([
+  "s", "a", "sa", "de", "cv", "rl", "inc", "llc", "ltd", "co", "corp", "company", "cia",
+  "the", "and", "y", "e", "usa", "us", "mx", "mexico", "monterrey", "mty",
+  "industrial", "industrias", "industries", "supply", "supplies", "distribuciones",
+  "distribuidora", "comercial", "comercializadora", "grupo", "servicios", "servicio",
+  "tool", "tools", "tooling", "machinery", "electronics", "electronica", "aceros", "acero",
+  "metals", "metales", "direct", "online", "store", "shop", "tienda", "local",
+])
+
+function tokensDistintivos(nombreNormalizado: string): string[] {
+  return nombreNormalizado
+    .split(" ")
+    .filter((t) => t.length >= 3 && !TOKENS_GENERICOS_PROVEEDOR.has(t))
 }
 
 /**
