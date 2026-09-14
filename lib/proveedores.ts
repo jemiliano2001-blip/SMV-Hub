@@ -14,6 +14,7 @@ import { db, getClienteAuth } from "@/lib/firebase"
 import { registrarAuditoria } from "@/lib/auditoria"
 import { formatearFecha } from "@/lib/firestore-helpers"
 import { normalizarNombreProveedor } from "@/lib/pieza-matching"
+import { inferirMercadoProveedor, inferirOrigenProveedor } from "@/lib/proveedor-mercado"
 import type {
   Proveedor,
   CategoriaProveedor,
@@ -78,18 +79,9 @@ export function mapearProveedorDocumento(id: string, data: DocumentData): Provee
     notas: data.notas ?? "",
     experienciaCompra: data.experienciaCompra ?? "",
     odooPartnerId: typeof data.odooPartnerId === "number" ? data.odooPartnerId : null,
-    mercado:
-      data.mercado === "mexico" || data.mercado === "usa"
-        ? data.mercado
-        : typeof data.odooPartnerId === "number"
-          ? "mexico"
-          : "usa",
-    origenProveedor:
-      data.origenProveedor === "odoo" || data.origenProveedor === "manual" || data.origenProveedor === "semilla"
-        ? data.origenProveedor
-        : typeof data.odooPartnerId === "number"
-          ? "odoo"
-          : "manual",
+    // Regla compartida con el sync, el indexador y el backfill (lib/proveedor-mercado.ts).
+    mercado: inferirMercadoProveedor(data),
+    origenProveedor: inferirOrigenProveedor(data),
     ordenesOdoo: typeof data.ordenesOdoo === "number" ? data.ordenesOdoo : undefined,
     ultimaCompraOdoo: typeof data.ultimaCompraOdoo === "string" ? data.ultimaCompraOdoo : null,
     creadoEn: formatearFecha(data.creadoEn),

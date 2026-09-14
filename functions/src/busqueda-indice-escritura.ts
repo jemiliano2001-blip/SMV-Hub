@@ -1,4 +1,5 @@
 import { getDb } from "./firestore-db"
+import { inferirMercadoProveedor } from "./proveedor-mercado"
 import {
   construirEntradasOrden,
   construirEntradaProveedor,
@@ -48,7 +49,9 @@ function proveedorDesdeDoc(doc: FirebaseFirestore.QueryDocumentSnapshot): Provee
       ? d.categorias.filter((c: unknown): c is string => typeof c === "string")
       : [],
     marcas: Array.isArray(d.marcas) ? d.marcas.filter((m: unknown): m is string => typeof m === "string") : [],
-    mercado: typeof d.mercado === "string" ? d.mercado : undefined,
+    // Misma regla que el cliente y el backfill: sin esto 101 de 104 proveedores llegaban al
+    // índice sin mercado y Cmd+K no podía distinguir USA de México.
+    mercado: inferirMercadoProveedor(d),
   }
 }
 
@@ -56,9 +59,19 @@ export interface ResultadoIndexacion {
   entradasEsperadas: number
   reembebidas: number
   sinCambios: number
+  /** Entradas con el mismo texto pero metadata/título/ruta distintos: se actualizan sin re-embeber. */
+  metadataActualizadas: number
   podadas: number
   ordenesLeidas: number
   proveedoresLeidos: number
+}
+
+/** Serialización estable (claves ordenadas) para comparar lo que ve el usuario sin tocar el vector. */
+function huellaVisible(e: { titulo: string; refPath: string; metadata: Record<string, unknown> }): string {
+  const claves = Object.keys(e.metadata).sort()
+  const metadata: Record<string, unknown> = {}
+  for (const k of claves) if (e.metadata[k] !== undefined) metadata[k] = e.metadata[k]
+  return JSON.stringify({ titulo: e.titulo, refPath: e.refPath, metadata })
 }
 
 export async function sincronizarIndiceBusqueda(apiKey: string): Promise<ResultadoIndexacion> {
@@ -94,11 +107,17 @@ export async function sincronizarIndiceBusqueda(apiKey: string): Promise<Resulta
   // 2. Leer qué ya existe en el índice (id + textoHash + modelo — no los vectores).
   const indiceExistenteSnap = await db
     .collection(COLECCION_INDICE)
-    .select("textoHash", "fuente", "modelo", "dimensiones")
+    .select("textoHash", "fuente", "modelo", "dimensiones", "titulo", "refPath", "metadata")
     .get()
-  const existentePorId = new Map(
-    indiceExistenteSnap.docs.map((d) => [d.id, d.data() as { textoHash?: string; modelo?: string; dimensiones?: number }])
-  )
+  type EntradaExistente = {
+    textoHash?: string
+    modelo?: string
+    dimensiones?: number
+    titulo?: string
+    refPath?: string
+    metadata?: Record<string, unknown>
+  }
+  const existentePorId = new Map(indiceExistenteSnap.docs.map((d) => [d.id, d.data() as EntradaExistente]))
 
   const necesitanEmbed = entradasEsperadas.filter((e) => {
     const prev = existentePorId.get(e.id)
@@ -109,7 +128,20 @@ export async function sincronizarIndiceBusqueda(apiKey: string): Promise<Resulta
       prev.dimensiones !== DIMENSIONES_EMBEDDING_INDICE
     )
   })
-  const sinCambios = entradasEsperadas.length - necesitanEmbed.length
+  const idsAEmbeber = new Set(necesitanEmbed.map((e) => e.id))
+
+  // Mismo texto (mismo vector) pero cambió lo que se pinta en el resultado — p. ej. `mercado`
+  // del proveedor tras el backfill de B4. Se actualiza la metadata sin gastar embeddings.
+  const necesitanMetadata = entradasEsperadas.filter((e) => {
+    if (idsAEmbeber.has(e.id)) return false
+    const prev = existentePorId.get(e.id)
+    if (!prev) return false
+    return (
+      huellaVisible({ titulo: prev.titulo ?? "", refPath: prev.refPath ?? "", metadata: prev.metadata ?? {} }) !==
+      huellaVisible(e)
+    )
+  })
+  const sinCambios = entradasEsperadas.length - necesitanEmbed.length - necesitanMetadata.length
 
   // 3. Embeber solo lo que cambió (esto es lo caro; los reads de arriba son gratis en comparación).
   const embeddings = await generarEmbeddingsIndice(
@@ -134,6 +166,20 @@ export async function sincronizarIndiceBusqueda(apiKey: string): Promise<Resulta
         modelo: MODELO_EMBEDDING_INDICE,
         dimensiones: DIMENSIONES_EMBEDDING_INDICE,
         titulo: entrada.titulo,
+        metadata: entrada.metadata,
+        actualizadoEn: ahora,
+      })
+    }
+    await batch.commit()
+  }
+
+  // 4b. Refrescar metadata de lo que no cambió de texto (update parcial: el vector se queda).
+  for (let i = 0; i < necesitanMetadata.length; i += TAMANO_LOTE) {
+    const batch = db.batch()
+    for (const entrada of necesitanMetadata.slice(i, i + TAMANO_LOTE)) {
+      batch.update(db.collection(COLECCION_INDICE).doc(entrada.id), {
+        titulo: entrada.titulo,
+        refPath: entrada.refPath,
         metadata: entrada.metadata,
         actualizadoEn: ahora,
       })
@@ -175,6 +221,7 @@ export async function sincronizarIndiceBusqueda(apiKey: string): Promise<Resulta
     entradasEsperadas: entradasEsperadas.length,
     reembebidas: necesitanEmbed.length,
     sinCambios,
+    metadataActualizadas: necesitanMetadata.length,
     podadas,
     ordenesLeidas: ordenesSnap.size,
     proveedoresLeidos: proveedoresSnap.size,

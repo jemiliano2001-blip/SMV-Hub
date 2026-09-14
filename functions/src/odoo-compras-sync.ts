@@ -6,6 +6,7 @@ import {
 } from "./auth"
 import { getDb } from "./firestore-db"
 import { cargarMapeosAprobados } from "./compras-odoo/mapeos-aprobados"
+import { camposMercadoFaltantesOdoo } from "./proveedor-mercado"
 import {
   idsHuerfanosCompras,
   itemsDesdeFacturaCrudo,
@@ -362,6 +363,9 @@ async function upsertProveedoresDesdePartners(
           actualizadoEn: ahora,
           ...(existente.data().email ? {} : { email: mapped.email }),
           ...(existente.data().telefono ? {} : { telefono: mapped.telefono }),
+          // Un partner de Odoo es mercado México aunque facture en USD (decisión 2026-09-13);
+          // solo se completa lo que falta, nunca se pisa un valor persistido.
+          ...camposMercadoFaltantesOdoo(existente.data()),
         },
         { merge: true }
       )
