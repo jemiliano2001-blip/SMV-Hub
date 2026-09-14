@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, expectTypeOf, it } from "vitest"
 import { buscarClavesSat } from "@/lib/sat/buscar"
-import { getSatCatalogMeta } from "@/lib/sat/catalogo"
+import {
+  getSatCatalogEntries,
+  getSatCatalogMeta,
+  type SatCatalogEntry,
+} from "@/lib/sat/catalogo"
 
 describe("buscarClavesSat con catálogo cargado", () => {
   it("tiene entradas en el catálogo local", () => {
@@ -21,6 +25,12 @@ describe("buscarClavesSat con catálogo cargado", () => {
   })
 
   it("no confunde end mill con semillas por tokens cortos", () => {
+    // Es la búsqueda más pesada del archivo: descripción larga (9 tokens, 16
+    // frases) y el top score queda <300, así que el glosario dispara una
+    // segunda pasada completa sobre las ~52k claves. Si vuelve a acercarse al
+    // timeout, el costo está en el scan lineal de `lib/sat/buscar.ts`
+    // (`scoreEntry`), no en la carga del catálogo: el JSON se importa una vez
+    // por archivo y el parse Zod queda cacheado en `getParsedCatalog()`.
     const desc = "1/4 SE 4 Flute STUB ALTIN Solid Carbide End Mill"
     const results = buscarClavesSat(desc, 5)
     expect(results.length).toBeGreaterThan(0)
@@ -78,5 +88,32 @@ describe("buscarClavesSat con catálogo cargado", () => {
     const results = buscarClavesSat("Compression Spring", 5)
     expect(results.length).toBeGreaterThan(0)
     expect(results[0]?.entry.clave).toBe("31161904")
+  })
+})
+
+describe("las entradas del catálogo SAT son inmutables por tipo", () => {
+  // Contrato del que depende el caché por identidad de lib/sat/buscar.ts
+  // (`textoEntrada`): si una entrada pudiera mutar después de la primera
+  // búsqueda, el texto cacheado quedaría obsoleto en silencio. La garantía es
+  // de compilación (tsc cubre tests/), no de runtime — ver nota en catalogo.ts.
+  it("getSatCatalogEntries devuelve un arreglo readonly de entradas Readonly", () => {
+    const entries = getSatCatalogEntries()
+    expectTypeOf(entries).toEqualTypeOf<readonly SatCatalogEntry[]>()
+    expectTypeOf<SatCatalogEntry["palabrasClave"]>().toEqualTypeOf<readonly string[]>()
+    expect(entries.length).toBeGreaterThan(1000)
+  })
+
+  it("mutar una entrada o sus palabrasClave no compila", () => {
+    // Nunca se ejecuta: solo existe para que tsc verifique los errores esperados.
+    // Ejecutarla mutaría el catálogo compartido por el resto de los tests.
+    const intentarMutar = (entry: SatCatalogEntry, entries: readonly SatCatalogEntry[]) => {
+      // @ts-expect-error `descripcion` es readonly
+      entry.descripcion = "mutada"
+      // @ts-expect-error `palabrasClave` es readonly string[]: no tiene push
+      entry.palabrasClave.push("MUTADA")
+      // @ts-expect-error el arreglo de entradas es readonly: no tiene splice
+      entries.splice(0, 1)
+    }
+    expect(intentarMutar).toBeTypeOf("function")
   })
 })
