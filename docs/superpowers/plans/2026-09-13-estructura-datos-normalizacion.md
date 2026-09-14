@@ -177,7 +177,7 @@ cuando no** (era "≥ 90 %": el 15 % restante son datos malos, no fallas del par
 
 Va **primero** en ejecución: es un bug real, está aislado en `functions/` y no depende de B1.
 
-### T2.1 · Helpers portados a Functions
+### T2.1 · Helpers portados a Functions — ✅ HECHO (2026-09-13)
 - `functions/src/compras-odoo/mapeos-aprobados.ts`: `normalizarDescripcionMapeo` (copia literal de
   `lib/compras-odoo/mapeos-clasificacion.ts`) y `buscarMapeoAprobadoSync(norm, mapeos)` con la
   **regla D** de B0.1: exacto; si no, ítem ⊇ mapeo con límite de palabra, mapeo ≥ 12 chars o con
@@ -186,7 +186,7 @@ Va **primero** en ejecución: es un bug real, está aislado en `functions/` y no
   hay precedente): paridad de `normalizarDescripcionMapeo` entre `lib/` y `functions/`, y las 14
   muestras aceptadas + 14 rechazadas de B0.1 como fixture.
 
-### T2.2 · Aplicar en el sync
+### T2.2 · Aplicar en el sync — ✅ HECHO (2026-09-13)
 - `functions/src/odoo-compras-sync.ts`: al inicio de la corrida, leer `clasificacion_ia_mapeos`
   una vez (338 docs) → `Mapeo[]` en memoria. `construirItemDesdeLinea(linea, { mapeosAprobados })`:
   si hay match → `categoriaId`, `tipoInsumo`, `medida` del mapeo y `clasificadoPorMapeo: true`;
@@ -194,22 +194,38 @@ Va **primero** en ejecución: es un bug real, está aislado en `functions/` y no
 - `functions/src/compras-odoo/construir-item.ts`: parámetro opcional; sin mapeos se comporta igual
   (compatibilidad con tests existentes).
 
-### T2.3 · Test de integración con emulator
+### T2.3 · Test de integración con emulator — ✅ HECHO (2026-09-13)
 - `tests/odoo-compras-sync-mapeos.emulator.test.ts` (corre bajo `npm run test:emulator`): 5 mapeos
   + 20 líneas → tras `escribirLotes`, los 5 ítems con mapeo llevan la categoría aprobada y los 15
   restantes la heurística. Criterio #3.
 
-### T2.4 · Cliente
+### T2.4 · Cliente — ✅ HECHO (2026-09-13)
 - `lib/compras-odoo-store.ts`: nada que cambiar (lee el doc). `PanelClasificacionIA.tsx`: badge
   "por mapeo" cuando `clasificadoPorMapeo`; `aplicarMapeosAprobados` queda como vista previa.
 
-### T2.5 · Deploy y verificación
+### T2.5 · Deploy y verificación — ⏳ pendiente de ok de Emiliano
 ```bash
 cd functions && npm run build && cd ..
 firebase deploy --only "functions:smv-hub:syncOdooComprasScheduled,functions:smv-hub:syncOdooComprasManual" --project smv-brain
 ```
 Disparar `syncOdooComprasManual` (super-admin) → `npx tsx scripts/diagnostico-datos.ts smv-brain`
 → `otros` ≤ 25 % (proyección B0.1: 587 / 2,325 = 25 %). Criterio #4.
+
+**Estado B2 al 2026-09-13:** código en rama `frente-b/b2-sync-mapeos` (commit abajo). Gates verdes:
+`tsc`, `lint`, `npm test` (1,246), `functions build`, `npm run build`, y el test de emulator
+(3/3, corrido localmente con el JDK de Android Studio: `JAVA_HOME` no está configurado en la
+máquina, hay que exportar `PATH="/c/Program Files/Android/Android Studio/jbr/bin:$PATH"` antes
+de `emulators:exec`). Detalles de implementación que difieren del plan original:
+- El loader `cargarMapeosAprobados(firestore)` vive en `compras-odoo/mapeos-aprobados.ts` (no
+  en el sync) para que el test de emulator no importe el módulo del sync (inicializa Admin al
+  cargar) y para que la futura ruta de memoria operativa lo reutilice desde `lib/`.
+- `construir-item.ts` y `mapeos-aprobados.ts` son copias byte a byte entre `lib/` y
+  `functions/src/`; `tests/mapeos-aprobados-sync.test.ts` lo verifica.
+- Un ítem con mapeo queda `clasificadoPorIa: true` además de `clasificadoPorMapeo: true` —
+  mismo estado que deja `aprobarYGuardarClasificacion` en el cliente, para que el panel no lo
+  trate como "sin clasificar".
+- `llaveItem` se calcula sobre la clasificación final (tipo/medida del mapeo), no sobre la
+  heurística, para que el comparador agrupe igual que lo que el equipo aprobó.
 
 ---
 
