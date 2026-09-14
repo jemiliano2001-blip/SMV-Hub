@@ -35,6 +35,10 @@ import {
 import { toast } from 'sonner'
 import { getClienteAuth } from '@/lib/firebase'
 import { obtenerProveedores } from '@/lib/proveedores'
+import { ChipProveedorVinculado } from '@/components/proveedores/ChipProveedorVinculado'
+import { authBypassActivo, useUsuario } from '@/lib/auth'
+import { usePermisos } from '@/lib/hooks/useRol'
+import { tieneModulo } from '@/lib/roles'
 import {
   crearCotizacionesLote,
   claveDedupCotizacion,
@@ -305,6 +309,13 @@ export default function CotizacionIaModal({
     }
   }, [open, procesarArchivo])
 
+  // El proveedorId lo resuelve el chip (nombre + alias, con confirmación si no es exacto).
+  // Aquí solo se guarda el nombre y, si hay match por nombre, se hereda su ubicación.
+  const [proveedorIdElegido, setProveedorIdElegido] = useState<string | null>(null)
+  const { usuario } = useUsuario()
+  const { modulos, esSuperAdmin } = usePermisos(authBypassActivo() ? null : usuario)
+  const puedeEditarCatalogo = esSuperAdmin || authBypassActivo() || tieneModulo(modulos, 'proveedores')
+
   const handleProveedorChange = (nombre: string) => {
     const match = catalogoProveedores.find(
       (p) => p.nombre.toLowerCase() === nombre.trim().toLowerCase()
@@ -312,7 +323,6 @@ export default function CotizacionIaModal({
     setGeneralData((prev) => ({
       ...prev,
       proveedor: nombre,
-      proveedorId: match?.id ?? null,
       ubicacion: match?.ubicacion ? (match.ubicacion as Ubicacion) : prev.ubicacion,
     }))
   }
@@ -631,6 +641,24 @@ export default function CotizacionIaModal({
                     <option key={p.id} value={p.nombre} />
                   ))}
                 </datalist>
+                <ChipProveedorVinculado
+                  nombreLibre={generalData.proveedor}
+                  catalogo={[...catalogoProveedores]}
+                  proveedorIdElegido={proveedorIdElegido}
+                  onElegir={setProveedorIdElegido}
+                  onVincular={(id) => setGeneralData((prev) => (prev.proveedorId === id ? prev : { ...prev, proveedorId: id }))}
+                  puedeEditarCatalogo={puedeEditarCatalogo}
+                  moneda={generalData.moneda === 'MXN' ? 'MXN' : 'USD'}
+                  onCatalogoActualizado={(p) =>
+                    setCatalogoProveedores((prev) => {
+                      const i = prev.findIndex((x) => x.id === p.id)
+                      if (i === -1) return [...prev, p].sort((a, b) => a.nombre.localeCompare(b.nombre))
+                      const copia = [...prev]
+                      copia[i] = p
+                      return copia
+                    })
+                  }
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-2">

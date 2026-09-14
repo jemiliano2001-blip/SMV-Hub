@@ -12,6 +12,7 @@ import {
   FileCheck,
   Scale,
   Printer,
+  Link2,
 } from 'lucide-react'
 import AuthGuard from '@/app/AuthGuard'
 import PageShell from '@/components/layout/PageShell'
@@ -35,6 +36,9 @@ import { CATEGORIAS_PROVEEDOR_FORM } from '@/lib/proveedores/categorias-proveedo
 import { obtenerMatrizBackupProveedores } from '@/lib/proveedores'
 import type { NuevaCompraPayload } from '@/lib/proveedores-inteligencia'
 import PanelComprasOdoo from '@/app/proveedores/PanelComprasOdoo'
+import PanelVinculacionHistorica from '@/app/proveedores/PanelVinculacionHistorica'
+import { authBypassActivo, useUsuario } from '@/lib/auth'
+import { usePermisos } from '@/lib/hooks/useRol'
 import HeaderCentroMando from './components/HeaderCentroMando'
 import DirectorioProveedores from './components/DirectorioProveedores'
 import DrawerDetalleProveedor from './components/DrawerDetalleProveedor'
@@ -995,7 +999,11 @@ function GenerarPOModal({
 
 function ProveedoresContent() {
   const [region, setRegion] = useState<'usa' | 'mexico'>('usa')
-  const [seccion, setSeccion] = useState<'proveedores' | 'comparar'>('proveedores')
+  const [seccion, setSeccion] = useState<'proveedores' | 'comparar' | 'vinculacion'>('proveedores')
+  // La vinculación histórica escribe sobre órdenes/cotizaciones en bloque: solo super-admin
+  // (la ruta lo vuelve a verificar del lado del servidor).
+  const { usuario } = useUsuario()
+  const { esSuperAdmin } = usePermisos(authBypassActivo() ? null : usuario)
 
   const {
     proveedores,
@@ -1198,6 +1206,20 @@ function ProveedoresContent() {
               ),
               content: <PanelComprasOdoo />,
             },
+            ...(esSuperAdmin
+              ? [
+                  {
+                    value: 'vinculacion',
+                    label: (
+                      <span className="inline-flex items-center gap-2">
+                        <Link2 className="size-4 text-primary" aria-hidden />
+                        Vinculación histórica
+                      </span>
+                    ),
+                    content: <PanelVinculacionHistorica />,
+                  },
+                ]
+              : []),
           ]}
         />
 

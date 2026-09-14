@@ -24,6 +24,10 @@ import {
 } from '@/lib/schemas'
 import { validarClaveProdServCatalogo } from '@/lib/sat/validar-clave'
 import { obtenerProveedores } from '@/lib/proveedores'
+import { ChipProveedorVinculado } from '@/components/proveedores/ChipProveedorVinculado'
+import { authBypassActivo, useUsuario } from '@/lib/auth'
+import { usePermisos } from '@/lib/hooks/useRol'
+import { tieneModulo } from '@/lib/roles'
 import { Button } from '@/components/ui/button'
 import { useFilePreview } from '@/components/FilePreviewProvider'
 import SelectorCuentaCargoOdoo from '@/components/compras/SelectorCuentaCargoOdoo'
@@ -90,6 +94,8 @@ export interface InitialDataCompra {
   cotizacionId?: string
   /** Clave SAT precargada desde el buscador de /claves-sat. */
   claveSat?: string
+  /** Vínculo al catálogo ya conocido (p. ej. al recotizar desde una cotización vinculada). */
+  proveedorId?: string | null
 }
 
 export default function NuevaCompraForm({
@@ -110,6 +116,13 @@ export default function NuevaCompraForm({
   const { sos } = useVentasOdoo()
   const [imagen, setImagen] = useState<File | null>(null)
   const [catalogoProveedores, setCatalogoProveedores] = useState<Proveedor[]>([])
+  // Vínculo al catálogo: `proveedorIdElegido` es lo que el usuario confirmó/eligió en el chip;
+  // `proveedorId` es el efectivo (exacto automático por nombre o alias, o la elección).
+  const [proveedorIdElegido, setProveedorIdElegido] = useState<string | null>(initialData?.proveedorId ?? null)
+  const [proveedorId, setProveedorId] = useState<string | null>(initialData?.proveedorId ?? null)
+  const { usuario } = useUsuario()
+  const { modulos, esSuperAdmin } = usePermisos(authBypassActivo() ? null : usuario)
+  const puedeEditarCatalogo = esSuperAdmin || authBypassActivo() || tieneModulo(modulos, 'proveedores')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [extrayendo, setExtrayendo] = useState(false)
   const [errorExtraccion, setErrorExtraccion] = useState<string | null>(null)
@@ -189,6 +202,7 @@ export default function NuevaCompraForm({
 
   const proveedorWatch = useWatch({ control, name: 'proveedor' })
   const numeroFacturaWatch = useWatch({ control, name: 'numeroFactura' })
+  const monedaWatch = useWatch({ control, name: 'moneda' })
   const itemsWatch = useWatch({ control, name: 'items' })
   const subtotalWatch = useWatch({ control, name: 'subtotal' })
   const envioWatch = useWatch({ control, name: 'envio' })
@@ -253,12 +267,8 @@ export default function NuevaCompraForm({
       .catch((err) => console.error('[nueva-compra] no se pudo cargar el catálogo de proveedores:', err))
   }, [])
 
-  // Deriva proveedorId del nombre actual — cubre tecleo manual, datalist,
-  // extracción por IA (setValue) y reset(), no solo el onChange del input.
-  const proveedorId = useMemo(() => {
-    const nombre = typeof proveedorWatch === 'string' ? proveedorWatch : ''
-    return catalogoProveedores.find((p) => p.nombre === nombre)?.id ?? null
-  }, [proveedorWatch, catalogoProveedores])
+  // El proveedorId ya no sale de `p.nombre === nombre` (por eso el 93 % de las órdenes nacía
+  // sin FK): lo resuelve el chip con nombre + alias y niveles (ver ChipProveedorVinculado).
 
   // Historial acotado (últimas 200) a propósito — spec memoria cliente; la IA sigue con prioridad.
   useEffect(() => {
@@ -729,6 +739,25 @@ export default function NuevaCompraForm({
               ))}
             </datalist>
             {errors.proveedor && <p className={cls.error}>{errors.proveedor.message}</p>}
+            <ChipProveedorVinculado
+              nombreLibre={typeof proveedorWatch === 'string' ? proveedorWatch : ''}
+              catalogo={catalogoProveedores}
+              proveedorIdElegido={proveedorIdElegido}
+              onElegir={setProveedorIdElegido}
+              onVincular={setProveedorId}
+              puedeEditarCatalogo={puedeEditarCatalogo}
+              moneda={monedaWatch === 'MXN' ? 'MXN' : 'USD'}
+              onCatalogoActualizado={(p) =>
+                setCatalogoProveedores((prev) => {
+                  const i = prev.findIndex((x) => x.id === p.id)
+                  if (i === -1) return [...prev, p].sort((a, b) => a.nombre.localeCompare(b.nombre))
+                  const copia = [...prev]
+                  copia[i] = p
+                  return copia
+                })
+              }
+              disabled={extrayendo}
+            />
           </div>
 
           <div>

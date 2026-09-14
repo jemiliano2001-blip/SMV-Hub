@@ -13,6 +13,7 @@ import {
 import { db, getClienteAuth } from "@/lib/firebase"
 import { registrarAuditoria } from "@/lib/auditoria"
 import { formatearFecha } from "@/lib/firestore-helpers"
+import { normalizarNombreProveedor } from "@/lib/pieza-matching"
 import type {
   Proveedor,
   CategoriaProveedor,
@@ -137,6 +138,70 @@ export async function crearProveedor(payload: NuevoProveedorPayload): Promise<Pr
     creadoEn: new Date().toISOString(),
     actualizadoEn: new Date().toISOString(),
   }
+}
+
+const MAX_ALIASES_PROVEEDOR = 20
+
+/**
+ * Payload completo para dar de alta un proveedor con lo mínimo que se sabe en el momento de
+ * capturar una compra o cotización. El resto queda neutro para completarse en /proveedores.
+ * Mismos defaults que la acción `altaYVincular` de la ruta de vinculación histórica.
+ */
+export function payloadProveedorMinimo(input: {
+  nombre: string
+  mercado: "usa" | "mexico"
+  esMarketplace?: boolean
+  aliases?: string[]
+}): NuevoProveedorPayload {
+  const esMexico = input.mercado === "mexico"
+  return {
+    nombre: input.nombre.trim(),
+    estatus: "actual",
+    tipoProveedor: "estandar",
+    barato: false,
+    recomendado: false,
+    categorias: ["otros"],
+    pais: esMexico ? "México" : "Estados Unidos",
+    ubicacion: "",
+    shippingAddressUSA: "",
+    brokerAduanal: "",
+    web: "",
+    contacto: "",
+    email: "",
+    telefono: "",
+    whatsapp: "",
+    marcas: [],
+    aliases: (input.aliases ?? []).map((a) => a.trim()).filter(Boolean).slice(0, MAX_ALIASES_PROVEEDOR),
+    esMarketplace: input.esMarketplace === true,
+    moneda: esMexico ? "MXN" : "USD",
+    facturaUSD: !esMexico,
+    metodosPago: ["tarjeta"],
+    tiempoRespuesta: "mismo_dia",
+    frecuenciaCompra: "mensual",
+    prioridad: "media",
+    leadTimeDias: null,
+    pedidoMinimo: null,
+    calificacion: 5,
+    notas: "",
+    experienciaCompra: "",
+    mercado: input.mercado,
+  }
+}
+
+/**
+ * Lista de alias resultante de aprender `nombreLibre`, o null si no aporta (es el nombre mismo,
+ * ya está, o no hay lugar). Puro: la escritura la hace quien llama con `actualizarProveedor`.
+ */
+export function aliasesConAprendizaje(
+  proveedor: Pick<Proveedor, "nombre" | "aliases">,
+  nombreLibre: string
+): string[] | null {
+  const alias = nombreLibre.trim()
+  const norm = normalizarNombreProveedor(alias)
+  if (!norm || norm === normalizarNombreProveedor(proveedor.nombre)) return null
+  if (proveedor.aliases.some((a) => normalizarNombreProveedor(a) === norm)) return null
+  if (proveedor.aliases.length >= MAX_ALIASES_PROVEEDOR) return null
+  return [...proveedor.aliases, alias]
 }
 
 /** Actualiza un proveedor existente. */
