@@ -1,9 +1,13 @@
-import { describe, it, expect, vi } from "vitest"
+import { beforeEach, describe, it, expect, vi } from "vitest"
 
 const { mockAdminDb } = vi.hoisted(() => ({ mockAdminDb: { collection: vi.fn() } }))
 vi.mock("@/lib/firebase-admin", () => ({ adminDb: mockAdminDb }))
 
-import { buscarEnCatalogoSemantico } from "@/lib/busqueda-semantica-catalogo"
+import {
+  buscarEnCatalogoSemantico,
+  invalidarCacheIndice,
+  leerIndiceVectorizado,
+} from "@/lib/busqueda-semantica-catalogo"
 
 function fakeIndiceDocs(docs: Array<{ id: string; data: Record<string, unknown> }>) {
   const getMock = vi.fn().mockResolvedValue({ docs: docs.map((d) => ({ id: d.id, data: () => d.data })) })
@@ -19,6 +23,63 @@ function mockFetch(vector: number[] = VECTOR) {
     json: async () => ({ embedding: { values: vector } }),
   } as unknown as Response)
 }
+
+beforeEach(() => {
+  invalidarCacheIndice()
+  mockAdminDb.collection.mockReset()
+})
+
+describe("leerIndiceVectorizado — caché en proceso (frente C, T2.1)", () => {
+  it("dos lecturas seguidas con las mismas fuentes → una sola consulta a Firestore, mismo array", async () => {
+    const { whereMock } = fakeIndiceDocs([{ id: "a", data: { fuente: "orden-item", titulo: "A", refPath: "/ordenes", embedding: VECTOR } }])
+    const primera = await leerIndiceVectorizado(["orden-item", "cotizacion"])
+    const segunda = await leerIndiceVectorizado(["cotizacion", "orden-item"]) // otro orden, misma clave
+    expect(whereMock).toHaveBeenCalledTimes(1)
+    expect(segunda).toBe(primera)
+    expect(primera).toHaveLength(1)
+  })
+
+  it("fuentes distintas → lecturas distintas (la clave es la combinación de fuentes)", async () => {
+    const { whereMock } = fakeIndiceDocs([])
+    await leerIndiceVectorizado(["orden-item"])
+    await leerIndiceVectorizado(["proveedor"])
+    expect(whereMock).toHaveBeenCalledTimes(2)
+    expect(whereMock).toHaveBeenNthCalledWith(1, "fuente", "in", ["orden-item"])
+    expect(whereMock).toHaveBeenNthCalledWith(2, "fuente", "in", ["proveedor"])
+  })
+
+  it("TTL vencido → relee", async () => {
+    const { whereMock } = fakeIndiceDocs([])
+    let t = 1_000
+    const ahora = () => t
+    await leerIndiceVectorizado(["orden-item"], { ahora })
+    t += 5 * 60 * 1000 - 1
+    await leerIndiceVectorizado(["orden-item"], { ahora })
+    expect(whereMock).toHaveBeenCalledTimes(1)
+    t += 2
+    await leerIndiceVectorizado(["orden-item"], { ahora })
+    expect(whereMock).toHaveBeenCalledTimes(2)
+  })
+
+  it("lecturas concurrentes comparten la misma promesa (dedupe)", async () => {
+    const { whereMock } = fakeIndiceDocs([])
+    await Promise.all([leerIndiceVectorizado(["orden-item"]), leerIndiceVectorizado(["orden-item"])])
+    expect(whereMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("una lectura fallida no se cachea: la siguiente vuelve a intentar", async () => {
+    const getMock = vi.fn().mockRejectedValueOnce(new Error("boom")).mockResolvedValueOnce({ docs: [] })
+    mockAdminDb.collection.mockReturnValue({ where: vi.fn().mockReturnValue({ get: getMock }) })
+    await expect(leerIndiceVectorizado(["orden-item"])).rejects.toThrow(/No se pudo leer el índice/)
+    await expect(leerIndiceVectorizado(["orden-item"])).resolves.toEqual([])
+    expect(getMock).toHaveBeenCalledTimes(2)
+  })
+
+  it("sin fuentes → [] sin tocar Firestore", async () => {
+    await expect(leerIndiceVectorizado([])).resolves.toEqual([])
+    expect(mockAdminDb.collection).not.toHaveBeenCalled()
+  })
+})
 
 describe("buscarEnCatalogoSemantico", () => {
   it("consulta busqueda_indice filtrado por fuentesPermitidas", async () => {
