@@ -1,0 +1,2135 @@
+{
+  "generadoEn": "2026-09-15T19:07:49.710Z",
+  "proyecto": "smv-brain",
+  "dimensiones": 768,
+  "taskTypeConsulta": "RETRIEVAL_QUERY",
+  "umbralSugerido": 0.76,
+  "muestras": [
+    {
+      "grupo": "repetida",
+      "refId": "uQ8gBkA5FI2eHgE0tweX#4",
+      "descripcion": "Compression Spring 0.5\" Long, 0.125\" OD, 0.093\" ID 9657K266",
+      "llave": "|compression spring 0.5 long 0.125 od 0.093 id 9657k266",
+      "proveedor": "McMaster-Carr",
+      "fecha": "2026-06-24",
+      "exactosEnIndice": 3,
+      "mejorMismaLlave": 0.8788033864635015,
+      "mejorOtraLlave": 0.8420141604964979,
+      "top": [
+        {
+          "refId": "2hwe7u6zJQ85caOiHBrI#0",
+          "titulo": "Compression Spring, 0.5\" Long, 0.125\" Od, 0.093\" Id (9657K266)",
+          "score": 0.8788,
+          "llave": "|compression spring 0.5 long 0.125 od 0.093 id 9657k266",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "k65MCn2RbCiAbnjQwE1m#0",
+          "titulo": "Compression Spring, 0.5\" Long, 0.125\" Od, 0.093\" Id 9657K266",
+          "score": 0.8779,
+          "llave": "|compression spring 0.5 long 0.125 od 0.093 id 9657k266",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "EqlcVorW1ULN0SN0WXH0#1",
+          "titulo": "Compression Spring 0.5\" Long, 0.125\" OD, 0.093\" ID 9657K266",
+          "score": 0.8771,
+          "llave": "|compression spring 0.5 long 0.125 od 0.093 id 9657k266",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "k65MCn2RbCiAbnjQwE1m#2",
+          "titulo": "Compression Spring, 1.75\" Long, 0.66\" Od, 0.526\" Id 9657K493",
+          "score": 0.842,
+          "llave": "|compression spring 1.75 long 0.66 od 0.526 id 9657k493",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "9wrakTj8QiH30KqMoyoV#0",
+          "titulo": "Compression Spring, 1\" Long, 0.3\" Od, 0.256\" Id (9657K301)",
+          "score": 0.8361,
+          "llave": "|compression spring 1 long 0.3 od 0.256 id 9657k301",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "0TwW76pVkO6bwBuj8gzu#1",
+      "descripcion": "Thermocouple Probe for Surfaces Bolt-on, Type J, Wire Leads Connection, 3/16\" Bolt Hole Diameter 3648K22",
+      "llave": "|thermocouple probe for surfaces bolt-on type j wire leads connection 3/16 bolt hole diameter 3648k22",
+      "proveedor": "McMaster-Carr",
+      "fecha": "2026-08-26",
+      "exactosEnIndice": 2,
+      "mejorMismaLlave": 0.867152083754693,
+      "mejorOtraLlave": 0.8791417397657583,
+      "top": [
+        {
+          "refId": "OFqydYy8UyGv8ckSJ0aU#1",
+          "titulo": "Thermocouple Probe For Surfaces, Bolt-On, Type J, Wire Leads Connection, 3/16\" Bolt Hole Diameter (3848K22)",
+          "score": 0.8791,
+          "llave": "|thermocouple probe for surfaces bolt-on type j wire leads connection 3/16 bolt hole diameter 3848k22",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "OFqydYy8UyGv8ckSJ0aU#3",
+          "titulo": "Thermocouple Probe For Surfaces, Bolt-On, Type J, Wire Leads Connection, 3/16\" Bolt Hole Diameter (3848K22)",
+          "score": 0.8791,
+          "llave": "|thermocouple probe for surfaces bolt-on type j wire leads connection 3/16 bolt hole diameter 3848k22",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "qbi36rbLtVHp0ngE309M#2",
+          "titulo": "Thermocouple Probe for Surfaces Bolt-on, Type J, Wire Leads Connection, 3/16\" Bolt Hole Diameter 3648K22",
+          "score": 0.8672,
+          "llave": "|thermocouple probe for surfaces bolt-on type j wire leads connection 3/16 bolt hole diameter 3648k22",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "3buKZD8Ir4t1CDk9IxsB#4",
+          "titulo": "Thermocouple Probe for Surfaces, Bolt-on, Type J, Wire Leads Connection, 3/16\" Bolt Hole Diameter",
+          "score": 0.8423,
+          "llave": "|thermocouple probe for surfaces bolt-on type j wire leads connection 3/16 bolt hole diameter",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "qbi36rbLtVHp0ngE309M#1",
+          "titulo": "Thermocouple Connector Round-Pin Male, Quick-Wire, 400 Degree F Maximum, Type J, Black 3869K16",
+          "score": 0.7446,
+          "llave": "|thermocouple connector round-pin male quick-wire 400 degree f maximum type j black 3869k16",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "EqlcVorW1ULN0SN0WXH0#0",
+      "descripcion": "Core Pin M2 High-Speed Tool Steel, 0.092\" Diameter, 2-1/2\" Long 98378A705",
+      "llave": "|core pin m2 high-speed tool steel 0.092 diameter 2-1/2 long 98378a705",
+      "proveedor": "McMaster-Carr",
+      "fecha": "2026-06-16",
+      "exactosEnIndice": 2,
+      "mejorMismaLlave": 0.889178064702404,
+      "mejorOtraLlave": 0.7918943156813184,
+      "top": [
+        {
+          "refId": "2hwe7u6zJQ85caOiHBrI#2",
+          "titulo": "Core Pin, M2 High-Speed Tool Steel, 0.092\" Diameter, 2-1/2\" Long (98378A705)",
+          "score": 0.8892,
+          "llave": "|core pin m2 high-speed tool steel 0.092 diameter 2-1/2 long 98378a705",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "rx3ofDdPjiaKp3jtCwWs#0",
+          "titulo": "Core Pin, M2 High-Speed Tool Steel, 0.092\" Diameter, 2-1/2\" Long",
+          "score": 0.8587,
+          "llave": "|core pin m2 high-speed tool steel 0.092 diameter 2-1/2 long",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "on3HmgfN7MY7kDpBkAFB#0",
+          "titulo": "M2 Tool Steel Ejector Pin, 0.1559\" Diameter, 6\" Long (95203A571)",
+          "score": 0.7919,
+          "llave": "|m2 tool steel ejector pin 0.1559 diameter 6 long 95203a571",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "CwB96xxSFQKPNvBdTwgG#0",
+          "titulo": "Nitride-Coated H13 Tool Steel Ejector Pin, 1/4\" Diameter, 6\" Long (93772A118)",
+          "score": 0.7909,
+          "llave": "|nitride-coated h13 tool steel ejector pin 1/4 diameter 6 long 93772a118",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "lq3retZiKJncReOXKjvE#1",
+          "titulo": "Nitride-Coated H13 Tool Steel Ejector Pin, 1/4\" Diameter, 6\" Long, 93772A118",
+          "score": 0.7908,
+          "llave": "|nitride-coated h13 tool steel ejector pin 1/4 diameter 6 long 93772a118",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "qbi36rbLtVHp0ngE309M#0",
+      "descripcion": "Black-Phosphate Steel Thread-Locking Insert Easy-to-Install, 1/4\"-20 Thread Size, 3/8\"-16 Tap Size 90259A132",
+      "llave": "|black-phosphate steel thread-locking insert easy-to-install 1/4 -20 thread size 3/8 -16 tap size 90259a132",
+      "proveedor": "McMaster-Carr",
+      "fecha": "2026-08-05",
+      "exactosEnIndice": 1,
+      "mejorMismaLlave": 0.885282789520771,
+      "mejorOtraLlave": 0.8596792732439672,
+      "top": [
+        {
+          "refId": "2hwe7u6zJQ85caOiHBrI#3",
+          "titulo": "Black-Phosphate Steel Thread-Locking Insert, Easy-To-Install, 1/4\"-20 Thread Size, 3/8\"-16 Tap Size (90259A132)",
+          "score": 0.8853,
+          "llave": "|black-phosphate steel thread-locking insert easy-to-install 1/4 -20 thread size 3/8 -16 tap size 90259a132",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "NX8wUQRIC5ENLb0IwAdx#0",
+          "titulo": "Black-Phosphate Steel Thread-Locking insert, 1/4\"-20 Thread Size, 3/8\"-16 Tap Size, 90259A132",
+          "score": 0.8597,
+          "llave": "|black-phosphate steel thread-locking insert 1/4 -20 thread size 3/8 -16 tap size 90259a132",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "RMLsxlJ844oa8nioMtvz#4",
+          "titulo": "Black-Phosphate Steel Thread-Locking Insert, Easy-To-Install, 8-32 Thread Size, 5/16\"-18 Tap Size",
+          "score": 0.833,
+          "llave": "|black-phosphate steel thread-locking insert easy-to-install 8-32 thread size 5/16 -18 tap size",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "YaoHPYSA9dnwOmQT9KVN#0",
+          "titulo": "ISCAR Laydown Threading Insert: 11IR13UN IC908, Carbide - Right Hand, Internal UN Thread, 13 TPI, 1/4\" Inscribed Circle",
+          "score": 0.7217,
+          "llave": "|iscar laydown threading insert 11ir13un ic908 carbide - right hand internal un thread 13 tpi 1/4 inscribed circle",
+          "exacto": false,
+          "proveedor": "MSC Industrial Supply"
+        },
+        {
+          "refId": "hURmBwAbT4h9YKxrEM1z#2",
+          "titulo": "High-Strength Steel Nylon-Insert Locknut, Grade 8, Zinc Yellow-Chromate Plated, 7/16\"-14 Thread Size 97135A240",
+          "score": 0.7173,
+          "llave": "|high-strength steel nylon-insert locknut grade 8 zinc yellow-chromate plated 7/16 -14 thread size 97135a240",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "3jga9suYhr8AxHVUBws6#0",
+      "descripcion": "1/4 SE 4 Flute STUB ALTIN Solid Carbide End Mill",
+      "llave": "|1/4 se 4 flute stub altin solid carbide endmill",
+      "proveedor": "Shars Tool Company",
+      "fecha": "2026-07-04",
+      "exactosEnIndice": 1,
+      "mejorMismaLlave": 0.8800717315916936,
+      "mejorOtraLlave": 0.7931147344606924,
+      "top": [
+        {
+          "refId": "IeDHYBY2l8fEddSOPWOJ#0",
+          "titulo": "1/4 SE 4 Flute STUB ALTIN Solid Carbide End Mill",
+          "score": 0.8801,
+          "llave": "|1/4 se 4 flute stub altin solid carbide endmill",
+          "exacto": true,
+          "proveedor": "Shars Tool Company"
+        },
+        {
+          "refId": "gg0XFBhK4MvmWzvwQyRY#0",
+          "titulo": "Accupro - Corner Radius End Mill: 1/2\" Dia, 1\" LOC, 0.0300\" Radius, 4 Flute, Solid Carbide - 3\" OAL, 1/2\" Shank Dia, 40 deg Helix, AlTiN Finish, Single End, Centercutting",
+          "score": 0.7931,
+          "llave": "|accupro - corner radius endmill 1/2 dia 1 loc 0.0300 radius 4 flute solid carbide - 3 oal 1/2 shank dia 40 deg helix altin finish single end centercutting",
+          "exacto": false,
+          "proveedor": "MSC Industrial Supply"
+        },
+        {
+          "refId": "gg0XFBhK4MvmWzvwQyRY#1",
+          "titulo": "Accupro - Corner Radius End Mill: 3/8\" Dia, 1\" LOC, 0.0300\" Radius, 5 Flute, Solid Carbide - 2-1/2\" OAL, 3/8\" Shank Dia, AlTiN Finish, Single End, Centercutting",
+          "score": 0.7756,
+          "llave": "|accupro - corner radius endmill 3/8 dia 1 loc 0.0300 radius 5 flute solid carbide - 2-1/2 oal 3/8 shank dia altin finish single end centercutting",
+          "exacto": false,
+          "proveedor": "MSC Industrial Supply"
+        },
+        {
+          "refId": "v6OMY57wVQbZeYGDMnjR#1",
+          "titulo": "10 x 1/4\" 4FL REG",
+          "score": 0.7457,
+          "llave": "|10 x 1/4 4fl reg",
+          "exacto": false,
+          "proveedor": "Online Carbide"
+        },
+        {
+          "refId": "v6OMY57wVQbZeYGDMnjR#3",
+          "titulo": "5 x 1/4\" 4FL REG BALL",
+          "score": 0.7424,
+          "llave": "|5 x 1/4 4fl reg ball",
+          "exacto": false,
+          "proveedor": "Online Carbide"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "cSRufmPGRBuKwGT1Tyza#0",
+      "descripcion": "Alloy Steel Shoulder Screw, 1/2\" Shoulder Diameter, 3\" Shoulder Length, 3/8\"-16 Thread, 91259A724",
+      "llave": "|alloy steel shoulder screw 1/2 shoulder diameter 3 shoulder length 3/8 -16 thread 91259a724",
+      "proveedor": "McMaster-Carr",
+      "fecha": "2026-06-09",
+      "exactosEnIndice": 2,
+      "mejorMismaLlave": 0.8774521661564476,
+      "mejorOtraLlave": 0.7906700278195119,
+      "top": [
+        {
+          "refId": "3okEcv41mDKf28jM8WGL#3",
+          "titulo": "Alloy Steel Shoulder Screw, 1/2\" Shoulder Diameter, 3\" Shoulder Length, 3/8\"-16 Thread, 91259A724",
+          "score": 0.8775,
+          "llave": "|alloy steel shoulder screw 1/2 shoulder diameter 3 shoulder length 3/8 -16 thread 91259a724",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "RMLsxlJ844oa8nioMtvz#1",
+          "titulo": "Alloy Steel Shoulder Screw, 1/2\" Shoulder Diameter, 3\" Shoulder Length, 3/8\"-16 Thread",
+          "score": 0.8466,
+          "llave": "|alloy steel shoulder screw 1/2 shoulder diameter 3 shoulder length 3/8 -16 thread",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "0eZ8b7T1QA9lnsDs47PA#0",
+          "titulo": "18-8 Stainless Steel Shoulder Screw, 4 Mm Shoulder Diameter, 20 Mm Shoulder Length, M3 x 0.5 Mm Thread 90265A124",
+          "score": 0.7907,
+          "llave": "|18-8 stainless steel shoulder screw 4 mm shoulder diameter 20 mm shoulder length m3 x 0.5 mm thread 90265a124",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "RMLsxlJ844oa8nioMtvz#5",
+          "titulo": "316 Stainless Steel Shoulder Screw, 3/16\" Shoulder Diameter, 1/4\" Shoulder Length, 8-32 Thread",
+          "score": 0.7887,
+          "llave": "|316 stainless steel shoulder screw 3/16 shoulder diameter 1/4 shoulder length 8-32 thread",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "gg0XFBhK4MvmWzvwQyRY#2",
+          "titulo": "Made in USA - Shoulder Screw: 1/4\" Shoulder Dia, 5/8\" Shoulder Length, #10-24, 18-8 & 300, Stainless Steel, Hex Socket - 3/8\" Head Dia",
+          "score": 0.7853,
+          "llave": "|made in usa - shoulder screw 1/4 shoulder dia 5/8 shoulder length 10-24 18-8 300 stainless steel hex socket - 3/8 head dia",
+          "exacto": false,
+          "proveedor": "MSC Industrial Supply"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "719cJhonkFgOB7kn1x3q#0",
+      "descripcion": "Husky 16 oz. 100% Full Synthetic Compressor Oil",
+      "llave": "|husky 16 oz. 100 full synthetic compressor oil",
+      "proveedor": "Home Depot",
+      "fecha": "2026-06-26",
+      "exactosEnIndice": 1,
+      "mejorMismaLlave": 0.85869799052494,
+      "mejorOtraLlave": 0.7055060453972771,
+      "top": [
+        {
+          "refId": "UruNM2PPS5bZoEDVHGKo#0",
+          "titulo": "Husky 16 oz. 100% Full Synthetic Compressor Oil",
+          "score": 0.8587,
+          "llave": "|husky 16 oz. 100 full synthetic compressor oil",
+          "exacto": true,
+          "proveedor": "Home Depot"
+        },
+        {
+          "refId": "0g8f3l2AMZb4m8d7j5TG#0",
+          "titulo": "E110576 Seal Husky C603H Air Compressor",
+          "score": 0.7055,
+          "llave": "|e110576 seal husky c603h air compressor",
+          "exacto": false,
+          "proveedor": "airpressorsm"
+        },
+        {
+          "refId": "rNl7AEu8UzuIR9MuFyuA#0",
+          "titulo": "E100794 Air Compressor Air Filter Husky ** OEM ** (402172979039)",
+          "score": 0.69,
+          "llave": "|e100794 air compressor air filter husky oem 402172979039",
+          "exacto": false,
+          "proveedor": "eBay"
+        },
+        {
+          "refId": "j2eRDudDGmmuvak9zYQV#5",
+          "titulo": "Mobil SHC 634 Gear Oil, 32 Fl. oz. Bottle (2158K66)",
+          "score": 0.6561,
+          "llave": "|mobil shc 634 gear oil 32 fl. oz. bottle 2158k66",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "mLNChArGywWw0mFfjLx8#0",
+          "titulo": "30X47X6 HMSA10 RG (MRO# 2576130)",
+          "score": 0.626,
+          "llave": "|30x47x6 hmsa10 rg mro 2576130",
+          "exacto": false,
+          "proveedor": "MRO Supply"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "RMLsxlJ844oa8nioMtvz#2",
+      "descripcion": "Cable Tie Mount, Screw-In, Two-Way, For 0.35\" x 0.12\" Cable Tie, Black",
+      "llave": "|cable tie mount screw-in two-way for 0.35 x 0.12 cable tie black",
+      "proveedor": "McMaster-Carr",
+      "fecha": "2026-01-13",
+      "exactosEnIndice": 2,
+      "mejorMismaLlave": 0.8718638419248437,
+      "mejorOtraLlave": 0.690590141907924,
+      "top": [
+        {
+          "refId": "7yLYTkTKwtPujf6BScMd#2",
+          "titulo": "Cable Tie Mount, Screw-In, Two-Way, For 0.35\" x 0.12\" Cable Tie, Black",
+          "score": 0.8719,
+          "llave": "|cable tie mount screw-in two-way for 0.35 x 0.12 cable tie black",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "YWe0b5j6iRfjfUNXyQBH#2",
+          "titulo": "Cable Tie Mount, Screw-In, Two-Way, For 0.35\" x 0.12\" Cable Tie, Black 7566K302",
+          "score": 0.8539,
+          "llave": "|cable tie mount screw-in two-way for 0.35 x 0.12 cable tie black 7566k302",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "RMLsxlJ844oa8nioMtvz#6",
+          "titulo": "Draw Latch, Screw On, Black-Painted Steel, 2-7/8\" Long x 1-1/2\" Wide",
+          "score": 0.6906,
+          "llave": "|draw latch screw on black-painted steel 2-7/8 long x 1-1/2 wide",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "k65MCn2RbCiAbnjQwE1m#1",
+          "titulo": "Draw Latch, Screw On, Black-Painted Steel, 2-7/8\" Long x 1-1/2\" Wide 6082A15",
+          "score": 0.6843,
+          "llave": "|draw latch screw on black-painted steel 2-7/8 long x 1-1/2 wide 6082a15",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "RMLsxlJ844oa8nioMtvz#4",
+          "titulo": "Black-Phosphate Steel Thread-Locking Insert, Easy-To-Install, 8-32 Thread Size, 5/16\"-18 Tap Size",
+          "score": 0.6774,
+          "llave": "|black-phosphate steel thread-locking insert easy-to-install 8-32 thread size 5/16 -18 tap size",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "qQRlQouZUjpUxDFlvfiD#0",
+      "descripcion": "Compression Spring, 2.5\" Long, 0.375\" Od, 0.305\" Id, 9657K414",
+      "llave": "|compression spring 2.5 long 0.375 od 0.305 id 9657k414",
+      "proveedor": "McMaster-Carr",
+      "fecha": "2025-02-11",
+      "exactosEnIndice": 1,
+      "mejorMismaLlave": 0.8751459574214884,
+      "mejorOtraLlave": 0.8436396159106628,
+      "top": [
+        {
+          "refId": "9wrakTj8QiH30KqMoyoV#2",
+          "titulo": "Compression Spring, 2.5\" Long, 0.375\" Od, 0.305\" Id (9657K414)",
+          "score": 0.8751,
+          "llave": "|compression spring 2.5 long 0.375 od 0.305 id 9657k414",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "9wrakTj8QiH30KqMoyoV#3",
+          "titulo": "Compression Spring, 2\" Long, 0.313\" Od, 0.255\" Id (9657K153)",
+          "score": 0.8436,
+          "llave": "|compression spring 2 long 0.313 od 0.255 id 9657k153",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "k65MCn2RbCiAbnjQwE1m#0",
+          "titulo": "Compression Spring, 0.5\" Long, 0.125\" Od, 0.093\" Id 9657K266",
+          "score": 0.8403,
+          "llave": "|compression spring 0.5 long 0.125 od 0.093 id 9657k266",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "uQ8gBkA5FI2eHgE0tweX#4",
+          "titulo": "Compression Spring 0.5\" Long, 0.125\" OD, 0.093\" ID 9657K266",
+          "score": 0.8395,
+          "llave": "|compression spring 0.5 long 0.125 od 0.093 id 9657k266",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "EqlcVorW1ULN0SN0WXH0#1",
+          "titulo": "Compression Spring 0.5\" Long, 0.125\" OD, 0.093\" ID 9657K266",
+          "score": 0.8395,
+          "llave": "|compression spring 0.5 long 0.125 od 0.093 id 9657k266",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "cSRufmPGRBuKwGT1Tyza#1",
+      "descripcion": "Norton Toolroom Grinding Wheel for Metals, 38A, 7\" Diameter, 1/2\" Thick, 60 Grit, Abrasive Grade J, 4397A68",
+      "llave": "|norton toolroom grinding wheel for metals 38a 7 diameter 1/2 thick 60 grit abrasive grade j 4397a68",
+      "proveedor": "McMaster-Carr",
+      "fecha": "2026-06-09",
+      "exactosEnIndice": 1,
+      "mejorMismaLlave": 0.873099115673486,
+      "mejorOtraLlave": 0.8665564656140369,
+      "top": [
+        {
+          "refId": "A9zpGYmONnBOcidbGys8#0",
+          "titulo": "Norton Toolroom Grinding Wheel For Metals, 38A, 7\" Diameter, 1/2\" Thick, 60 Grit, Abrasive Grade J, 4397A68",
+          "score": 0.8731,
+          "llave": "|norton toolroom grinding wheel for metals 38a 7 diameter 1/2 thick 60 grit abrasive grade j 4397a68",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "CJUhxCBdYShCuKZdECzI#1",
+          "titulo": "Norton Toolroom Grinding Wheel for Metals 38A, 7\" Diameter, 1/2\" Thick, 60 Grit, Abrasive Grade J 4397A88 Your reference: Almacen / SUPRAJIT",
+          "score": 0.8666,
+          "llave": "|norton toolroom grinding wheel for metals 38a 7 diameter 1/2 thick 60 grit abrasive grade j 4397a88 your reference almacen / suprajit",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "mDgWqdGkyfnSSBo45uvF#0",
+          "titulo": "Norton Abrasives 61463685435 Combination Grit Benchstone, 4 In W, 1 In L,",
+          "score": 0.7456,
+          "llave": "|norton abrasives 61463685435 combination grit benchstone 4 in w 1 in l",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "5bC8kbW0mKhoqnEMm0Gu#0",
+          "titulo": "Norton Abrasives 61463685435 Combination Grit Benchstone, 4 In W, 1 In L, (226731696039)",
+          "score": 0.7359,
+          "llave": "|norton abrasives 61463685435 combination grit benchstone 4 in w 1 in l 226731696039",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "gg0XFBhK4MvmWzvwQyRY#1",
+          "titulo": "Accupro - Corner Radius End Mill: 3/8\" Dia, 1\" LOC, 0.0300\" Radius, 5 Flute, Solid Carbide - 2-1/2\" OAL, 3/8\" Shank Dia, AlTiN Finish, Single End, Centercutting",
+          "score": 0.699,
+          "llave": "|accupro - corner radius endmill 3/8 dia 1 loc 0.0300 radius 5 flute solid carbide - 2-1/2 oal 3/8 shank dia altin finish single end centercutting",
+          "exacto": false,
+          "proveedor": "MSC Industrial Supply"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "Ao6ZqSvvhQirN6ktZViv#0",
+      "descripcion": "1866-1030-ND\nMDR-10-5\nAC/DC DIN RAIL SUPPLY 5V 10W\nFrancisco / Suprajit / S01547 S01527",
+      "llave": "|1866-1030-nd mdr-10-5 ac/dc din rail supply 5v 10w francisco / suprajit / s01547 s01527",
+      "proveedor": "DigiKey",
+      "fecha": "2026-08-13",
+      "exactosEnIndice": 1,
+      "mejorMismaLlave": 0.9236581226020735,
+      "mejorOtraLlave": 0.8169982741141089,
+      "top": [
+        {
+          "refId": "Ao6ZqSvvhQirN6ktZViv#1",
+          "titulo": "1866-1030-ND\nMDR-10-5\nAC/DC DIN RAIL SUPPLY 5V 10W\nFrancisco / Suprajit / S01547 S01527",
+          "score": 0.9237,
+          "llave": "|1866-1030-nd mdr-10-5 ac/dc din rail supply 5v 10w francisco / suprajit / s01547 s01527",
+          "exacto": true,
+          "proveedor": "DigiKey"
+        },
+        {
+          "refId": "pplruY7HAlG93fY0gGo8#0",
+          "titulo": "1866-3518-ND NDR-120-24 AC/DC DIN RAIL SUPPLY 24V 120W Francisco / Suprajit / S01547 S01527",
+          "score": 0.817,
+          "llave": "|1866-3518-nd ndr-120-24 ac/dc din rail supply 24v 120w francisco / suprajit / s01547 s01527",
+          "exacto": false,
+          "proveedor": "DigiKey"
+        },
+        {
+          "refId": "yT7EL83SeKHFV9CNVU1h#0",
+          "titulo": "1866-1036-ND MDR-20-24 AC/DC DIN RAIL SUPPLY 24V 24W Sensata S01251, S01252, S01253",
+          "score": 0.7976,
+          "llave": "|1866-1036-nd mdr-20-24 ac/dc din rail supply 24v 24w sensata s01251 s01252 s01253",
+          "exacto": false,
+          "proveedor": "DigiKey Electronics"
+        },
+        {
+          "refId": "3MSu3ZDHkWM4kDtcxXDP#0",
+          "titulo": "1866-1043-ND MDR-60-24 AC/DC DIN RAIL SUPPLY 24V 60W",
+          "score": 0.795,
+          "llave": "|1866-1043-nd mdr-60-24 ac/dc din rail supply 24v 60w",
+          "exacto": false,
+          "proveedor": "DigiKey Electronics"
+        },
+        {
+          "refId": "JcyYXeb54gWLc2IMyIa2#2",
+          "titulo": "Power Supplies - DIN Rail Mount Power Supplies - DIN Rail Mount 76.8W 24V 3.2A EN55022 Class B",
+          "score": 0.7182,
+          "llave": "|power supplies - din rail mount power supplies - din rail mount 76.8w 24v 3.2a en55022 class b",
+          "exacto": false,
+          "proveedor": "Mouser Electronics"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "b3zlsrHtYhrBR8WhF7mK#0",
+      "descripcion": "NEW IN BOX GENUINE OMRON V680S-D2KF68M V680SD2KF68M RFID TAG (335821173102)",
+      "llave": "|new in box genuine omron v680s-d2kf68m v680sd2kf68m rfid tag 335821173102",
+      "proveedor": "EBAY",
+      "fecha": "2026-08-13",
+      "exactosEnIndice": 1,
+      "mejorMismaLlave": 0.8976614569442639,
+      "mejorOtraLlave": 0.8647528164911167,
+      "top": [
+        {
+          "refId": "BWjUGnMSmPZ5G5PyRAKi#0",
+          "titulo": "NEW IN BOX GENUINE OMRON V680S-D2KF68M V680SD2KF68M RFID TAG (335821173102)",
+          "score": 0.8977,
+          "llave": "|new in box genuine omron v680s-d2kf68m v680sd2kf68m rfid tag 335821173102",
+          "exacto": true,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "VMR8V7VjTDfwgDkjUUMx#0",
+          "titulo": "NEW IN BOX GENUINE OMRON V680S-D2KF68M V680SD2KF68M RFID TAG (336746901860)",
+          "score": 0.8648,
+          "llave": "|new in box genuine omron v680s-d2kf68m v680sd2kf68m rfid tag 336746901860",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "hSW89UGpXqvzlhjePqAj#0",
+          "titulo": "1PC OBA17-052 Encoder fast ship OBA17052 NEW MITSUBISHI In Box (366322426983)",
+          "score": 0.6701,
+          "llave": "|1pc oba17-052 encoder fast ship oba17052 new mitsubishi in box 366322426983",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "5pyXVSCNZ5YGXO4GW2wz#0",
+          "titulo": "2PCS/New In Box MITSUBISHI X089D256H01 Wire EDM Power Feed Contact",
+          "score": 0.6696,
+          "llave": "|2pcs/new in box mitsubishi x089d256h01 wire edm power feed contact",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "EA1mAQuKzDJLzdxFMWhg#0",
+          "titulo": "1PC New SMC CDUJB10-6DM CDUJB106DM Cylinder Free Shipping #SM (389029065356)",
+          "score": 0.6523,
+          "llave": "|1pc new smc cdujb10-6dm cdujb106dm cylinder free shipping sm 389029065356",
+          "exacto": false,
+          "proveedor": "EBAY"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "CTUmQcmIKckeMpdmweuY#0",
+      "descripcion": "Tool Balancer TECNA 9313 (4.4 to 6.6lb, 5.2ft)",
+      "llave": "|tool balancer tecna 9313 4.4 to 6.6lb 5.2ft",
+      "proveedor": "Tool Balancers USA",
+      "fecha": "2026-08-19",
+      "exactosEnIndice": 1,
+      "mejorMismaLlave": 0.8925343310027299,
+      "mejorOtraLlave": 0.6521198488043958,
+      "top": [
+        {
+          "refId": "WhfIgjLgqWjqNcHmOZeb#0",
+          "titulo": "Tool Balancer TECNA 9313 (4.4 to 6.6lb, 5.2ft)",
+          "score": 0.8925,
+          "llave": "|tool balancer tecna 9313 4.4 to 6.6lb 5.2ft",
+          "exacto": true,
+          "proveedor": "Tool Balancers USA"
+        },
+        {
+          "refId": "WgQfXL6ImHzNvGwRnSST#0",
+          "titulo": "Adjustable-Height Tooling Ball, Press Fit, 1-Piece 1/2\" Ball Diameter, 0.94\" Shank-To-Ball-Center",
+          "score": 0.6521,
+          "llave": "|adjustable-height tooling ball press fit 1-piece 1/2 ball diameter 0.94 shank-to-ball-center",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "mrU5KsFnLeQtOXgKli69#5",
+          "titulo": "Toggle Clamp Holding Screw, Rubber Fixed Flat Tip, 2-1/8\" Overall Length, Steel, 5147A63",
+          "score": 0.6404,
+          "llave": "|toggle clamp holding screw rubber fixed flat tip 2-1/8 overall length steel 5147a63",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "eGS4uYhafrTEO1Jen4d4#0",
+          "titulo": "Ingersoll Rand WP110S1S Auto Stall Assembly Tool New (187763946719)",
+          "score": 0.64,
+          "llave": "|ingersoll rand wp110s1s auto stall assembly tool new 187763946719",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "tnPzbLBqLz3IHanzhUvO#0",
+          "titulo": "Brand New Single Knurl Straight Linear Knurling Tool Holder 3/4\" x 3/4\" x 5\" (163983066499)",
+          "score": 0.6394,
+          "llave": "|brand new single knurl straight linear knurling tool holder 3/4 x 3/4 x 5 163983066499",
+          "exacto": false,
+          "proveedor": "EBAY"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "lq3retZiKJncReOXKjvE#1",
+      "descripcion": "Nitride-Coated H13 Tool Steel Ejector Pin, 1/4\" Diameter, 6\" Long, 93772A118",
+      "llave": "|nitride-coated h13 tool steel ejector pin 1/4 diameter 6 long 93772a118",
+      "proveedor": "McMaster-Carr",
+      "fecha": "2026-06-26",
+      "exactosEnIndice": 1,
+      "mejorMismaLlave": 0.88964385394419,
+      "mejorOtraLlave": 0.8692051999809789,
+      "top": [
+        {
+          "refId": "CwB96xxSFQKPNvBdTwgG#0",
+          "titulo": "Nitride-Coated H13 Tool Steel Ejector Pin, 1/4\" Diameter, 6\" Long (93772A118)",
+          "score": 0.8896,
+          "llave": "|nitride-coated h13 tool steel ejector pin 1/4 diameter 6 long 93772a118",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "on3HmgfN7MY7kDpBkAFB#1",
+          "titulo": "Nitride-Coated H13 Tool Steel Ejector Pin, 3/16\" Diameter, 4\" Long (93772A528)",
+          "score": 0.8692,
+          "llave": "|nitride-coated h13 tool steel ejector pin 3/16 diameter 4 long 93772a528",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "on3HmgfN7MY7kDpBkAFB#0",
+          "titulo": "M2 Tool Steel Ejector Pin, 0.1559\" Diameter, 6\" Long (95203A571)",
+          "score": 0.7919,
+          "llave": "|m2 tool steel ejector pin 0.1559 diameter 6 long 95203a571",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "CQV70Vsxh5g5Bz7eUBdP#0",
+          "titulo": "P14-14 PCS Company's Ejector Pin, Straight, Hardened Throughout®, 13/64\" Diameter, Length 14\"",
+          "score": 0.7746,
+          "llave": "|p14-14 company s ejector pin straight hardened throughout 13/64 diameter length 14",
+          "exacto": false,
+          "proveedor": "PCS Company"
+        },
+        {
+          "refId": "2hwe7u6zJQ85caOiHBrI#2",
+          "titulo": "Core Pin, M2 High-Speed Tool Steel, 0.092\" Diameter, 2-1/2\" Long (98378A705)",
+          "score": 0.7603,
+          "llave": "|core pin m2 high-speed tool steel 0.092 diameter 2-1/2 long 98378a705",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "OFqydYy8UyGv8ckSJ0aU#0",
+      "descripcion": "Insertion Heater With Standard Wire Lead Covering For 3/8\" Hole, 120V Ac, 1\" Long Heating Element, 100W (3818K711)",
+      "llave": "|insertion heater with standard wire lead covering for 3/8 hole 120v ac 1 long heating element 100w 3818k711",
+      "proveedor": "McMaster-Carr",
+      "fecha": "2026-04-07",
+      "exactosEnIndice": 1,
+      "mejorMismaLlave": 0.8723383646119568,
+      "mejorOtraLlave": 0.8507980209370469,
+      "top": [
+        {
+          "refId": "OFqydYy8UyGv8ckSJ0aU#2",
+          "titulo": "Insertion Heater With Standard Wire Lead Covering For 3/8\" Hole, 120V Ac, 1\" Long Heating Element, 100W (3818K711)",
+          "score": 0.8723,
+          "llave": "|insertion heater with standard wire lead covering for 3/8 hole 120v ac 1 long heating element 100w 3818k711",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "qbi36rbLtVHp0ngE309M#3",
+          "titulo": "Insertion Heater with Standard Wire Lead Covering for 3/8\" Hole, 120V AC, 1\" Long Heating Element, 100W 3618K711",
+          "score": 0.8508,
+          "llave": "|insertion heater with standard wire lead covering for 3/8 hole 120v ac 1 long heating element 100w 3618k711",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "3buKZD8Ir4t1CDk9IxsB#7",
+          "titulo": "Insertion Heater with Standard Wire Lead Covering for 3/8\" Hole, 120V AC, 1\" Long Heating Element, 150W",
+          "score": 0.8342,
+          "llave": "|insertion heater with standard wire lead covering for 3/8 hole 120v ac 1 long heating element 150w",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "0TwW76pVkO6bwBuj8gzu#2",
+          "titulo": "Insertion Heater with Standard Wire Lead Covering for 3/8\" Hole, 120V AC, 1\" Long Heating Element, 150W 35025K159",
+          "score": 0.815,
+          "llave": "|insertion heater with standard wire lead covering for 3/8 hole 120v ac 1 long heating element 150w 35025k159",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "OFqydYy8UyGv8ckSJ0aU#1",
+          "titulo": "Thermocouple Probe For Surfaces, Bolt-On, Type J, Wire Leads Connection, 3/16\" Bolt Hole Diameter (3848K22)",
+          "score": 0.7098,
+          "llave": "|thermocouple probe for surfaces bolt-on type j wire leads connection 3/16 bolt hole diameter 3848k22",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "OFqydYy8UyGv8ckSJ0aU#1",
+      "descripcion": "Thermocouple Probe For Surfaces, Bolt-On, Type J, Wire Leads Connection, 3/16\" Bolt Hole Diameter (3848K22)",
+      "llave": "|thermocouple probe for surfaces bolt-on type j wire leads connection 3/16 bolt hole diameter 3848k22",
+      "proveedor": "McMaster-Carr",
+      "fecha": "2026-04-07",
+      "exactosEnIndice": 2,
+      "mejorMismaLlave": 0.8915809532612657,
+      "mejorOtraLlave": 0.865491178101924,
+      "top": [
+        {
+          "refId": "OFqydYy8UyGv8ckSJ0aU#3",
+          "titulo": "Thermocouple Probe For Surfaces, Bolt-On, Type J, Wire Leads Connection, 3/16\" Bolt Hole Diameter (3848K22)",
+          "score": 0.8916,
+          "llave": "|thermocouple probe for surfaces bolt-on type j wire leads connection 3/16 bolt hole diameter 3848k22",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "0TwW76pVkO6bwBuj8gzu#1",
+          "titulo": "Thermocouple Probe for Surfaces Bolt-on, Type J, Wire Leads Connection, 3/16\" Bolt Hole Diameter 3648K22",
+          "score": 0.8655,
+          "llave": "|thermocouple probe for surfaces bolt-on type j wire leads connection 3/16 bolt hole diameter 3648k22",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "qbi36rbLtVHp0ngE309M#2",
+          "titulo": "Thermocouple Probe for Surfaces Bolt-on, Type J, Wire Leads Connection, 3/16\" Bolt Hole Diameter 3648K22",
+          "score": 0.863,
+          "llave": "|thermocouple probe for surfaces bolt-on type j wire leads connection 3/16 bolt hole diameter 3648k22",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "3buKZD8Ir4t1CDk9IxsB#4",
+          "titulo": "Thermocouple Probe for Surfaces, Bolt-on, Type J, Wire Leads Connection, 3/16\" Bolt Hole Diameter",
+          "score": 0.8448,
+          "llave": "|thermocouple probe for surfaces bolt-on type j wire leads connection 3/16 bolt hole diameter",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "qbi36rbLtVHp0ngE309M#1",
+          "titulo": "Thermocouple Connector Round-Pin Male, Quick-Wire, 400 Degree F Maximum, Type J, Black 3869K16",
+          "score": 0.7524,
+          "llave": "|thermocouple connector round-pin male quick-wire 400 degree f maximum type j black 3869k16",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "SoKdtOCRA2KQiXKFmFKk#0",
+      "descripcion": "XHF 1000 PCS AWG 22/0.5mm² Wire Ferrules Insulated Copper Crimp Connectors, Crimp Pin Cord End Terminals White",
+      "llave": "|xhf 1000 awg 22/0.5mm wire ferrules insulated copper crimp connectors crimp pin cord end terminals white",
+      "proveedor": "Amazon",
+      "fecha": "2026-03-14",
+      "exactosEnIndice": 1,
+      "mejorMismaLlave": 0.9015627331794077,
+      "mejorOtraLlave": 0.8447775455223179,
+      "top": [
+        {
+          "refId": "SoKdtOCRA2KQiXKFmFKk#1",
+          "titulo": "XHF 1000 PCS AWG 22/0.5mm² Wire Ferrules Insulated Copper Crimp Connectors, Crimp Pin Cord End Terminals White",
+          "score": 0.9016,
+          "llave": "|xhf 1000 awg 22/0.5mm wire ferrules insulated copper crimp connectors crimp pin cord end terminals white",
+          "exacto": true,
+          "proveedor": "Amazon"
+        },
+        {
+          "refId": "8S26BW4JWgZ8e3Tth1Hc#0",
+          "titulo": "XHF 1000 PCS AWG 22/0.5mm² Wire Ferrules Insulated 22(0.5mm²), White (388775200048)",
+          "score": 0.8448,
+          "llave": "|xhf 1000 awg 22/0.5mm wire ferrules insulated 22 0.5mm white 388775200048",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "3buKZD8Ir4t1CDk9IxsB#11",
+          "titulo": "Noninsulated Crimp-on Butt Splices for 22-18 Wire Gauge, Packs of 100",
+          "score": 0.712,
+          "llave": "|noninsulated crimp-on butt splices for 22-18 wire gauge packs of 100",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "nmdUJ1o7LLbCUVclP0Wp#0",
+          "titulo": "Avery Self-Adhesive Hole Reinforcement Stickers, 1/4\" Diameter Hole Punch Reinforcement Labels, White, Non-Printable, 1,000 Labels Total (5720)",
+          "score": 0.6574,
+          "llave": "|avery self-adhesive hole reinforcement stickers 1/4 diameter hole punch reinforcement labels white non-printable 1 000 labels total 5720",
+          "exacto": false,
+          "proveedor": "Amazon"
+        },
+        {
+          "refId": "OVzGghtpOqBX4Uffqci7#0",
+          "titulo": "ZOERAX 200-Pack RJ45 Cat6 Pass Through Connector RJ45 Modular Plugs for Solid or Stranded UTP Cable",
+          "score": 0.6567,
+          "llave": "|zoerax 200-pack rj45 cat6 pass through connector rj45 modular plugs for solid or stranded utp cable",
+          "exacto": false,
+          "proveedor": "Amazon"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "k2TkZLxdqZEiVsJVQuUF#0",
+      "descripcion": "Friction-Grip Stem Swivel Caster with Grip Ring, Total Lock and 5\" Diameter 65A Rubber Wheel 2512T66",
+      "llave": "|friction-grip stem swivel caster with grip ring total lock and 5 diameter 65a rubber wheel 2512t66",
+      "proveedor": "McMaster-Carr",
+      "fecha": "2026-07-30",
+      "exactosEnIndice": 1,
+      "mejorMismaLlave": 0.8944628012462119,
+      "mejorOtraLlave": 0.6941192271767236,
+      "top": [
+        {
+          "refId": "b2c8GmDkyOeil5UvLuMd#0",
+          "titulo": "Friction-Grip Stem Swivel Caster With Grip Ring, Total Lock And 5\" Diameter 65A Rubber Wheel (2512T66)",
+          "score": 0.8945,
+          "llave": "|friction-grip stem swivel caster with grip ring total lock and 5 diameter 65a rubber wheel 2512t66",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "j2eRDudDGmmuvak9zYQV#0",
+          "titulo": "Thrust-Load-Rated Threaded Track Roller, Corrosion-Resistant, 1/2\" Roller Diameter, 5/16\" Roller Width (3668K12)",
+          "score": 0.6941,
+          "llave": "|thrust-load-rated threaded track roller corrosion-resistant 1/2 roller diameter 5/16 roller width 3668k12",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "mrU5KsFnLeQtOXgKli69#5",
+          "titulo": "Toggle Clamp Holding Screw, Rubber Fixed Flat Tip, 2-1/8\" Overall Length, Steel, 5147A63",
+          "score": 0.6763,
+          "llave": "|toggle clamp holding screw rubber fixed flat tip 2-1/8 overall length steel 5147a63",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "b2c8GmDkyOeil5UvLuMd#1",
+          "titulo": "Nylon Adjustable Handle With 5/16\"-18 Thread x 13/16\" Long Steel Stud, 1-3/4\" Projection, Black (6305K58)",
+          "score": 0.6718,
+          "llave": "|nylon adjustable handle with 5/16 -18 thread x 13/16 long steel stud 1-3/4 projection black 6305k58",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "8MbtLAOqjzLg5rmx453M#0",
+          "titulo": "Knob-Grip Locking Quick-Release Pin With Ring, 17-4 Ph Stainless Steel, 3/8\" Diameter, 1-3/4\" Usable Long",
+          "score": 0.6712,
+          "llave": "|knob-grip locking quick-release pin with ring 17-4 ph stainless steel 3/8 diameter 1-3/4 usable long",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "eEPVDVwZ8pCS9jNIuruS#0",
+      "descripcion": "Mitsubishi HC-MF053-S3 Servo Motor HCMF053S3 1PCS (355157416304)",
+      "llave": "|mitsubishi hc-mf053-s3 servo motor hcmf053s3 1pcs 355157416304",
+      "proveedor": "EBAY",
+      "fecha": "2026-07-29",
+      "exactosEnIndice": 1,
+      "mejorMismaLlave": 0.888438783105288,
+      "mejorOtraLlave": 0.7301108837505466,
+      "top": [
+        {
+          "refId": "u75X8uDcrY1fE9oFtD3i#0",
+          "titulo": "Mitsubishi HC-MF053-S3 Servo Motor HCMF053S3 1PCS (355157416304)",
+          "score": 0.8884,
+          "llave": "|mitsubishi hc-mf053-s3 servo motor hcmf053s3 1pcs 355157416304",
+          "exacto": true,
+          "proveedor": "eBay"
+        },
+        {
+          "refId": "b3zlsrHtYhrBR8WhF7mK#1",
+          "titulo": "NEW Mitsubishi OBA17-052 Servo Encoder (196390096307)",
+          "score": 0.7301,
+          "llave": "|new mitsubishi oba17-052 servo encoder 196390096307",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "hSW89UGpXqvzlhjePqAj#0",
+          "titulo": "1PC OBA17-052 Encoder fast ship OBA17052 NEW MITSUBISHI In Box (366322426983)",
+          "score": 0.7062,
+          "llave": "|1pc oba17-052 encoder fast ship oba17052 new mitsubishi in box 366322426983",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "5pyXVSCNZ5YGXO4GW2wz#0",
+          "titulo": "2PCS/New In Box MITSUBISHI X089D256H01 Wire EDM Power Feed Contact",
+          "score": 0.7011,
+          "llave": "|2pcs/new in box mitsubishi x089d256h01 wire edm power feed contact",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "eK4k6ePGYVsXxR3Ao8FR#0",
+          "titulo": "PHOENIX CONTACT HC-B24-TFL/PG29S / HCB24TFLPG29S (NEW NO BOX) (392308355191)",
+          "score": 0.6709,
+          "llave": "|phoenix contact hc-b24-tfl/pg29s / hcb24tflpg29s new no box 392308355191",
+          "exacto": false,
+          "proveedor": "EBAY"
+        }
+      ]
+    },
+    {
+      "grupo": "repetida",
+      "refId": "lq3retZiKJncReOXKjvE#0",
+      "descripcion": "H Series Timing Belt, Trade No. 700H100, 6484K186",
+      "llave": "|h series timing belt trade no. 700h100 6484k186",
+      "proveedor": "McMaster-Carr",
+      "fecha": "2026-06-26",
+      "exactosEnIndice": 2,
+      "mejorMismaLlave": 0.8712097904286927,
+      "mejorOtraLlave": 0.6661539723970505,
+      "top": [
+        {
+          "refId": "lq3retZiKJncReOXKjvE#2",
+          "titulo": "H Series Timing Belt, Trade No. 700H100, 6484K186",
+          "score": 0.8712,
+          "llave": "|h series timing belt trade no. 700h100 6484k186",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "7fI4n1HrqGV43fSJ8Fv7#0",
+          "titulo": "H Series Timing Belt, Trade No. 700H100, 6484K186, Your reference: OHD / BODEGA",
+          "score": 0.8579,
+          "llave": "|h series timing belt trade no. 700h100 6484k186 your reference ohd / bodega",
+          "exacto": true,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "mLNChArGywWw0mFfjLx8#1",
+          "titulo": "45X68X10 HMS5 V (MRO# 735419)",
+          "score": 0.6662,
+          "llave": "|45x68x10 hms5 v mro 735419",
+          "exacto": false,
+          "proveedor": "MRO Supply"
+        },
+        {
+          "refId": "mrU5KsFnLeQtOXgKli69#0",
+          "titulo": "Gear Cutter For 20 Degree Gear Pressure Angle & 8 Pitch, Trade #4, 6378N64",
+          "score": 0.6647,
+          "llave": "|gear cutter for 20 degree gear pressure angle 8 pitch trade 4 6378n64",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "on3HmgfN7MY7kDpBkAFB#2",
+          "titulo": "Drive Pulley For 4L, A V-Belts, 1.5\" Od, For 3/8\" Shaft Diameter (6245K111)",
+          "score": 0.6629,
+          "llave": "|drive pulley for 4l a v-belts 1.5 od for 3/8 shaft diameter 6245k111",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "qN8sYdUMVPt2K00VsG7c#0",
+      "descripcion": "10 Unidades De Pen Drives Usb 2.0 ... Color: 5 Random Colors",
+      "llave": "|10 de pen drives usb 2.0 ... color 5 random colors",
+      "proveedor": "Mercado Libre",
+      "fecha": "2026-09-14",
+      "exactosEnIndice": 1,
+      "mejorMismaLlave": 0.8192789823544795,
+      "mejorOtraLlave": 0.6466413807662355,
+      "top": [
+        {
+          "refId": "qN8sYdUMVPt2K00VsG7c#1",
+          "titulo": "10 Unidades De Pen Drives Usb 2.0 ...",
+          "score": 0.8193,
+          "llave": "|10 de pen drives usb 2.0 ...",
+          "exacto": true,
+          "proveedor": "Mercado Libre"
+        },
+        {
+          "refId": "SPsrhgA8I0sHsgdsBgaO#3",
+          "titulo": "10pcs BS1010 deburring blades, 3.2mm, debur plastic, steel, aluminum, bin 219 (264548913353)",
+          "score": 0.6466,
+          "llave": "|10pcs bs1010 deburring blades 3.2mm debur plastic steel aluminum bin 219 264548913353",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "9SdnNE4tRY3yhcTiQtD1#2",
+          "titulo": "OSCARBIDE Carbide Turning Inserts CCMT060204(CCMT21.51) CCMT Insert Mutilayer Coated CNC Lathe Inserts for Lathe Turning Tool Holder Cut Off Tools, 10 Pieces",
+          "score": 0.6404,
+          "llave": "|oscarbide carbide turning inserts ccmt060204 ccmt21.51 ccmt insert mutilayer coated cnc lathe inserts for lathe turning tool holder cut off tools 10 pieces",
+          "exacto": false,
+          "proveedor": "Amazon"
+        },
+        {
+          "refId": "299rIQ5QlL1uz9xxMBRK#0",
+          "titulo": "ZCC.CT DNMG110404 DNMG110408 DNMG150404 DNMG150408 DNMG150604 DNMG150608 DNMG150612 ... DNMG150604-EF YBG205, 10pcs, China Mainland",
+          "score": 0.6393,
+          "llave": "|zcc.ct dnmg110404 dnmg110408 dnmg150404 dnmg150408 dnmg150604 dnmg150608 dnmg150612 ... dnmg150604-ef ybg205 10pcs china mainland",
+          "exacto": false,
+          "proveedor": "ALI EXPRESS"
+        },
+        {
+          "refId": "0Rpxbm3upADwhLH1FD3d#0",
+          "titulo": "CCMT 2152 C5 TIN COATED CARBIDE INSERTS 10 PIECES CCMT21.52 C5 TIN COATED",
+          "score": 0.6369,
+          "llave": "|ccmt 2152 c5 tin coated carbide inserts 10 pieces ccmt21.52 c5 tin coated",
+          "exacto": false,
+          "proveedor": "EBAY"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "MNdjnaB6etdb5kmbIuy0#0",
+      "descripcion": "10:1 Cast Iron Right Angle Worm Gear Reducer, Flange In (56C), Left Hand Shaft Out, Worldwide, HdRF206-10/1-L-56C",
+      "llave": "|10 1 cast iron right angle worm gear reducer flange in 56c left hand shaft out worldwide hdrf206-10/1-l-56c",
+      "proveedor": "Dealers Industrial Equipment, LLC",
+      "fecha": "2026-09-11",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.646795340302173,
+      "top": [
+        {
+          "refId": "mLNChArGywWw0mFfjLx8#0",
+          "titulo": "30X47X6 HMSA10 RG (MRO# 2576130)",
+          "score": 0.6468,
+          "llave": "|30x47x6 hmsa10 rg mro 2576130",
+          "exacto": false,
+          "proveedor": "MRO Supply"
+        },
+        {
+          "refId": "mrU5KsFnLeQtOXgKli69#0",
+          "titulo": "Gear Cutter For 20 Degree Gear Pressure Angle & 8 Pitch, Trade #4, 6378N64",
+          "score": 0.6443,
+          "llave": "|gear cutter for 20 degree gear pressure angle 8 pitch trade 4 6378n64",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "j2fQNneWJv20jhYLATq9#10",
+          "titulo": "1033086 1655 \"B\" .2380 ST/FL ST/SH HSS LEGACY PART# MT5022179 MFG#:433-0.238 : Morse Cutting",
+          "score": 0.6436,
+          "llave": "|1033086 1655 b .2380 st/fl st/sh hss legacy part mt5022179 mfg 433-0.238 morse cutting",
+          "exacto": false,
+          "proveedor": "PTSOLUTIONS"
+        },
+        {
+          "refId": "Jz7CwRaficQupeQf96v9#0",
+          "titulo": "45X68X10 C Metric Oil Seal 45x68x10mm Nitrile Rotary Shaft DURUS (127649082220)",
+          "score": 0.641,
+          "llave": "|45x68x10 c metric oil seal 45x68x10mm nitrile rotary shaft durus 127649082220",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "HrM73gGbmWvbEwQ265Wb#0",
+          "titulo": "De-Sta-Co - Manual Hold-Down Toggle Clamp: Horizontal, 150.00 lb Capacity, U-Bar, Flanged Base - 60 deg Handle Movement, 90 deg Bar Opening, Carbon Steel",
+          "score": 0.6396,
+          "llave": "|de-sta-co - manual hold-down toggle clamp horizontal 150.00 lb capacity u-bar flanged base - 60 deg handle movement 90 deg bar opening carbon steel",
+          "exacto": false,
+          "proveedor": "MSC Industrial Supply"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "hBq0n2ZLXGlvdRwjTJPk#0",
+      "descripcion": "Tension and Compression Load Cell, 100kg/1 ton/2 ton to 20 ton (Capacity: 1 ton, Display Controller: No, With Transmitter: No)",
+      "llave": "|tension and compression load cell 100kg/1 ton/2 ton to 20 ton capacity 1 ton display controller no with transmitter no",
+      "proveedor": "ATO",
+      "fecha": "2026-09-10",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.6219569596463523,
+      "top": [
+        {
+          "refId": "KYqHoiDwv3qoTVJMbcMX#0",
+          "titulo": "AutomationDirect ice cube control relay, socket mount, encapsulated push-to-test, 24 VDC coil voltage, SPDT, (1) N.O., (1) N.C., 15A contact rating, 5-pin, LED indicator(s). Requires 781-1C-SKT mounting socket. 781-1C-24D",
+          "score": 0.622,
+          "llave": "|automationdirect ice cube control relay socket mount encapsulated push-to-test 24 vdc coil voltage spdt 1 n.o. 1 n.c. 15a contact rating 5-pin led indicator s . requires 781-1c-skt mounting socket. 781-1c-24d",
+          "exacto": false,
+          "proveedor": "AutomationDirect"
+        },
+        {
+          "refId": "p9pYQFV8eo583qQTayLE#2",
+          "titulo": "Clip de tracción para alimentador de torno CNC, extractor de barra CNC, tiradores de mango recto de una pieza para soldadura, mango recto, herramientas extractoras para mecanizado de 2.480 in (0.630",
+          "score": 0.6129,
+          "llave": "|clip de traccion para alimentador de torno cnc extractor de barra cnc tiradores de mango recto de una pieza para soldadura mango recto herramientas extractoras para mecanizado de 2.480 in 0.630",
+          "exacto": false,
+          "proveedor": "Amazon"
+        },
+        {
+          "refId": "5Z7ntH8MqngLNtRcvOCf#0",
+          "titulo": "Compression Spring, 0.75\" Long, 0.3\" OD, 0.256\" ID, 9657K286. Your reference: Oscar / Siltech / SO 1268 1274 1273 1272 1271 1270 1269 1199",
+          "score": 0.6127,
+          "llave": "|compression spring 0.75 long 0.3 od 0.256 id 9657k286. your reference oscar / siltech / so 1268 1274 1273 1272 1271 1270 1269 1199",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "WgQfXL6ImHzNvGwRnSST#0",
+          "titulo": "Adjustable-Height Tooling Ball, Press Fit, 1-Piece 1/2\" Ball Diameter, 0.94\" Shank-To-Ball-Center",
+          "score": 0.6113,
+          "llave": "|adjustable-height tooling ball press fit 1-piece 1/2 ball diameter 0.94 shank-to-ball-center",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "j2eRDudDGmmuvak9zYQV#0",
+          "titulo": "Thrust-Load-Rated Threaded Track Roller, Corrosion-Resistant, 1/2\" Roller Diameter, 5/16\" Roller Width (3668K12)",
+          "score": 0.611,
+          "llave": "|thrust-load-rated threaded track roller corrosion-resistant 1/2 roller diameter 5/16 roller width 3668k12",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "qNBjZZC1BP6Zdggupmnm#0",
+      "descripcion": "Murrelektronik Cat5e Ethernet connection cable, M12 axial male D-coded to RJ45 axial male, 4-pole, 60 VDC, 1.5A, 22 AWG, TPE jacket, green, shielded, 49.2ft/ 15m cable length, IP67 (M12) IP20 (RJ45), data.",
+      "llave": "|murrelektronik cat5e ethernet connection cable m12 axial male d-coded to rj45 axial male 4-pole 60 vdc 1.5a 22 awg tpe jacket green shielded 49.2ft/ 15m cable length ip67 m12 ip20 rj45 data.",
+      "proveedor": "AutomationDirect.com, Inc.",
+      "fecha": "2026-09-10",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.9000781404544962,
+      "top": [
+        {
+          "refId": "qNBjZZC1BP6Zdggupmnm#2",
+          "titulo": "Murrelektronik Cat5e Ethernet connection cable, M12 axial male D-coded to RJ45 axial male, 4-pole, 60 VDC, 1.5A, 22 AWG, TPE jacket, green, shielded, 32.8ft/ 10m cable length, IP67 (M12) IP20 (RJ45), data.",
+          "score": 0.9001,
+          "llave": "|murrelektronik cat5e ethernet connection cable m12 axial male d-coded to rj45 axial male 4-pole 60 vdc 1.5a 22 awg tpe jacket green shielded 32.8ft/ 10m cable length ip67 m12 ip20 rj45 data.",
+          "exacto": false,
+          "proveedor": "AutomationDirect.com, Inc."
+        },
+        {
+          "refId": "qNBjZZC1BP6Zdggupmnm#1",
+          "titulo": "Murrelektronik Cat5e Ethernet connection cable, M12 axial male D-coded to RJ45 axial male, 4-pole, 60 VDC, 1.5A, 22 AWG, TPE jacket, green, shielded, 24.6ft/ 7.5m cable length, IP67 (M12) IP20 (RJ45), data.",
+          "score": 0.8955,
+          "llave": "|murrelektronik cat5e ethernet connection cable m12 axial male d-coded to rj45 axial male 4-pole 60 vdc 1.5a 22 awg tpe jacket green shielded 24.6ft/ 7.5m cable length ip67 m12 ip20 rj45 data.",
+          "exacto": false,
+          "proveedor": "AutomationDirect.com, Inc."
+        },
+        {
+          "refId": "xXi1LEISrucVUESM99El#0",
+          "titulo": "Murrelektronik Cat5e Ethernet connection cable, M12 axial male D-coded to RJ45 axial male, 4-pole, 60 VDC, 1.5A, 22 AWG, TPE jacket, green, overall aluminum foil and tinned copper braid, 49.2ft/15m cable length, IP67 (M12) IP20 (RJ45), data. 7700-44711-S7V1500",
+          "score": 0.8877,
+          "llave": "|murrelektronik cat5e ethernet connection cable m12 axial male d-coded to rj45 axial male 4-pole 60 vdc 1.5a 22 awg tpe jacket green overall aluminum foil and tinned copper braid 49.2ft/15m cable length ip67 m12 ip20 rj45 data. 7700-44711-s7v1500",
+          "exacto": false,
+          "proveedor": "AutomationDirect"
+        },
+        {
+          "refId": "xXi1LEISrucVUESM99El#2",
+          "titulo": "Murrelektronik Cat5e Ethernet connection cable, M12 axial male D-coded to RJ45 axial male, 4-pole, 60 VDC, 1.5A, 22 AWG, TPE jacket, green, overall aluminum foil and tinned copper braid, 24.6ft/7.5m cable length, IP67 (M12) IP20 (RJ45), data. 7700-44711-S7V0750",
+          "score": 0.8716,
+          "llave": "|murrelektronik cat5e ethernet connection cable m12 axial male d-coded to rj45 axial male 4-pole 60 vdc 1.5a 22 awg tpe jacket green overall aluminum foil and tinned copper braid 24.6ft/7.5m cable length ip67 m12 ip20 rj45 data. 7700-44711-s7v0750",
+          "exacto": false,
+          "proveedor": "AutomationDirect"
+        },
+        {
+          "refId": "xXi1LEISrucVUESM99El#1",
+          "titulo": "Murrelektronik Cat5e Ethernet connection cable, M12 axial male D-coded to RJ45 axial male, 4-pole, 60 VDC, 1.5A, 22 AWG, TPE jacket, green, overall aluminum foil and tinned copper braid, 9.8ft/3m cable length, IP67 (M12) IP20 (RJ45), data. 7700-44711-S7V0300",
+          "score": 0.8704,
+          "llave": "|murrelektronik cat5e ethernet connection cable m12 axial male d-coded to rj45 axial male 4-pole 60 vdc 1.5a 22 awg tpe jacket green overall aluminum foil and tinned copper braid 9.8ft/3m cable length ip67 m12 ip20 rj45 data. 7700-44711-s7v0300",
+          "exacto": false,
+          "proveedor": "AutomationDirect"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "eAmFbeAOGxNkAuxUhiuA#0",
+      "descripcion": "4 items (Door mat / Tapetes)",
+      "llave": "|4 items door mat / tapetes",
+      "proveedor": "Sam's Club",
+      "fecha": "2026-09-09",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.6280978440525392,
+      "top": [
+        {
+          "refId": "299rIQ5QlL1uz9xxMBRK#0",
+          "titulo": "ZCC.CT DNMG110404 DNMG110408 DNMG150404 DNMG150408 DNMG150604 DNMG150608 DNMG150612 ... DNMG150604-EF YBG205, 10pcs, China Mainland",
+          "score": 0.6281,
+          "llave": "|zcc.ct dnmg110404 dnmg110408 dnmg150404 dnmg150408 dnmg150604 dnmg150608 dnmg150612 ... dnmg150604-ef ybg205 10pcs china mainland",
+          "exacto": false,
+          "proveedor": "ALI EXPRESS"
+        },
+        {
+          "refId": "pyvogGWI0dw7WnhGN45f#6",
+          "titulo": "0307876 1X1 HS 4FL SE CC EM PCII 1 Dia LEGACY PART# CT20F32YP MFG#:E1039064 : ProCut II Tracking Numbers: 1Z8748W60230354240 Pick Slip No. 2076500",
+          "score": 0.6231,
+          "llave": "|0307876 1x1 hs 4fl se cc em pcii 1 dia legacy part ct20f32yp mfg e1039064 procut ii tracking numbers 1z8748w60230354240 pick slip no. 2076500",
+          "exacto": false,
+          "proveedor": "PTSOLUTIONS"
+        },
+        {
+          "refId": "Jz7CwRaficQupeQf96v9#0",
+          "titulo": "45X68X10 C Metric Oil Seal 45x68x10mm Nitrile Rotary Shaft DURUS (127649082220)",
+          "score": 0.6219,
+          "llave": "|45x68x10 c metric oil seal 45x68x10mm nitrile rotary shaft durus 127649082220",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "ewycoozugxgKO9Mv7QnJ#0",
+          "titulo": "PENTA 17 MTR008RS IC1008 ISCAR *** 5 INSERTS * * GENUINE FACTORY PACK *** (405330457788)",
+          "score": 0.6211,
+          "llave": "|penta 17 mtr008rs ic1008 iscar 5 inserts genuine factory pack 405330457788",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "Ao6ZqSvvhQirN6ktZViv#0",
+          "titulo": "1866-1030-ND\nMDR-10-5\nAC/DC DIN RAIL SUPPLY 5V 10W\nFrancisco / Suprajit / S01547 S01527",
+          "score": 0.62,
+          "llave": "|1866-1030-nd mdr-10-5 ac/dc din rail supply 5v 10w francisco / suprajit / s01547 s01527",
+          "exacto": false,
+          "proveedor": "DigiKey"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "k5jAPCZp1x1w3WTHNKlj#0",
+      "descripcion": "Low-Clearance External Retaining Rings for 11 mm OD, Side-Mount, Black-Phosphate Spring Steel 90119A101",
+      "llave": "|low-clearance external retaining rings for 11 mm od side-mount black-phosphate spring steel 90119a101",
+      "proveedor": "McMaster-Carr",
+      "fecha": "2026-09-09",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.7896340888354462,
+      "top": [
+        {
+          "refId": "7yLYTkTKwtPujf6BScMd#1",
+          "titulo": "External Retaining Ring For 5/16\" Od, Black-Phosphate 1060-1090 Spring Steel",
+          "score": 0.7896,
+          "llave": "|external retaining ring for 5/16 od black-phosphate 1060-1090 spring steel",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "k5jAPCZp1x1w3WTHNKlj#2",
+          "titulo": "External Retaining Ring For 1/2\" Od, Black-Phosphate 1060-1090 Spring Steel",
+          "score": 0.7863,
+          "llave": "|external retaining ring for 1/2 od black-phosphate 1060-1090 spring steel",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "hURmBwAbT4h9YKxrEM1z#1",
+          "titulo": "Internal Retaining Ring For 28 Mm Id, Black-Phosphate 1060-1090 Spring Steel 98455A126",
+          "score": 0.7659,
+          "llave": "|internal retaining ring for 28 mm id black-phosphate 1060-1090 spring steel 98455a126",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "2hwe7u6zJQ85caOiHBrI#3",
+          "titulo": "Black-Phosphate Steel Thread-Locking Insert, Easy-To-Install, 1/4\"-20 Thread Size, 3/8\"-16 Tap Size (90259A132)",
+          "score": 0.6868,
+          "llave": "|black-phosphate steel thread-locking insert easy-to-install 1/4 -20 thread size 3/8 -16 tap size 90259a132",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "t3iDT75fLxdxz3JpQiZW#0",
+          "titulo": "Hex-Drive 440C Stainless Steel Ball-Nose Spring Plunger With Steel Body, No Element, 6-40, 5-1 Lb. Nose Force 5901A11",
+          "score": 0.6857,
+          "llave": "|hex-drive 440c stainless steel ball-nose spring plunger with steel body no element 6-40 5-1 lb. nose force 5901a11",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "EA1mAQuKzDJLzdxFMWhg#0",
+      "descripcion": "1PC New SMC CDUJB10-6DM CDUJB106DM Cylinder Free Shipping #SM (389029065356)",
+      "llave": "|1pc new smc cdujb10-6dm cdujb106dm cylinder free shipping sm 389029065356",
+      "proveedor": "EBAY",
+      "fecha": "2026-09-08",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.6961578513863405,
+      "top": [
+        {
+          "refId": "CW0t4vmqNm8eJodFoJtY#0",
+          "titulo": "SMC CDQ2B125-50DCZ cylinder, CQ2-Z COMPACT CYLINDER",
+          "score": 0.6962,
+          "llave": "|smc cdq2b125-50dcz cylinder cq2-z compact cylinder",
+          "exacto": false,
+          "proveedor": "SMCPneumatics.com"
+        },
+        {
+          "refId": "VMR8V7VjTDfwgDkjUUMx#0",
+          "titulo": "NEW IN BOX GENUINE OMRON V680S-D2KF68M V680SD2KF68M RFID TAG (336746901860)",
+          "score": 0.6846,
+          "llave": "|new in box genuine omron v680s-d2kf68m v680sd2kf68m rfid tag 336746901860",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "5pyXVSCNZ5YGXO4GW2wz#0",
+          "titulo": "2PCS/New In Box MITSUBISHI X089D256H01 Wire EDM Power Feed Contact",
+          "score": 0.6824,
+          "llave": "|2pcs/new in box mitsubishi x089d256h01 wire edm power feed contact",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "BWjUGnMSmPZ5G5PyRAKi#0",
+          "titulo": "NEW IN BOX GENUINE OMRON V680S-D2KF68M V680SD2KF68M RFID TAG (335821173102)",
+          "score": 0.6794,
+          "llave": "|new in box genuine omron v680s-d2kf68m v680sd2kf68m rfid tag 335821173102",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "b3zlsrHtYhrBR8WhF7mK#0",
+          "titulo": "NEW IN BOX GENUINE OMRON V680S-D2KF68M V680SD2KF68M RFID TAG (335821173102)",
+          "score": 0.6761,
+          "llave": "|new in box genuine omron v680s-d2kf68m v680sd2kf68m rfid tag 335821173102",
+          "exacto": false,
+          "proveedor": "EBAY"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "bZzSvJtwMc7wC1XusXuA#0",
+      "descripcion": "140M-C2E-C20 - Guardamotor 14.5–20 A",
+      "llave": "|140m-c2e-c20 - guardamotor 14.5 20 a",
+      "proveedor": "Almacén Automatización",
+      "fecha": "2026-09-08",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.860678147334727,
+      "top": [
+        {
+          "refId": "bZzSvJtwMc7wC1XusXuA#1",
+          "titulo": "140M-C2E-C16 - Guardamotor 10–16 A",
+          "score": 0.8607,
+          "llave": "|140m-c2e-c16 - guardamotor 10 16 a",
+          "exacto": false,
+          "proveedor": "Almacén Automatización"
+        },
+        {
+          "refId": "bZzSvJtwMc7wC1XusXuA#3",
+          "titulo": "140M-F8E-C45 - Guardamotor 32–45 A",
+          "score": 0.8314,
+          "llave": "|140m-f8e-c45 - guardamotor 32 45 a",
+          "exacto": false,
+          "proveedor": "Almacén Automatización"
+        },
+        {
+          "refId": "bZzSvJtwMc7wC1XusXuA#2",
+          "titulo": "140M-F8E-C32 - Guardamotor 23–32 A",
+          "score": 0.8304,
+          "llave": "|140m-f8e-c32 - guardamotor 23 32 a",
+          "exacto": false,
+          "proveedor": "Almacén Automatización"
+        },
+        {
+          "refId": "bZzSvJtwMc7wC1XusXuA#4",
+          "titulo": "KTA7-25S-16A - Guardamotor 10–16 A; equivalente del 140M-C2E",
+          "score": 0.7847,
+          "llave": "|kta7-25s-16a - guardamotor 10 16 a equivalente del 140m-c2e",
+          "exacto": false,
+          "proveedor": "Almacén Automatización"
+        },
+        {
+          "refId": "bZzSvJtwMc7wC1XusXuA#7",
+          "titulo": "KTA7-25C-2.5A - Guardamotor 1.6–2.5 A aprox.",
+          "score": 0.7231,
+          "llave": "|kta7-25c-2.5a - guardamotor 1.6 2.5 a aprox.",
+          "exacto": false,
+          "proveedor": "Almacén Automatización"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "A9pSxkCwRBq8awvxp6d4#0",
+      "descripcion": "Kluber ISOFLEX NBU 15, Spindle Bearing Grease for Machine Tools 50g Tube (376552712656)",
+      "llave": "|kluber isoflex nbu 15 spindle bearing grease for machine tools 50g tube 376552712656",
+      "proveedor": "EBAY",
+      "fecha": "2026-09-05",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.6553435626223977,
+      "top": [
+        {
+          "refId": "tnPzbLBqLz3IHanzhUvO#0",
+          "titulo": "Brand New Single Knurl Straight Linear Knurling Tool Holder 3/4\" x 3/4\" x 5\" (163983066499)",
+          "score": 0.6553,
+          "llave": "|brand new single knurl straight linear knurling tool holder 3/4 x 3/4 x 5 163983066499",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "MF77A0Mc9hcVvEKYEz6I#0",
+          "titulo": "5/8\" SNR0013M16 SNL001 3M16 External/Internal Threading Boring Bar Turning Tool",
+          "score": 0.6526,
+          "llave": "|5/8 snr0013m16 snl001 3m16 external/internal threading boring bar turning tool",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "j2eRDudDGmmuvak9zYQV#5",
+          "titulo": "Mobil SHC 634 Gear Oil, 32 Fl. oz. Bottle (2158K66)",
+          "score": 0.6512,
+          "llave": "|mobil shc 634 gear oil 32 fl. oz. bottle 2158k66",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "SPsrhgA8I0sHsgdsBgaO#0",
+          "titulo": "Lovejoy L050 68514410194 Solid Type Jaw Coupling Spider Insert NBR Rubber (395696540591)",
+          "score": 0.6467,
+          "llave": "|lovejoy l050 68514410194 solid type jaw coupling spider insert nbr rubber 395696540591",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "BJXx8cq1KcrGokZYhp8Z#0",
+          "titulo": "Jaw Boring Ring 6\" 8\" 10\" 15\" For CNC Lathe Chuck Soft Top Jaws Bore Metal steel",
+          "score": 0.6446,
+          "llave": "|jaw boring ring 6 8 10 15 for cnc lathe chuck soft top jaws bore metal steel",
+          "exacto": false,
+          "proveedor": "EBAY"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "KHRLEMnnFZNNZuiIpjnX#0",
+      "descripcion": "1412762-ND / 1412762 - CONN HOOD TOP ENTRY SZB24 PG21",
+      "llave": "|1412762-nd / 1412762 - conn hood top entry szb24 pg21",
+      "proveedor": "DigiKey Electronics",
+      "fecha": "2026-08-28",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.8421876449793256,
+      "top": [
+        {
+          "refId": "KHRLEMnnFZNNZuiIpjnX#6",
+          "titulo": "277-13059-ND / 1412574 - CONN HOOD TOP ENTRY SZB6 M20",
+          "score": 0.8422,
+          "llave": "|277-13059-nd / 1412574 - conn hood top entry szb6 m20",
+          "exacto": false,
+          "proveedor": "DigiKey Electronics"
+        },
+        {
+          "refId": "KHRLEMnnFZNNZuiIpjnX#1",
+          "titulo": "277-16464-ND / 1411329 - CONN BASE BOTTOM ENTRY SZB24",
+          "score": 0.7703,
+          "llave": "|277-16464-nd / 1411329 - conn base bottom entry szb24",
+          "exacto": false,
+          "proveedor": "DigiKey Electronics"
+        },
+        {
+          "refId": "KHRLEMnnFZNNZuiIpjnX#7",
+          "titulo": "277-17037-ND / 1411319 - CONN BASE BOTTOM ENTRY SZB6",
+          "score": 0.7643,
+          "llave": "|277-17037-nd / 1411319 - conn base bottom entry szb6",
+          "exacto": false,
+          "proveedor": "DigiKey Electronics"
+        },
+        {
+          "refId": "g9zTO1KaE1Kw7KCOwUfg#0",
+          "titulo": "Mfr.: Phoenix Contact, Mfr. #: 1411329, Mouser #: 651-1411329, Customer #: Francisco/Suprajit/, Desc.: Heavy Duty Power Connectors HC-STA-B24-BWS ELC-AL RoHS Compliant",
+          "score": 0.756,
+          "llave": "|mfr. phoenix contact mfr. 1411329 mouser 651-1411329 customer francisco/suprajit/ desc. heavy duty power connectors hc-sta-b24-bws elc-al rohs compliant",
+          "exacto": false,
+          "proveedor": "Mouser"
+        },
+        {
+          "refId": "KHRLEMnnFZNNZuiIpjnX#4",
+          "titulo": "277-12924-ND / 1407727 - HC-B 06-I-PT-F",
+          "score": 0.7215,
+          "llave": "|277-12924-nd / 1407727 - hc-b 06-i-pt-f",
+          "exacto": false,
+          "proveedor": "DigiKey Electronics"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "0TwW76pVkO6bwBuj8gzu#0",
+      "descripcion": "302 Stainless Steel Corrosion-Resistant Compression Springs 0.938\" Long, 0.188\" OD, 0.164\" ID 1988K52",
+      "llave": "|302 stainless steel corrosion-resistant compression springs 0.938 long 0.188 od 0.164 id 1988k52",
+      "proveedor": "McMaster-Carr",
+      "fecha": "2026-08-26",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.8621237777104156,
+      "top": [
+        {
+          "refId": "COFY5r97IpcGOAymH96G#0",
+          "titulo": "302 Stainless Steel Corrosion-Resistant Compression Springs, 2.25\" Long, 0.438\" Od, 0.356\" Id, 1986K28",
+          "score": 0.8621,
+          "llave": "|302 stainless steel corrosion-resistant compression springs 2.25 long 0.438 od 0.356 id 1986k28",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "qQRlQouZUjpUxDFlvfiD#3",
+          "titulo": "302 Stainless Steel Corrosion-Resistant Compression Springs, 3\" Long, 0.313\" Od, 0.243\" Id, 1988K86",
+          "score": 0.8565,
+          "llave": "|302 stainless steel corrosion-resistant compression springs 3 long 0.313 od 0.243 id 1988k86",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "qQRlQouZUjpUxDFlvfiD#2",
+          "titulo": "302 Stainless Steel Corrosion-Resistant Compression Springs, 2.5\" Long, 0.375\" Od, 0.305\" Id, 1988K729",
+          "score": 0.8529,
+          "llave": "|302 stainless steel corrosion-resistant compression springs 2.5 long 0.375 od 0.305 id 1988k729",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "qQRlQouZUjpUxDFlvfiD#1",
+          "titulo": "302 Stainless Steel Corrosion-Resistant Compression Springs, 2.5\" Long, 0.25\" Od, 0.194\" Id, 1988K73",
+          "score": 0.8504,
+          "llave": "|302 stainless steel corrosion-resistant compression springs 2.5 long 0.25 od 0.194 id 1988k73",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "t3iDT75fLxdxz3JpQiZW#2",
+          "titulo": "302 Stainless Steel Corrosion-Resistant Compression Springs, 2\" Long, 0.313\" Od, 0.255\" Id 1986K82",
+          "score": 0.8502,
+          "llave": "|302 stainless steel corrosion-resistant compression springs 2 long 0.313 od 0.255 id 1986k82",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "EHLYrFGxJ9pweA9qN5CZ#0",
+      "descripcion": "F1-023273 TRS 0075",
+      "llave": "|f1-023273 trs 0075",
+      "proveedor": "Novotechnik",
+      "fecha": "2026-08-26",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.7731954765383,
+      "top": [
+        {
+          "refId": "EHLYrFGxJ9pweA9qN5CZ#1",
+          "titulo": "F1-023272 TRS 0050",
+          "score": 0.7732,
+          "llave": "|f1-023272 trs 0050",
+          "exacto": false,
+          "proveedor": "Novotechnik"
+        },
+        {
+          "refId": "EHLYrFGxJ9pweA9qN5CZ#2",
+          "titulo": "F1-023233 TS 0050",
+          "score": 0.7281,
+          "llave": "|f1-023233 ts 0050",
+          "exacto": false,
+          "proveedor": "Novotechnik"
+        },
+        {
+          "refId": "pyvogGWI0dw7WnhGN45f#6",
+          "titulo": "0307876 1X1 HS 4FL SE CC EM PCII 1 Dia LEGACY PART# CT20F32YP MFG#:E1039064 : ProCut II Tracking Numbers: 1Z8748W60230354240 Pick Slip No. 2076500",
+          "score": 0.6738,
+          "llave": "|0307876 1x1 hs 4fl se cc em pcii 1 dia legacy part ct20f32yp mfg e1039064 procut ii tracking numbers 1z8748w60230354240 pick slip no. 2076500",
+          "exacto": false,
+          "proveedor": "PTSOLUTIONS"
+        },
+        {
+          "refId": "IUqvxQx6w9cMuppd0Xz8#0",
+          "titulo": "Part Number C1278 (MRO# 250757)",
+          "score": 0.6564,
+          "llave": "|part number c1278 mro 250757",
+          "exacto": false,
+          "proveedor": "MRO Supply"
+        },
+        {
+          "refId": "KHRLEMnnFZNNZuiIpjnX#4",
+          "titulo": "277-12924-ND / 1407727 - HC-B 06-I-PT-F",
+          "score": 0.6559,
+          "llave": "|277-12924-nd / 1407727 - hc-b 06-i-pt-f",
+          "exacto": false,
+          "proveedor": "DigiKey Electronics"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "CW0t4vmqNm8eJodFoJtY#0",
+      "descripcion": "SMC CDQ2B125-50DCZ cylinder, CQ2-Z COMPACT CYLINDER",
+      "llave": "|smc cdq2b125-50dcz cylinder cq2-z compact cylinder",
+      "proveedor": "SMCPneumatics.com",
+      "fecha": "2026-08-25",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.7269375079913059,
+      "top": [
+        {
+          "refId": "EA1mAQuKzDJLzdxFMWhg#0",
+          "titulo": "1PC New SMC CDUJB10-6DM CDUJB106DM Cylinder Free Shipping #SM (389029065356)",
+          "score": 0.7269,
+          "llave": "|1pc new smc cdujb10-6dm cdujb106dm cylinder free shipping sm 389029065356",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "o5kMuxZGLUxktdx1cMD3#8",
+          "titulo": "SPIClass ZZ Plus Plug Gage: 0.1250\" Dia - 0.000200\" Tolerance",
+          "score": 0.6501,
+          "llave": "|spiclass zz plus plug gage 0.1250 dia - 0.000200 tolerance",
+          "exacto": false,
+          "proveedor": "MSC Industrial Supply"
+        },
+        {
+          "refId": "3buKZD8Ir4t1CDk9IxsB#0",
+          "titulo": "Compression Spring, 0.5\" Long, 0.125\" OD, 0.093\" ID, Packs of 12",
+          "score": 0.6385,
+          "llave": "|compression spring 0.5 long 0.125 od 0.093 id packs of 12",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "3buKZD8Ir4t1CDk9IxsB#1",
+          "titulo": "Compression Spring, 0.375\" Long, 0.3\" OD, 0.256\" ID, Packs of 12",
+          "score": 0.6381,
+          "llave": "|compression spring 0.375 long 0.3 od 0.256 id packs of 12",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "5Z7ntH8MqngLNtRcvOCf#0",
+          "titulo": "Compression Spring, 0.75\" Long, 0.3\" OD, 0.256\" ID, 9657K286. Your reference: Oscar / Siltech / SO 1268 1274 1273 1272 1271 1270 1269 1199",
+          "score": 0.6317,
+          "llave": "|compression spring 0.75 long 0.3 od 0.256 id 9657k286. your reference oscar / siltech / so 1268 1274 1273 1272 1271 1270 1269 1199",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "Kuhmp5PEAizG4h8BN64D#0",
+      "descripcion": "Alpha Wire 3053 BL001 602-3053-1000-06 Hook-up Wire 20AWG 10/30 PVC 1000ft SPOOL BLUE RoHS Compliant",
+      "llave": "|alpha wire 3053 bl001 602-3053-1000-06 hook-up wire 20awg 10/30 pvc 1000ft spool blue rohs compliant",
+      "proveedor": "Mouser Electronics",
+      "fecha": "2026-08-22",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.8426354310233062,
+      "top": [
+        {
+          "refId": "Kuhmp5PEAizG4h8BN64D#2",
+          "titulo": "Alpha Wire 3053 RD001 602-3053-1000-03 Hook-up Wire 20AWG 10/30 PVC 1000ft SPOOL RED RoHS Compliant",
+          "score": 0.8426,
+          "llave": "|alpha wire 3053 rd001 602-3053-1000-03 hook-up wire 20awg 10/30 pvc 1000ft spool red rohs compliant",
+          "exacto": false,
+          "proveedor": "Mouser Electronics"
+        },
+        {
+          "refId": "Kuhmp5PEAizG4h8BN64D#1",
+          "titulo": "Alpha Wire 3053 BR001 602-3053-1000-07 Hook-up Wire 20AWG 10/30 PVC 1000ft SPOOL BROWN RoHS Compliant",
+          "score": 0.84,
+          "llave": "|alpha wire 3053 br001 602-3053-1000-07 hook-up wire 20awg 10/30 pvc 1000ft spool brown rohs compliant",
+          "exacto": false,
+          "proveedor": "Mouser Electronics"
+        },
+        {
+          "refId": "ZIiGc6u6AKRmANebcpLP#0",
+          "titulo": "Alpha Wire 3053 BK001 Cable de conexión 20AWG 10/30 PVC 1000ft SPOOL BLACK",
+          "score": 0.8286,
+          "llave": "|alpha wire 3053 bk001 cable de conexion 20awg 10/30 pvc 1000ft spool black",
+          "exacto": false,
+          "proveedor": "Mouser Electronics"
+        },
+        {
+          "refId": "fMI3ba4nSOHJFWKD6Xcl#2",
+          "titulo": "Stranded Thermocouple Wire FEP Insulation and Jacket, Type J, 16 GA X 0.051\" Dia, 20 ft. Length",
+          "score": 0.6847,
+          "llave": "|stranded thermocouple wire fep insulation and jacket type j 16 ga x 0.051 dia 20 ft. length",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "3buKZD8Ir4t1CDk9IxsB#10",
+          "titulo": "High-Temperature Stranded Lead Wire with Fiberglass Outer and Mica Inner Insulation, 18 Gauge, 10 ft. Length",
+          "score": 0.6815,
+          "llave": "|high-temperature stranded lead wire with fiberglass outer and mica inner insulation 18 gauge 10 ft. length",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "vErlD4fNGHv9m8ynOANT#0",
+      "descripcion": "Banner Engineering OTBVR81L (Mouser: 778-OTBVR81L) Touch Switches OTB Series: Momentary Action Touch Button w/Black",
+      "llave": "|banner engineering otbvr81l mouser 778-otbvr81l touch switches otb series momentary action touch button w/black",
+      "proveedor": "Mouser Electronics",
+      "fecha": "2026-08-22",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.6667344872197684,
+      "top": [
+        {
+          "refId": "JcyYXeb54gWLc2IMyIa2#2",
+          "titulo": "Power Supplies - DIN Rail Mount Power Supplies - DIN Rail Mount 76.8W 24V 3.2A EN55022 Class B",
+          "score": 0.6667,
+          "llave": "|power supplies - din rail mount power supplies - din rail mount 76.8w 24v 3.2a en55022 class b",
+          "exacto": false,
+          "proveedor": "Mouser Electronics"
+        },
+        {
+          "refId": "JcyYXeb54gWLc2IMyIa2#0",
+          "titulo": "Standard Circular Connector Standard Circular Connector 10P SOCKET PANEL MNT W/ HEX NUT & GSKT",
+          "score": 0.6555,
+          "llave": "|standard circular connector standard circular connector 10p socket panel mnt w/ hex nut gskt",
+          "exacto": false,
+          "proveedor": "Mouser Electronics"
+        },
+        {
+          "refId": "j2eRDudDGmmuvak9zYQV#4",
+          "titulo": "Foot Switch with Steel Housing, Back Pivot with 1 Pedal, SPDT (7376K2)",
+          "score": 0.6531,
+          "llave": "|foot switch with steel housing back pivot with 1 pedal spdt 7376k2",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "bZzSvJtwMc7wC1XusXuA#20",
+          "titulo": "RCB7-IVL7 verde - Piloto/indicador; por confirmar",
+          "score": 0.6507,
+          "llave": "|rcb7-ivl7 verde - piloto/indicador por confirmar",
+          "exacto": false,
+          "proveedor": "Almacén Automatización"
+        },
+        {
+          "refId": "KYqHoiDwv3qoTVJMbcMX#0",
+          "titulo": "AutomationDirect ice cube control relay, socket mount, encapsulated push-to-test, 24 VDC coil voltage, SPDT, (1) N.O., (1) N.C., 15A contact rating, 5-pin, LED indicator(s). Requires 781-1C-SKT mounting socket. 781-1C-24D",
+          "score": 0.6472,
+          "llave": "|automationdirect ice cube control relay socket mount encapsulated push-to-test 24 vdc coil voltage spdt 1 n.o. 1 n.c. 15a contact rating 5-pin led indicator s . requires 781-1c-skt mounting socket. 781-1c-24d",
+          "exacto": false,
+          "proveedor": "AutomationDirect"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "j2eRDudDGmmuvak9zYQV#0",
+      "descripcion": "Thrust-Load-Rated Threaded Track Roller, Corrosion-Resistant, 1/2\" Roller Diameter, 5/16\" Roller Width (3668K12)",
+      "llave": "|thrust-load-rated threaded track roller corrosion-resistant 1/2 roller diameter 5/16 roller width 3668k12",
+      "proveedor": "McMaster-Carr",
+      "fecha": "2026-08-19",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.7347580390764907,
+      "top": [
+        {
+          "refId": "3buKZD8Ir4t1CDk9IxsB#6",
+          "titulo": "Needle-Roller Bearing, Open, for 3/8\" Shaft Diameter, 5/8\" Wide",
+          "score": 0.7348,
+          "llave": "|needle-roller bearing open for 3/8 shaft diameter 5/8 wide",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "RMLsxlJ844oa8nioMtvz#5",
+          "titulo": "316 Stainless Steel Shoulder Screw, 3/16\" Shoulder Diameter, 1/4\" Shoulder Length, 8-32 Thread",
+          "score": 0.7178,
+          "llave": "|316 stainless steel shoulder screw 3/16 shoulder diameter 1/4 shoulder length 8-32 thread",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "RMLsxlJ844oa8nioMtvz#3",
+          "titulo": "Wear-Resistant 410 Stainless Steel Rod, 1/2\" Diameter, 1/2 Feet Long",
+          "score": 0.7152,
+          "llave": "|wear-resistant 410 stainless steel rod 1/2 diameter 1/2 feet long",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "CJUhxCBdYShCuKZdECzI#0",
+          "titulo": "Needle-Roller Bearing Open, for 3/8\" Shaft Diameter, 5/8\" Wide 5905K498 Your reference: OHD / SO0904 , SO0910",
+          "score": 0.7101,
+          "llave": "|needle-roller bearing open for 3/8 shaft diameter 5/8 wide 5905k498 your reference ohd / so0904 so0910",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        },
+        {
+          "refId": "mrU5KsFnLeQtOXgKli69#3",
+          "titulo": "Hex-Drive 440C Stainless Steel Ball-Nose Spring Plunger With Steel Body, No Element, 5/16\"-18, 4-9 Lb. Nose Force, 5901A15",
+          "score": 0.7081,
+          "llave": "|hex-drive 440c stainless steel ball-nose spring plunger with steel body no element 5/16 -18 4-9 lb. nose force 5901a15",
+          "exacto": false,
+          "proveedor": "McMaster-Carr"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "rNl7AEu8UzuIR9MuFyuA#0",
+      "descripcion": "E100794 Air Compressor Air Filter Husky ** OEM ** (402172979039)",
+      "llave": "|e100794 air compressor air filter husky oem 402172979039",
+      "proveedor": "eBay",
+      "fecha": "2026-08-18",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.7842396060916935,
+      "top": [
+        {
+          "refId": "0g8f3l2AMZb4m8d7j5TG#0",
+          "titulo": "E110576 Seal Husky C603H Air Compressor",
+          "score": 0.7842,
+          "llave": "|e110576 seal husky c603h air compressor",
+          "exacto": false,
+          "proveedor": "airpressorsm"
+        },
+        {
+          "refId": "719cJhonkFgOB7kn1x3q#0",
+          "titulo": "Husky 16 oz. 100% Full Synthetic Compressor Oil",
+          "score": 0.7077,
+          "llave": "|husky 16 oz. 100 full synthetic compressor oil",
+          "exacto": false,
+          "proveedor": "Home Depot"
+        },
+        {
+          "refId": "UruNM2PPS5bZoEDVHGKo#0",
+          "titulo": "Husky 16 oz. 100% Full Synthetic Compressor Oil",
+          "score": 0.7077,
+          "llave": "|husky 16 oz. 100 full synthetic compressor oil",
+          "exacto": false,
+          "proveedor": "Home Depot"
+        },
+        {
+          "refId": "ifT75HdQC6J4kFya963v#0",
+          "titulo": "Chironal 1Pcs EMI RFI Filter AC 115/250V 10A CW4L2-10A-S Suppressor Power Line Noise Filter (CW4L2-10A-S)",
+          "score": 0.6731,
+          "llave": "|chironal 1pcs emi rfi filter ac 115/250v 10a cw4l2-10a-s suppressor power line noise filter cw4l2-10a-s",
+          "exacto": false,
+          "proveedor": "Amazon"
+        },
+        {
+          "refId": "IUqvxQx6w9cMuppd0Xz8#0",
+          "titulo": "Part Number C1278 (MRO# 250757)",
+          "score": 0.6703,
+          "llave": "|part number c1278 mro 250757",
+          "exacto": false,
+          "proveedor": "MRO Supply"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "29bls87nO6byhtEDOIJg#0",
+      "descripcion": "BFL New Design 4 Flute Flat Square Milling Cutter Carbide End Mill Fresa for Stainless Steel High Hardness Metal",
+      "llave": "|bfl new design 4 flute flat square milling cutter carbide endmill fresa for stainless steel high hardness metal",
+      "proveedor": "Changzhou North Carbide Tool Co., Ltd.",
+      "fecha": "2026-08-17",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.7440528911592306,
+      "top": [
+        {
+          "refId": "IeDHYBY2l8fEddSOPWOJ#0",
+          "titulo": "1/4 SE 4 Flute STUB ALTIN Solid Carbide End Mill",
+          "score": 0.7441,
+          "llave": "|1/4 se 4 flute stub altin solid carbide endmill",
+          "exacto": false,
+          "proveedor": "Shars Tool Company"
+        },
+        {
+          "refId": "3jga9suYhr8AxHVUBws6#0",
+          "titulo": "1/4 SE 4 Flute STUB ALTIN Solid Carbide End Mill",
+          "score": 0.7368,
+          "llave": "|1/4 se 4 flute stub altin solid carbide endmill",
+          "exacto": false,
+          "proveedor": "Shars Tool Company"
+        },
+        {
+          "refId": "v6OMY57wVQbZeYGDMnjR#0",
+          "titulo": "5 x 1/8\" 4FL REG",
+          "score": 0.7349,
+          "llave": "|5 x 1/8 4fl reg",
+          "exacto": false,
+          "proveedor": "Online Carbide"
+        },
+        {
+          "refId": "v6OMY57wVQbZeYGDMnjR#3",
+          "titulo": "5 x 1/4\" 4FL REG BALL",
+          "score": 0.7347,
+          "llave": "|5 x 1/4 4fl reg ball",
+          "exacto": false,
+          "proveedor": "Online Carbide"
+        },
+        {
+          "refId": "v6OMY57wVQbZeYGDMnjR#1",
+          "titulo": "10 x 1/4\" 4FL REG",
+          "score": 0.7316,
+          "llave": "|10 x 1/4 4fl reg",
+          "exacto": false,
+          "proveedor": "Online Carbide"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "VMR8V7VjTDfwgDkjUUMx#0",
+      "descripcion": "NEW IN BOX GENUINE OMRON V680S-D2KF68M V680SD2KF68M RFID TAG (336746901860)",
+      "llave": "|new in box genuine omron v680s-d2kf68m v680sd2kf68m rfid tag 336746901860",
+      "proveedor": "EBAY",
+      "fecha": "2026-08-17",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.8805851458077428,
+      "top": [
+        {
+          "refId": "BWjUGnMSmPZ5G5PyRAKi#0",
+          "titulo": "NEW IN BOX GENUINE OMRON V680S-D2KF68M V680SD2KF68M RFID TAG (335821173102)",
+          "score": 0.8806,
+          "llave": "|new in box genuine omron v680s-d2kf68m v680sd2kf68m rfid tag 335821173102",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "b3zlsrHtYhrBR8WhF7mK#0",
+          "titulo": "NEW IN BOX GENUINE OMRON V680S-D2KF68M V680SD2KF68M RFID TAG (335821173102)",
+          "score": 0.8772,
+          "llave": "|new in box genuine omron v680s-d2kf68m v680sd2kf68m rfid tag 335821173102",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "5pyXVSCNZ5YGXO4GW2wz#0",
+          "titulo": "2PCS/New In Box MITSUBISHI X089D256H01 Wire EDM Power Feed Contact",
+          "score": 0.6786,
+          "llave": "|2pcs/new in box mitsubishi x089d256h01 wire edm power feed contact",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "EA1mAQuKzDJLzdxFMWhg#0",
+          "titulo": "1PC New SMC CDUJB10-6DM CDUJB106DM Cylinder Free Shipping #SM (389029065356)",
+          "score": 0.6734,
+          "llave": "|1pc new smc cdujb10-6dm cdujb106dm cylinder free shipping sm 389029065356",
+          "exacto": false,
+          "proveedor": "EBAY"
+        },
+        {
+          "refId": "hSW89UGpXqvzlhjePqAj#0",
+          "titulo": "1PC OBA17-052 Encoder fast ship OBA17052 NEW MITSUBISHI In Box (366322426983)",
+          "score": 0.6605,
+          "llave": "|1pc oba17-052 encoder fast ship oba17052 new mitsubishi in box 366322426983",
+          "exacto": false,
+          "proveedor": "EBAY"
+        }
+      ]
+    },
+    {
+      "grupo": "sin_empate",
+      "refId": "xXi1LEISrucVUESM99El#0",
+      "descripcion": "Murrelektronik Cat5e Ethernet connection cable, M12 axial male D-coded to RJ45 axial male, 4-pole, 60 VDC, 1.5A, 22 AWG, TPE jacket, green, overall aluminum foil and tinned copper braid, 49.2ft/15m cable length, IP67 (M12) IP20 (RJ45), data. 7700-44711-S7V1500",
+      "llave": "|murrelektronik cat5e ethernet connection cable m12 axial male d-coded to rj45 axial male 4-pole 60 vdc 1.5a 22 awg tpe jacket green overall aluminum foil and tinned copper braid 49.2ft/15m cable length ip67 m12 ip20 rj45 data. 7700-44711-s7v1500",
+      "proveedor": "AutomationDirect",
+      "fecha": "2026-08-14",
+      "exactosEnIndice": 0,
+      "mejorMismaLlave": null,
+      "mejorOtraLlave": 0.8931845223092524,
+      "top": [
+        {
+          "refId": "xXi1LEISrucVUESM99El#2",
+          "titulo": "Murrelektronik Cat5e Ethernet connection cable, M12 axial male D-coded to RJ45 axial male, 4-pole, 60 VDC, 1.5A, 22 AWG, TPE jacket, green, overall aluminum foil and tinned copper braid, 24.6ft/7.5m cable length, IP67 (M12) IP20 (RJ45), data. 7700-44711-S7V0750",
+          "score": 0.8932,
+          "llave": "|murrelektronik cat5e ethernet connection cable m12 axial male d-coded to rj45 axial male 4-pole 60 vdc 1.5a 22 awg tpe jacket green overall aluminum foil and tinned copper braid 24.6ft/7.5m cable length ip67 m12 ip20 rj45 data. 7700-44711-s7v0750",
+          "exacto": false,
+          "proveedor": "AutomationDirect"
+        },
+        {
+          "refId": "xXi1LEISrucVUESM99El#1",
+          "titulo": "Murrelektronik Cat5e Ethernet connection cable, M12 axial male D-coded to RJ45 axial male, 4-pole, 60 VDC, 1.5A, 22 AWG, TPE jacket, green, overall aluminum foil and tinned copper braid, 9.8ft/3m cable length, IP67 (M12) IP20 (RJ45), data. 7700-44711-S7V0300",
+          "score": 0.8897,
+          "llave": "|murrelektronik cat5e ethernet connection cable m12 axial male d-coded to rj45 axial male 4-pole 60 vdc 1.5a 22 awg tpe jacket green overall aluminum foil and tinned copper braid 9.8ft/3m cable length ip67 m12 ip20 rj45 data. 7700-44711-s7v0300",
+          "exacto": false,
+          "proveedor": "AutomationDirect"
+        },
+        {
+          "refId": "qNBjZZC1BP6Zdggupmnm#0",
+          "titulo": "Murrelektronik Cat5e Ethernet connection cable, M12 axial male D-coded to RJ45 axial male, 4-pole, 60 VDC, 1.5A, 22 AWG, TPE jacket, green, shielded, 49.2ft/ 15m cable length, IP67 (M12) IP20 (RJ45), data.",
+          "score": 0.8709,
+          "llave": "|murrelektronik cat5e ethernet connection cable m12 axial male d-coded to rj45 axial male 4-pole 60 vdc 1.5a 22 awg tpe jacket green shielded 49.2ft/ 15m cable length ip67 m12 ip20 rj45 data.",
+          "exacto": false,
+          "proveedor": "AutomationDirect.com, Inc."
+        },
+        {
+          "refId": "qNBjZZC1BP6Zdggupmnm#1",
+          "titulo": "Murrelektronik Cat5e Ethernet connection cable, M12 axial male D-coded to RJ45 axial male, 4-pole, 60 VDC, 1.5A, 22 AWG, TPE jacket, green, shielded, 24.6ft/ 7.5m cable length, IP67 (M12) IP20 (RJ45), data.",
+          "score": 0.8557,
+          "llave": "|murrelektronik cat5e ethernet connection cable m12 axial male d-coded to rj45 axial male 4-pole 60 vdc 1.5a 22 awg tpe jacket green shielded 24.6ft/ 7.5m cable length ip67 m12 ip20 rj45 data.",
+          "exacto": false,
+          "proveedor": "AutomationDirect.com, Inc."
+        },
+        {
+          "refId": "qNBjZZC1BP6Zdggupmnm#2",
+          "titulo": "Murrelektronik Cat5e Ethernet connection cable, M12 axial male D-coded to RJ45 axial male, 4-pole, 60 VDC, 1.5A, 22 AWG, TPE jacket, green, shielded, 32.8ft/ 10m cable length, IP67 (M12) IP20 (RJ45), data.",
+          "score": 0.8526,
+          "llave": "|murrelektronik cat5e ethernet connection cable m12 axial male d-coded to rj45 axial male 4-pole 60 vdc 1.5a 22 awg tpe jacket green shielded 32.8ft/ 10m cable length ip67 m12 ip20 rj45 data.",
+          "exacto": false,
+          "proveedor": "AutomationDirect.com, Inc."
+        }
+      ]
+    }
+  ],
+  "notas": [
+    "Coseno RETRIEVAL_QUERY (768d) de la descripcion del item contra busqueda_indice fuente orden-item, excluyendo la entrada del propio item.",
+    "Exactos (misma llave) viven en 0.859-0.924; hermanos de familia (otro numero de parte) en 0.77-0.90: el coseno solo no separa; el numero de parte embebido en la descripcion si.",
+    "Regla C2: exacto = llavesCoinciden() o numero de parte embebido igual en ambos; si ambos tienen numero de parte y difieren -> hermano (parecido, nunca exacto); parecido = coseno >= umbralSugerido.",
+    "umbralSugerido 0.76: recall de exactos 100 %, ~1.5 hermanos/parecidos por consulta, 9/20 consultas sin empate exacto reciben al menos un parecido util."
+  ]
+}

@@ -1,9 +1,11 @@
 # Plan — Memoria operativa v1 (frente C)
 
 Spec: [../specs/2026-09-13-memoria-operativa-design.md](../specs/2026-09-13-memoria-operativa-design.md)
-Estado: **propuesto el 2026-09-15**, sobre los datos ya normalizados por el frente B
-([2026-09-13-estructura-datos-normalizacion.md](2026-09-13-estructura-datos-normalizacion.md),
-cerrado el mismo día). Nada de C1–C4 toca producción hasta el checkpoint de C0.
+Estado: **C0 ejecutada el 2026-09-15** (resultados abajo) — aprobado por Emiliano el mismo día
+con las cuatro decisiones de la tabla; pendiente el checkpoint T0.4 sobre umbral, regla de número
+de parte y las 10 búsquedas. Datos ya normalizados por el frente B
+([2026-09-13-estructura-datos-normalizacion.md](2026-09-13-estructura-datos-normalizacion.md)).
+Nada de C1–C4 toca producción hasta ese checkpoint.
 
 **Alcance v1 fijado por datos (Fase 0 del spec):** órdenes + cotizaciones manuales. Fuera:
 `compras_odoo_items` (2,360 ítems; el índice excedería 2× el corte de 1,500 → v2 con
@@ -42,7 +44,7 @@ loaders con caché de 5 min (`lib/sat/cargar-mapeos-firestore.ts`) y los mapeos 
 Sin código de producción. Scripts en `scripts/` con la SA de lectura (`.env.admin.local`) y la
 key de Gemini de `.env.local` (solo embeddings de consulta, ~40 llamadas).
 
-### T0.1 · Muestra de calibración del umbral semántico
+### T0.1 · Muestra de calibración del umbral semántico — ✅ HECHO (2026-09-15)
 - `scripts/calibracion-memoria-operativa.ts` (read-only): toma **(a)** las 20 llaves de pieza de
   órdenes que se repiten (empate exacto conocido — el diagnóstico cuenta 20 llaves compradas ≥ 2
   veces) y **(b)** 20 ítems de las órdenes más recientes sin empate exacto. Para cada uno embebe la
@@ -54,7 +56,7 @@ key de Gemini de `.env.local` (solo embeddings de consulta, ~40 llamadas).
 - Guarda la muestra como fixture golden `tests/fixtures/memoria-operativa-muestra-2026-09-XX.json`
   (descripción, llave, top 5 esperado, umbral) para los tests de C2 y el criterio #1.
 
-### T0.2 · Tamaño del índice y costo
+### T0.2 · Tamaño del índice y costo — ✅ HECHO (2026-09-15)
 - Índice hoy: 527 entradas (416 orden-item + 111 proveedor), ~10 KB c/u. Cotizaciones manuales
   candidatas: **462** (`origen ≠ compra`; las 392 `origen=compra` ya están como orden-item). Proyección
   ≈ 990 entradas ≈ 9.7 MB por lectura fría → **≤ 1,500: coseno en servidor se queda**, con caché en
@@ -64,15 +66,99 @@ key de Gemini de `.env.local` (solo embeddings de consulta, ~40 llamadas).
   (≤ 20 ítems) + 1 lectura del índice cada 5 min por instancia. Se documenta en este plan y se
   aprueba en el checkpoint.
 
-### T0.3 · Las 10 búsquedas de prueba sobre cotizaciones
+### T0.3 · Las 10 búsquedas de prueba sobre cotizaciones — ✅ propuestas (2026-09-15), a confirmar en T0.4
 - El script de T0.1 imprime las 30 descripciones más frecuentes de cotizaciones manuales (MX y
   USA) para elegir con Emiliano 10 consultas en español + su regex esperado, mismo formato que
   `scripts/validar-busquedas-prueba.ts` (`{ q, debe }`). Se agregan a ese script como bloque
   `BUSQUEDAS_COTIZACIONES` y son el criterio #3.
 
-### T0.4 · Checkpoint con Emiliano
-Umbral elegido, lectura (a)/(b), costo, las 10 búsquedas y las 4 decisiones de la tabla de arriba.
-**Gate para C1.**
+### T0.4 · Checkpoint con Emiliano — ⏳
+Umbral elegido, lectura (a)/(b), costo, las 10 búsquedas y las 4 decisiones de la tabla de arriba
+(las 4 decisiones ya aprobadas el 2026-09-15). **Gate para C1.**
+
+---
+
+### Resultados de C0 (2026-09-15)
+
+`npx tsx scripts/calibracion-memoria-operativa.ts smv-brain --fixture tests/fixtures/memoria-operativa-muestra-2026-09-15.json`
+— 419 ítems de órdenes, 416 entradas orden-item en el índice, 397 llaves distintas, **20 repetidas**.
+Muestra: 20 repetidas + 20 sin empate exacto = 40 consultas × 2 task types (80 embeddings).
+
+**Distribución de coseno (RETRIEVAL_QUERY, la pareja correcta del índice RETRIEVAL_DOCUMENT):**
+
+| Grupo | min | p10 | p50 | p90 | max |
+|---|---|---|---|---|---|
+| (a) mejor empate exacto (misma llave) | 0.859 | 0.871 | 0.885 | 0.898 | 0.924 |
+| (a) mejor vecino (otra llave) en las mismas consultas | 0.652 | 0.691 | 0.842 | 0.867 | 0.879 |
+| (b) mejor vecino en ítems sin empate exacto | 0.622 | 0.647 | 0.773 | 0.881 | 0.900 |
+
+`SEMANTIC_SIMILARITY` comprime todo hacia arriba y separa peor (vecino max 0.901 > exacto min
+0.870): se descarta. **Se usa `RETRIEVAL_QUERY`, igual que Cmd+K.**
+
+**El hallazgo que cambia C2: el coseno solo no separa "misma pieza" de "misma familia".** Al
+mirar los 34 pares no exactos con coseno ≥ 0.84 (diff de llaves), caen en tres clases:
+
+1. *Misma pieza, mismo número de parte, redacción distinta* — inserto `90259A132` con y sin
+   "easy-to-install"; caster `2512T66` con mayúsculas distintas. Hoy **no** empatan por llave
+   (`includes` falla cuando la diferencia va en medio). Deberían ser **exactos**.
+2. *Misma familia, otro número de parte* — resortes `9657K266` vs `9657K493`, pines `93772A118`
+   vs `93772A528`, guardamotor `140M-C2E-C20` vs `-C16`, cable Murr `…S7V1500` (15 m) vs `…S7V0750`
+   (7.5 m). Coseno 0.84–0.90, **indistinguible de un exacto**. Precio distinto: deben ser
+   *parecidos*, nunca exactos (justo el riesgo que el spec anticipó con la fresa de 1/4" vs 3/8").
+3. *Ruido pegado* — número de listado de eBay `(335821173102)` y colas "your reference …" de
+   McMaster. Cambian la llave sin cambiar la pieza (el RFID Omron `V680S-D2KF68M` aparece 3 veces
+   con 3 llaves).
+
+La descripción de una orden **lleva el número de parte embebido** (McMaster `9657K266`, DigiKey
+`1866-1030-ND`, Murr `7700-44711-S7V1500`, Omron `V680S-D2KF68M`, Allen-Bradley `140M-C2E-C20`),
+aunque `ItemFactura` no tenga campo `numeroParte`. Regla probada en seco sobre las 40 muestras
+(`extraerNumerosParte`: tokens alfanuméricos ≥ 6 con letra y dígito, sin unidades tipo `120VAC` /
+`4-pole` / `22AWG`, sin dimensiones `30X47X6`, sin listados eBay ni tracking UPS `1Z…`; comparados
+sin guiones y en mayúsculas):
+
+| Regla | (a) 20 repetidas | (b) 20 sin empate |
+|---|---|---|
+| consultas con ≥ 1 **exacto** (número de parte igual **o** `llavesCoinciden`) | **20/20** | 1/20 (el Omron oculto) |
+| candidatos **hermanos** (ambos con número de parte y distinto → parecido, nunca exacto) | 22 | 17 |
+| candidatos parecidos sin número de parte, coseno ≥ 0.76 | 8 | 13 |
+| promedio hermanos + parecidos por consulta a 0.76 | 1.5 | 1.5 |
+| consultas con ≥ 1 parecido útil a 0.76 | — | 9/20 |
+
+**Umbral elegido: 0.76** para *parecidos* (a 0.80 se pierden los anillos de retención `90119A…`,
+el Novotechnik `F1-023272` y el sello Husky, que sí son la familia correcta; por debajo de 0.75
+empiezan los no relacionados). Los exactos no dependen del umbral: los decide la llave o el número
+de parte. El chip muestra máximo 3 parecidos.
+
+**Lectura (a) vs (b):** de los 20 ítems "sin empate exacto", ~3 eran compras repetidas ocultas por
+redacción (Omron, cable Murr de 15 m, pen drives); los otros 17 son piezas nuevas. Con 20 llaves
+repetidas sobre 397, **el taller compra piezas distintas casi siempre (b domina)**: "comprado
+antes" se disparará en ~5–10 % de los ítems; el valor cotidiano del chip está en *"parecidos:
+compraste la familia en McMaster / Almacén Automatización a $X"*. C3 diseña el chip con eso al
+frente cuando no hay exacto. Los 40 casos quedan como golden en
+`tests/fixtures/memoria-operativa-muestra-2026-09-15.json` (`umbralSugerido: 0.76`).
+
+**T0.2 — tamaño y costo:** 416 orden-item + 462 cotizaciones manuales = 878 entradas de pieza
+(+ 111 proveedores ≈ 990) ≈ 8.6 MB por lectura fría → muy por debajo del corte de 1,500: coseno
+en servidor, con la caché de T2.1. Costo (misma base que el plan del 2026-08-17, $0.20/1M tokens):
+indexación inicial 462 × ~25 tokens ≈ 12k tokens ≈ **$0.002 una vez**; una consulta de 20 ítems ≈
+500 tokens ≈ $0.0001; lecturas Firestore ≈ 880 docs por lectura fría, con caché de 5 min y ~300
+lecturas frías/mes ≈ 265k lecturas ≈ **< $0.20/mes**. Irrelevante (criterio #8: aprobar en T0.4).
+
+**T0.3 — 10 búsquedas propuestas** (de las 30 descripciones más frecuentes en cotizaciones
+manuales; a confirmar o cambiar en T0.4):
+
+| # | Consulta | Debe encontrar (regex) |
+|---|---|---|
+| 1 | pistón neumático SMC | `piston` / `smc` / `higoh` / `cdm2b` |
+| 2 | coroplast antiestático 4 mm | `coroplast` / `esd` |
+| 3 | sensor de visión compacto Keyence | `keyence` / `vision` |
+| 4 | sensores de proximidad M5 Omron | `proximidad` / `omron` / `m5` |
+| 5 | grasa Molykote BR-2 | `molykote` / `br-2` / `grasa` |
+| 6 | sello para compresor Husky | `husky` / `seal` / `c603h` |
+| 7 | aspiradora GunVac Guardair | `gunvac` / `guardair` / `aspiradora` |
+| 8 | adaptador Ethernet/IP Allen-Bradley 1734 | `1734` / `allen` / `bradley` / `ethernet` |
+| 9 | PTR de 4 pulgadas calibre 14 | `ptr` / `calibre` |
+| 10 | impresora 3D QIDI | `qidi` / `impresora 3d` |
 
 ---
 
@@ -152,11 +238,19 @@ Desplegable por sí solo: al terminar, Cmd+K ya encuentra cotizaciones aunque C2
   1. Llave de la pieza con `generarLlavePieza(numeroParte, descripcion)`; llave de cada entrada
      del índice desde `metadata.llavePieza` (cotización) o `generarLlavePieza(metadata.numeroParte,
      titulo)` (orden-item).
-  2. Candidatos por `similitudCoseno` ≥ umbral (T0.1) → **exacto** si `llavesCoinciden()` o ambos
-     números de parte normalizados coinciden; **descartado** si ambos tienen número de parte y
-     difieren, aunque el coseno sea alto; el resto **semántico**.
+  2. `lib/memoria-operativa/numero-parte.ts` → `extraerNumerosParte(descripcion)` (regla probada en
+     C0: tokens alfanuméricos ≥ 6 con letra y dígito; excluye unidades `120VAC`/`4-pole`/`22AWG`,
+     dimensiones `30X47X6`, listados eBay de 9+ dígitos entre paréntesis, tracking `1Z…`,
+     referencias `S0` + dígitos y la cola "your reference …"; compara sin guiones, en mayúsculas).
+     Test con los 40 casos del golden. Clasificación de cada candidato con `similitudCoseno` ≥ 0.76
+     (`UMBRAL_PARECIDO`, del fixture): **exacto** si `llavesCoinciden()` **o** `numeroParte`
+     explícito / embebido igual en ambos; **hermano** si ambos tienen número de parte y difieren (se
+     muestra como parecido, nunca como exacto, aunque el coseno sea 0.90); **parecido** el resto.
+     Un exacto no depende del umbral.
   3. `comprasPrevias` (orden-item) y `cotizacionesPrevias` (cotización): exactos primero por fecha
-     desc, luego semánticos por score; top 5 cada una, máximo **3 semánticos** visibles.
+     desc, luego hermanos y parecidos por score; top 5 cada una, máximo **3 parecidos** visibles.
+     Cuando no hay exacto, el contexto trae `familiaComprada: { proveedorNombre, veces, ultimoPrecio }`
+     agregada sobre los parecidos — es lo que el chip muestra al frente en el ~90 % de los casos (C0).
   4. `alertaPrecio` **solo** si vino precio y hay ≥ 1 exacto con `metadata.precio`: construir
      `PuntoPrecioHistorico[]` desde esas entradas → `fusionarPuntosPrecio` →
      `resumirPreciosPorPiezaProveedor` → `evaluarAlertaPrecio` (mismo `UMBRAL_CARO`). Si
