@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server"
+import { ZodError } from "zod"
 import { verificarUsuarioAutorizado } from "@/lib/api-auth"
 import { obtenerUsuarioAdmin } from "@/lib/usuarios-admin"
-import { listarMedidasEndmills } from "@/lib/endmills"
+import { listarMedidasEndmillsAdmin } from "@/lib/endmills-admin"
 import { ErrorIA } from "@/lib/extraer-ia"
 import {
   parsearTextoExcelEndmills,
@@ -29,7 +30,9 @@ export async function POST(req: NextRequest) {
   const contentType = req.headers.get("content-type") || ""
 
   try {
-    const catalogo = await listarMedidasEndmills()
+    // Admin SDK: listarMedidasEndmills() usa el cliente SDK y en el servidor
+    // no hay sesión → Firestore responde "Missing or insufficient permissions."
+    const catalogo = await listarMedidasEndmillsAdmin()
 
     // 1. Caso Form-Data (Archivos subidos: Excel, PDF, Imágenes)
     if (contentType.includes("multipart/form-data")) {
@@ -124,6 +127,13 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     if (err instanceof ErrorIA) {
       return Response.json({ error: err.message }, { status: 502 })
+    }
+    if (err instanceof ZodError) {
+      console.error("Error al extraer pedido de endmills: catálogo inválido", err)
+      return Response.json(
+        { error: "Error en formato del catálogo de endmills" },
+        { status: 500 }
+      )
     }
     console.error("Error al extraer pedido de endmills:", err)
     const mensaje = err instanceof Error ? err.message : "Error al procesar la extracción"
