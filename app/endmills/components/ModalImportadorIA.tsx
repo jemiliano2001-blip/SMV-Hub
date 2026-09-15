@@ -35,6 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { formatPrecio } from "@/lib/format"
+import { getClienteAuth } from "@/lib/firebase"
 import {
   parsearTextoExcelEndmills,
   parsearArchivoExcelEndmills,
@@ -160,11 +161,17 @@ export default function ModalImportadorIA({
         }
 
         // Si es PDF, Imagen o requiere inferencia Gemini
+        const token = await getClienteAuth().currentUser?.getIdToken()
+        if (!token) {
+          throw new Error("Inicia sesión para usar la extracción con IA")
+        }
+
         const formData = new FormData()
         formData.append("archivo", archivoSeleccionado)
 
         const res = await fetch("/api/endmills/extraer-pedido", {
           method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
           body: formData,
         })
         const data = await res.json()
@@ -195,9 +202,17 @@ export default function ModalImportadorIA({
         }
 
         // Si no es tabular simple, invocar API de Gemini
+        const token = await getClienteAuth().currentUser?.getIdToken()
+        if (!token) {
+          throw new Error("Inicia sesión para usar la extracción con IA")
+        }
+
         const res = await fetch("/api/endmills/extraer-pedido", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({ texto: textoImportar }),
         })
         const data = await res.json()

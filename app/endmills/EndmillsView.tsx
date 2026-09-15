@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import {
   AlertTriangle,
+  BarChart3,
   Boxes,
   ClipboardList,
   Clock,
@@ -21,6 +22,7 @@ import type { EstadoStockEndmill } from "@/lib/schemas"
 import InventarioEndmills from "@/app/endmills/InventarioEndmills"
 import RevisionPedidoEndmills from "@/app/endmills/RevisionPedidoEndmills"
 import HistorialPedidosEndmills from "@/app/endmills/HistorialPedidosEndmills"
+import AnalisisComprasEndmills from "@/app/endmills/AnalisisComprasEndmills"
 import ModalEtiquetasEndmills from "@/app/endmills/components/ModalEtiquetasEndmills"
 import { cn } from "@/lib/utils"
 
@@ -29,8 +31,15 @@ export default function EndmillsView() {
   const endmills = useEndmills()
   const [revisionAbierta, setRevisionAbierta] = useState(false)
   const [etiquetasAbiertas, setEtiquetasAbiertas] = useState(false)
-  const [tab, setTab] = useState<"inventario" | "pedidos">("inventario")
+  const [tab, setTab] = useState<"inventario" | "pedidos" | "analisis">("inventario")
   const [filtroEstado, setFiltroEstado] = useState<EstadoStockEndmill | "todas" | "confirmar">("todas")
+  const [analisisVisitado, setAnalisisVisitado] = useState(false)
+
+  function cambiarTab(val: string) {
+    const siguiente = val as "inventario" | "pedidos" | "analisis"
+    if (siguiente === "analisis") setAnalisisVisitado(true)
+    setTab(siguiente)
+  }
 
   const resumen = useMemo(() => {
     const estados = endmills.medidas.map((medida) =>
@@ -184,7 +193,7 @@ export default function EndmillsView() {
 
       <ModuleTabs
         value={tab}
-        onValueChange={(val) => setTab(val as "inventario" | "pedidos")}
+        onValueChange={cambiarTab}
         items={[
           {
             value: "inventario",
@@ -223,6 +232,18 @@ export default function EndmillsView() {
                 onCancelar={endmills.cancelarPedido}
               />
             ),
+          },
+          {
+            value: "analisis",
+            label: (
+              <span className="inline-flex items-center gap-2">
+                <BarChart3 className="size-4" aria-hidden />
+                Análisis
+              </span>
+            ),
+            content: analisisVisitado ? (
+              <AnalisisComprasEndmills pedidos={endmills.pedidos} />
+            ) : null,
           },
         ]}
       />

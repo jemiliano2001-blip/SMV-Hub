@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  agregarRankingComprasEndmills,
   calcularAhorroPedidoUSA,
   calcularCantidadSugerida,
   calcularLeadTimePromedio,
@@ -177,6 +178,119 @@ describe("cálculos de Endmills China", () => {
     expect(email.asunto).toContain("Purchase Order")
     expect(email.asunto).toContain("COT-2026-08")
     expect(email.mailtoUrl).toContain("mailto:rita@bfltool.com")
+  })
+
+  it("agrega ranking de compras por medida y excluye cancelados / fuera de catálogo", () => {
+    const ranking = agregarRankingComprasEndmills(
+      [
+        {
+          pedidoId: "p1",
+          tipo: "catalogada",
+          medidaId: "m-a",
+          categoria: "FLAT",
+          medidaPulgadas: "1/4",
+          descripcion: "FLAT 4 FILOS 1/4",
+          cantidadPedida: 10,
+          cantidadRecibida: 10,
+          subtotalUSD: 79.2,
+          fechaPedido: "2026-03-06",
+        },
+        {
+          pedidoId: "p2",
+          tipo: "catalogada",
+          medidaId: "m-a",
+          categoria: "FLAT",
+          medidaPulgadas: "1/4",
+          descripcion: "FLAT 4 FILOS 1/4 actualizado",
+          cantidadPedida: 5,
+          cantidadRecibida: 4,
+          subtotalUSD: 40,
+          fechaPedido: "2026-08-01",
+        },
+        {
+          pedidoId: "p3",
+          tipo: "catalogada",
+          medidaId: "m-b",
+          categoria: "BALL",
+          medidaPulgadas: "1/8",
+          descripcion: "BALL 2 FILOS 1/8",
+          cantidadPedida: 20,
+          cantidadRecibida: 20,
+          subtotalUSD: 110,
+          fechaPedido: "2026-04-01",
+        },
+        {
+          pedidoId: "p-cancel",
+          tipo: "catalogada",
+          medidaId: "m-b",
+          categoria: "BALL",
+          medidaPulgadas: "1/8",
+          descripcion: "BALL cancelada",
+          cantidadPedida: 100,
+          cantidadRecibida: 0,
+          subtotalUSD: 500,
+          fechaPedido: "2026-09-01",
+        },
+        {
+          pedidoId: "p1",
+          tipo: "fuera_catalogo",
+          medidaId: null,
+          categoria: null,
+          medidaPulgadas: "?",
+          descripcion: "Ítem suelto",
+          cantidadPedida: 3,
+          cantidadRecibida: 3,
+          subtotalUSD: 15,
+          fechaPedido: "2026-03-06",
+        },
+      ],
+      new Set(["p-cancel"])
+    )
+
+    expect(ranking).toHaveLength(2)
+    expect(ranking[0]?.medidaId).toBe("m-b")
+    expect(ranking[0]?.piezasPedidas).toBe(20)
+    expect(ranking[0]?.totalUSD).toBe(110)
+    expect(ranking[0]?.numeroPedidos).toBe(1)
+
+    expect(ranking[1]?.medidaId).toBe("m-a")
+    expect(ranking[1]?.piezasPedidas).toBe(15)
+    expect(ranking[1]?.piezasRecibidas).toBe(14)
+    expect(ranking[1]?.totalUSD).toBe(119.2)
+    expect(ranking[1]?.numeroPedidos).toBe(2)
+    expect(ranking[1]?.ultimaCompra).toBe("2026-08-01")
+    expect(ranking[1]?.descripcion).toBe("FLAT 4 FILOS 1/4 actualizado")
+  })
+
+  it("desempata ranking por USD cuando las piezas pedidas empatan", () => {
+    const ranking = agregarRankingComprasEndmills([
+      {
+        pedidoId: "p1",
+        tipo: "catalogada",
+        medidaId: "barata",
+        categoria: "FLAT",
+        medidaPulgadas: "1/8",
+        descripcion: "Barata",
+        cantidadPedida: 10,
+        cantidadRecibida: 10,
+        subtotalUSD: 50,
+        fechaPedido: "2026-01-01",
+      },
+      {
+        pedidoId: "p2",
+        tipo: "catalogada",
+        medidaId: "cara",
+        categoria: "FLAT",
+        medidaPulgadas: "1/4",
+        descripcion: "Cara",
+        cantidadPedida: 10,
+        cantidadRecibida: 10,
+        subtotalUSD: 200,
+        fechaPedido: "2026-01-02",
+      },
+    ])
+
+    expect(ranking.map((fila) => fila.medidaId)).toEqual(["cara", "barata"])
   })
 })
 

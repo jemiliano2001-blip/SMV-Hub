@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/table"
 import ModuleSurface from "@/components/layout/ModuleSurface"
 import { listarPartidasPedidoEndmills } from "@/lib/endmills"
+import { getClienteAuth } from "@/lib/firebase"
 import { fechaHoyLocal, formatPrecio } from "@/lib/format"
 import type {
   PartidaPedidoEndmills,
@@ -192,11 +193,17 @@ function DetallePedido({
     setProcesandoFoto(true)
     setError(null)
     try {
+      const token = await getClienteAuth().currentUser?.getIdToken()
+      if (!token) {
+        throw new Error("Inicia sesión para usar la extracción con IA")
+      }
+
       const formData = new FormData()
       formData.append("archivo", file)
 
       const res = await fetch("/api/endmills/extraer-pedido", {
         method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       })
       const data = await res.json()

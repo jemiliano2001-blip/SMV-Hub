@@ -1,4 +1,8 @@
-import type { EndmillMedida, EstadoStockEndmill } from "@/lib/schemas"
+import type {
+  EndmillMedida,
+  EstadoStockEndmill,
+  PartidaPedidoEndmills,
+} from "@/lib/schemas"
 import { fechaHoyLocal } from "@/lib/format"
 
 export const UMBRAL_CRITICO_ENDMILLS = 0.25
@@ -106,6 +110,101 @@ export function calcularLeadTimePromedio(
   if (conLeadTime.length === 0) return null
   const suma = conLeadTime.reduce((acc, curr) => acc + (curr.diasLeadTime ?? 0), 0)
   return Math.round(suma / conLeadTime.length)
+}
+
+/** Línea agregada del ranking de compras por medida (excluye pedidos cancelados). */
+export interface RankingCompraEndmill {
+  medidaId: string
+  categoria: PartidaPedidoEndmills["categoria"]
+  medidaPulgadas: string
+  descripcion: string
+  piezasPedidas: number
+  piezasRecibidas: number
+  totalUSD: number
+  numeroPedidos: number
+  ultimaCompra: string
+}
+
+type PartidaParaRanking = Pick<
+  PartidaPedidoEndmills,
+  | "pedidoId"
+  | "tipo"
+  | "medidaId"
+  | "categoria"
+  | "medidaPulgadas"
+  | "descripcion"
+  | "cantidadPedida"
+  | "cantidadRecibida"
+  | "subtotalUSD"
+  | "fechaPedido"
+>
+
+/**
+ * Agrega partidas catalogadas por medidaId. Omite fuera de catálogo y pedidos
+ * cuyo id esté en `pedidosCancelados`. Orden: piezas pedidas desc, luego USD.
+ */
+export function agregarRankingComprasEndmills(
+  partidas: readonly PartidaParaRanking[],
+  pedidosCancelados: ReadonlySet<string> = new Set()
+): RankingCompraEndmill[] {
+  const porMedida = new Map<
+    string,
+    RankingCompraEndmill & { pedidosVistos: Set<string> }
+  >()
+
+  for (const partida of partidas) {
+    if (partida.tipo !== "catalogada" || !partida.medidaId) continue
+    if (pedidosCancelados.has(partida.pedidoId)) continue
+
+    const existente = porMedida.get(partida.medidaId)
+    if (!existente) {
+      porMedida.set(partida.medidaId, {
+        medidaId: partida.medidaId,
+        categoria: partida.categoria,
+        medidaPulgadas: partida.medidaPulgadas,
+        descripcion: partida.descripcion,
+        piezasPedidas: partida.cantidadPedida,
+        piezasRecibidas: partida.cantidadRecibida,
+        totalUSD: redondearUSD(partida.subtotalUSD),
+        numeroPedidos: 1,
+        ultimaCompra: partida.fechaPedido,
+        pedidosVistos: new Set([partida.pedidoId]),
+      })
+      continue
+    }
+
+    existente.piezasPedidas += partida.cantidadPedida
+    existente.piezasRecibidas += partida.cantidadRecibida
+    existente.totalUSD = redondearUSD(existente.totalUSD + partida.subtotalUSD)
+    if (!existente.pedidosVistos.has(partida.pedidoId)) {
+      existente.pedidosVistos.add(partida.pedidoId)
+      existente.numeroPedidos = existente.pedidosVistos.size
+    }
+    if (partida.fechaPedido > existente.ultimaCompra) {
+      existente.ultimaCompra = partida.fechaPedido
+      // Preferir el snapshot más reciente para etiqueta
+      existente.descripcion = partida.descripcion
+      existente.medidaPulgadas = partida.medidaPulgadas
+      existente.categoria = partida.categoria
+    }
+  }
+
+  return Array.from(porMedida.values())
+    .map((fila) => ({
+      medidaId: fila.medidaId,
+      categoria: fila.categoria,
+      medidaPulgadas: fila.medidaPulgadas,
+      descripcion: fila.descripcion,
+      piezasPedidas: fila.piezasPedidas,
+      piezasRecibidas: fila.piezasRecibidas,
+      totalUSD: fila.totalUSD,
+      numeroPedidos: fila.numeroPedidos,
+      ultimaCompra: fila.ultimaCompra,
+    }))
+    .sort((a, b) => {
+      if (b.piezasPedidas !== a.piezasPedidas) return b.piezasPedidas - a.piezasPedidas
+      return b.totalUSD - a.totalUSD
+    })
 }
 
 export function parsearFraccionPulgadas(medida: string): number {

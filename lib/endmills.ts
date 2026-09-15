@@ -130,6 +130,12 @@ export async function listarPartidasPedidoEndmills(
   return partidas.sort((a, b) => a.descripcion.localeCompare(b.descripcion, "es"))
 }
 
+/** Partidas ligadas al catálogo vivo — base del ranking de compras. */
+export async function listarPartidasCatalogadasEndmills(): Promise<PartidaPedidoEndmills[]> {
+  const partidas = await repoPartidas.listar([where("tipo", "==", "catalogada")])
+  return partidas.sort((a, b) => b.fechaPedido.localeCompare(a.fechaPedido))
+}
+
 export async function listarHistorialMedidaEndmills(
   medidaId: string
 ): Promise<PartidaPedidoEndmills[]> {
