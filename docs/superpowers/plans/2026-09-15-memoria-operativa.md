@@ -1,11 +1,10 @@
 # Plan — Memoria operativa v1 (frente C)
 
 Spec: [../specs/2026-09-13-memoria-operativa-design.md](../specs/2026-09-13-memoria-operativa-design.md)
-Estado: **C0 ejecutada el 2026-09-15** (resultados abajo) — aprobado por Emiliano el mismo día
-con las cuatro decisiones de la tabla; pendiente el checkpoint T0.4 sobre umbral, regla de número
-de parte y las 10 búsquedas. Datos ya normalizados por el frente B
+Estado: **C0 y C1 cerradas el 2026-09-15** (C0 calibración con checkpoint aprobado; C1 índice
+con cotizaciones desplegado y verificado en producción: 993 entradas, 10/10 búsquedas). Sigue C2
+(consulta unificada). Datos ya normalizados por el frente B
 ([2026-09-13-estructura-datos-normalizacion.md](2026-09-13-estructura-datos-normalizacion.md)).
-Nada de C1–C4 toca producción hasta ese checkpoint.
 
 **Alcance v1 fijado por datos (Fase 0 del spec):** órdenes + cotizaciones manuales. Fuera:
 `compras_odoo_items` (2,360 ítems; el índice excedería 2× el corte de 1,500 → v2 con
@@ -212,13 +211,20 @@ Desplegable por sí solo: al terminar, Cmd+K ya encuentra cotizaciones aunque C2
   fuente (`FileText` para cotización) y badge de fuente; subtítulo con proveedor · precio · fecha ·
   `ubicacion`. Tokens semánticos (`tests/ui-tokens-guardrail.test.ts`).
 
-### T1.5 · Deploy y verificación — ⏳
+### T1.5 · Deploy y verificación — ✅ HECHO (2026-09-15)
 - `cd functions && npm run build`; deploy **solo** `syncBusquedaIndiceScheduled` +
   `syncBusquedaIndiceManual` (targets de `scripts/firebase-deploy-targets.mjs`); hosting a mano.
 - Reindex manual en dev y en prod desde Mantenimiento → resultado esperado ≈ 462 nuevas
   embebidas. Verificar con `npx tsx scripts/diagnostico-datos.ts smv-brain` (sección H: fuente
   `cotizacion` ≈ 462) y `npx tsx scripts/validar-busquedas-prueba.ts smv-brain` con el bloque de
   T0.3 → **≥ 8/10 en top 3** (criterio #3).
+
+**Resultado (2026-09-15):** merge `e9fe4b86` (PR #14); Functions `syncBusquedaIndice*` y hosting
+(`BUILD_ID NtXMNhenpaOVb3F_wVbb7`) desplegados a mano (CI sigue bloqueado por IAM en el paso de
+Functions). Reindex manual por Emiliano: **993 entradas** = 462 `cotizacion` (exactamente las
+manuales proyectadas) + 420 `orden-item` + 111 `proveedor`; 466 re-embebidas; 0 errores; ~10.1 KB
+por entrada. Las 10 búsquedas de T0.3 contra la fuente `cotizacion`: **10/10 en top 3, las diez en
+primer lugar** (criterio #3 ✅). C1 cerrada; Cmd+K ya encuentra cotizaciones en producción.
 
 ---
 
