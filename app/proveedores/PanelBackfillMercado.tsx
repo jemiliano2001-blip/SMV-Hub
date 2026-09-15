@@ -75,7 +75,7 @@ export default function PanelBackfillMercado() {
     try {
       const r = await reindexarBusquedaSemantica()
       setMensaje(
-        `Índice: ${r.entradasEsperadas} entradas · ${r.reembebidas} re-embebidas · ${r.metadataActualizadas} con metadata refrescada · ${r.sinCambios} sin cambios · ${r.podadas} podadas.`
+        `Índice: ${r.entradasEsperadas} entradas (${r.ordenesLeidas} órdenes · ${r.proveedoresLeidos} proveedores${r.cotizacionesLeidas != null ? ` · ${r.cotizacionesLeidas} cotizaciones` : ''}) · ${r.reembebidas} re-embebidas · ${r.metadataActualizadas} con metadata refrescada · ${r.sinCambios} sin cambios · ${r.podadas} podadas.`
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo refrescar el índice.')

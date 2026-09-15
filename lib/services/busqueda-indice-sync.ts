@@ -10,6 +10,8 @@ export type ResultadoSyncBusquedaIndice = {
   podadas: number
   ordenesLeidas: number
   proveedoresLeidos: number
+  /** Ausente en respuestas de Functions anteriores a C1 (frente C). */
+  cotizacionesLeidas?: number
 }
 
 /**

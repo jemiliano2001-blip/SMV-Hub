@@ -1513,10 +1513,11 @@ export type RegistroCotizacionOdoo = z.infer<typeof RegistroCotizacionOdooSchema
 
 // ── Búsqueda semántica (índice) ───────────────────────────────────────────────
 // Ver docs/superpowers/specs/2026-08-17-busqueda-semantica-datos-reales.md.
-// Solo "orden-item" y "proveedor" tienen productor (functions/src/busqueda-indice-texto.ts);
-// "endmill"/"cotizacion" se agregan a este enum cuando Fase 2 los indexe también.
+// Productores en functions/src/busqueda-indice-texto.ts: "orden-item" y "proveedor" (2026-08),
+// "cotizacion" (frente C, 2026-09: solo cotizaciones manuales, origen ≠ compra). "endmill" se
+// agrega a este enum cuando tenga productor.
 
-export const FuenteBusquedaIndiceSchema = z.enum(["orden-item", "proveedor"])
+export const FuenteBusquedaIndiceSchema = z.enum(["orden-item", "proveedor", "cotizacion"])
 export type FuenteBusquedaIndice = z.infer<typeof FuenteBusquedaIndiceSchema>
 
 export const BusquedaIndiceSchema = z.object({
@@ -1540,12 +1541,18 @@ export const BusquedaIndiceSchema = z.object({
   titulo: z.string(),
   metadata: z.object({
     proveedorNombre: z.string().optional(),
+    proveedorId: z.string().optional(),
     precio: z.number().optional(),
     moneda: z.string().optional(),
     fecha: z.string().optional(),
     ordenId: z.string().optional(),
+    cotizacionId: z.string().optional(),
     mercado: z.string().optional(),
     categorias: z.array(z.string()).optional(),
+    numeroParte: z.string().optional(),
+    llavePieza: z.string().optional(),
+    ubicacion: z.string().optional(),
+    estatus: z.string().optional(),
   }),
   actualizadoEn: z.date(),
 })

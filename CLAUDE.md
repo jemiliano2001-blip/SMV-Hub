@@ -141,7 +141,9 @@ aplicaciones y un deploy global puede eliminarlas. El codebase de Hub es `smv-hu
 
 ### Búsqueda semántica
 
-`busqueda_indice` se actualiza cada 24 h mediante `syncBusquedaIndiceScheduled` y sólo un
+`busqueda_indice` indexa ítems de órdenes, proveedores y cotizaciones manuales (`origen ≠ compra`);
+la tabla fuente → módulo que filtra en servidor vive en `lib/memoria-operativa/permisos.ts` y la
+comparten Cmd+K y la memoria operativa. Se actualiza cada 24 h mediante `syncBusquedaIndiceScheduled` y sólo un
 super-admin puede usar `syncBusquedaIndiceManual`. Ambas Functions usan el secreto separado
 `HUB_GEMINI_API_KEY`; nunca reutilices ni cambies secretos sin prefijo de los otros productos del
 proyecto compartido. El índice usa embeddings de 768 dimensiones de `gemini-embedding-2` (GA),

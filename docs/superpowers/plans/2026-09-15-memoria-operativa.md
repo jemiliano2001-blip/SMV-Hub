@@ -72,7 +72,7 @@ key de Gemini de `.env.local` (solo embeddings de consulta, ~40 llamadas).
   `scripts/validar-busquedas-prueba.ts` (`{ q, debe }`). Se agregan a ese script como bloque
   `BUSQUEDAS_COTIZACIONES` y son el criterio #3.
 
-### T0.4 · Checkpoint con Emiliano — ⏳
+### T0.4 · Checkpoint con Emiliano — ✅ HECHO (2026-09-15: umbral 0.76, regla de número de parte, 10 búsquedas y costo aprobados)
 Umbral elegido, lectura (a)/(b), costo, las 10 búsquedas y las 4 decisiones de la tabla de arriba
 (las 4 decisiones ya aprobadas el 2026-09-15). **Gate para C1.**
 
@@ -166,7 +166,7 @@ manuales; a confirmar o cambiar en T0.4):
 
 Desplegable por sí solo: al terminar, Cmd+K ya encuentra cotizaciones aunque C2–C4 no existan.
 
-### T1.1 · Constructor de texto para `cotizacion` (lógica pura)
+### T1.1 · Constructor de texto para `cotizacion` (lógica pura) — ✅ HECHO (2026-09-15)
 - `functions/src/busqueda-indice-texto.ts`: `FuenteBusquedaIndice` += `"cotizacion"`; tipo
   `CotizacionParaIndice { id, descripcion, numeroParte, proveedor, proveedorId, precioUnitario,
   moneda, fecha, ubicacion, estatus, origen, llavePieza }`; `construirEntradaCotizacion()` devuelve
@@ -185,7 +185,7 @@ Desplegable por sí solo: al terminar, Cmd+K ya encuentra cotizaciones aunque C2
 - Tests en `tests/busqueda-indice-texto.test.ts`: excluye `origen=compra`, excluye precio 0 de la
   metadata pero sí indexa, hash estable, claves ausentes.
 
-### T1.2 · Indexador lee cotizaciones
+### T1.2 · Indexador lee cotizaciones — ✅ HECHO (2026-09-15)
 - `functions/src/busqueda-indice-escritura.ts`: tercer `get()` en paralelo sobre `cotizaciones`;
   `construirEntradaCotizacion` por doc; guard de poda `fuente === "cotizacion" && cotizacionesSnap.empty`
   (nunca vaciar por un read fallido); `ResultadoIndexacion.cotizacionesLeidas`; `huellaVisible`
@@ -194,21 +194,25 @@ Desplegable por sí solo: al terminar, Cmd+K ya encuentra cotizaciones aunque C2
   en el resumen del botón "Refrescar índice de búsqueda".
 - Test: caso nuevo en el emulator (`tests/busqueda-indice-escritura.emulator.test.ts`, registrado
   en `test:emulator`): 3 cotizaciones (1 `origen=compra`, 1 precio 0, 1 normal) → 2 entradas, la de
-  precio 0 sin `metadata.precio`; segunda corrida sin cambios → 0 re-embebidas.
+  precio 0 sin `metadata.precio`; segunda corrida sin cambios → 0 re-embebidas y 0 llamadas a
+  Gemini; cambio de precio → metadata refrescada sin re-embeber; borrado → poda; lectura vacía →
+  no poda. Para eso `sincronizarIndiceBusqueda(apiKey, { fetchFn })` acepta un fetch inyectable
+  (4/4 en emulator el 2026-09-15). Ids de cotización con prefijo `cot#` (no chocan con ids de
+  proveedor).
 
-### T1.3 · Permisos por fuente en un solo lugar
+### T1.3 · Permisos por fuente en un solo lugar — ✅ HECHO (2026-09-15)
 - `lib/memoria-operativa/permisos.ts`: `fuentesPermitidasPara(info): FuenteBusquedaIndice[]`
   (`orden-item` ⇐ `ordenes`, `proveedor` ⇐ `proveedores`, `cotizacion` ⇐ `cotizaciones`; super-admin
   todo) y `puedeVerPrecios(info)` (decisión #3). `app/api/busqueda-semantica/route.ts` pasa a usarla
   (hoy tiene la tabla inline). Test unitario + test de ruta: usuario sin `cotizaciones` nunca
   recibe `cotizacion` (criterio #7, se reutiliza en C2).
 
-### T1.4 · Cmd+K muestra cotizaciones
+### T1.4 · Cmd+K muestra cotizaciones — ✅ HECHO (2026-09-15)
 - `components/BuscadorGlobalCommand.tsx`: heading "Órdenes, cotizaciones & proveedores"; icono por
   fuente (`FileText` para cotización) y badge de fuente; subtítulo con proveedor · precio · fecha ·
   `ubicacion`. Tokens semánticos (`tests/ui-tokens-guardrail.test.ts`).
 
-### T1.5 · Deploy y verificación
+### T1.5 · Deploy y verificación — ⏳
 - `cd functions && npm run build`; deploy **solo** `syncBusquedaIndiceScheduled` +
   `syncBusquedaIndiceManual` (targets de `scripts/firebase-deploy-targets.mjs`); hosting a mano.
 - Reindex manual en dev y en prod desde Mantenimiento → resultado esperado ≈ 462 nuevas
