@@ -35,12 +35,19 @@ Módulos actuales:
 - `/caja-chica` — movimientos y arqueo de caja chica (`lib/caja-chica.ts`).
 - `/claves-sat` — buscador de claves SAT (`BuscadorClavesSat.tsx`), complementa la sugerencia
   automática de `/nueva-compra`.
-- `/cotizaciones` — gestión de cotizaciones; importación por CSV, tabs de estado y listado.
+- `/cotizaciones` — gestión de cotizaciones; importación por CSV, tabs de estado y listado. El
+  proveedor se vincula al catálogo desde el formulario (`ChipProveedorVinculado`: exacto / sugerido /
+  dar de alta) y `diasHabiles` (texto libre) se traduce a `leadTimeMinDias`/`leadTimeMaxDias` en cada
+  escritura (`lib/lead-time.ts`; semanas ×5, meses ×20, stock = 0, null con motivo si no se entiende).
 - `/proveedores` — catálogo de proveedores de herramienta (USA Tooling); FK opcional `proveedorId`
   en órdenes/cotizaciones; inteligencia cruzada (precios históricos, lead time, scorecards) en
-  `lib/proveedores-inteligencia-cruzada.ts`. Centro de mando con paneles dedicados: compras Odoo
-  (`PanelComprasOdoo.tsx`) e inteligencia 360 (`PanelInteligencia360.tsx`). El comparador de precios
-  MX (`ComparadorPreciosInsumos.tsx`) solo muestra ítems de Odoo con `precioUnitario > 0`
+  `lib/proveedores-inteligencia-cruzada.ts`. Cada proveedor guarda `mercado` (regla única en
+  `lib/proveedor-mercado.ts`), `aliases[]` aprendidos al confirmar una vinculación y `esMarketplace`.
+  Centro de mando con paneles dedicados: compras Odoo (`PanelComprasOdoo.tsx`), inteligencia 360
+  (`PanelInteligencia360.tsx`) y la tab **Mantenimiento** (solo super-admin) con los backfills de
+  vinculación histórica, mercado y lead time más el refresco del índice de búsqueda — todos
+  previsualizar → aplicar sobre Route Handlers auditados; nunca scripts contra prod. El comparador
+  de precios MX (`ComparadorPreciosInsumos.tsx`) solo muestra ítems de Odoo con `precioUnitario > 0`
   (`lib/compras-odoo/rangos.ts` → `esItemComprable()`); el flag `esRfq` (PO aún no aprobada en
   Odoo) **no** se usa como filtro — Odoo permite capturar precio de línea antes de aprobar la PO,
   así que una RFQ con precio real sí cuenta. Los ítems en $0 siguen visibles para clasificación IA
@@ -103,6 +110,10 @@ npm run sat:import:phpcfdi  # importación desde el catálogo phpcfdi
 npm run endmills:import          # importa catálogo de medidas/fresas
 npm run endmills:verify:dev      # verifica datos contra el emulator/dev
 npm run endmills:assign-module   # asigna el módulo endmills a usuarios existentes
+
+# Diagnóstico de datos contra producción (solo lectura; requiere .env.admin.local con
+# GOOGLE_APPLICATION_CREDENTIALS → service account roles/datastore.viewer, ver AGENTS.md)
+npx tsx scripts/diagnostico-datos.ts smv-brain
 ```
 
 Los tests `test:rules`/`test:emulator` usan `@firebase/rules-unit-testing` y se saltan
@@ -119,7 +130,9 @@ Hosting usa Turbopack por defecto, pero con `firebase-admin`/`firebase-functions
 aliases con hash que la función SSR no resuelve en producción — no lo cambies a `next build`
 a secas (ver `next.config.ts` y `scripts/verificar-bundle-firebase.mjs`).
 
-Para deploy manual de Hosting (fuera de CI) usa `npm run deploy:hosting` — fija
+Mergear a `main` **no publica la app**: el CI valida y sólo despliega Functions/rules/storage
+cuando cambian (hosting está excluido a propósito del deploy automático). Para publicar Hosting
+usa siempre `npm run deploy:hosting` — fija
 `--project smv-brain`, carga `.env.production` sobre `.env.local` y parchea el build a
 webpack antes de correr `firebase deploy --only hosting:smv-hub` (ver `scripts/firebase-deploy.mjs`);
 no uses `firebase deploy` a secas, falla por el mismo motivo que `next build` a secas. Tampoco
@@ -298,7 +311,10 @@ desde el primer ítem a los campos de nivel orden.
 Otros schemas clave en `lib/schemas.ts`:
 
 - **`CotizacionSchema`** — modelo plano: 1 fila = 1 pieza + 1 proveedor. `ubicacion: "MX"|"USA"`
-  determina la moneda (`MXN`/`USD`). `estatus: "cotizado"|"cancelado"|"revisar"`.
+  determina la moneda (`MXN`/`USD`). `estatus: "cotizado"|"cancelado"|"revisar"`. `diasHabiles` es
+  texto libre; `leadTimeMinDias`/`leadTimeMaxDias` (int ≥ 0 | null) son derivados y los rellena
+  siempre la capa de escritura (`conDerivados()` en `lib/cotizaciones.ts`) — no los captures a mano
+  ni vuelvas a parsear el texto en los consumidores.
 - **`RequisicionSchema`** — `tipo: "general"|"automatizacion"` controla qué campos son visibles
   en la UI. `estado: "no_comprado"|"en_proceso"|"comprado"|"parcial"|"recibido"`. Los campos
   `parteNumero` y `fechaEntregaEst` aplican solo cuando `tipo === "automatizacion"`.
@@ -362,12 +378,14 @@ async function action(formData: FormData) {
 Firebase v12 puede tener breaking changes respecto a v9/v10. Revisa los docs en
 `node_modules/firebase/` antes de asumir patrones del SDK modular de tu conocimiento previo.
 
-App Check se inicializa en el cliente cuando existe `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`. El
-enforcement de Firestore y Storage está temporalmente desactivado (`appCheckValido()` devuelve
-`true`) desde 2026-07-13; no afirmes que está activo ni cambies la función a
-`request.app != null` hasta completar la validación de dominios, debug tokens y métricas descrita
-en `docs/infra/app-check-setup.md`. Los callables rechazan solicitudes sin App Check por defecto;
-`APP_CHECK_ENFORCE=false` es solo una salida temporal controlada.
+App Check son tres interruptores independientes y hoy (2026-09-14) los tres están apagados: el
+cliente sólo lo inicializa con `NEXT_PUBLIC_APP_CHECK_ENABLED=true` + `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`
+(`lib/app-check.ts`; no está activo en prod); el enforcement de Firestore y Storage está
+desactivado (`appCheckValido()` devuelve `true`) desde 2026-07-13; y los callables de Hub corren con
+`APP_CHECK_ENFORCE=false` desde `functions/.env` (commiteado) — antes de eso todos los botones
+manuales de sync/reindex fallaban en prod con "App Check verification failed". No afirmes que
+está activo, no cambies la función a `request.app != null` ni quites el `.env` por separado:
+los tres niveles se reactivan juntos siguiendo `docs/infra/app-check-setup.md`.
 
 ## Autenticación
 

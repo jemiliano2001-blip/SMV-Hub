@@ -1,11 +1,13 @@
 # Plan — Estructura y normalización de datos (frente B)
 
 Spec: [../specs/2026-09-13-estructura-datos-normalizacion-design.md](../specs/2026-09-13-estructura-datos-normalizacion-design.md)
-Estado: **B0 (calibración read-only) ejecutada el 2026-09-13** — resultados abajo. Decisiones de
-Emiliano ya tomadas (2026-09-13): marketplaces como proveedores con `esMarketplace`; semanas ×5
-días hábiles; quien tenga módulo `proveedores` da de alta desde captura; sin segunda pasada IA en v1.
-Quedan 3 preguntas nuevas que salieron de B0 (al final). Nada de B1–B4 toca producción hasta
-que se respondan.
+Estado: **✅ FRENTE B CERRADO el 2026-09-15** — B0 → B2 → B1 → B4 → B3 → B5 en `main`,
+desplegados y medidos en producción; los 7 criterios del spec cumplidos (tabla en T5.1).
+Decisiones de Emiliano (2026-09-13/14): marketplaces como proveedores con `esMarketplace`; semanas
+×5 días hábiles; quien tenga módulo `proveedores` da de alta desde captura; sin segunda pasada IA
+en v1; internos sin vincular; los 4 Odoo+USD → `mexico`; las 26 filas "con dinero" eran días con
+formato de moneda (sin corrección). Siguiente frente: memoria operativa
+(`../specs/2026-09-13-memoria-operativa-design.md`) sobre estos datos ya limpios.
 
 Regla para todas las tareas: `npx tsc --noEmit`, `npm run lint`, `npm test` en verde antes de
 cerrar cada una; `npm run test:rules` cuando se toquen rules; `cd functions && npm run build`
@@ -415,23 +417,46 @@ aparte completar App Check y reactivar el enforcement en los tres niveles.
 
 ## B5 — Validación y cierre
 
-### T5.1 · Antes / después
-Correr `diagnostico-datos.ts` y pegar en este plan la tabla con los 7 criterios del spec.
+### T5.1 · Antes / después — ✅ HECHO (2026-09-15)
+`npx tsx scripts/diagnostico-datos.ts smv-brain` el 2026-09-13 (antes de tocar nada) y el
+2026-09-15 con B1–B4 desplegados y los tres backfills aplicados por Emiliano:
 
-### T5.2 · Gates completos
-`npx tsc --noEmit` · `npm run lint` · `npm test` · `cd functions && npm run build` ·
-`npm run build` · `npx firebase-tools emulators:exec --only firestore "npm run test:emulator"`.
+| # | Criterio del spec | Antes (09-13) | Después (09-15) | |
+|---|---|---|---|---|
+| 1 | Órdenes sin `proveedorId` ≤ 15 % | 132 (93 %) | **20 (14 %)** | ✅ |
+| 1 | Cotizaciones sin `proveedorId` ≤ 40 % | 825 (97 %) | **233 (27 %)**, 21 % sin internos | ✅ |
+| 2 | Top 10 nombres de factura vinculan solos o con sugerencia ≥ 9/10 | — | `tests/proveedor-matching.test.ts` (10 nombres literales de B0.2) | ✅ |
+| 3 | Sync: cero ítems con mapeo aprobado en otra categoría | bug (`set()` los pisaba cada 2 h) | `tests/odoo-compras-sync-mapeos.emulator.test.ts` (5 mapeos, 20 líneas, sobrevive a la 2ª corrida) | ✅ |
+| 4 | Ítems Odoo en `otros` ≤ 25 % sin IA | 978 (42 %) | **529 (22 %)** (26 % el 09-14; mapeos aprobados 338 → 423) | ✅ |
+| 5 | Lead time: 100 % numérico o null explícito; ≥ 90 % parseado | 0 % | **246/268 (92 %)** numérico, 22 null con motivo, 0 sin procesar | ✅ |
+| 6 | `mercado` 100 % persistido; índice con `mercado` | 101 sin campo (97 %); índice 0 | **0 sin campo** (95 MX / 16 USA); índice **110/110** | ✅ |
+| 7 | Gates verdes | — | ver T5.2 | ✅ |
 
-### T5.3 · Documentación viva
-`AGENTS.md` (Learned Workspace Facts): alias se aprenden del uso; el sync aplica
-`clasificacion_ia_mapeos` con regla D; `leadTimeMin/MaxDias` derivados; `mercado` persistido;
-backfills son acciones super-admin; `scripts/diagnostico-datos.ts` y `calibracion-frente-b.ts`
-son read-only y requieren `.env.admin.local`. `CLAUDE.md`: una línea en `/proveedores` y
-`/cotizaciones`.
+Sin criterio pero medido: proveedores en catálogo 104 → 111; fantasmas en órdenes 26 → 15
+nombres (todos de 1–2 compras); ítems Odoo sin tipo de insumo 42 % → 20 %.
 
-### T5.4 · Commits
-Uno por fase (B0 ya: specs + scripts; luego B2, B1, B4, B3, B5). Nada se despliega antes de su
-verificación.
+### T5.2 · Gates completos — ✅ HECHO (2026-09-15, sobre `main` tras B3 + fix lint endmills)
+`npx tsc --noEmit` ok · `npm run lint` 0 problemas · `npm test` **1,484 passed / 33 skipped**
+(152 archivos) · `cd functions && npm run build` ok · `npm run build` ok (bundle SSR compatible) ·
+emulator `npm run test:emulator` **33/33** (rules 25 + integridad + sync mapeos). CI en `main`
+verde en `9ac38cf9`.
+
+### T5.3 · Documentación viva — ✅ HECHO (2026-09-15)
+`AGENTS.md` (Learned Workspace Facts): `/proveedores` ampliado con los cuatro puntos del frente B
+(alias aprendidos del uso + internos sin vincular; `mercado` con regla única en lib+functions e
+indexador con refresco de metadata; sync aplica `clasificacion_ia_mapeos` con regla D y
+`clasificadoPorMapeo`; backfills = tab Mantenimiento, nunca scripts); bullets nuevos
+*Cotizaciones lead time* (reglas del parser, golden de prod, consumidores leen el numérico) y
+*Data diagnostics* (scripts read-only con `.env.admin.local` + baseline 2026-09-15); corregido
+*Hosting/security/build*: CI **nunca** despliega hosting (decía lo contrario), brecha IAM de
+Secret Manager, y App Check como tres interruptores hoy apagados. `CLAUDE.md`: `/cotizaciones`,
+`/proveedores`, `CotizacionSchema` (`leadTimeMin/MaxDias` derivados), comando de diagnóstico,
+párrafo de deploy ("mergear a main no publica") y párrafo de App Check.
+
+### T5.4 · Commits — ✅ HECHO
+B0 `c2e4736` · B2 `72892d8` · B1 `3ea99e7` · B4 `20f8f9fb` (+ App Check `fe7b4b04`) · B3
+`e6304aed` (PR #13) · B5 este commit. Cada fase se desplegó a mano tras sus gates (CI no
+despliega hosting y su deploy de Functions/rules está bloqueado por IAM desde el 09-14).
 
 ---
 
