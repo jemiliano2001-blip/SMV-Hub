@@ -255,6 +255,21 @@ function buscarPorHistorial(
   )
 }
 
+/**
+ * Clave SAT ya validada por el equipo para esta descripción (solo `sat_asignaciones` /
+ * `mapeos-smv.json`: SKU o similitud de tokens, sin catálogo ni Gemini). Lo usa la memoria
+ * operativa para mostrar "clave validada" en el chip; null si no hay mapeo aplicable.
+ */
+export function buscarClaveSatValidada(
+  descripcion: string,
+  mapeos: MapeoSmvEntry[]
+): Pick<SugerenciaClaveSat, "claveProdServ" | "descripcionSat" | "confianza"> | null {
+  if (!descripcion.trim() || mapeos.length === 0) return null
+  const r = buscarPorHistorialExtendido(descripcion, new Map(), mapeos)
+  if (!r) return null
+  return { claveProdServ: r.claveProdServ, descripcionSat: r.descripcionSat, confianza: r.confianza }
+}
+
 function buscarPorHistorialExtendido(
   descripcion: string,
   historial: Map<string, HistorialSatEntry>,

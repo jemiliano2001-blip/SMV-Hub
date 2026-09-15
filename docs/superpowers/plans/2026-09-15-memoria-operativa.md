@@ -230,7 +230,7 @@ primer lugar** (criterio #3 ✅). C1 cerrada; Cmd+K ya encuentra cotizaciones en
 
 ## C2 — Consulta unificada (`lib/memoria-operativa/` + ruta)
 
-### T2.1 · Caché en proceso del índice
+### T2.1 · Caché en proceso del índice — ✅ HECHO (2026-09-15)
 - `lib/busqueda-semantica-catalogo.ts`: extraer `leerIndiceVectorizado(fuentes)` con caché
   módulo-nivel por clave `fuentes.sort().join(",")`, TTL 5 min (mismo patrón que
   `cargarMapeosSatDesdeFirestore`), y `invalidarCacheIndice()` para tests. `buscarEnCatalogoSemantico`
@@ -239,7 +239,7 @@ primer lugar** (criterio #3 ✅). C1 cerrada; Cmd+K ya encuentra cotizaciones en
 - Tests en `tests/busqueda-semantica-catalogo.test.ts`: dos llamadas seguidas → 1 `get()`; claves
   distintas de fuentes → lecturas distintas; TTL vencido → relee.
 
-### T2.2 · Lógica pura: `construirContextoOperativo()`
+### T2.2 · Lógica pura: `construirContextoOperativo()` — ✅ HECHO (2026-09-15)
 - `lib/memoria-operativa/tipos.ts`: `PiezaConsulta { descripcion, numeroParte?, proveedor?,
   proveedorId?, precioUnitario?, moneda? }`, `ContextoOperativo` (forma del spec, sin
   `requisicionesPrevias` en v1), `EmpateMemoria = "exacto" | "semantico"`.
@@ -274,12 +274,12 @@ primer lugar** (criterio #3 ✅). C1 cerrada; Cmd+K ya encuentra cotizaciones en
   parte); precio 0 nunca alimenta la alerta; `verPrecios=false` no filtra filas pero sí montos;
   máximo 3 semánticos.
 
-### T2.3 · Loader Admin de mapeos aprobados
+### T2.3 · Loader Admin de mapeos aprobados — ✅ HECHO (2026-09-15)
 - `lib/compras-odoo/mapeos-aprobados-admin.ts`: `cargarMapeosAprobadosAdmin()` con Admin SDK y
   caché 5 min, devolviendo el índice de `indexarMapeosAprobados` (el loader actual
   `cargarMapeosClasificacion` usa el SDK cliente y no sirve en Route Handlers). No toca el existente.
 
-### T2.4 · Ruta `POST /api/memoria-operativa/consultar`
+### T2.4 · Ruta `POST /api/memoria-operativa/consultar` — ✅ HECHO (2026-09-15)
 - `app/api/memoria-operativa/consultar/route.ts`: `verificarUsuarioAutorizado` → `excedeLimite(uid)`
   → body Zod `{ piezas: PiezaConsulta[] }` (1–20) → `fuentesPermitidasPara(info)` (sin
   `proveedor`: la memoria es de piezas) y `puedeVerPrecios(info)` → **una** llamada
@@ -293,10 +293,26 @@ primer lugar** (criterio #3 ✅). C1 cerrada; Cmd+K ya encuentra cotizaciones en
   `cotizacion` (criterio #7); > 20 piezas → 400; Gemini falla → 200 `degradado: true`; una sola
   llamada a embeddings por request aunque vengan 20 piezas.
 
-### T2.5 · Cliente
+### T2.5 · Cliente — ✅ HECHO (2026-09-15)
 - `lib/services/memoria-operativa.ts`: `consultarMemoriaOperativa(piezas, { signal })` con ID
   token (mismo patrón que `lib/services/busqueda-indice-sync.ts`) y `AbortController` a **8 s**.
   Nunca lanza hacia la UI: devuelve `{ ok: false, motivo }`.
+
+**Estado C2 (2026-09-15):** hecho en rama `frente-c/c2-consulta-unificada`. Notas de construcción:
+- `lib/precios-historicos.ts` nuevo: tipos + `resumirPreciosPorPiezaProveedor` + `evaluarAlertaPrecio`
+  extraídos de `proveedores-inteligencia-cruzada.ts` (que importa el SDK cliente de Firebase y no
+  debe entrar a un Route Handler); aquel módulo los re-exporta, nadie más cambió.
+- `buscarClaveSatValidada(descripcion, mapeos)` exportada de `lib/sat/sugerir-clave.ts` (SKU +
+  tokens sobre `sat_asignaciones`, sin catálogo ni Gemini) para `claveSatValidada`.
+- `puedeVerPrecios` coincide con "tiene alguna fuente" (ordenes o cotizaciones): en la práctica la
+  ruta siempre responde con montos a quien puede consultarla; el campo se conserva por el spec.
+- Smoke read-only contra `smv-brain` con las 40 descripciones del golden y el índice real (882
+  entradas orden-item + cotizacion): 23/40 con ≥ 1 exacto **sin contar el propio ítem** (las 20
+  repetidas + Omron, pen drives y guardamotor C20 rescatados por número de parte o por una
+  cotización); 10 cotizaciones previas encontradas (p. ej. el sello Husky cotizado en dos lugares a
+  $17.58 y $25.66); ninguna alerta contra hermanos. Tiempos: índice frío 3.7 s (cacheado después),
+  40 embeddings 0.9 s, contexto 83 ms.
+- Tests: 6 caché · 13 número de parte · 13 contexto (golden) · 10 ruta · 7 cliente.
 
 ---
 

@@ -17,6 +17,102 @@ export type ResultadoBusquedaSemantica = Pick<BusquedaIndice, "fuente" | "refPat
   id: string
 }
 
+export type EntradaIndiceVectorizada = ItemVectorizado<ResultadoBusquedaSemantica>
+
+// ── Caché en proceso del índice (frente C, T2.1) ────────────────────────────
+// Cada lectura fría baja el índice completo (~10 KB por entrada: 993 entradas ≈ 10 MB en
+// 2026-09). Cmd+K y la memoria operativa comparten esta caché por instancia: TTL corto porque
+// el sync corre cada 24 h y el reindex manual es raro; lo que importa es no releer en cada
+// tecla. La clave es la lista ordenada de fuentes (misma que el `where in`).
+const TTL_CACHE_INDICE_MS = 5 * 60 * 1000
+
+type EntradaCacheIndice = {
+  promesa: Promise<EntradaIndiceVectorizada[]>
+  expiraEn: number
+}
+
+const cacheIndice = new Map<string, EntradaCacheIndice>()
+
+/** Solo para pruebas y para el reindex manual: la siguiente lectura vuelve a Firestore. */
+export function invalidarCacheIndice(): void {
+  cacheIndice.clear()
+}
+
+function claveCache(fuentes: readonly FuenteBusquedaIndice[]): string {
+  return [...fuentes].sort().join(",")
+}
+
+async function leerIndiceDesdeFirestore(
+  fuentes: readonly FuenteBusquedaIndice[]
+): Promise<EntradaIndiceVectorizada[]> {
+  let snap
+  try {
+    snap = await adminDb
+      .collection("busqueda_indice")
+      .where("fuente", "in", fuentes)
+      .get()
+  } catch (error) {
+    throw new ErrorIA(
+      `No se pudo leer el índice de búsqueda semántica: ${error instanceof Error ? error.message : String(error)}`
+    )
+  }
+
+  const items: EntradaIndiceVectorizada[] = []
+  let entradasDimensionIncorrecta = 0
+
+  for (const doc of snap.docs) {
+    const d = doc.data()
+    const embedding = Array.isArray(d.embedding) ? d.embedding : []
+    if (embedding.length > 0 && embedding.length !== DIMENSIONES_INDICE) {
+      entradasDimensionIncorrecta++
+      continue
+    }
+
+    items.push({
+      id: doc.id,
+      embedding,
+      data: {
+        id: doc.id,
+        fuente: d.fuente,
+        refPath: d.refPath,
+        titulo: d.titulo,
+        metadata: d.metadata ?? {},
+      },
+    })
+  }
+
+  if (entradasDimensionIncorrecta > 0) {
+    console.warn(
+      `[busqueda-semantica] ${entradasDimensionIncorrecta} entradas del índice tienen dimensión distinta a ${DIMENSIONES_INDICE} y se omitieron; ejecuta syncBusquedaIndiceManual para reindexar.`
+    )
+  }
+
+  return items
+}
+
+/**
+ * Índice vectorizado restringido a `fuentes`, con caché de 5 min por combinación de fuentes y
+ * deduplicación de lecturas concurrentes (dos consultas al mismo tiempo → una sola lectura).
+ * Una lectura fallida no se cachea. Devuelve el mismo array a todos los llamadores: no mutarlo.
+ */
+export async function leerIndiceVectorizado(
+  fuentes: readonly FuenteBusquedaIndice[],
+  opciones: { ahora?: () => number } = {}
+): Promise<EntradaIndiceVectorizada[]> {
+  if (fuentes.length === 0) return []
+  const ahora = opciones.ahora ?? Date.now
+  const clave = claveCache(fuentes)
+  const vigente = cacheIndice.get(clave)
+  if (vigente && vigente.expiraEn > ahora()) return vigente.promesa
+
+  const promesa = leerIndiceDesdeFirestore(fuentes)
+  cacheIndice.set(clave, { promesa, expiraEn: ahora() + TTL_CACHE_INDICE_MS })
+  promesa.catch(() => {
+    if (cacheIndice.get(clave)?.promesa === promesa) cacheIndice.delete(clave)
+  })
+  return promesa
+}
+
 export interface ResultadoBusquedaSemanticaCompleta {
   query: string
   tiempoMs: number
@@ -69,47 +165,7 @@ export async function buscarEnCatalogoSemantico(
     )
   }
 
-  let snap
-  try {
-    snap = await adminDb
-      .collection("busqueda_indice")
-      .where("fuente", "in", opciones.fuentesPermitidas)
-      .get()
-  } catch (error) {
-    throw new ErrorIA(
-      `No se pudo leer el índice de búsqueda semántica: ${error instanceof Error ? error.message : String(error)}`
-    )
-  }
-
-  const itemsVectorizados: ItemVectorizado<ResultadoBusquedaSemantica>[] = []
-  let entradasDimensionIncorrecta = 0
-
-  for (const doc of snap.docs) {
-    const d = doc.data()
-    const embedding = Array.isArray(d.embedding) ? d.embedding : []
-    if (embedding.length > 0 && embedding.length !== DIMENSIONES_INDICE) {
-      entradasDimensionIncorrecta++
-      continue
-    }
-
-    itemsVectorizados.push({
-      id: doc.id,
-      embedding,
-      data: {
-        id: doc.id,
-        fuente: d.fuente,
-        refPath: d.refPath,
-        titulo: d.titulo,
-        metadata: d.metadata ?? {},
-      },
-    })
-  }
-
-  if (entradasDimensionIncorrecta > 0) {
-    console.warn(
-      `[busqueda-semantica] ${entradasDimensionIncorrecta} entradas del índice tienen dimensión distinta a ${DIMENSIONES_INDICE} y se omitieron; ejecuta syncBusquedaIndiceManual para reindexar.`
-    )
-  }
+  const itemsVectorizados = await leerIndiceVectorizado(opciones.fuentesPermitidas)
 
   const resultadosSimilitud = buscarPorSimilitudSemantica(queryVector, itemsVectorizados, {
     topK: opciones.topK || 6,
