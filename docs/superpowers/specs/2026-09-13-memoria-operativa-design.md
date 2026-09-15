@@ -2,6 +2,9 @@
 
 Fecha: 2026-09-13 · Estado: **propuesto, con Fase 0 (diagnóstico de datos) ejecutada** — pendiente
 de aprobación de Emiliano · Autor: Claude Opus 5
+Plan: [../plans/2026-09-15-memoria-operativa.md](../plans/2026-09-15-memoria-operativa.md)
+(escrito el 2026-09-15 tras cerrar el frente B; fija defaults para las preguntas 3–6 y re-basa
+los criterios a v1 = órdenes + cotizaciones).
 
 > Alcance v1 ajustado por los datos (ver "Resultados de Fase 0"): **órdenes + cotizaciones**.
 > Requisiciones y `compras_odoo_items` salen de v1. Las secciones de arriba conservan la propuesta
@@ -417,9 +420,8 @@ sincronizado ese mismo día sin errores.
    más como aprendizaje que como freno?
 6. **Orden de superficies.** Propongo nueva-compra primero (ahí está el precio real pagado). ¿O
    prefieres cotizaciones, que es donde se decide antes de comprar?
-7. **Orden de frentes.** Con estos números, el frente B (estructura: proveedores + aliases +
-   `diasHabiles`) da valor inmediato y sin IA en runtime. ¿Lo hacemos antes de la memoria
-   operativa, como se propuso, o en paralelo?
+7. ~~**Orden de frentes.**~~ **Resuelto:** frente B primero; se ejecutó y cerró el 2026-09-15
+   (7/7 criterios en producción). La memoria operativa arranca sobre datos ya normalizados.
 
 ## Relación con otros documentos
 
