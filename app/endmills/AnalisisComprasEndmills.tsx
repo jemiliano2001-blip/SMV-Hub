@@ -57,26 +57,36 @@ export default function AnalisisComprasEndmills({
     [canceladosKey]
   )
 
-  const cargar = useCallback(async () => {
+  // Cadena de promesa en lugar de async/await: el efecto sólo dispara la carga
+  // y todo setState ocurre en callbacks cuando responde Firestore
+  // (react-hooks/set-state-in-effect trata el cuerpo async como síncrono).
+  const cargar = useCallback(() => {
     const esCargaInicial = !cargaInicialHecha.current
-    if (esCargaInicial) setLoading(true)
-    setError(null)
-    try {
-      const partidas = await listarPartidasCatalogadasEndmills()
-      setRanking(agregarRankingComprasEndmills(partidas, pedidosCancelados))
-      cargaInicialHecha.current = true
-    } catch (err) {
-      console.error("Error cargando ranking de compras endmills:", err)
-      setError("No se pudo cargar el ranking de compras. Intenta de nuevo.")
-      if (esCargaInicial) setRanking([])
-    } finally {
-      if (esCargaInicial) setLoading(false)
-    }
+    return listarPartidasCatalogadasEndmills()
+      .then((partidas) => {
+        setRanking(agregarRankingComprasEndmills(partidas, pedidosCancelados))
+        setError(null)
+        cargaInicialHecha.current = true
+      })
+      .catch((err: unknown) => {
+        console.error("Error cargando ranking de compras endmills:", err)
+        setError("No se pudo cargar el ranking de compras. Intenta de nuevo.")
+        if (esCargaInicial) setRanking([])
+      })
+      .finally(() => {
+        if (esCargaInicial) setLoading(false)
+      })
   }, [pedidosCancelados])
 
   useEffect(() => {
     void cargar()
   }, [cargar])
+
+  const reintentar = () => {
+    setError(null)
+    if (!cargaInicialHecha.current) setLoading(true)
+    void cargar()
+  }
 
   const kpis = useMemo(() => {
     const totalPiezas = ranking.reduce((acc, fila) => acc + fila.piezasPedidas, 0)
@@ -106,7 +116,7 @@ export default function AnalisisComprasEndmills({
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
             <span>{error}</span>
           </div>
-          <Button variant="outline" size="sm" onClick={() => void cargar()}>
+          <Button variant="outline" size="sm" onClick={reintentar}>
             <RefreshCw className="h-3.5 w-3.5" aria-hidden />
             Reintentar
           </Button>
