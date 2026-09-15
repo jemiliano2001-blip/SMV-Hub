@@ -198,6 +198,13 @@ export const CotizacionSchema = z.object({
   moneda: z.enum(["USD", "MXN"]),                 // derivada de ubicacion en el import
   total: z.number().nullable(),
   diasHabiles: z.string().nullable(),             // texto libre: "3 dias", "20-30 dias"
+  /**
+   * Lead time en días hábiles derivado de `diasHabiles` al guardar (`lib/lead-time.ts`).
+   * null cuando el texto no se entiende (fecha, precio, sin stock…). Opcionales en el tipo para
+   * que los constructores existentes no cambien; la capa de escritura siempre los rellena.
+   */
+  leadTimeMinDias: z.number().int().min(0).nullable().optional(),
+  leadTimeMaxDias: z.number().int().min(0).nullable().optional(),
   link: z.string().nullable(),                    // sanitizada http/https en el import
   notas: z.string().nullable(),
   /**

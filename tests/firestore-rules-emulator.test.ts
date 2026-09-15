@@ -330,6 +330,36 @@ describeWithEmulator("reglas Firestore de Integridad", () => {
     )
   })
 
+  it("valida leadTimeMinDias/leadTimeMaxDias de cotizaciones (frente B, B3)", async () => {
+    const editor = userDb("provider-user")
+    const ahora = new Date()
+    const base = {
+      proveedor: "Shars Tool Company",
+      descripcion: "Fresa",
+      moneda: "USD" as const,
+      estatus: "cotizado",
+      ubicacion: "USA",
+      precioUnitario: 10,
+      total: 10,
+      creadoEn: ahora,
+      actualizadoEn: ahora,
+    }
+
+    // Sin los campos (históricos y clientes viejos) y con null (texto no parseable): pasan.
+    await assertSucceeds(editor.doc("cotizaciones/lt-sin-campos").set(base))
+    await assertSucceeds(editor.doc("cotizaciones/lt-null").set({ ...base, diasHabiles: "precios 2026", leadTimeMinDias: null, leadTimeMaxDias: null }))
+    // Rango válido y número (min = max).
+    await assertSucceeds(editor.doc("cotizaciones/lt-rango").set({ ...base, diasHabiles: "2 - 3 semanas", leadTimeMinDias: 10, leadTimeMaxDias: 15 }))
+    await assertSucceeds(editor.doc("cotizaciones/lt-stock").set({ ...base, diasHabiles: "stock", leadTimeMinDias: 0, leadTimeMaxDias: 0 }))
+    // Inválidos: negativo, no entero, min > max, tipo incorrecto.
+    await assertFails(editor.doc("cotizaciones/lt-mal-1").set({ ...base, leadTimeMinDias: -1, leadTimeMaxDias: 5 }))
+    await assertFails(editor.doc("cotizaciones/lt-mal-2").set({ ...base, leadTimeMinDias: 1.5, leadTimeMaxDias: 5 }))
+    await assertFails(editor.doc("cotizaciones/lt-mal-3").set({ ...base, leadTimeMinDias: 20, leadTimeMaxDias: 10 }))
+    await assertFails(editor.doc("cotizaciones/lt-mal-4").set({ ...base, leadTimeMinDias: "5", leadTimeMaxDias: 5 }))
+    // Update parcial coherente.
+    await assertSucceeds(editor.doc("cotizaciones/lt-rango").update({ diasHabiles: "5 dias", leadTimeMinDias: 5, leadTimeMaxDias: 5, actualizadoEn: new Date() }))
+  })
+
   it("valida aliases y esMarketplace de proveedores (frente B, B1)", async () => {
     const editor = userDb("provider-user")
     const ahora = new Date()

@@ -170,6 +170,16 @@ service cloud.firestore {
              d.actualizadoEn is timestamp;
     }
 
+    // Lead time derivado (frente B, B3): entero >= 0 o null cuando el texto no se entiende.
+    function leadTimeValido(d, campo) {
+      return !d.keys().hasAny([campo]) || d[campo] == null || (d[campo] is int && d[campo] >= 0);
+    }
+    function leadTimeCoherente(d) {
+      return !d.keys().hasAll(['leadTimeMinDias', 'leadTimeMaxDias'])
+             || d.leadTimeMinDias == null || d.leadTimeMaxDias == null
+             || d.leadTimeMinDias <= d.leadTimeMaxDias;
+    }
+
     function cotizacionValida(d) {
       return d.proveedor is string &&
              d.descripcion is string &&
@@ -178,6 +188,9 @@ service cloud.firestore {
              d.ubicacion in ['MX', 'USA'] &&
              montoValido(d.precioUnitario) &&
              montoValido(d.total) &&
+             leadTimeValido(d, 'leadTimeMinDias') &&
+             leadTimeValido(d, 'leadTimeMaxDias') &&
+             leadTimeCoherente(d) &&
              d.creadoEn is timestamp &&
              d.actualizadoEn is timestamp;
     }

@@ -236,6 +236,8 @@ async function main() {
   let cSinNumeroParte = 0
   let cDiasNull = 0
   let cCompraSinOrigenId = 0
+  let cLeadTimeNumerico = 0
+  let cLeadTimeNullExplicito = 0
   const fantasmasC = new Map<string, number>()
   const llavesC = new Map<string, number>()
   const llavesCProv = new Map<string, Set<string>>()
@@ -258,6 +260,8 @@ async function main() {
     }
     const dias = c.diasHabiles
     if (vacio(dias)) cDiasNull++
+    else if (typeof c.leadTimeMinDias === "number") cLeadTimeNumerico++
+    else if ("leadTimeMinDias" in c && c.leadTimeMinDias === null) cLeadTimeNullExplicito++
     else {
       const clase = clasificarDiasHabiles(String(dias))
       inc(diasClase, clase)
@@ -285,6 +289,9 @@ async function main() {
   linea("  de esos, nombre fantasma distinto", fantasmasC.size)
   distribucion("  top fantasmas por # filas", fantasmasC, nC)
   linea("diasHabiles null", cDiasNull, nC)
+  linea("  con texto y leadTimeMin/Max numérico (B3)", cLeadTimeNumerico, nC - cDiasNull)
+  linea("  con texto y null explícito (no parseable)", cLeadTimeNullExplicito, nC - cDiasNull)
+  linea("  con texto y sin procesar", nC - cDiasNull - cLeadTimeNumerico - cLeadTimeNullExplicito, nC - cDiasNull)
   distribucion("diasHabiles (no nulos) por formato", diasClase, nC - cDiasNull)
   distribucion("  formatos sin número / en semanas-meses", diasFormatosRaros, nC - cDiasNull, 8)
   linea("llaves de pieza distintas (calculadas)", llavesC.size)

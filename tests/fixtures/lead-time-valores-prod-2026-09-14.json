@@ -1,0 +1,1067 @@
+{
+  "fuente": "cotizaciones.diasHabiles en smv-brain, valores distintos al 2026-09-14 (T3.1). Golden revisado a mano.",
+  "filas": [
+    {
+      "valor": "5 dias",
+      "n": 29,
+      "esperado": {
+        "ok": true,
+        "min": 5,
+        "max": 5,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "3 - 4 dias",
+      "n": 15,
+      "esperado": {
+        "ok": true,
+        "min": 3,
+        "max": 4,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "3 - 4",
+      "n": 14,
+      "esperado": {
+        "ok": true,
+        "min": 3,
+        "max": 4,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "1 dia",
+      "n": 13,
+      "esperado": {
+        "ok": true,
+        "min": 1,
+        "max": 1,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "$1,00",
+      "n": 12,
+      "esperado": {
+        "ok": true,
+        "min": 1,
+        "max": 1,
+        "tipo": "moneda_formato"
+      }
+    },
+    {
+      "valor": "3 dias",
+      "n": 10,
+      "esperado": {
+        "ok": true,
+        "min": 3,
+        "max": 3,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "2 - 3",
+      "n": 9,
+      "esperado": {
+        "ok": true,
+        "min": 2,
+        "max": 3,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "2 - 3 dias",
+      "n": 9,
+      "esperado": {
+        "ok": true,
+        "min": 2,
+        "max": 3,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "5 DIAS",
+      "n": 9,
+      "esperado": {
+        "ok": true,
+        "min": 5,
+        "max": 5,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "2 dias",
+      "n": 6,
+      "esperado": {
+        "ok": true,
+        "min": 2,
+        "max": 2,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "4 - 6 dias habiles",
+      "n": 5,
+      "esperado": {
+        "ok": true,
+        "min": 4,
+        "max": 6,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "2 - 3 semanas",
+      "n": 4,
+      "esperado": {
+        "ok": true,
+        "min": 10,
+        "max": 15,
+        "tipo": "semanas"
+      }
+    },
+    {
+      "valor": "3 - 5",
+      "n": 4,
+      "esperado": {
+        "ok": true,
+        "min": 3,
+        "max": 5,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "5 - 6 dias",
+      "n": 4,
+      "esperado": {
+        "ok": true,
+        "min": 5,
+        "max": 6,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "precios 2026",
+      "n": 4,
+      "esperado": {
+        "ok": false,
+        "motivo": "moneda"
+      }
+    },
+    {
+      "valor": "$5,00",
+      "n": 3,
+      "esperado": {
+        "ok": true,
+        "min": 5,
+        "max": 5,
+        "tipo": "moneda_formato"
+      }
+    },
+    {
+      "valor": "2-4",
+      "n": 3,
+      "esperado": {
+        "ok": true,
+        "min": 2,
+        "max": 4,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "4 - 6 dias",
+      "n": 3,
+      "esperado": {
+        "ok": true,
+        "min": 4,
+        "max": 6,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "5 - 7  dias",
+      "n": 3,
+      "esperado": {
+        "ok": true,
+        "min": 5,
+        "max": 7,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "5-6 Semanas",
+      "n": 3,
+      "esperado": {
+        "ok": true,
+        "min": 25,
+        "max": 30,
+        "tipo": "semanas"
+      }
+    },
+    {
+      "valor": "7 - 9 semanas",
+      "n": 3,
+      "esperado": {
+        "ok": true,
+        "min": 35,
+        "max": 45,
+        "tipo": "semanas"
+      }
+    },
+    {
+      "valor": "Stock local",
+      "n": 3,
+      "esperado": {
+        "ok": true,
+        "min": 0,
+        "max": 0,
+        "tipo": "stock"
+      }
+    },
+    {
+      "valor": "$3,00",
+      "n": 2,
+      "esperado": {
+        "ok": true,
+        "min": 3,
+        "max": 3,
+        "tipo": "moneda_formato"
+      }
+    },
+    {
+      "valor": "$6,00",
+      "n": 2,
+      "esperado": {
+        "ok": true,
+        "min": 6,
+        "max": 6,
+        "tipo": "moneda_formato"
+      }
+    },
+    {
+      "valor": "1 semana",
+      "n": 2,
+      "esperado": {
+        "ok": true,
+        "min": 5,
+        "max": 5,
+        "tipo": "semanas"
+      }
+    },
+    {
+      "valor": "3 - 5 dias",
+      "n": 2,
+      "esperado": {
+        "ok": true,
+        "min": 3,
+        "max": 5,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "3 dis habiles",
+      "n": 2,
+      "esperado": {
+        "ok": true,
+        "min": 3,
+        "max": 3,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "4 - 6",
+      "n": 2,
+      "esperado": {
+        "ok": true,
+        "min": 4,
+        "max": 6,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "4 - 7",
+      "n": 2,
+      "esperado": {
+        "ok": true,
+        "min": 4,
+        "max": 7,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "4-6 dias",
+      "n": 2,
+      "esperado": {
+        "ok": true,
+        "min": 4,
+        "max": 6,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "40 DIAS",
+      "n": 2,
+      "esperado": {
+        "ok": true,
+        "min": 40,
+        "max": 40,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "5 - 6 DIAS",
+      "n": 2,
+      "esperado": {
+        "ok": true,
+        "min": 5,
+        "max": 6,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "5-6",
+      "n": 2,
+      "esperado": {
+        "ok": true,
+        "min": 5,
+        "max": 6,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "Stock",
+      "n": 2,
+      "esperado": {
+        "ok": true,
+        "min": 0,
+        "max": 0,
+        "tipo": "stock"
+      }
+    },
+    {
+      "valor": "$15,00",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 15,
+        "max": 15,
+        "tipo": "moneda_formato"
+      }
+    },
+    {
+      "valor": "$4,00",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 4,
+        "max": 4,
+        "tipo": "moneda_formato"
+      }
+    },
+    {
+      "valor": "$88.978,54",
+      "n": 1,
+      "esperado": {
+        "ok": false,
+        "motivo": "moneda"
+      }
+    },
+    {
+      "valor": "1 - 2",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 1,
+        "max": 2,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "1 - 2 dias",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 1,
+        "max": 2,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "1 - 3 dias",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 1,
+        "max": 3,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "1 dia previo pago",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 1,
+        "max": 1,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "1-2 dias",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 1,
+        "max": 2,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "10 a 12 semanas",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 50,
+        "max": 60,
+        "tipo": "semanas"
+      }
+    },
+    {
+      "valor": "10 piezas disponibles",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 0,
+        "max": 0,
+        "tipo": "stock"
+      }
+    },
+    {
+      "valor": "10 semanas",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 50,
+        "max": 50,
+        "tipo": "semanas"
+      }
+    },
+    {
+      "valor": "12 - 14",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 12,
+        "max": 14,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "12 - 14 semanas",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 60,
+        "max": 70,
+        "tipo": "semanas"
+      }
+    },
+    {
+      "valor": "15 semanas",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 75,
+        "max": 75,
+        "tipo": "semanas"
+      }
+    },
+    {
+      "valor": "16 semanas",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 80,
+        "max": 80,
+        "tipo": "semanas"
+      }
+    },
+    {
+      "valor": "17 semanas",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 85,
+        "max": 85,
+        "tipo": "semanas"
+      }
+    },
+    {
+      "valor": "18 - 20 diciembre",
+      "n": 1,
+      "esperado": {
+        "ok": false,
+        "motivo": "fecha"
+      }
+    },
+    {
+      "valor": "18 diciembre - 5 enero",
+      "n": 1,
+      "esperado": {
+        "ok": false,
+        "motivo": "fecha"
+      }
+    },
+    {
+      "valor": "2 - 3 días",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 2,
+        "max": 3,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "2 semanas",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 10,
+        "max": 10,
+        "tipo": "semanas"
+      }
+    },
+    {
+      "valor": "2-3 dias",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 2,
+        "max": 3,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "2-3 DIAS",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 2,
+        "max": 3,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "2-4 dias",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 2,
+        "max": 4,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "2-5 dias",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 2,
+        "max": 5,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "20 dias",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 20,
+        "max": 20,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "20-30 dias 10 dlls o 3-5 dias 35 dlls",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 20,
+        "max": 30,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "23 dias",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 23,
+        "max": 23,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "25 dias",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 25,
+        "max": 25,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "3 - 4 semanas",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 15,
+        "max": 20,
+        "tipo": "semanas"
+      }
+    },
+    {
+      "valor": "3 - 8 dias",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 3,
+        "max": 8,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "3 semanas",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 15,
+        "max": 15,
+        "tipo": "semanas"
+      }
+    },
+    {
+      "valor": "3-4",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 3,
+        "max": 4,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "4 - 12 dias",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 4,
+        "max": 12,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "4 - 6 semanas",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 20,
+        "max": 30,
+        "tipo": "semanas"
+      }
+    },
+    {
+      "valor": "4 dias",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 4,
+        "max": 4,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "4 DIAS",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 4,
+        "max": 4,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "4 dias habiles",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 4,
+        "max": 4,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "4-5 dias",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 4,
+        "max": 5,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "5 - 7 dias h",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 5,
+        "max": 7,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "5 dias habiles",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 5,
+        "max": 5,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "5 dias hábiles",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 5,
+        "max": 5,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "55 dias",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 55,
+        "max": 55,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "6 -  8 dias habiles",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 6,
+        "max": 8,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "6 a 8 semanas",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 30,
+        "max": 40,
+        "tipo": "semanas"
+      }
+    },
+    {
+      "valor": "6 dias",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 6,
+        "max": 6,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "6 dias habiles a bville",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 6,
+        "max": 6,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "6 semanas",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 30,
+        "max": 30,
+        "tipo": "semanas"
+      }
+    },
+    {
+      "valor": "7 - 9 dias hábiles",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 7,
+        "max": 9,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "7 a 8 dias",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 7,
+        "max": 8,
+        "tipo": "rango"
+      }
+    },
+    {
+      "valor": "8 semanas",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 40,
+        "max": 40,
+        "tipo": "semanas"
+      }
+    },
+    {
+      "valor": "Can Ship Immediately (20 in stock)",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 0,
+        "max": 0,
+        "tipo": "stock"
+      }
+    },
+    {
+      "valor": "En stock",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 0,
+        "max": 0,
+        "tipo": "stock"
+      }
+    },
+    {
+      "valor": "En stock (10 disponibles para envío inmediato) / Tiempo de fábrica: 4 semanas",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 20,
+        "max": 20,
+        "tipo": "semanas"
+      }
+    },
+    {
+      "valor": "En stock (se enviará en 2 días aprox.)",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 2,
+        "max": 2,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "Entrega estimada entre Mon, Aug 24 y Thu, Aug 27",
+      "n": 1,
+      "esperado": {
+        "ok": false,
+        "motivo": "fecha"
+      }
+    },
+    {
+      "valor": "Entrega estimada entre Tue, Aug 25 y Sat, Aug 29",
+      "n": 1,
+      "esperado": {
+        "ok": false,
+        "motivo": "fecha"
+      }
+    },
+    {
+      "valor": "entrega inmediata",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 0,
+        "max": 0,
+        "tipo": "stock"
+      }
+    },
+    {
+      "valor": "Envío estándar (FedEx Ground Economy)",
+      "n": 1,
+      "esperado": {
+        "ok": false,
+        "motivo": "sin_numero"
+      }
+    },
+    {
+      "valor": "Estimated between Mon, Aug 24 and Thu, Aug 27",
+      "n": 1,
+      "esperado": {
+        "ok": false,
+        "motivo": "fecha"
+      }
+    },
+    {
+      "valor": "In Stock: 24 Can Ship Immediately",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 0,
+        "max": 0,
+        "tipo": "stock"
+      }
+    },
+    {
+      "valor": "Llega el lunes",
+      "n": 1,
+      "esperado": {
+        "ok": false,
+        "motivo": "fecha"
+      }
+    },
+    {
+      "valor": "Llega entre el martes y el miércoles",
+      "n": 1,
+      "esperado": {
+        "ok": false,
+        "motivo": "fecha"
+      }
+    },
+    {
+      "valor": "local stock",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 0,
+        "max": 0,
+        "tipo": "stock"
+      }
+    },
+    {
+      "valor": "Local stock",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 0,
+        "max": 0,
+        "tipo": "stock"
+      }
+    },
+    {
+      "valor": "mayo 2",
+      "n": 1,
+      "esperado": {
+        "ok": false,
+        "motivo": "fecha"
+      }
+    },
+    {
+      "valor": "mayo 4",
+      "n": 1,
+      "esperado": {
+        "ok": false,
+        "motivo": "fecha"
+      }
+    },
+    {
+      "valor": "mty 2 días",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 2,
+        "max": 2,
+        "tipo": "numero"
+      }
+    },
+    {
+      "valor": "N/A",
+      "n": 1,
+      "esperado": {
+        "ok": false,
+        "motivo": "sin_numero"
+      }
+    },
+    {
+      "valor": "No tienen",
+      "n": 1,
+      "esperado": {
+        "ok": false,
+        "motivo": "sin_stock"
+      }
+    },
+    {
+      "valor": "Out of Stock",
+      "n": 1,
+      "esperado": {
+        "ok": false,
+        "motivo": "sin_stock"
+      }
+    },
+    {
+      "valor": "pte",
+      "n": 1,
+      "esperado": {
+        "ok": false,
+        "motivo": "sin_numero"
+      }
+    },
+    {
+      "valor": "Pte confirmar",
+      "n": 1,
+      "esperado": {
+        "ok": false,
+        "motivo": "sin_numero"
+      }
+    },
+    {
+      "valor": "Sin stocl",
+      "n": 1,
+      "esperado": {
+        "ok": false,
+        "motivo": "sin_stock"
+      }
+    },
+    {
+      "valor": "STOCK",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 0,
+        "max": 0,
+        "tipo": "stock"
+      }
+    },
+    {
+      "valor": "stock en japon",
+      "n": 1,
+      "esperado": {
+        "ok": true,
+        "min": 0,
+        "max": 0,
+        "tipo": "stock"
+      }
+    },
+    {
+      "valor": "Tue, Aug 25 - Fri, Aug 28",
+      "n": 1,
+      "esperado": {
+        "ok": false,
+        "motivo": "fecha"
+      }
+    }
+  ]
+}

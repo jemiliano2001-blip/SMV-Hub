@@ -11,6 +11,7 @@ import {
 import type { Cotizacion } from "@/lib/schemas"
 import { crearRepositorio } from "@/lib/repositorio"
 import { generarLlavePieza } from "@/lib/pieza-matching"
+import { leadTimeDesdeDiasHabiles } from "@/lib/lead-time"
 import {
   debeActualizarCompraExistente,
   generarClaveUpsertCompra,
@@ -43,8 +44,16 @@ function conClavesPieza(payload: NuevaCotizacionPayload): NuevaCotizacionPayload
   return { ...payload, llavePieza, claveUpsertCompra }
 }
 
+/**
+ * Campos derivados que se calculan al escribir, nunca los captura el usuario: llaves de pieza y
+ * lead time numérico (B3) a partir de `diasHabiles`.
+ */
+function conDerivados(payload: NuevaCotizacionPayload): NuevaCotizacionPayload {
+  return { ...conClavesPieza(payload), ...leadTimeDesdeDiasHabiles(payload.diasHabiles) }
+}
+
 export async function crearCotizacion(payload: NuevaCotizacionPayload): Promise<string> {
-  return repo.crear(conClavesPieza(payload), `Creó cotización de ${payload.proveedor}`)
+  return repo.crear(conDerivados(payload), `Creó cotización de ${payload.proveedor}`)
 }
 
 // Inserta muchas cotizaciones con writeBatch (atómico por lote, ≤500 escrituras).
@@ -53,7 +62,7 @@ export async function crearCotizacionesLote(
   payloads: NuevaCotizacionPayload[],
   onProgreso?: (completadas: number, total: number) => void
 ): Promise<number> {
-  const conLlave = payloads.map((p) => conClavesPieza(p))
+  const conLlave = payloads.map((p) => conDerivados(p))
   return repo.crearEnLote(
     conLlave as Record<string, unknown>[],
     `Creó ${payloads.length} cotizaciones`,
@@ -109,7 +118,10 @@ export async function actualizarCotizacion(
   id: string,
   cambios: Partial<Omit<Cotizacion, "id" | "creadoEn">>
 ): Promise<void> {
-  await repo.actualizar(id, cambios, `Actualizó cotización: ${Object.keys(cambios).join(', ')}`)
+  // Si cambia el texto de días, el lead time derivado cambia con él (y si lo borran, queda null).
+  const conLeadTime =
+    "diasHabiles" in cambios ? { ...cambios, ...leadTimeDesdeDiasHabiles(cambios.diasHabiles) } : cambios
+  await repo.actualizar(id, conLeadTime, `Actualizó cotización: ${Object.keys(cambios).join(', ')}`)
 }
 
 export async function eliminarCotizacion(id: string): Promise<void> {

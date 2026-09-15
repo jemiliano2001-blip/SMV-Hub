@@ -284,47 +284,72 @@ Accessor* en `smv-brain`). CI nunca despliega hosting: siempre `npm run deploy:h
 
 ## B3 — Lead time numérico
 
-### T3.0 · Revisar las 26 cotizaciones con dinero en `diasHabiles` (read-only)
+### T3.0 · Revisar las 26 cotizaciones con dinero en `diasHabiles` (read-only) — ✅ HECHO (2026-09-14)
 Script desechable: para esas 26, imprimir `precioUnitario`, `total`, `cantidad` y `diasHabiles`
 lado a lado, y detectar si el precio también está corrido (ej. `precioUnitario` = cantidad, o
 `total` = precio). Resultado a Emiliano antes de cualquier backfill. Si están corridas, la
 corrección es manual en `/cotizaciones` (son 26) — no un script.
 
-### T3.1 · Parser puro
+### T3.1 · Parser puro — ✅ HECHO (2026-09-14)
 - `lib/lead-time.ts` → `parsearDiasHabiles(texto): { min, max, tipo } | { descarte }` portado del
   script de B0 más: "sin stock" / "out of stock" / "no hay" → `descarte: "sin_stock"` (hoy caen en 0).
 - `tests/lead-time.test.ts`: los **110 valores distintos** de B0.3 como fixture con su resultado
   esperado (es la tabla completa de la calibración; el test fija el comportamiento real, no casos
   inventados).
 
-### T3.2 · Schema y puntos de escritura
+### T3.2 · Schema y puntos de escritura — ✅ HECHO (2026-09-14)
 - `CotizacionSchema`: `leadTimeMinDias`, `leadTimeMaxDias` (`z.number().int().min(0).nullable().default(null)`).
 - `lib/cotizaciones.ts` (crear / actualizar): calcular desde `diasHabiles` al guardar.
 - `lib/cotizaciones-importar.ts` (CSV) y `lib/cotizaciones-extraer-ia.ts` (IA): idem.
   `lib/cotizaciones-desde-ordenes.ts`: quedan null.
 - Rules: enteros ≥ 0 o null; `min ≤ max`. Test de rules.
 
-### T3.3 · UI
+### T3.3 · UI — ✅ HECHO (2026-09-14)
 - `CotizacionFormModal.tsx:191`: junto al input, interpretación en vivo ("→ 10–15 días hábiles" /
   "no se entiende, escribe un número"). No bloquea guardar.
 
-### T3.4 · Consumidores
+### T3.4 · Consumidores — ✅ HECHO (2026-09-14)
 - `lib/proveedores-inteligencia-cruzada.ts` → `ofertasDesdeHistorico`: `leadTimeDias =
   c.leadTimeMaxDias ?? match?.leadTimeDias ?? null`; eliminar `parseLeadTimeTexto`. El recomendador
   ya excluye `leadTimeDias <= 0`; ajustar para excluir `null` explícitamente y test en
   `tests/motor-recomendador-proveedores.test.ts`.
 
-### T3.5 · Backfill (acción super-admin)
+### T3.5 · Backfill (acción super-admin) — ✅ HECHO (2026-09-14)
 - `app/api/cotizaciones/backfill-lead-time/route.ts`: `{ accion: "previsualizar" | "aplicar" }`.
   Previsualizar devuelve la tabla (valor → parseo) sin escribir; aplicar escribe `leadTimeMin/Max`
   en las 268 con `diasHabiles`, batch de 100, auditado. Botón en `/cotizaciones` visible solo
   super-admin.
 
-### T3.6 · Verificación
+### T3.6 · Verificación — ⏳ tras merge + deploy + backfill
 `diagnostico-datos.ts` (agregar conteo de `leadTimeMinDias` no nulos) → ≥ 80 % de las 268.
 Criterio #5.
 
 ---
+
+**Estado B3 al 2026-09-14 (rama `frente-b/b3-lead-time`):**
+- **T3.0 cambió el diagnóstico:** en 26 de las 27 filas con dinero en `diasHabiles`,
+  `cantidad × precioUnitario = total` cuadra. No hay columnas corridas: la columna de días de la
+  hoja de origen estaba con **formato de moneda** ("$1,00" = 1 día, "$5,00" = 5, "$15,00" = 15).
+  Solo "$88.978,54" (precio del NEXTBOX en MXN) y "precios 2026" (nota) son dinero/texto de verdad.
+  No hubo corrección manual; el parser lee "$N,00" con N ≤ 60 como N días.
+- `lib/lead-time.ts`: `parsearDiasHabiles` (semanas ×5, meses ×20, horas/24, stock = 0, formato
+  moneda, y null con motivo: moneda / fecha / sin_stock / sin_numero / fuera_de_rango),
+  `leadTimeDesdeDiasHabiles`, `describirLeadTime`, `planBackfillLeadTime`. Golden con los **110
+  valores distintos reales** (`tests/fixtures/lead-time-valores-prod-2026-09-14.json`): **92 %
+  parseado** (criterio #5 pedía ≥ 80 %), el resto null con razón.
+- `CotizacionSchema.leadTimeMinDias/MaxDias` (opcionales en el tipo; la capa de escritura los
+  rellena siempre): `crearCotizacion`, `crearCotizacionesLote` y `actualizarCotizacion` (si cambia
+  `diasHabiles`) los derivan — cubre form, CSV, IA y upsert desde órdenes. Rules validan enteros
+  ≥ 0 / null y min ≤ max (test en emulator).
+- UI: interpretación en vivo bajo el input en `CotizacionFormModal` ("→ 10–15 días hábiles" /
+  aviso ámbar si no se entiende) y tooltip + aviso por partida en `CotizacionIaModal`. Nunca bloquea.
+- `ofertasDesdeHistorico`: `leadTimeDesdeCotizacion` (persistido → parseado → catálogo → 0, que el
+  recomendador excluye). Se eliminó `parseLeadTimeTexto` (tomaba el primer número: "2 - 3 semanas"
+  → 2 días; sin número → 5 inventado).
+- Backfill: `POST /api/cotizaciones/backfill-lead-time` (previsualizar / aplicar, idempotente,
+  null explícito para lo no parseable, auditado) + panel *Lead time numérico en cotizaciones* en
+  la tab Mantenimiento de `/proveedores`. `scripts/diagnostico-datos.ts` reporta cobertura.
+- Gates: tsc, lint, `npm test` (1,478), rules emulator (25), `npm run build`.
 
 ## B4 — `mercado` persistido
 

@@ -36,6 +36,7 @@ import { toast } from 'sonner'
 import { getClienteAuth } from '@/lib/firebase'
 import { obtenerProveedores } from '@/lib/proveedores'
 import { ChipProveedorVinculado } from '@/components/proveedores/ChipProveedorVinculado'
+import { describirLeadTime, parsearDiasHabiles } from '@/lib/lead-time'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
 import { tieneModulo } from '@/lib/roles'
@@ -922,7 +923,11 @@ export default function CotizacionIaModal({
                             }
                             placeholder="2-3 días"
                             className="h-7 text-xs px-2"
+                            title={describirLeadTime(item.diasHabiles) ?? undefined}
                           />
+                          {item.diasHabiles && !parsearDiasHabiles(item.diasHabiles).ok && (
+                            <p className="mt-0.5 text-[10px] text-amber-700">{describirLeadTime(item.diasHabiles)}</p>
+                          )}
                         </TableCell>
                         <TableCell className="px-2 py-1 text-center">
                           <button
