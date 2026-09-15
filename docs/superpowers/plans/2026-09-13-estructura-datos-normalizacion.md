@@ -262,7 +262,7 @@ deploy de B1/B2 y la corrida de T1.7 por Emiliano desde `/proveedores`:
 | Órdenes sin `proveedorId` | 132 (93 %) | **20 (14 %)** | ≤ 15 % | ✅ |
 | Cotizaciones sin `proveedorId` | 825 (97 %) | **233 (27 %)** — 54 son internos que se dejan así → 21 % efectivo | ≤ 40 % | ✅ |
 | Proveedores en catálogo | 104 | 110 (altas desde el panel: marketplaces y USA faltantes) | — | |
-| Ítems Odoo en `otros` | 978 (42 %) | **614 (26 %)** | ≤ 25 % | ≈ (1 pt arriba; proyección B0 era 25 %) |
+| Ítems Odoo en `otros` | 978 (42 %) | **614 (26 %)** → 529 (22 %) el 2026-09-15 | ≤ 25 % | ✅ (el 14: ≈ 1 pt arriba; con más corridas del sync y mapeos aprobados 338 → 423 ya cumple) |
 | Ítems Odoo sin tipo de insumo | 978 (42 %) | 469 (20 %) | — | |
 | Fantasmas restantes en órdenes | 26 nombres | 15 nombres, todos de 1–2 órdenes | — | |
 
@@ -320,13 +320,27 @@ corrección es manual en `/cotizaciones` (son 26) — no un script.
   en las 268 con `diasHabiles`, batch de 100, auditado. Botón en `/cotizaciones` visible solo
   super-admin.
 
-### T3.6 · Verificación — ⏳ tras merge + deploy + backfill
+### T3.6 · Verificación — ✅ HECHO (2026-09-15)
 `diagnostico-datos.ts` (agregar conteo de `leadTimeMinDias` no nulos) → ≥ 80 % de las 268.
 Criterio #5.
 
+Merge a `main` (`e6304aed`, PR #13), deploy manual de `firestore:rules` + hosting
+(`BUILD_ID 02KzuPHJDiB_l9hfSACOh` verificado en prod) y backfill aplicado por Emiliano desde el
+panel el 2026-09-15. `npx tsx scripts/diagnostico-datos.ts smv-brain` después:
+
+| Cotizaciones con texto en `diasHabiles` | 268 | |
+|---|---|---|
+| con `leadTimeMin/MaxDias` numérico | **246 (92 %)** | criterio ≥ 80 % ✅ |
+| con null explícito y motivo (no parseable) | 22 (8 %) | |
+| sin procesar | **0** | 100 % con motivo ✅ |
+
+Coincide con el golden (92 %): el parser se comportó en prod igual que en el fixture. Las 22 sin
+número son las notas reales ("precios 2026", "$88.978,54", fechas sueltas, "según stock").
+
 ---
 
-**Estado B3 al 2026-09-14 (rama `frente-b/b3-lead-time`):**
+**Estado B3 — ✅ CERRADO el 2026-09-15** (mergeado en `main` `e6304aed`, desplegado y medido; detalle
+de la construcción, al 2026-09-14 en la rama `frente-b/b3-lead-time`):
 - **T3.0 cambió el diagnóstico:** en 26 de las 27 filas con dinero en `diasHabiles`,
   `cantidad × precioUnitario = total` cuadra. No hay columnas corridas: la columna de días de la
   hoja de origen estaba con **formato de moneda** ("$1,00" = 1 día, "$5,00" = 5, "$15,00" = 15).
