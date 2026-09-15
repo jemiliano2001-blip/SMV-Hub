@@ -3,6 +3,8 @@ import {
   calcularTextoHash,
   construirEntradasOrden,
   construirEntradaProveedor,
+  construirEntradaCotizacion,
+  type CotizacionParaIndice,
   type OrdenParaIndice,
   type ProveedorParaIndice,
 } from "../functions/src/busqueda-indice-texto"
@@ -124,6 +126,97 @@ describe("construirEntradasOrden", () => {
     }
     const [e] = construirEntradasOrden(orden)
     expect(Object.values(e.metadata)).not.toContain(undefined)
+  })
+
+  it("lleva proveedorId a metadata cuando la orden ya está vinculada al catálogo (frente B)", () => {
+    const [e] = construirEntradasOrden({ ...ordenBase, proveedorId: "prov-mcmaster" })
+    expect(e.metadata.proveedorId).toBe("prov-mcmaster")
+    // Sin FK, la clave no existe (ni null ni undefined).
+    const [sinFk] = construirEntradasOrden({ ...ordenBase, proveedorId: null })
+    expect("proveedorId" in sinFk.metadata).toBe(false)
+    // Y no cambia el texto (ni el hash): vincular un proveedor no obliga a re-embeber.
+    expect(e.textoHash).toBe(sinFk.textoHash)
+  })
+})
+
+describe("construirEntradaCotizacion", () => {
+  const base: CotizacionParaIndice = {
+    id: "cot-1",
+    descripcion: "Sensor de proximidad inductivo M12 PNP",
+    numeroParte: "PN2271",
+    proveedor: "Acomee",
+    proveedorId: "prov-acomee",
+    precioUnitario: 850,
+    moneda: "MXN",
+    fecha: "2026-08-20",
+    ubicacion: "MX",
+    estatus: "cotizado",
+    llavePieza: "PN2271|sensor de proximidad inductivo m12 pnp",
+  }
+
+  it("arma texto, hash, título, ruta y metadata completa para una cotización manual", () => {
+    const e = construirEntradaCotizacion(base)
+    expect(e).not.toBeNull()
+    expect(e!.id).toBe("cot#cot-1")
+    expect(e!.fuente).toBe("cotizacion")
+    expect(e!.refId).toBe("cot-1")
+    expect(e!.refPath).toBe("/cotizaciones?id=cot-1")
+    expect(e!.texto).toBe("Sensor de proximidad inductivo M12 PNP. Parte: PN2271. Proveedor: Acomee.")
+    expect(e!.textoHash).toBe(calcularTextoHash(e!.texto))
+    expect(e!.titulo).toBe("Sensor de proximidad inductivo M12 PNP")
+    expect(e!.metadata).toEqual({
+      proveedorNombre: "Acomee",
+      proveedorId: "prov-acomee",
+      precio: 850,
+      moneda: "MXN",
+      fecha: "2026-08-20",
+      cotizacionId: "cot-1",
+      numeroParte: "PN2271",
+      llavePieza: "PN2271|sensor de proximidad inductivo m12 pnp",
+      ubicacion: "MX",
+      estatus: "cotizado",
+    })
+  })
+
+  it("excluye las filas origen=compra: ya están como orden-item y duplicarían cada compra", () => {
+    expect(construirEntradaCotizacion({ ...base, origen: "compra" })).toBeNull()
+    // origen ausente (legacy) o "cotizacion" sí se indexan.
+    expect(construirEntradaCotizacion({ ...base, origen: undefined })).not.toBeNull()
+    expect(construirEntradaCotizacion({ ...base, origen: "cotizacion" })).not.toBeNull()
+  })
+
+  it("indexa la fila con precio 0 o null para recuperación, pero sin `precio` en metadata", () => {
+    const cero = construirEntradaCotizacion({ ...base, precioUnitario: 0 })
+    expect(cero).not.toBeNull()
+    expect("precio" in cero!.metadata).toBe(false)
+    const nulo = construirEntradaCotizacion({ ...base, precioUnitario: null })
+    expect("precio" in nulo!.metadata).toBe(false)
+  })
+
+  it("omite descripción vacía y no deja fragmentos ni claves undefined cuando faltan datos", () => {
+    expect(construirEntradaCotizacion({ ...base, descripcion: "   " })).toBeNull()
+    const e = construirEntradaCotizacion({
+      ...base,
+      numeroParte: null,
+      proveedor: "",
+      proveedorId: null,
+      precioUnitario: null,
+      moneda: "",
+      fecha: null,
+      ubicacion: "",
+      estatus: "",
+      llavePieza: null,
+    })
+    expect(e!.texto).toBe("Sensor de proximidad inductivo M12 PNP")
+    expect(Object.keys(e!.metadata)).toEqual(["cotizacionId"])
+    expect(Object.values(e!.metadata)).not.toContain(undefined)
+  })
+
+  it("el hash depende solo del texto: cambiar precio, fecha o estatus refresca metadata sin re-embeber", () => {
+    const a = construirEntradaCotizacion(base)!
+    const b = construirEntradaCotizacion({ ...base, precioUnitario: 900, fecha: "2026-09-01", estatus: "cancelado" })!
+    expect(b.textoHash).toBe(a.textoHash)
+    expect(b.metadata.precio).toBe(900)
   })
 })
 

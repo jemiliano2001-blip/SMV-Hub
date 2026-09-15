@@ -11,7 +11,7 @@ import { createHash } from "node:crypto"
  * lib/schemas.ts, pero sin acoplamiento de import entre los dos proyectos TS.
  */
 
-export type FuenteBusquedaIndice = "orden-item" | "proveedor"
+export type FuenteBusquedaIndice = "orden-item" | "proveedor" | "cotizacion"
 
 export interface EntradaBusquedaIndice {
   id: string
@@ -23,18 +23,27 @@ export interface EntradaBusquedaIndice {
   titulo: string
   metadata: {
     proveedorNombre?: string
+    /** FK al catálogo cuando la orden/cotización ya está vinculada (frente B). */
+    proveedorId?: string
     precio?: number
     moneda?: string
     fecha?: string
     ordenId?: string
+    cotizacionId?: string
     mercado?: string
     categorias?: string[]
+    /** Solo cotizaciones: la memoria operativa empata por llave/número de parte sin releer la colección. */
+    numeroParte?: string
+    llavePieza?: string
+    ubicacion?: string
+    estatus?: string
   }
 }
 
 export interface OrdenParaIndice {
   id: string
   proveedor: string
+  proveedorId?: string | null
   moneda: string
   fechaFactura: string | null
   items: Array<{
@@ -50,6 +59,22 @@ export interface ProveedorParaIndice {
   categorias: string[]
   marcas: string[]
   mercado?: string
+}
+
+/** Forma mínima de `cotizaciones/{id}` que el índice necesita (espejo estructural de CotizacionSchema). */
+export interface CotizacionParaIndice {
+  id: string
+  descripcion: string
+  numeroParte: string | null
+  proveedor: string
+  proveedorId?: string | null
+  precioUnitario: number | null
+  moneda: string
+  fecha: string | null
+  ubicacion: string
+  estatus: string
+  origen?: string
+  llavePieza?: string | null
 }
 
 export function calcularTextoHash(texto: string): string {
@@ -94,6 +119,7 @@ export function construirEntradasOrden(orden: OrdenParaIndice): EntradaBusquedaI
       // vienen vacíos con frecuencia en datos reales.
       metadata: {
         ...(proveedor ? { proveedorNombre: proveedor } : {}),
+        ...(orden.proveedorId ? { proveedorId: orden.proveedorId } : {}),
         ...(item.precioUnitario != null ? { precio: item.precioUnitario } : {}),
         ...(orden.moneda ? { moneda: orden.moneda } : {}),
         ...(orden.fechaFactura ? { fecha: orden.fechaFactura } : {}),
@@ -134,6 +160,54 @@ export function construirEntradaProveedor(proveedor: ProveedorParaIndice): Entra
     metadata: {
       ...(proveedor.mercado ? { mercado: proveedor.mercado } : {}),
       ...(categorias.length > 0 ? { categorias } : {}),
+    },
+  }
+}
+
+/**
+ * Una entrada por cotización manual. Devuelve null para `origen === "compra"`: esas filas son el
+ * espejo de las órdenes americanas (ya indexadas como orden-item vía ordenIdOrigen) y duplicarían
+ * cada compra en Cmd+K y en la memoria operativa. El precio ≤ 0 no va a metadata (misma regla que
+ * esItemComprable: no es referencia de precio) pero la fila sí se indexa para recuperación.
+ */
+export function construirEntradaCotizacion(cotizacion: CotizacionParaIndice): EntradaBusquedaIndice | null {
+  if (cotizacion.origen === "compra") return null
+  const descripcion = cotizacion.descripcion?.trim() ?? ""
+  if (!descripcion) return null
+
+  const numeroParte = cotizacion.numeroParte?.trim() ?? ""
+  const proveedor = cotizacion.proveedor?.trim() ?? ""
+
+  const texto = [
+    descripcion,
+    numeroParte ? `Parte: ${numeroParte}` : null,
+    proveedor ? `Proveedor: ${proveedor}.` : null,
+  ]
+    .filter(Boolean)
+    .join(". ")
+
+  const precio = cotizacion.precioUnitario
+  const llavePieza = cotizacion.llavePieza?.trim() ?? ""
+
+  return {
+    id: `cot#${cotizacion.id}`,
+    fuente: "cotizacion",
+    refId: cotizacion.id,
+    refPath: `/cotizaciones?id=${cotizacion.id}`,
+    texto,
+    textoHash: calcularTextoHash(texto),
+    titulo: descripcion,
+    metadata: {
+      ...(proveedor ? { proveedorNombre: proveedor } : {}),
+      ...(cotizacion.proveedorId ? { proveedorId: cotizacion.proveedorId } : {}),
+      ...(typeof precio === "number" && precio > 0 ? { precio } : {}),
+      ...(cotizacion.moneda ? { moneda: cotizacion.moneda } : {}),
+      ...(cotizacion.fecha ? { fecha: cotizacion.fecha } : {}),
+      cotizacionId: cotizacion.id,
+      ...(numeroParte ? { numeroParte } : {}),
+      ...(llavePieza ? { llavePieza } : {}),
+      ...(cotizacion.ubicacion ? { ubicacion: cotizacion.ubicacion } : {}),
+      ...(cotizacion.estatus ? { estatus: cotizacion.estatus } : {}),
     },
   }
 }

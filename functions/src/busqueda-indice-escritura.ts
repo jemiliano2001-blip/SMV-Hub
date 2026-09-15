@@ -3,6 +3,8 @@ import { inferirMercadoProveedor } from "./proveedor-mercado"
 import {
   construirEntradasOrden,
   construirEntradaProveedor,
+  construirEntradaCotizacion,
+  type CotizacionParaIndice,
   type EntradaBusquedaIndice,
   type OrdenParaIndice,
   type ProveedorParaIndice,
@@ -26,6 +28,7 @@ function ordenDesdeDoc(doc: FirebaseFirestore.QueryDocumentSnapshot): OrdenParaI
   return {
     id: doc.id,
     proveedor: typeof d.proveedor === "string" ? d.proveedor : "",
+    proveedorId: typeof d.proveedorId === "string" ? d.proveedorId : null,
     moneda: typeof d.moneda === "string" ? d.moneda : "",
     fechaFactura: typeof d.fechaFactura === "string" ? d.fechaFactura : null,
     items: (d.items as unknown[])
@@ -55,6 +58,25 @@ function proveedorDesdeDoc(doc: FirebaseFirestore.QueryDocumentSnapshot): Provee
   }
 }
 
+function cotizacionDesdeDoc(doc: FirebaseFirestore.QueryDocumentSnapshot): CotizacionParaIndice | null {
+  const d = doc.data()
+  if (typeof d.descripcion !== "string") return null
+  return {
+    id: doc.id,
+    descripcion: d.descripcion,
+    numeroParte: typeof d.numeroParte === "string" ? d.numeroParte : null,
+    proveedor: typeof d.proveedor === "string" ? d.proveedor : "",
+    proveedorId: typeof d.proveedorId === "string" ? d.proveedorId : null,
+    precioUnitario: typeof d.precioUnitario === "number" ? d.precioUnitario : null,
+    moneda: typeof d.moneda === "string" ? d.moneda : "",
+    fecha: typeof d.fecha === "string" ? d.fecha : null,
+    ubicacion: typeof d.ubicacion === "string" ? d.ubicacion : "",
+    estatus: typeof d.estatus === "string" ? d.estatus : "",
+    origen: typeof d.origen === "string" ? d.origen : undefined,
+    llavePieza: typeof d.llavePieza === "string" ? d.llavePieza : null,
+  }
+}
+
 export interface ResultadoIndexacion {
   entradasEsperadas: number
   reembebidas: number
@@ -64,6 +86,8 @@ export interface ResultadoIndexacion {
   podadas: number
   ordenesLeidas: number
   proveedoresLeidos: number
+  /** Docs leídos de `cotizaciones`; las `origen === "compra"` se leen pero no producen entrada. */
+  cotizacionesLeidas: number
 }
 
 /** Serialización estable (claves ordenadas) para comparar lo que ve el usuario sin tocar el vector. */
@@ -74,15 +98,24 @@ function huellaVisible(e: { titulo: string; refPath: string; metadata: Record<st
   return JSON.stringify({ titulo: e.titulo, refPath: e.refPath, metadata })
 }
 
-export async function sincronizarIndiceBusqueda(apiKey: string): Promise<ResultadoIndexacion> {
+export interface OpcionesSincronizarIndice {
+  /** Inyectable para pruebas contra el emulator (sin red a Gemini). */
+  fetchFn?: typeof fetch
+}
+
+export async function sincronizarIndiceBusqueda(
+  apiKey: string,
+  opciones: OpcionesSincronizarIndice = {}
+): Promise<ResultadoIndexacion> {
   // 1. Leer fuentes completas. Universo pequeño (Fase 0: 123 órdenes / 102
   // proveedores) — full-scan + diff por textoHash es más simple y barato que
   // un cursor incremental, y es la ÚNICA forma de detectar fuentes borradas
   // (bulk delete existe en /ordenes) sin una segunda pasada de reconciliación.
   // Si el universo crece a miles de documentos, revisar con un cursor real.
-  const [ordenesSnap, proveedoresSnap] = await Promise.all([
+  const [ordenesSnap, proveedoresSnap, cotizacionesSnap] = await Promise.all([
     db.collection("ordenes").get(),
     db.collection("proveedores").get(),
+    db.collection("cotizaciones").get(),
   ])
 
   const entradasEsperadas: EntradaBusquedaIndice[] = []
@@ -101,6 +134,15 @@ export async function sincronizarIndiceBusqueda(apiKey: string): Promise<Resulta
       continue
     }
     const entrada = construirEntradaProveedor(proveedor)
+    if (entrada) entradasEsperadas.push(entrada)
+  }
+  for (const doc of cotizacionesSnap.docs) {
+    const cotizacion = cotizacionDesdeDoc(doc)
+    if (!cotizacion) {
+      console.warn(`[busqueda-indice] cotizacion ${doc.id} con forma inválida, se omite`)
+      continue
+    }
+    const entrada = construirEntradaCotizacion(cotizacion)
     if (entrada) entradasEsperadas.push(entrada)
   }
 
@@ -146,7 +188,7 @@ export async function sincronizarIndiceBusqueda(apiKey: string): Promise<Resulta
   // 3. Embeber solo lo que cambió (esto es lo caro; los reads de arriba son gratis en comparación).
   const embeddings = await generarEmbeddingsIndice(
     necesitanEmbed.map((e) => ({ id: e.id, texto: e.texto, titulo: e.titulo })),
-    { apiKey }
+    { apiKey, ...(opciones.fetchFn ? { fetchFn: opciones.fetchFn } : {}) }
   )
 
   // 4. Escribir en lotes que respetan el límite de tamaño por transacción.
@@ -201,7 +243,9 @@ export async function sincronizarIndiceBusqueda(apiKey: string): Promise<Resulta
   const idsAPodar: string[] = []
   for (const [fuente, ids] of existentesPorFuente) {
     const lecturaVacia =
-      (fuente === "orden-item" && ordenesSnap.empty) || (fuente === "proveedor" && proveedoresSnap.empty)
+      (fuente === "orden-item" && ordenesSnap.empty) ||
+      (fuente === "proveedor" && proveedoresSnap.empty) ||
+      (fuente === "cotizacion" && cotizacionesSnap.empty)
     if (lecturaVacia && ids.length > 0) {
       console.warn(`[busqueda-indice] ${fuente}: la fuente vino vacía; se omite la poda de ${ids.length} entradas`)
       continue
@@ -225,5 +269,6 @@ export async function sincronizarIndiceBusqueda(apiKey: string): Promise<Resulta
     podadas,
     ordenesLeidas: ordenesSnap.size,
     proveedoresLeidos: proveedoresSnap.size,
+    cotizacionesLeidas: cotizacionesSnap.size,
   }
 }

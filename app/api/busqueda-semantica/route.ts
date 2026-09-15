@@ -4,7 +4,7 @@ import { verificarUsuarioAutorizado } from "@/lib/api-auth"
 import { obtenerUsuarioAdmin } from "@/lib/usuarios-admin"
 import { buscarEnCatalogoSemantico } from "@/lib/busqueda-semantica-catalogo"
 import { ErrorIA } from "@/lib/extraer-ia"
-import type { FuenteBusquedaIndice } from "@/lib/schemas"
+import { fuentesPermitidasPara } from "@/lib/memoria-operativa/permisos"
 import { excedeLimite } from "@/lib/rate-limit-memoria"
 
 export const runtime = "nodejs"
@@ -37,15 +37,14 @@ export async function POST(req: NextRequest) {
 
   // Filtro por permisos del lado del servidor (criterio de éxito #2 del spec):
   // quien no tiene el módulo no recibe esa fuente, ni siquiera en el fetch a Firestore.
-  const fuentesPermitidas: FuenteBusquedaIndice[] = []
-  if (info.esSuperAdmin || info.modulos.includes("ordenes")) fuentesPermitidas.push("orden-item")
-  if (info.esSuperAdmin || info.modulos.includes("proveedores")) fuentesPermitidas.push("proveedor")
+  // La tabla fuente → módulo vive en lib/memoria-operativa/permisos.ts (la comparte la memoria operativa).
+  const fuentesPermitidas = fuentesPermitidasPara(info)
 
   if (fuentesPermitidas.length === 0) {
     return NextResponse.json(
       {
         error:
-          "Tu usuario no tiene acceso a órdenes ni proveedores; la búsqueda semántica no aplica. Pide a un admin los módulos correspondientes.",
+          "Tu usuario no tiene acceso a órdenes, cotizaciones ni proveedores; la búsqueda semántica no aplica. Pide a un admin los módulos correspondientes.",
       },
       { status: 403 }
     )
