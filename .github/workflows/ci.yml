@@ -234,7 +234,7 @@ jobs:
       # firebase-tools inyecta firebase-frameworks@^0.11.0 (fijo, sin importar
       # que version le pidamos) para empacar el backend SSR de Next; esa
       # version tiene un peerDependency sharp@^0.32||^0.33, mientras que nuestro
-      # next@16.2.9 quiere sharp@^0.34.5 -- rangos que NO se traslapan. No hay
+      # next@16.3.5 quiere sharp@^0.35.4 -- rangos que NO se traslapan. No hay
       # lockfile que satisfaga ambos a la vez (confirmado regenerando desde
       # cero en un runner ubuntu-latest real). Mientras firebase-tools no
       # actualice ese pin, hosting sigue siendo deploy manual

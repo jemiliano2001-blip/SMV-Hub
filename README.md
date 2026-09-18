@@ -26,7 +26,7 @@ Cotizaciones los reutilizan.
 
 ## Stack
 
-- Next.js 16.2.9 con App Router y React 19.2.4
+- Next.js 16.3.5 con App Router y React 19.2.4
 - TypeScript estricto, Tailwind CSS v4 y Zod
 - Firebase Auth, Firestore nombrado, Storage, Hosting y Cloud Functions
 - Gemini API vía REST para extracción y clasificación
