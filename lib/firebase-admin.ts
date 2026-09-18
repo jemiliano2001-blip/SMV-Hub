@@ -1,3 +1,4 @@
+import "server-only"
 import { createRequire } from "node:module"
 import { existsSync } from "node:fs"
 import type { App } from "firebase-admin/app"
