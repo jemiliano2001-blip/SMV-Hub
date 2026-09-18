@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -24,6 +24,13 @@ export function CopyButton({
   ...props
 }: CopyButtonProps) {
   const [copiado, setCopiado] = useState(false)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [])
 
   const handleCopy = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -35,7 +42,8 @@ export function CopyButton({
       if (successMessage) {
         toast.success(successMessage)
       }
-      setTimeout(() => setCopiado(false), 2000)
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      timeoutRef.current = setTimeout(() => setCopiado(false), 2000)
     } catch {
       toast.error('No se pudo copiar al portapapeles')
     }

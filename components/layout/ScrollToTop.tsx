@@ -13,19 +13,26 @@ export default function ScrollToTop() {
 
   useEffect(() => {
     let ticking = false
+    let frameId: number | null = null
 
     const onScroll = () => {
       if (!ticking) {
-        window.requestAnimationFrame(() => {
+        frameId = window.requestAnimationFrame(() => {
           setVisible(window.scrollY > 350)
           ticking = false
+          frameId = null
         })
         ticking = true
       }
     }
 
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId)
+      }
+    }
   }, [])
 
   const scrollToTop = () => {
