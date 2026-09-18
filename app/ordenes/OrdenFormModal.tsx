@@ -30,7 +30,7 @@ import {
   mapearPartnerAEmpresa,
 } from '@/lib/captura-rapida-compras'
 
-import { validarClaveProdServCatalogo } from '@/lib/sat/validar-clave'
+import { formatoClaveProdServ, validarClavesSatEnCatalogo } from '@/lib/sat/validar-clave-cliente'
 import { toast } from 'sonner'
 
 type ItemForm = {
@@ -283,10 +283,24 @@ export default function OrdenFormModal({ ordenBase, onClose, onSaved }: Props) {
     setLoading(true)
     setError(null)
 
+    // Existencia de las claves SAT se confirma en servidor (el catálogo no viaja al
+    // cliente); una clave inexistente se guarda como null + satPendiente, como antes.
+    let clavesValidas: Set<string>
+    try {
+      clavesValidas = await validarClavesSatEnCatalogo(formData.items.map((i) => i.claveProdServ))
+    } catch {
+      setError(
+        'No se pudieron verificar las claves SAT contra el catálogo. Reintenta en unos segundos o deja la clave vacía.'
+      )
+      setLoading(false)
+      return
+    }
+
     try {
       // Parse numbers
       const parsedItems: ItemFactura[] = formData.items.map(i => {
-        const claveProdServ = validarClaveProdServCatalogo(i.claveProdServ)
+        const formato = formatoClaveProdServ(i.claveProdServ)
+        const claveProdServ = formato && clavesValidas.has(formato) ? formato : null
         return {
           descripcion: i.descripcion,
           descripcionSimplificada: '',

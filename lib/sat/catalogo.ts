@@ -1,3 +1,4 @@
+import "server-only"
 import { z } from "zod"
 import catalogoData from "@/data/sat/catalogo.json"
 import { normalizarTextoSat, tokenizarTextoSat } from "@/lib/sat/normalizar"

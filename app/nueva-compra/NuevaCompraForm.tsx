@@ -22,7 +22,12 @@ import {
   type ItemFactura,
   type Proveedor,
 } from '@/lib/schemas'
-import { validarClaveProdServCatalogo } from '@/lib/sat/validar-clave'
+import {
+  claveSatConocida,
+  formatoClaveProdServ,
+  registrarClavesSatValidadas,
+  validarClavesSatEnCatalogo,
+} from '@/lib/sat/validar-clave-cliente'
 import { obtenerProveedores } from '@/lib/proveedores'
 import { ChipProveedorVinculado } from '@/components/proveedores/ChipProveedorVinculado'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
@@ -394,6 +399,12 @@ export default function NuevaCompraForm({
         claveProdServ: sugerencia.claveProdServ ?? null,
         alternativas: sugerencia.alternativas ?? [],
       }
+      // El servidor ya validó estas claves contra el catálogo: sembrarlas evita
+      // volver a consultarlas al guardar.
+      registrarClavesSatValidadas([
+        valor.claveProdServ,
+        ...valor.alternativas.map((alt) => ({ clave: alt.clave, descripcion: alt.descripcionSat })),
+      ])
       setSugerenciasSat((prev) => ({ ...prev, [fieldId]: valor }))
       if (valor.claveProdServ) {
         setValue(`items.${index}.claveProdServ`, valor.claveProdServ, { shouldDirty: true, shouldValidate: true })
@@ -577,8 +588,23 @@ export default function NuevaCompraForm({
     const rawLink = data.linkProveedor?.trim() || null
     const linkProveedor = rawLink ? sanitizarUrl(rawLink) : null
     const fechaEntrega = data.fechaEntrega?.trim() || null
+
+    // Existencia en el catálogo SAT se confirma en servidor (el catálogo no viaja al
+    // cliente). Las claves sembradas por sugerencias/memoria ya están en caché; sólo
+    // las tecleadas a mano generan una petición. Si la API no responde, no se guarda
+    // una clave sin verificar: se avisa y el usuario reintenta o deja la clave vacía.
+    let clavesValidas: Set<string>
+    try {
+      clavesValidas = await validarClavesSatEnCatalogo(data.items.map((item) => item.claveProdServ))
+    } catch {
+      setErrorSat(
+        'No se pudieron verificar las claves SAT contra el catálogo. Reintenta en unos segundos o deja la clave vacía para capturarla como pendiente.'
+      )
+      return
+    }
     const items = data.items.map((item) => {
-      const claveProdServ = validarClaveProdServCatalogo(item.claveProdServ)
+      const formato = formatoClaveProdServ(item.claveProdServ)
+      const claveProdServ = formato && clavesValidas.has(formato) ? formato : null
       return {
         ...item,
         claveProdServ,
@@ -1013,6 +1039,7 @@ export default function NuevaCompraForm({
                     onAplicarSugerencia={(ctx) => {
                       if (ctx.claveSatValidada?.claveProdServ) {
                         const clave = ctx.claveSatValidada.claveProdServ
+                        registrarClavesSatValidadas([{ clave, descripcion: ctx.claveSatValidada.descripcionSat }])
                         setValue(`items.${i}.claveProdServ`, clave, {
                           shouldDirty: true,
                           shouldValidate: true,
@@ -1051,9 +1078,23 @@ export default function NuevaCompraForm({
                       disabled={extrayendo}
                       onChange={(event) => {
                         const valor = event.target.value.trim() || null
-                        const valida = validarClaveProdServCatalogo(valor) !== null
+                        const formato = formatoClaveProdServ(valor)
+                        const conocida = formato ? claveSatConocida(formato) : false
                         setValue(`items.${i}.claveProdServ`, valor, { shouldDirty: true, shouldValidate: true })
-                        setValue(`items.${i}.satPendiente`, !valida, { shouldDirty: true })
+                        setValue(`items.${i}.satPendiente`, conocida !== true, { shouldDirty: true })
+                        if (formato && conocida === null) {
+                          // Existencia en el catálogo: se confirma en servidor y sólo se
+                          // aplica si el campo sigue con la misma clave al responder.
+                          void validarClavesSatEnCatalogo([formato])
+                            .then((validas) => {
+                              if (formatoClaveProdServ(getValues(`items.${i}.claveProdServ`)) === formato) {
+                                setValue(`items.${i}.satPendiente`, !validas.has(formato), { shouldDirty: true })
+                              }
+                            })
+                            .catch(() => {
+                              // Sin red: se vuelve a intentar al guardar.
+                            })
+                        }
                       }}
                     />
                   </div>

@@ -141,6 +141,12 @@ negocio piden proteger.
   (navegación de cliente en vez de recarga completa; los destinos son Server Components que
   leen `searchParams`, así que reciben los params igual). Triple validación + build en verde.
   Pendiente: `npm run deploy:hosting`.
+- **Q2 + Q3 — hecho (2026-09-18):** `import "server-only"` en `lib/sat/catalogo.ts` y
+  `lib/firebase-admin.ts` (verificado: un import desde un componente cliente rompe el build) con
+  alias a stub en Vitest. Nuevo `POST /api/claves-sat/validar` + `lib/sat/validar-clave-cliente.ts`
+  (caché por sesión, dedupe, lotes de 200); `NuevaCompraForm`, `OrdenFormModal` y
+  `ModalSugerirClavesSat` ya no importan el catálogo. `/nueva-compra`: 12,163 KB → 1,390 KB de JS;
+  ningún chunk cliente contiene el catálogo. 15 tests nuevos; suite en 1,586.
 
 ### Orden sugerido
 
