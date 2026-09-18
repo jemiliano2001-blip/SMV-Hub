@@ -14,7 +14,13 @@ import {
 } from '@/components/ui/dialog'
 import type { OrdenCompra, ItemFactura } from '@/lib/schemas'
 import { normalizarClaveProdServ } from '@/lib/sat/normalizar'
-import { validarClaveProdServCatalogo } from '@/lib/sat/validar-clave'
+import {
+  claveSatConocida,
+  descripcionClaveSatConocida,
+  formatoClaveProdServ,
+  registrarClavesSatValidadas,
+  validarClavesSatEnCatalogo,
+} from '@/lib/sat/validar-clave-cliente'
 import { actualizarClavesSatLote } from '@/lib/ordenes'
 import { getClienteAuth } from '@/lib/firebase'
 import { extraerEntradasHistorialSat } from '@/lib/sat/extraer-historial-ordenes'
@@ -181,6 +187,14 @@ export default function ModalSugerirClavesSat({
           sugerencias.push(...(data.sugerencias ?? []))
         }
         if (!cancelled) {
+          // Claves y alternativas ya validadas en servidor: sembrarlas evita
+          // consultarlas de nuevo al aplicar.
+          registrarClavesSatValidadas(
+            sugerencias.flatMap((sug) => [
+              { clave: sug?.claveProdServ, descripcion: sug?.descripcionSat },
+              ...(sug?.alternativas ?? []).map((alt) => ({ clave: alt.clave, descripcion: alt.descripcionSat })),
+            ])
+          )
           setFilas(
             pendientes.map(({ orden, itemIndex }, i) => {
               const sug = sugerencias[i]
@@ -248,6 +262,7 @@ export default function ModalSugerirClavesSat({
       const data = await res.json()
       const top = data.results?.[0]
       if (top) {
+        registrarClavesSatValidadas([{ clave: top.entry.clave, descripcion: top.entry.descripcion }])
         actualizarFila(filaIndex, {
           claveProdServ: top.entry.clave,
           descripcionSat: top.entry.descripcion,
@@ -266,19 +281,41 @@ export default function ModalSugerirClavesSat({
   }
 
   const handleAplicar = async () => {
-    const filasAplicar = filas.filter((f) => f.aplicar && validarClaveProdServCatalogo(f.claveProdServ))
-    if (filasAplicar.length === 0) {
-      setError('Selecciona al menos una fila con una clave SAT existente en el catálogo.')
+    const seleccionadas = filas.filter((f) => f.aplicar && formatoClaveProdServ(f.claveProdServ))
+    if (seleccionadas.length === 0) {
+      setError('Selecciona al menos una fila con una clave SAT de 8 dígitos.')
       return
     }
 
     setSaving(true)
     setError(null)
 
+    // Existencia en el catálogo se confirma en servidor; las sugerencias y
+    // alternativas ya están en caché, sólo las tecleadas a mano generan petición.
+    let clavesValidas: Set<string>
+    try {
+      clavesValidas = await validarClavesSatEnCatalogo(seleccionadas.map((f) => f.claveProdServ))
+    } catch {
+      setError('No se pudieron verificar las claves SAT contra el catálogo. Reintenta en unos segundos.')
+      setSaving(false)
+      return
+    }
+    const inexistentes = seleccionadas
+      .map((f) => formatoClaveProdServ(f.claveProdServ))
+      .filter((clave): clave is string => clave !== null && !clavesValidas.has(clave))
+    if (inexistentes.length > 0) {
+      setError(
+        `Estas claves no existen en el catálogo SAT: ${[...new Set(inexistentes)].join(', ')}. Corrígelas o desmarca esas filas.`
+      )
+      setSaving(false)
+      return
+    }
+    const filasAplicar = seleccionadas
+
     try {
       const porOrden = new Map<string, Map<number, string>>()
       for (const fila of filasAplicar) {
-        const clave = validarClaveProdServCatalogo(fila.claveProdServ)
+        const clave = formatoClaveProdServ(fila.claveProdServ)
         if (!clave) continue
         if (!porOrden.has(fila.ordenId)) porOrden.set(fila.ordenId, new Map())
         porOrden.get(fila.ordenId)!.set(fila.itemIndex, clave)
@@ -317,7 +354,7 @@ export default function ModalSugerirClavesSat({
         await guardarAsignacionesSatValidadas(
           filasAplicar.map((f) => ({
             descripcion: f.descripcion,
-             claveProdServ: validarClaveProdServCatalogo(f.claveProdServ)!,
+             claveProdServ: formatoClaveProdServ(f.claveProdServ)!,
             validadoPor: email,
           }))
         )
@@ -334,7 +371,7 @@ export default function ModalSugerirClavesSat({
     }
   }
 
-  const filasConClave = filas.filter((f) => f.aplicar && validarClaveProdServCatalogo(f.claveProdServ)).length
+  const filasConClave = filas.filter((f) => f.aplicar && claveSatConocida(f.claveProdServ) === true).length
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -420,10 +457,26 @@ export default function ModalSugerirClavesSat({
                           <input
                             value={fila.claveProdServ}
                             onChange={(e) => {
-                              actualizarFila(index, {
-                                claveProdServ: e.target.value,
-                                fuente: 'manual',
-                              })
+                              const valor = e.target.value
+                              actualizarFila(index, { claveProdServ: valor, fuente: 'manual' })
+                              const formato = formatoClaveProdServ(valor)
+                              if (formato && claveSatConocida(formato) === null) {
+                                // Confirmar en servidor y reflejar la descripción sólo si
+                                // la fila sigue con la misma clave al responder.
+                                void validarClavesSatEnCatalogo([formato])
+                                  .then((validas) => {
+                                    setFilas((prev) =>
+                                      prev.map((f, i) =>
+                                        i === index && formatoClaveProdServ(f.claveProdServ) === formato
+                                          ? { ...f, descripcionSat: validas.has(formato) ? descripcionClaveSatConocida(formato) : null }
+                                          : f
+                                      )
+                                    )
+                                  })
+                                  .catch(() => {
+                                    // Sin red: se verifica de nuevo al aplicar.
+                                  })
+                              }
                             }}
                             placeholder="8 dígitos"
                             className="w-full rounded border border-input bg-card px-2 py-1 text-xs font-mono text-foreground focus:border-primary focus:outline-none"
