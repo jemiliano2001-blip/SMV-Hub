@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
   listarOrdenes,
@@ -82,6 +83,7 @@ async function leerRespuestaProcesamiento(res: Response): Promise<RespuestaProce
 }
 
 export default function ReporteContableView() {
+  const router = useRouter()
   const confirmar = useConfirmDialog()
   const [ordenes, setOrdenes] = useState<OrdenCompra[]>([])
   const [lotes, setLotes] = useState<ReporteContableLote[]>([])
@@ -807,7 +809,7 @@ export default function ReporteContableView() {
 
                                 <ContextMenuItem
                                   onClick={() => {
-                                    window.location.href = `/ordenes`
+                                    router.push(`/ordenes`)
                                   }}
                                 >
                                   <ExternalLink className="text-primary" />

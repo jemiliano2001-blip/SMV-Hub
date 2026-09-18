@@ -209,7 +209,7 @@ GEMINI_API_KEY=
 
 ## Stack
 
-- **Next.js 16.2.9** con App Router (directorio `app/`)
+- **Next.js 16.3.5** con App Router (directorio `app/`)
 - **React 19.2.4** con Server Components y Server Actions
 - **Tailwind CSS v4** — basado en PostCSS, sin `tailwind.config.js`; la config vive en `globals.css` vía `@theme`
 - **TypeScript** en modo estricto; alias `@/*` → raíz del repo
