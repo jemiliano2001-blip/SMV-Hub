@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   AlertTriangle,
@@ -87,6 +88,7 @@ interface SpeechRecognitionLike {
 type SpeechRecognitionConstructor = new () => SpeechRecognitionLike
 
 export default function PedidosAlmacenView() {
+  const router = useRouter()
   const confirmar = useConfirmDialog()
   const { previewFile } = useFilePreview()
   const { usuario } = useUsuario()
@@ -390,7 +392,7 @@ export default function PedidosAlmacenView() {
           {puedeGestionar && pedido.estado === 'pendiente' && (
             <ContextMenuItem
               onClick={() => {
-                window.location.href = `/nueva-compra?pedidoId=${pedido.id}&descripcion=${encodeURIComponent(pedido.descripcion)}`
+                router.push(`/nueva-compra?pedidoId=${pedido.id}&descripcion=${encodeURIComponent(pedido.descripcion)}`)
               }}
             >
               <ShoppingCart className="text-primary" />

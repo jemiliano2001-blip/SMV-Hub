@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useSalidas } from '@/lib/hooks/useAlmacen'
 import { useOperadores } from '@/lib/hooks/useOperadores'
 import { Plus, Trash2, Search, Copy, ExternalLink } from 'lucide-react'
@@ -61,6 +62,7 @@ function SalidaCard({ s, onEliminar }: SalidaCardProps) {
 }
 
 export default function SalidasList() {
+  const router = useRouter()
   const confirmar = useConfirmDialog()
   const { salidas, loading: loadingSalidas, error, fetchSalidas, agregarSalida, borrarSalida } = useSalidas()
   const { activos: operadoresActivos, loading: loadingOps } = useOperadores()
@@ -257,7 +259,7 @@ export default function SalidasList() {
                     <ContextMenuContent className="w-56">
                       <ContextMenuItem
                         onClick={() => {
-                          window.location.href = `/endmills?q=${encodeURIComponent(s.herramienta)}`
+                          router.push(`/endmills?q=${encodeURIComponent(s.herramienta)}`)
                         }}
                       >
                         <ExternalLink className="text-primary" />

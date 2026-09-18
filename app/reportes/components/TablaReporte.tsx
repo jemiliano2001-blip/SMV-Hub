@@ -1,4 +1,5 @@
 import { Fragment } from "react"
+import { useRouter } from "next/navigation"
 import type { Grupo } from "@/lib/reportes"
 import { Copy, ExternalLink } from "lucide-react"
 import { copiarAlPortapapeles } from "@/lib/portapapeles"
@@ -32,6 +33,7 @@ function fmtFecha(d: Date | null): string {
 }
 
 export default function TablaReporte({ grupos, totalGeneral, moneda }: Props) {
+  const router = useRouter()
   const fmt = (n: number) =>
     new Intl.NumberFormat("es-MX", {
       style: "currency",
@@ -106,7 +108,7 @@ export default function TablaReporte({ grupos, totalGeneral, moneda }: Props) {
                     <ContextMenuContent className="w-56">
                       <ContextMenuItem
                         onClick={() => {
-                          window.location.href = `/ordenes`
+                          router.push(`/ordenes`)
                         }}
                       >
                         <ExternalLink className="text-primary" />

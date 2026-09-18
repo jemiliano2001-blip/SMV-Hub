@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { AlertCircle, Check, Copy, Loader2, Search, ExternalLink, ShoppingCart } from "lucide-react"
 import { copiarAlPortapapeles } from "@/lib/portapapeles"
 import { getClienteAuth } from "@/lib/firebase"
@@ -36,6 +37,7 @@ type SatSearchResponse = {
 }
 
 export default function BuscadorClavesSat() {
+  const router = useRouter()
   const [query, setQuery] = useState("")
   const [data, setData] = useState<SatSearchResponse | null>(null)
   const [loading, setLoading] = useState(false)
@@ -228,7 +230,7 @@ export default function BuscadorClavesSat() {
 
                   <ContextMenuItem
                     onClick={() => {
-                      window.location.href = `/ordenes?q=${encodeURIComponent(entry.clave)}`
+                      router.push(`/ordenes?q=${encodeURIComponent(entry.clave)}`)
                     }}
                   >
                     <ExternalLink className="text-sky-600" />
@@ -237,7 +239,7 @@ export default function BuscadorClavesSat() {
 
                   <ContextMenuItem
                     onClick={() => {
-                      window.location.href = `/nueva-compra?claveSat=${encodeURIComponent(entry.clave)}`
+                      router.push(`/nueva-compra?claveSat=${encodeURIComponent(entry.clave)}`)
                     }}
                   >
                     <ShoppingCart className="text-emerald-600" />

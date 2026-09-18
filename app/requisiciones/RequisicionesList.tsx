@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useDeferredValue } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Loader2,
@@ -354,6 +355,7 @@ function RequisicionCard({
 }
 
 export default function RequisicionesList() {
+  const router = useRouter()
   const { usuario } = useUsuario()
   const confirmar = useConfirmDialog()
   const {
@@ -1362,7 +1364,7 @@ export default function RequisicionesList() {
                           <ContextMenuSubContent className="w-52">
                             <ContextMenuItem
                               onClick={() => {
-                                window.location.href = `/nueva-compra?requisicionId=${r.id}&descripcion=${encodeURIComponent(r.descripcion || r.nota || '')}`
+                                router.push(`/nueva-compra?requisicionId=${r.id}&descripcion=${encodeURIComponent(r.descripcion || r.nota || '')}`)
                               }}
                             >
                               <ShoppingCart className="text-emerald-600" />
@@ -1370,7 +1372,7 @@ export default function RequisicionesList() {
                             </ContextMenuItem>
                             <ContextMenuItem
                               onClick={() => {
-                                window.location.href = `/cotizaciones`
+                                router.push(`/cotizaciones`)
                               }}
                             >
                               <Layers className="text-sky-600" />

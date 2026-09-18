@@ -5,6 +5,7 @@ import PageHeader from "@/components/layout/PageHeader"
 import PageShell from "@/components/layout/PageShell"
 import ModuleSurface from "@/components/layout/ModuleSurface"
 import { useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Loader2, AlertCircle, Copy, ExternalLink } from "lucide-react"
 import { copiarAlPortapapeles } from "@/lib/portapapeles"
 import { useFinanzasFacturas } from "@/lib/hooks/useFinanzasFacturas"
@@ -45,6 +46,7 @@ import {
 type Periodo = "mes" | "anio"
 
 function FacturacionPorCliente() {
+  const router = useRouter()
   const { facturas, estadoSync, loading, error, recargar } = useFinanzasFacturas()
   const [monedaActiva, setMonedaActiva] = useState<string | null>(null)
   const [periodo, setPeriodo] = useState<Periodo>("anio")
@@ -183,7 +185,7 @@ function FacturacionPorCliente() {
                       <ContextMenuContent className="w-56">
                         <ContextMenuItem
                           onClick={() => {
-                            window.location.href = `/finanzas/cobranza`
+                            router.push(`/finanzas/cobranza`)
                           }}
                         >
                           <ExternalLink className="text-primary" />

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Search,
   ExternalLink,
@@ -73,6 +74,7 @@ export interface HistorialOdooListProps {
 }
 
 export default function HistorialOdooList({ onRecotizar }: HistorialOdooListProps) {
+  const router = useRouter()
   const [registros, setRegistros] = useState<RegistroCotizacionOdoo[]>([])
   const [cargando, setCargando] = useState(true)
   const [errorCarga, setErrorCarga] = useState<string | null>(null)
@@ -625,7 +627,7 @@ export default function HistorialOdooList({ onRecotizar }: HistorialOdooListProp
 
                         <ContextMenuItem
                           onClick={() => {
-                            window.location.href = `/nueva-compra?proveedor=${encodeURIComponent(r.proveedor)}`
+                            router.push(`/nueva-compra?proveedor=${encodeURIComponent(r.proveedor)}`)
                           }}
                         >
                           <ShoppingCart className="text-amber-500" />
