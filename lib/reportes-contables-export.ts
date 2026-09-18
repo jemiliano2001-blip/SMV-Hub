@@ -1,4 +1,4 @@
-import ExcelJS from "exceljs"
+import type ExcelJS from "exceljs"
 import type { Linea } from "@/lib/reportes"
 
 export type FilaExcelContable = {
@@ -156,8 +156,11 @@ export async function construirWorkbookExcelContable(
   const firstDataRow = headerRowNum + 1
   const lastDataRow = headerRowNum + opts.filas.length
   const totalRowNum = lastDataRow + 1
-
-  const workbook = new ExcelJS.Workbook()
+  const ExcelJSModule = await import("exceljs")
+  const ExcelJSClass = (
+    "default" in ExcelJSModule ? ExcelJSModule.default : ExcelJSModule
+  ) as unknown as typeof import("exceljs")
+  const workbook = new ExcelJSClass.Workbook()
   workbook.creator = "SMV Hub"
   workbook.created = generadoEn
 

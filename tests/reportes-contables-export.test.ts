@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import "exceljs"
 import type { Linea } from "@/lib/reportes"
 import {
   ANCHOS_COLUMNAS_EXCEL_CONTABLE,

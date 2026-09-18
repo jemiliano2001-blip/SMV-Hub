@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { fechaHoyLocal } from '@/lib/format'
 import { imprimirComoDocumento } from '@/lib/imprimir-documento'
 import {
@@ -35,16 +36,16 @@ import type { NuevoProveedorPayload, MatrizBackupProveedores } from '@/lib/prove
 import { CATEGORIAS_PROVEEDOR_FORM } from '@/lib/proveedores/categorias-proveedor'
 import { obtenerMatrizBackupProveedores } from '@/lib/proveedores'
 import type { NuevaCompraPayload } from '@/lib/proveedores-inteligencia'
-import PanelComprasOdoo from '@/app/proveedores/PanelComprasOdoo'
-import PanelVinculacionHistorica from '@/app/proveedores/PanelVinculacionHistorica'
-import PanelBackfillMercado from '@/app/proveedores/PanelBackfillMercado'
-import PanelBackfillLeadTime from '@/app/proveedores/PanelBackfillLeadTime'
+const PanelComprasOdoo = dynamic(() => import('@/app/proveedores/PanelComprasOdoo'), { ssr: false })
+const PanelVinculacionHistorica = dynamic(() => import('@/app/proveedores/PanelVinculacionHistorica'), { ssr: false })
+const PanelBackfillMercado = dynamic(() => import('@/app/proveedores/PanelBackfillMercado'), { ssr: false })
+const PanelBackfillLeadTime = dynamic(() => import('@/app/proveedores/PanelBackfillLeadTime'), { ssr: false })
+const DrawerDetalleProveedor = dynamic(() => import('./components/DrawerDetalleProveedor'), { ssr: false })
+const ModalInvestigacionPrecios = dynamic(() => import('./components/ModalInvestigacionPrecios'), { ssr: false })
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
 import HeaderCentroMando from './components/HeaderCentroMando'
 import DirectorioProveedores from './components/DirectorioProveedores'
-import DrawerDetalleProveedor from './components/DrawerDetalleProveedor'
-import ModalInvestigacionPrecios from './components/ModalInvestigacionPrecios'
 import { listarItemsComprasOdoo } from '@/lib/compras-odoo-store'
 import { listarOrdenesEnRango } from '@/lib/ordenes'
 import { toast } from 'sonner'

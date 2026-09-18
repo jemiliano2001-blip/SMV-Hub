@@ -12,6 +12,8 @@ import { ConfirmDialogProvider } from "@/components/ConfirmDialogProvider";
 import { FilePreviewProvider } from "@/components/FilePreviewProvider";
 import KeyboardShortcutsDialog from "@/components/KeyboardShortcutsDialog";
 import NetworkStatusIndicator from "@/components/NetworkStatusIndicator";
+import SkipToContent from "@/components/layout/SkipToContent";
+import ScrollToTop from "@/components/layout/ScrollToTop";
 
 const firaCode = Fira_Code({
   variable: "--font-fira-code",
@@ -56,6 +58,7 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${firaSans.variable} ${firaCode.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
+        <SkipToContent />
         <WebVitals />
         <AppCheckProvider>
           <SesionProvider>
@@ -63,11 +66,14 @@ export default function RootLayout({
               <ConfirmDialogProvider>
                 <FilePreviewProvider>
                   <NavBar />
-                  {children}
+                  <div id="main-content" tabIndex={-1} className="flex-1 flex flex-col focus:outline-none">
+                    {children}
+                  </div>
                   <BottomNavBar />
                   <Toaster />
                   <KeyboardShortcutsDialog />
                   <NetworkStatusIndicator />
+                  <ScrollToTop />
                 </FilePreviewProvider>
               </ConfirmDialogProvider>
             </AuthProvider>

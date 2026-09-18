@@ -1,4 +1,4 @@
-import ExcelJS from "exceljs"
+import type ExcelJS from "exceljs"
 import { configGeneracionJson } from "@/lib/gemini-generation-config"
 import { ErrorIA, resolverModeloExtraccion } from "@/lib/extraer-ia"
 import type { EndmillMedida } from "@/lib/schemas"
@@ -161,7 +161,11 @@ export async function parsearArchivoExcelEndmills(
   buffer: ArrayBuffer | Uint8Array,
   catalogo: readonly EndmillMedida[]
 ): Promise<ResultadoExtraccionEndmills> {
-  const workbook = new ExcelJS.Workbook()
+  const ExcelJSModule = await import("exceljs")
+  const ExcelJSClass = (
+    "default" in ExcelJSModule ? ExcelJSModule.default : ExcelJSModule
+  ) as unknown as typeof import("exceljs")
+  const workbook = new ExcelJSClass.Workbook()
   const data = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
   await workbook.xlsx.load(data as unknown as ExcelJS.Buffer)
   const worksheet = workbook.worksheets[0]

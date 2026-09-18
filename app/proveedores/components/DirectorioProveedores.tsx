@@ -21,6 +21,7 @@ import ModuleEmptyState from '@/components/layout/ModuleEmptyState'
 import ModuleFilterChips from '@/components/layout/ModuleFilterChips'
 import ModuleSurface from '@/components/layout/ModuleSurface'
 import TarjetaProveedor from './TarjetaProveedor'
+import TableSkeleton from '@/components/layout/TableSkeleton'
 import type { Proveedor, CategoriaProveedor } from '@/lib/schemas'
 import type { MercadoProveedor, OrdenamientoProveedor } from '@/lib/proveedores/directorio'
 import { CATEGORIAS_PROVEEDOR_FILTRO } from '@/lib/proveedores/categorias-proveedor'
@@ -109,17 +110,34 @@ export default function DirectorioProveedores({
     setVerTodos(false)
   }, [mercado, busqueda, categoriaFiltro, ordenamiento])
 
+  const [localBusqueda, setLocalBusqueda] = useState(busqueda)
+  const [prevBusqueda, setPrevBusqueda] = useState(busqueda)
+
+  if (prevBusqueda !== busqueda) {
+    setPrevBusqueda(busqueda)
+    setLocalBusqueda(busqueda)
+  }
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localBusqueda !== busqueda) {
+        onBusquedaChange(localBusqueda)
+      }
+    }, 200)
+    return () => clearTimeout(timer)
+  }, [localBusqueda, busqueda, onBusquedaChange])
+
   return (
     <div className="flex flex-col gap-4">
       <ModuleSurface className="flex flex-col gap-3.5 p-4">
         <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-          {/* Campo Búsqueda */}
+          {/* Campo Búsqueda con debounce */}
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3.5 top-3 text-muted-foreground" />
             <Input
               placeholder="Buscar por nombre, marca (ej. YG-1, Harvey, Shars), contacto o broker..."
-              value={busqueda}
-              onChange={(e) => onBusquedaChange(e.target.value)}
+              value={localBusqueda}
+              onChange={(e) => setLocalBusqueda(e.target.value)}
               className="border-border bg-card pl-10 text-xs text-foreground placeholder:text-muted-foreground"
             />
           </div>
@@ -195,10 +213,27 @@ export default function DirectorioProveedores({
           </Button>
         </div>
       ) : cargando ? (
-        <div className="flex flex-col items-center gap-3 py-20 text-center">
-          <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm font-medium text-muted-foreground">Cargando directorio de proveedores...</p>
-        </div>
+        vista === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={`sk-card-${i}`}
+                className="flex h-44 flex-col justify-between rounded-xl border border-border bg-card p-5 animate-pulse"
+              >
+                <div className="space-y-2.5">
+                  <div className="h-5 w-2/3 rounded bg-muted" />
+                  <div className="h-3.5 w-1/3 rounded bg-muted/70" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 w-4/5 rounded bg-muted/60" />
+                  <div className="h-3 w-1/2 rounded bg-muted/60" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <TableSkeleton columns={8} rows={8} />
+        )
       ) : proveedores.length === 0 ? (
         <ModuleEmptyState
           icon={Building2}
