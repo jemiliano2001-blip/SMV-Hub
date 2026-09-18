@@ -109,18 +109,23 @@ export function LectorQR({
 
         // Iniciar loop de detección si hay BarcodeDetector
         if (tieneDetector) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const barcodeDetector = new (window as any).BarcodeDetector({
-            formats: ['qr_code', 'code_128', 'ean_13', 'data_matrix'],
-          })
+          const windowWithBarcode = window as unknown as {
+            BarcodeDetector?: new (options?: { formats: string[] }) => {
+              detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue?: string; displayValue?: string }>>
+            }
+          }
+          if (windowWithBarcode.BarcodeDetector) {
+            const barcodeDetector = new windowWithBarcode.BarcodeDetector({
+              formats: ['qr_code', 'code_128', 'ean_13', 'data_matrix'],
+            })
 
-          const escanearLoop = async () => {
-            if (!active || !videoRef.current) return
+            const escanearLoop = async () => {
+              if (!active || !videoRef.current) return
 
-            if (videoRef.current.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-              try {
-                const barcodes = await barcodeDetector.detect(videoRef.current) as Array<{ rawValue?: string; displayValue?: string }>
-                if (barcodes && barcodes.length > 0 && active) {
+              if (videoRef.current.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+                try {
+                  const barcodes = await barcodeDetector.detect(videoRef.current)
+                  if (barcodes && barcodes.length > 0 && active) {
                   const resultado = barcodes[0].rawValue || barcodes[0].displayValue
                   if (resultado) {
                     reproducirSonidoExito()
@@ -142,6 +147,7 @@ export function LectorQR({
 
           animFrameRef.current = requestAnimationFrame(escanearLoop)
         }
+      }
       } catch (err: unknown) {
         console.error('Error al iniciar escáner de cámara:', err)
         const msg =

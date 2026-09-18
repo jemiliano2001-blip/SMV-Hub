@@ -146,7 +146,7 @@ export default function ModalImportadorIA({
         if (nombre.endsWith(".xlsx") || nombre.endsWith(".xls") || nombre.endsWith(".csv")) {
           try {
             const buffer = await archivoSeleccionado.arrayBuffer()
-            const parseado = parsearArchivoExcelEndmills(buffer, medidas)
+            const parseado = await parsearArchivoExcelEndmills(buffer, medidas)
             if (parseado.items.length > 0) {
               setResultadoPreview(parseado)
               setItemsEditables(parseado.items)

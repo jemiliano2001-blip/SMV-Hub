@@ -25,30 +25,28 @@ export function useOrdenes() {
   const [error, setError] = useState<string | null>(null)
   const promesaCompleta = useRef<Promise<OrdenCompra[]> | null>(null)
 
-  const fetchOrdenes = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    setColeccionCompleta(false)
-    try {
-      const [pagina, total] = await Promise.all([
-        obtenerPaginaOrdenes(TAMANO_PAGINA),
-        contarOrdenes(),
-      ])
-      setOrdenes(pagina.items)
-      setCursor(pagina.siguienteCursor)
-      setHayMas(pagina.hayMas)
-      setTotalOrdenes(total)
-    } catch (err) {
-      console.error('Error fetching ordenes:', err)
-      setError('No se pudieron cargar las órdenes de compra. Por favor, intenta de nuevo.')
-    } finally {
-      setLoading(false)
-    }
+  const fetchOrdenes = useCallback(() => {
+    return Promise.all([
+      obtenerPaginaOrdenes(TAMANO_PAGINA),
+      contarOrdenes(),
+    ])
+      .then(([pagina, total]) => {
+        setOrdenes(pagina.items)
+        setCursor(pagina.siguienteCursor)
+        setHayMas(pagina.hayMas)
+        setTotalOrdenes(total)
+        setError(null)
+        setColeccionCompleta(false)
+        setLoading(false)
+      })
+      .catch((err) => {
+        console.error('Error fetching ordenes:', err)
+        setError('No se pudieron cargar las órdenes de compra. Por favor, intenta de nuevo.')
+        setLoading(false)
+      })
   }, [])
 
   useEffect(() => {
-    // La consulta externa actualiza el estado cuando Firestore responde.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchOrdenes()
   }, [fetchOrdenes])
 

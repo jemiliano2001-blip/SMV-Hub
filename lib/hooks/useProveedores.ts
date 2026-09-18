@@ -25,23 +25,21 @@ export function useProveedores() {
   const [soloRecomendados, setSoloRecomendados] = useState(false)
   const [orden, setOrden] = useState<OrdenamientoProveedor>("calificacion")
 
-  const cargarData = useCallback(async () => {
-    setCargando(true)
-    setError(null)
-    try {
-      const data = await obtenerProveedores()
-      setProveedores(data)
-    } catch (err) {
-      console.error("Error al cargar proveedores:", err)
-      setError("No se pudieron cargar los proveedores.")
-    } finally {
-      setCargando(false)
-    }
+  const cargarData = useCallback(() => {
+    return obtenerProveedores()
+      .then((data) => {
+        setProveedores(data)
+        setError(null)
+        setCargando(false)
+      })
+      .catch((err) => {
+        console.error("Error al cargar proveedores:", err)
+        setError("No se pudieron cargar los proveedores.")
+        setCargando(false)
+      })
   }, [])
 
   useEffect(() => {
-    // Carga inicial: falso positivo (en montaje cargando ya es true, sin cascada).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void cargarData()
   }, [cargarData])
 

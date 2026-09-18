@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx"
+import ExcelJS from "exceljs"
 import { configGeneracionJson } from "@/lib/gemini-generation-config"
 import { ErrorIA, resolverModeloExtraccion } from "@/lib/extraer-ia"
 import type { EndmillMedida } from "@/lib/schemas"
@@ -157,31 +157,43 @@ export function parsearTextoExcelEndmills(
 /**
  * Parsea un archivo binario de Excel (.xlsx, .xls, .csv) subido por el usuario.
  */
-export function parsearArchivoExcelEndmills(
+export async function parsearArchivoExcelEndmills(
   buffer: ArrayBuffer | Uint8Array,
   catalogo: readonly EndmillMedida[]
-): ResultadoExtraccionEndmills {
-  const workbook = XLSX.read(buffer, { type: "array" })
-  const firstSheetName = workbook.SheetNames[0]
-  if (!firstSheetName) {
+): Promise<ResultadoExtraccionEndmills> {
+  const workbook = new ExcelJS.Workbook()
+  const data = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
+  await workbook.xlsx.load(data as unknown as ExcelJS.Buffer)
+  const worksheet = workbook.worksheets[0]
+  if (!worksheet) {
     throw new Error("El archivo de Excel no contiene hojas de datos")
   }
-
-  const worksheet = workbook.Sheets[firstSheetName]
-  const rows = XLSX.utils.sheet_to_json<Array<string | number>>(worksheet, {
-    header: 1,
-    defval: "",
-  })
 
   let shippingUSD = 0
   let aliCostUSD = 0
   let folioCotizacion: string | null = null
   const items: ItemExtraidoEndmill[] = []
 
-  for (const row of rows) {
-    if (!row || row.length === 0) continue
-    const filaStr = row.map((cell) => String(cell).trim()).join(" ")
-    if (!filaStr) continue
+  worksheet.eachRow((row) => {
+    const rawValues = Array.isArray(row.values) ? row.values.slice(1) : []
+    if (rawValues.length === 0) return
+
+    const rowCells: Array<string | number> = rawValues.map((cell) => {
+      if (cell === null || cell === undefined) return ""
+      if (typeof cell === "object") {
+        if ("result" in cell && cell.result !== undefined && cell.result !== null) {
+          return typeof cell.result === "number" ? cell.result : String(cell.result).trim()
+        }
+        if ("text" in cell && typeof cell.text === "string") {
+          return cell.text.trim()
+        }
+      }
+      if (typeof cell === "number") return cell
+      return String(cell).trim()
+    })
+
+    const filaStr = rowCells.map((c) => String(c).trim()).filter(Boolean).join(" ")
+    if (!filaStr) return
 
     // Detectar Folio de Proforma / Cotización
     const matchFolio = filaStr.match(/(?:PI\s*NO\.?|PROFORMA\s*INVOICE|PROFORMA|QUOTATION\s*NO\.?|COTIZACI[OÓ]N)\s*[:#]?\s*([A-Za-z0-9-_/]+)/i)
@@ -206,7 +218,7 @@ export function parsearArchivoExcelEndmills(
     let precio = 0
     const textoPartes: string[] = []
 
-    for (const cell of row) {
+    for (const cell of rowCells) {
       const str = String(cell).trim()
       if (!str) continue
 
@@ -231,7 +243,7 @@ export function parsearArchivoExcelEndmills(
       textoMedida.toLowerCase().includes("description") ||
       textoMedida.toLowerCase().includes("item no")
     ) {
-      continue
+      return
     }
 
     if (cantidad > 0 && textoMedida.length > 1) {
@@ -255,7 +267,7 @@ export function parsearArchivoExcelEndmills(
           : "Sin coincidencia en catálogo (ítem nuevo)",
       })
     }
-  }
+  })
 
   return {
     origen: "excel_archivo",

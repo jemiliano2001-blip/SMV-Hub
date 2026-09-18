@@ -55,14 +55,13 @@ export function useNotificaciones(opciones?: {
 
   useEffect(() => {
     if (!enabled || !uid) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset al deshabilitar el hook
-      setCargandoFeed(false)
-      setRaw([])
-      setErrorFeed(null)
+      queueMicrotask(() => {
+        setCargandoFeed(false)
+        setRaw([])
+        setErrorFeed(null)
+      })
       return
     }
-    setCargandoFeed(true)
-    setErrorFeed(null)
     const unsub = suscribirNotificaciones(
       (lista) => {
         setRaw(lista)
@@ -80,15 +79,14 @@ export function useNotificaciones(opciones?: {
 
   useEffect(() => {
     if (!enabled || !uid) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- sin sesión no hay leídos
-      setLeidasConfirmadas(new Set())
-      setLeidasOptimistas(new Set())
-      setCargandoLeidas(false)
-      setErrorLeidas(null)
+      queueMicrotask(() => {
+        setLeidasConfirmadas(new Set())
+        setLeidasOptimistas(new Set())
+        setCargandoLeidas(false)
+        setErrorLeidas(null)
+      })
       return
     }
-    setCargandoLeidas(true)
-    setErrorLeidas(null)
     const unsub = suscribirNotificacionesLeidas(
       uid,
       (ids) => {
@@ -111,15 +109,14 @@ export function useNotificaciones(opciones?: {
 
   useEffect(() => {
     if (!enabled || !uid) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- sin sesión no hay descartadas
-      setDescartadasConfirmadas(new Set())
-      setDescartadasOptimistas(new Set())
-      setCargandoDescartadas(false)
-      setErrorDescartadas(null)
+      queueMicrotask(() => {
+        setDescartadasConfirmadas(new Set())
+        setDescartadasOptimistas(new Set())
+        setCargandoDescartadas(false)
+        setErrorDescartadas(null)
+      })
       return
     }
-    setCargandoDescartadas(true)
-    setErrorDescartadas(null)
     const unsub = suscribirNotificacionesDescartadas(
       uid,
       (ids) => {
@@ -257,6 +254,14 @@ export function useNotificaciones(opciones?: {
     descartarTodas,
     filtrar,
     uid,
-    reintentar: () => setIntento((actual) => actual + 1),
+    reintentar: () => {
+      setCargandoFeed(true)
+      setCargandoLeidas(true)
+      setCargandoDescartadas(true)
+      setErrorFeed(null)
+      setErrorLeidas(null)
+      setErrorDescartadas(null)
+      setIntento((actual) => actual + 1)
+    },
   }
 }

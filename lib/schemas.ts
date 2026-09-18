@@ -1629,3 +1629,32 @@ export const OrdenCompraUsaSchema = z.object({
 })
 export type OrdenCompraUsa = z.infer<typeof OrdenCompraUsaSchema>
 
+// ── Registro de correcciones y retroalimentación de Memoria Operativa ────────
+
+export const MemoriaCorreccionTipoSchema = z.enum([
+  "campo_sugerido",
+  "alerta_precio",
+  "proveedor_sugerido",
+])
+export type MemoriaCorreccionTipo = z.infer<typeof MemoriaCorreccionTipoSchema>
+
+export const MemoriaCorreccionContextoSchema = z.object({
+  modulo: z.enum(["nueva-compra", "cotizaciones", "ordenes"]),
+  docId: z.string().optional(),
+  llavePieza: z.string().optional(),
+  campo: z.string().optional(),
+})
+export type MemoriaCorreccionContexto = z.infer<typeof MemoriaCorreccionContextoSchema>
+
+export const MemoriaCorreccionSchema = z.object({
+  id: z.string().optional(),
+  tipo: MemoriaCorreccionTipoSchema,
+  contexto: MemoriaCorreccionContextoSchema,
+  sugerido: z.string().nullable().optional(),
+  elegido: z.string().nullable().optional(),
+  aceptado: z.boolean(),
+  usuario: z.string(),
+  creadoEn: z.string(), // ISO string
+})
+export type MemoriaCorreccion = z.infer<typeof MemoriaCorreccionSchema>
+

@@ -46,7 +46,10 @@ import { listarOrdenesRecientes } from '@/lib/ordenes'
 import { useFilePreview } from '@/components/FilePreviewProvider'
 import type { OrdenCompra } from '@/lib/schemas'
 import { formatPrecio } from '@/lib/format'
+import { cn } from '@/lib/utils'
 import ModalRecibirOrdenAlmacen from '@/components/abastecimiento/ModalRecibirOrdenAlmacen'
+import ModalRecibirLoteAlmacen from '@/components/abastecimiento/ModalRecibirLoteAlmacen'
+import ModuleBulkBar from '@/components/layout/ModuleBulkBar'
 
 export default function OrdenesPorRecibir({
   onOrdenRecibida,
@@ -70,6 +73,8 @@ export default function OrdenesPorRecibir({
   const [error, setError] = useState<string | null>(null)
   const [busqueda, setBusqueda] = useState('')
   const [ordenSeleccionada, setOrdenSeleccionada] = useState<OrdenCompra | null>(null)
+  const [ordenesSeleccionadas, setOrdenesSeleccionadas] = useState<Set<string>>(new Set())
+  const [isModalLoteAbierto, setIsModalLoteAbierto] = useState(false)
   const [isLectorAbierto, setIsLectorAbierto] = useState(false)
 
   const cargarOrdenes = useCallback(async () => {
@@ -87,9 +92,35 @@ export default function OrdenesPorRecibir({
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void cargarOrdenes()
-  }, [cargarOrdenes])
+    let cancelado = false
+    listarOrdenesRecientes(150)
+      .then((recientes) => {
+        if (cancelado) return
+        setOrdenes(recientes)
+        setCargando(false)
+      })
+      .catch((err: unknown) => {
+        if (cancelado) return
+        console.error('Error cargando órdenes para recepción en almacén:', err)
+        setError('No se pudieron cargar las órdenes de compra por recibir.')
+        setCargando(false)
+      })
+    return () => {
+      cancelado = true
+    }
+  }, [])
+
+  // Limpiar selecciones huérfanas reactivamente si la lista de órdenes cambia
+  useEffect(() => {
+    queueMicrotask(() => {
+      setOrdenesSeleccionadas((prev) => {
+        if (prev.size === 0) return prev
+        const idsValidos = new Set(ordenes.map((o) => o.id))
+        const filtrado = new Set([...prev].filter((id) => idsValidos.has(id)))
+        return filtrado.size === prev.size ? prev : filtrado
+      })
+    })
+  }, [ordenes])
 
   // Filtrar órdenes aprobadas que aún no han sido recibidas
   const ordenesPorRecibir = useMemo(() => {
@@ -137,9 +168,50 @@ export default function OrdenesPorRecibir({
   function handleRecepcionExitosa() {
     vibrarExito()
     setOrdenSeleccionada(null)
+    setOrdenesSeleccionadas((prev) => {
+      const siguiente = new Set(prev)
+      if (ordenSeleccionada) siguiente.delete(ordenSeleccionada.id)
+      return siguiente
+    })
     void cargarOrdenes()
     onOrdenRecibida?.()
   }
+
+  const toggleSeleccion = useCallback((id: string) => {
+    vibrarTap()
+    setOrdenesSeleccionadas((prev) => {
+      const sig = new Set(prev)
+      if (sig.has(id)) {
+        sig.delete(id)
+      } else {
+        sig.add(id)
+      }
+      return sig
+    })
+  }, [])
+
+  const todasVisiblesSeleccionadas = useMemo(() => {
+    if (ordenesFiltradas.length === 0) return false
+    return ordenesFiltradas.every((o) => ordenesSeleccionadas.has(o.id))
+  }, [ordenesFiltradas, ordenesSeleccionadas])
+
+  const toggleSeleccionarTodas = useCallback(() => {
+    vibrarTap()
+    setOrdenesSeleccionadas((prev) => {
+      if (todasVisiblesSeleccionadas) {
+        return new Set()
+      }
+      const nuevo = new Set(prev)
+      for (const o of ordenesFiltradas) {
+        nuevo.add(o.id)
+      }
+      return nuevo
+    })
+  }, [todasVisiblesSeleccionadas, ordenesFiltradas])
+
+  const ordenesParaLote = useMemo(() => {
+    return ordenesPorRecibir.filter((o) => ordenesSeleccionadas.has(o.id))
+  }, [ordenesPorRecibir, ordenesSeleccionadas])
 
   return (
     <div className="space-y-4">
@@ -228,23 +300,39 @@ export default function OrdenesPorRecibir({
               {ordenesFiltradas.map((orden) => {
                 const primerItem = orden.items?.[0]
                 const cantItems = orden.items?.length || 0
+                const estaSeleccionada = ordenesSeleccionadas.has(orden.id)
 
                 return (
-                  <div key={orden.id} className="p-3.5 space-y-2.5 bg-card">
+                  <div
+                    key={orden.id}
+                    className={cn(
+                      "p-3.5 space-y-2.5 bg-card transition-colors",
+                      estaSeleccionada && "bg-primary/5"
+                    )}
+                  >
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-bold text-sm text-foreground">{orden.proveedor}</span>
-                          {orden.numeroFactura && (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-border text-foreground font-mono">
-                              #{orden.numeroFactura}
-                            </Badge>
-                          )}
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={estaSeleccionada}
+                          onChange={() => toggleSeleccion(orden.id)}
+                          aria-label={`Seleccionar orden ${orden.proveedor}`}
+                          className="mt-0.5 rounded border-border text-primary focus:ring-primary/30 size-4 cursor-pointer shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-sm text-foreground">{orden.proveedor}</span>
+                            {orden.numeroFactura && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-border text-foreground font-mono">
+                                #{orden.numeroFactura}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {orden.fechaFactura ? `Fecha: ${orden.fechaFactura}` : 'Sin fecha'}
+                            {orden.requisicionId ? ' · Requisición' : ' · Compra directa'}
+                          </p>
                         </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {orden.fechaFactura ? `Fecha: ${orden.fechaFactura}` : 'Sin fecha'}
-                          {orden.requisicionId ? ' · Requisición' : ' · Compra directa'}
-                        </p>
                       </div>
 
                       {puedeVerMontos && (
@@ -307,6 +395,15 @@ export default function OrdenesPorRecibir({
               <Table className="text-xs">
                 <TableHeader className="bg-muted text-muted-foreground border-b border-border">
                   <TableRow>
+                    <TableHead className="w-10 px-3 py-2.5 text-center">
+                      <input
+                        type="checkbox"
+                        checked={todasVisiblesSeleccionadas}
+                        onChange={toggleSeleccionarTodas}
+                        aria-label="Seleccionar todas las órdenes visibles"
+                        className="rounded border-border text-primary focus:ring-primary/30 size-4 cursor-pointer align-middle"
+                      />
+                    </TableHead>
                     <TableHead className="font-semibold px-4 py-2.5">Proveedor & Factura</TableHead>
                     <TableHead className="font-semibold px-4 py-2.5">Material / Partidas</TableHead>
                     <TableHead className="font-semibold px-4 py-2.5">Origen</TableHead>
@@ -321,11 +418,27 @@ export default function OrdenesPorRecibir({
                   {ordenesFiltradas.map((orden) => {
                     const primerItem = orden.items?.[0]
                     const cantItems = orden.items?.length || 0
+                    const estaSeleccionada = ordenesSeleccionadas.has(orden.id)
 
                     return (
                       <ContextMenu key={orden.id}>
                         <ContextMenuTrigger asChild>
-                          <TableRow className="hover:bg-muted/50 transition-colors cursor-pointer select-none" onDoubleClick={() => setOrdenSeleccionada(orden)}>
+                          <TableRow
+                            className={cn(
+                              "hover:bg-muted/50 transition-colors cursor-pointer select-none",
+                              estaSeleccionada && "bg-primary/5"
+                            )}
+                            onDoubleClick={() => setOrdenSeleccionada(orden)}
+                          >
+                            <TableCell className="w-10 px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={estaSeleccionada}
+                                onChange={() => toggleSeleccion(orden.id)}
+                                aria-label={`Seleccionar orden ${orden.proveedor}`}
+                                className="rounded border-border text-primary focus:ring-primary/30 size-4 cursor-pointer align-middle"
+                              />
+                            </TableCell>
                             <TableCell className="font-medium px-4 py-2.5">
                               <div className="flex items-center gap-2">
                                 <span className="font-semibold text-foreground">{orden.proveedor}</span>
@@ -486,12 +599,46 @@ export default function OrdenesPorRecibir({
         )}
       </ModuleSurface>
 
-      {/* MODAL DE RECEPCIÓN */}
+      {/* Barra flotante de acciones en lote */}
+      <ModuleBulkBar
+        selectedCount={ordenesParaLote.length}
+        totalCount={ordenesFiltradas.length}
+        onClearSelection={() => setOrdenesSeleccionadas(new Set())}
+        actions={
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              vibrarTap()
+              setIsModalLoteAbierto(true)
+            }}
+            className="h-8 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs gap-1.5 shadow-xs active:scale-98 cursor-pointer"
+          >
+            <PackageCheck className="size-3.5" />
+            <span>Recibir seleccionadas</span>
+          </Button>
+        }
+      />
+
+      {/* MODAL DE RECEPCIÓN INDIVIDUAL */}
       <ModalRecibirOrdenAlmacen
         orden={ordenSeleccionada}
         abierto={Boolean(ordenSeleccionada)}
         onCerrar={() => setOrdenSeleccionada(null)}
         onExito={handleRecepcionExitosa}
+      />
+
+      {/* MODAL DE RECEPCIÓN EN LOTE */}
+      <ModalRecibirLoteAlmacen
+        ordenes={ordenesParaLote}
+        abierto={isModalLoteAbierto}
+        onCerrar={() => setIsModalLoteAbierto(false)}
+        onExito={() => {
+          vibrarExito()
+          setOrdenesSeleccionadas(new Set())
+          void cargarOrdenes()
+          onOrdenRecibida?.()
+        }}
       />
     </div>
   )

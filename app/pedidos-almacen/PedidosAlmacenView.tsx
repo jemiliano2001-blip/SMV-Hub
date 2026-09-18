@@ -60,6 +60,32 @@ const ESTADO_LABEL: Record<PedidoAlmacen['estado'], string> = {
   cancelado: 'Cancelado',
 }
 
+interface SpeechRecognitionResultItem {
+  transcript: string
+}
+interface SpeechRecognitionResultList {
+  [index: number]: {
+    [index: number]: SpeechRecognitionResultItem
+  }
+}
+interface SpeechRecognitionEventLike {
+  results: SpeechRecognitionResultList
+}
+interface SpeechRecognitionLike {
+  lang: string
+  continuous: boolean
+  interimResults: boolean
+  onstart: (() => void) | null
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null
+  onerror: (() => void) | null
+  onend: (() => void) | null
+  start: () => void
+  stop: () => void
+  abort: () => void
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike
+
 export default function PedidosAlmacenView() {
   const confirmar = useConfirmDialog()
   const { previewFile } = useFilePreview()
@@ -83,17 +109,16 @@ export default function PedidosAlmacenView() {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null)
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
 
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl)
       if (recognitionRef.current) {
         try {
-          recognitionRef.current.stop()
+          recognitionRef.current.abort()
         } catch {
-          // Ignorar
+          // Ignorar si ya estaba cerrado o abortado
         }
       }
     }
@@ -129,8 +154,11 @@ export default function PedidosAlmacenView() {
   function toggleDictadoVoz() {
     if (typeof window === 'undefined') return
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    const windowWithSpeech = window as unknown as {
+      SpeechRecognition?: SpeechRecognitionConstructor
+      webkitSpeechRecognition?: SpeechRecognitionConstructor
+    }
+    const SpeechRecognition = windowWithSpeech.SpeechRecognition || windowWithSpeech.webkitSpeechRecognition
     if (!SpeechRecognition) {
       toast.error('Dictado por voz no disponible', {
         description: 'Tu navegador no soporta SpeechRecognition. Intenta en Chrome o Safari.',
@@ -161,8 +189,7 @@ export default function PedidosAlmacenView() {
         toast.info('🎙️ Escuchando... Di lo que necesitas', { duration: 2500 })
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recognition.onresult = (event: any) => {
+      recognition.onresult = (event: SpeechRecognitionEventLike) => {
         const transcript = event.results[0]?.[0]?.transcript
         if (transcript) {
           setDescripcion((prev) => {

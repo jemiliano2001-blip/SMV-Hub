@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ChipProveedorVinculado } from '@/components/proveedores/ChipProveedorVinculado'
@@ -8,6 +8,9 @@ import { describirLeadTime, parsearDiasHabiles } from '@/lib/lead-time'
 import { authBypassActivo, useUsuario } from '@/lib/auth'
 import { usePermisos } from '@/lib/hooks/useRol'
 import { tieneModulo } from '@/lib/roles'
+import { useMemoriaOperativa } from '@/lib/hooks/useMemoriaOperativa'
+import ChipMemoriaOperativa from '@/components/memoria/ChipMemoriaOperativa'
+import { registrarCorrecciones } from '@/lib/memoria-operativa/correcciones'
 import {
   Dialog,
   DialogContent,
@@ -65,6 +68,33 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
   const { modulos, esSuperAdmin } = usePermisos(authBypassActivo() ? null : usuario)
   const puedeEditarCatalogo = esSuperAdmin || authBypassActivo() || tieneModulo(modulos, 'proveedores')
 
+  const piezasMemoria = useMemo(() => {
+    if (!formData.descripcion.trim()) return []
+    return [
+      {
+        descripcion: formData.descripcion,
+        numeroParte: formData.numeroParte || undefined,
+        proveedor: formData.proveedor || undefined,
+        proveedorId: formData.proveedorId || undefined,
+        precioUnitario: formData.precioUnitario ? Number(formData.precioUnitario) : undefined,
+        moneda: monedaDeUbicacion(formData.ubicacion),
+      },
+    ]
+  }, [
+    formData.descripcion,
+    formData.numeroParte,
+    formData.proveedor,
+    formData.proveedorId,
+    formData.precioUnitario,
+    formData.ubicacion,
+  ])
+
+  const {
+    primerContexto,
+    cargando: cargandoMemoria,
+    verPrecios: verPreciosMemoria,
+  } = useMemoriaOperativa(piezasMemoria)
+
   function handleProveedorChange(nombre: string) {
     setFormData((prev) => ({ ...prev, proveedor: nombre }))
   }
@@ -106,6 +136,44 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
         }
         const id = await crearCotizacion(payload)
         onSaved({ ...payload, id, creadoEn: new Date(), actualizadoEn: new Date() } as Cotizacion)
+      }
+
+      // Registrar correcciones y feedback de memoria operativa (best-effort)
+      if (primerContexto?.alertaPrecio) {
+        void registrarCorrecciones([
+          {
+            tipo: 'alerta_precio',
+            contexto: {
+              modulo: 'cotizaciones',
+              docId: cotizacionBase?.id,
+              llavePieza: primerContexto.llavePieza,
+              campo: 'precioUnitario',
+            },
+            sugerido: primerContexto.alertaPrecio.precioMinHistoricoUSD != null ? String(primerContexto.alertaPrecio.precioMinHistoricoUSD) : null,
+            elegido: formData.precioUnitario ? String(formData.precioUnitario) : null,
+            aceptado: false,
+            usuario: usuario?.email || 'desconocido',
+          },
+        ])
+      }
+      if (primerContexto?.proveedorPreferido) {
+        const sugeridoProv = primerContexto.proveedorPreferido.proveedorNombre || ''
+        const elegidoProv = (formData.proveedor || '').trim()
+        void registrarCorrecciones([
+          {
+            tipo: 'proveedor_sugerido',
+            contexto: {
+              modulo: 'cotizaciones',
+              docId: cotizacionBase?.id,
+              llavePieza: primerContexto.llavePieza,
+              campo: 'proveedor',
+            },
+            sugerido: sugeridoProv,
+            elegido: elegidoProv,
+            aceptado: sugeridoProv.toLowerCase() === elegidoProv.toLowerCase(),
+            usuario: usuario?.email || 'desconocido',
+          },
+        ])
       }
     } catch (err) {
       console.error(err)
@@ -198,7 +266,26 @@ export default function CotizacionFormModal({ cotizacionBase, onClose, onSaved }
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-semibold text-foreground">Descripción *</label>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                <label className="block text-xs font-semibold text-foreground">Descripción *</label>
+                <ChipMemoriaOperativa
+                  contexto={primerContexto}
+                  cargando={cargandoMemoria}
+                  verPrecios={verPreciosMemoria}
+                  onAplicarSugerencia={(ctx) => {
+                    const ref = ctx.comprasPrevias[0] || ctx.cotizacionesPrevias[0]
+                    if (ref) {
+                      setFormData((prev) => ({
+                        ...prev,
+                        proveedor: prev.proveedor || ref.proveedorNombre || prev.proveedor,
+                        proveedorId: prev.proveedorId || ref.proveedorId || prev.proveedorId,
+                        precioUnitario: !prev.precioUnitario && ref.precioUnitario != null ? String(ref.precioUnitario) : prev.precioUnitario,
+                        numeroParte: !prev.numeroParte && ref.numeroParte ? ref.numeroParte : prev.numeroParte,
+                      }))
+                    }
+                  }}
+                />
+              </div>
               <input required value={formData.descripcion} onChange={e => setFormData({ ...formData, descripcion: e.target.value })} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
             </div>
 

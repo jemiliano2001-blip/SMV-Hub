@@ -58,17 +58,17 @@ export default function ModalRecibirOrdenAlmacen({
 
   return (
     <Dialog open={abierto} onOpenChange={(open) => !guardando && !open && onCerrar()}>
-      <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-800 text-zinc-100">
+      <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
               <PackageCheck className="h-5 w-5" />
             </div>
             <div>
-              <DialogTitle className="text-lg font-semibold text-zinc-100">
+              <DialogTitle className="text-lg font-semibold text-foreground">
                 Recibir Material en Almacén
               </DialogTitle>
-              <DialogDescription className="text-xs text-zinc-400">
+              <DialogDescription className="text-xs text-muted-foreground">
                 Registra la entrada física y cierra el ciclo de abastecimiento.
               </DialogDescription>
             </div>
@@ -77,43 +77,43 @@ export default function ModalRecibirOrdenAlmacen({
 
         <div className="space-y-4 py-2">
           {/* Tarjeta resumen de la orden */}
-          <div className="p-3.5 rounded-lg bg-zinc-800/50 border border-zinc-700/50 space-y-2 text-xs">
-            <div className="flex justify-between items-center text-zinc-300">
-              <span className="font-medium text-zinc-400 flex items-center gap-1.5">
-                <Building2 className="h-3.5 w-3.5 text-zinc-500" />
+          <div className="p-3.5 rounded-lg bg-muted/40 border border-border space-y-2 text-xs">
+            <div className="flex justify-between items-center text-foreground">
+              <span className="font-medium text-muted-foreground flex items-center gap-1.5">
+                <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
                 Proveedor:
               </span>
-              <span className="font-semibold text-zinc-100">{orden.proveedor || 'Sin proveedor'}</span>
+              <span className="font-semibold text-foreground">{orden.proveedor || 'Sin proveedor'}</span>
             </div>
 
             {orden.numeroFactura && (
-              <div className="flex justify-between items-center text-zinc-300">
-                <span className="text-zinc-400">Factura / Referencia:</span>
-                <span className="font-mono text-zinc-200">{orden.numeroFactura}</span>
+              <div className="flex justify-between items-center text-foreground">
+                <span className="text-muted-foreground">Factura / Referencia:</span>
+                <span className="font-mono text-foreground">{orden.numeroFactura}</span>
               </div>
             )}
 
-            <div className="flex justify-between items-center text-zinc-300">
-              <span className="text-zinc-400 flex items-center gap-1.5">
-                <ShoppingBag className="h-3.5 w-3.5 text-zinc-500" />
+            <div className="flex justify-between items-center text-foreground">
+              <span className="text-muted-foreground flex items-center gap-1.5">
+                <ShoppingBag className="h-3.5 w-3.5 text-muted-foreground" />
                 Partidas / Items:
               </span>
-              <span className="text-zinc-200">
+              <span className="text-foreground">
                 {orden.items?.length || 0} artículo{orden.items?.length === 1 ? '' : 's'}
               </span>
             </div>
 
             {orden.requisicionId && (
-              <div className="flex justify-between items-center text-zinc-300 pt-1 border-t border-zinc-700/40">
-                <span className="text-amber-400/90 font-medium">Requisición vinculada:</span>
-                <span className="text-amber-300 font-mono text-[11px]">{orden.requisicionId}</span>
+              <div className="flex justify-between items-center pt-1 border-t border-border">
+                <span className="text-primary font-medium">Requisición vinculada:</span>
+                <span className="text-primary font-mono text-[11px]">{orden.requisicionId}</span>
               </div>
             )}
           </div>
 
           {/* Notas de recepción */}
           <div className="space-y-1.5">
-            <Label htmlFor="notas-recepcion" className="text-xs text-zinc-300">
+            <Label htmlFor="notas-recepcion" className="text-xs text-foreground">
               Notas o condición del material (opcional)
             </Label>
             <Textarea
@@ -122,12 +122,12 @@ export default function ModalRecibirOrdenAlmacen({
               value={notas}
               onChange={(e) => setNotas(e.target.value)}
               disabled={guardando}
-              className="h-20 text-xs bg-zinc-950 border-zinc-700 placeholder:text-zinc-600 focus-visible:ring-emerald-500/30 resize-none"
+              className="h-20 text-xs bg-background border-border placeholder:text-muted-foreground focus-visible:ring-emerald-500/30 resize-none"
             />
           </div>
 
           {error && (
-            <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+            <div className="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -140,7 +140,7 @@ export default function ModalRecibirOrdenAlmacen({
             variant="ghost"
             onClick={onCerrar}
             disabled={guardando}
-            className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+            className="text-xs"
           >
             Cancelar
           </Button>
@@ -148,7 +148,7 @@ export default function ModalRecibirOrdenAlmacen({
             type="button"
             onClick={handleConfirmar}
             disabled={guardando}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2 font-medium"
+            className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2 font-medium text-xs"
           >
             {guardando ? (
               <>

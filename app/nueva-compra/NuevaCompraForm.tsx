@@ -32,6 +32,10 @@ import { Button } from '@/components/ui/button'
 import { useFilePreview } from '@/components/FilePreviewProvider'
 import SelectorCuentaCargoOdoo from '@/components/compras/SelectorCuentaCargoOdoo'
 import { useVentasOdoo } from '@/lib/hooks/useVentasOdoo'
+import { useMemoriaOperativa } from '@/lib/hooks/useMemoriaOperativa'
+import ChipMemoriaOperativa from '@/components/memoria/ChipMemoriaOperativa'
+import { registrarCorrecciones, type EntradaCorreccionMemoria } from '@/lib/memoria-operativa/correcciones'
+import type { PiezaConsulta } from '@/lib/services/memoria-operativa'
 import {
   EMPRESAS_FRECUENTES,
   REQUISITORES_FRECUENTES,
@@ -223,6 +227,23 @@ export default function NuevaCompraForm({
     if (!tax.coherente && tax.mensaje) adv.push(tax.mensaje)
     return adv
   }, [subtotalWatch, envioWatch, impuestosWatch, totalWatch])
+
+  const piezasMemoria = useMemo<PiezaConsulta[]>(() => {
+    if (!itemsWatch || !Array.isArray(itemsWatch)) return []
+    return itemsWatch.map((item) => ({
+      descripcion: item?.descripcion || '',
+      proveedor: typeof proveedorWatch === 'string' ? proveedorWatch : undefined,
+      proveedorId: proveedorId || undefined,
+      precioUnitario: typeof item?.precioUnitario === 'number' ? item.precioUnitario : undefined,
+      moneda: monedaWatch === 'MXN' ? 'MXN' : 'USD',
+    }))
+  }, [itemsWatch, proveedorWatch, proveedorId, monedaWatch])
+
+  const {
+    contextoPorIndice,
+    cargando: cargandoMemoria,
+    verPrecios: verPreciosMemoria,
+  } = useMemoriaOperativa(piezasMemoria)
 
   const verificarDuplicado = useCallback(async (proveedor: string, numeroFactura: string) => {
     const nf = numeroFactura?.trim()
@@ -564,6 +585,73 @@ export default function NuevaCompraForm({
         satPendiente: claveProdServ === null,
       }
     })
+
+    // Registrar correcciones y feedback de memoria operativa (best-effort)
+    try {
+      const correcciones: EntradaCorreccionMemoria[] = []
+      const usuarioEmail = usuario?.email || 'desconocido'
+
+      data.items.forEach((item, idx) => {
+        const ctx = contextoPorIndice(idx)
+        if (!ctx) return
+
+        if (ctx.claveSatValidada?.claveProdServ) {
+          const sugerido = ctx.claveSatValidada.claveProdServ
+          const elegido = item.claveProdServ?.trim() || null
+          correcciones.push({
+            tipo: 'campo_sugerido',
+            contexto: {
+              modulo: 'nueva-compra',
+              llavePieza: ctx.llavePieza,
+              campo: 'claveProdServ',
+            },
+            sugerido,
+            elegido,
+            aceptado: sugerido === elegido,
+            usuario: usuarioEmail,
+          })
+        }
+
+        if (ctx.alertaPrecio) {
+          correcciones.push({
+            tipo: 'alerta_precio',
+            contexto: {
+              modulo: 'nueva-compra',
+              llavePieza: ctx.llavePieza,
+              campo: 'precioUnitario',
+            },
+            sugerido: ctx.alertaPrecio.precioMinHistoricoUSD != null ? String(ctx.alertaPrecio.precioMinHistoricoUSD) : null,
+            elegido: item.precioUnitario != null ? String(item.precioUnitario) : null,
+            aceptado: false,
+            usuario: usuarioEmail,
+          })
+        }
+
+        if (ctx.proveedorPreferido?.proveedorNombre) {
+          const sugeridoProv = ctx.proveedorPreferido.proveedorNombre
+          const elegidoProv = (typeof data.proveedor === 'string' ? data.proveedor : '').trim()
+          correcciones.push({
+            tipo: 'proveedor_sugerido',
+            contexto: {
+              modulo: 'nueva-compra',
+              llavePieza: ctx.llavePieza,
+              campo: 'proveedor',
+            },
+            sugerido: sugeridoProv,
+            elegido: elegidoProv,
+            aceptado: sugeridoProv.toLowerCase() === elegidoProv.toLowerCase(),
+            usuario: usuarioEmail,
+          })
+        }
+      })
+
+      if (correcciones.length > 0) {
+        void registrarCorrecciones(correcciones)
+      }
+    } catch (e) {
+      console.warn('Error recopilando correcciones de memoria operativa:', e)
+    }
+
     await onExternalSubmit?.(
       { ...data, linkProveedor, fechaEntrega, items },
       imagen ?? undefined,
@@ -916,7 +1004,37 @@ export default function NuevaCompraForm({
               </div>
 
               <div>
-                <label className={cls.label}>Descripción</label>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                  <label className={cls.label + ' mb-0'}>Descripción</label>
+                  <ChipMemoriaOperativa
+                    contexto={contextoPorIndice(i)}
+                    cargando={cargandoMemoria}
+                    verPrecios={verPreciosMemoria}
+                    onAplicarSugerencia={(ctx) => {
+                      if (ctx.claveSatValidada?.claveProdServ) {
+                        const clave = ctx.claveSatValidada.claveProdServ
+                        setValue(`items.${i}.claveProdServ`, clave, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        })
+                        setValue(`items.${i}.satPendiente`, false, { shouldDirty: true })
+                      }
+                      const ref = ctx.comprasPrevias[0] || ctx.cotizacionesPrevias[0]
+                      if (ref?.precioUnitario != null && !getValues(`items.${i}.precioUnitario`)) {
+                        setValue(`items.${i}.precioUnitario`, ref.precioUnitario, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        })
+                        const cant = getValues(`items.${i}.cantidad`)
+                        const tot = calcularTotalPartida(cant, ref.precioUnitario)
+                        if (tot !== null) {
+                          setValue(`items.${i}.total`, tot, { shouldDirty: true, shouldValidate: true })
+                        }
+                        recalcularTotales()
+                      }
+                    }}
+                  />
+                </div>
                 <input {...register(`items.${i}.descripcion`)} className={cls.input} disabled={extrayendo} />
               </div>
 

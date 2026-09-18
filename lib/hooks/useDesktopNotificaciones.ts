@@ -61,11 +61,12 @@ export function useDesktopNotificaciones(opciones?: {
   // `false` en SSR y `true` al hidratar — desajuste de hidratación en las vistas
   // que condicionan secciones enteras con este valor.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- capacidades del navegador, solo disponibles en cliente
-    setSoportado(soportaNotificacionesEscritorio())
-    setPermiso(obtenerEstadoPermisoEscritorio())
-    setEscritorioActivo(getPreferenciaEscritorio())
-    setSonidoActivo(getPreferenciaSonido())
+    queueMicrotask(() => {
+      setSoportado(soportaNotificacionesEscritorio())
+      setPermiso(obtenerEstadoPermisoEscritorio())
+      setEscritorioActivo(getPreferenciaEscritorio())
+      setSonidoActivo(getPreferenciaSonido())
+    })
   }, [])
 
   // Espejo en un ref para no re-disparar el efecto de detección cuando cambian las

@@ -35,3 +35,43 @@ export async function recibirOrdenAlmacenApi(
 
   return data as ResultadoRecepcionAlmacenApi
 }
+
+export interface ResultadoRecepcionLoteApi {
+  recibidas: string[]
+  fallidas: Array<{ ordenId: string; error: string }>
+}
+
+export async function recibirOrdenesLoteAlmacenApi(
+  ordenIds: string[],
+  notas?: string | null
+): Promise<ResultadoRecepcionLoteApi> {
+  const auth = getClienteAuth()
+  const user = auth.currentUser
+
+  if (!user) {
+    throw new Error("No hay sesión activa para registrar la recepción en lote")
+  }
+
+  const token = await user.getIdToken()
+
+  const response = await fetch(`/api/ordenes/recibir-lote`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      ordenIds,
+      notas: notas?.trim() || null,
+    }),
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.error || "No se pudo registrar la recepción en lote")
+  }
+
+  return data as ResultadoRecepcionLoteApi
+}
+

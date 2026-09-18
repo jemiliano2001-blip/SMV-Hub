@@ -25,26 +25,24 @@ export function useComprasOdoo() {
   const [medida, setMedida] = useState("")
   const [moneda, setMoneda] = useState<string>("")
 
-  const recargar = useCallback(async () => {
-    setCargando(true)
-    setError(null)
-    try {
-      const [lista, estado] = await Promise.all([
-        listarItemsComprasOdoo(),
-        obtenerEstadoSyncComprasOdoo(),
-      ])
-      setItems(lista)
-      setEstadoSync(estado)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudieron cargar compras Odoo")
-    } finally {
-      setCargando(false)
-    }
+  const recargar = useCallback(() => {
+    return Promise.all([
+      listarItemsComprasOdoo(),
+      obtenerEstadoSyncComprasOdoo(),
+    ])
+      .then(([lista, estado]) => {
+        setItems(lista)
+        setEstadoSync(estado)
+        setError(null)
+        setCargando(false)
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : "No se pudieron cargar compras Odoo")
+        setCargando(false)
+      })
   }, [])
 
   useEffect(() => {
-    // Carga inicial de la fuente externa; la actualización ocurre dentro de la promesa.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void recargar()
   }, [recargar])
 

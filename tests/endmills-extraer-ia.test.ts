@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx"
+import ExcelJS from "exceljs"
 import { describe, expect, it } from "vitest"
 import {
   buscarCoincidenciaCatalogo,
@@ -113,7 +113,7 @@ describe("endmills-extraer-ia (Parser & Matching)", () => {
     expect(items[0].precioUnitarioUSD).toBe(7.92)
   })
 
-  it("parsea un buffer binario de archivo Excel (.xlsx)", () => {
+  it("parsea un buffer binario de archivo Excel (.xlsx)", async () => {
     const wsData = [
       ["PROFORMA INVOICE: PI-2026-CH88"],
       ["Description", "Spec", "Qty", "Price USD", "Amount"],
@@ -122,12 +122,12 @@ describe("endmills-extraer-ia (Parser & Matching)", () => {
       ["SHIPPING DHL: 75.00"],
       ["ALI COST: 15.00"],
     ]
-    const ws = XLSX.utils.aoa_to_sheet(wsData)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, "Order")
-    const buffer = XLSX.write(wb, { type: "array", bookType: "xlsx" })
+    const wb = new ExcelJS.Workbook()
+    const ws = wb.addWorksheet("Order")
+    ws.addRows(wsData)
+    const buffer = await wb.xlsx.writeBuffer()
 
-    const resultado = parsearArchivoExcelEndmills(buffer, CATALOGO_MOCK)
+    const resultado = await parsearArchivoExcelEndmills(buffer, CATALOGO_MOCK)
     expect(resultado.origen).toBe("excel_archivo")
     expect(resultado.folioCotizacion).toBe("PI-2026-CH88")
     expect(resultado.shippingUSD).toBe(75)

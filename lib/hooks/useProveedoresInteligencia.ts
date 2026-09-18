@@ -49,9 +49,14 @@ export function useProveedoresInteligencia({
 
   useEffect(() => {
     if (!habilitado) return
-    // La inteligencia es bajo demanda; no se descarga al entrar al directorio.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void cargarDatos()
+    let cancelado = false
+    void Promise.resolve().then(() => {
+      if (cancelado) return
+      return cargarDatos()
+    })
+    return () => {
+      cancelado = true
+    }
   }, [cargarDatos, habilitado])
 
   // Filtrar compras para un proveedor específico si aplica

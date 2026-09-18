@@ -30,40 +30,38 @@ export function useRequisiciones({ completoInicial = false }: UseRequisicionesOp
   const [error, setError] = useState<string | null>(null)
   const promesaCompleta = useRef<Promise<Requisicion[]> | null>(null)
 
-  const fetchRequisiciones = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    setColeccionCompleta(false)
-    try {
-      if (completoInicial) {
-        const data = await listarRequisiciones()
-        setRequisiciones(data)
-        setCursor(null)
-        setHayMas(false)
-        setTotalRequisiciones(data.length)
-        setColeccionCompleta(true)
-        return
-      }
+  const fetchRequisiciones = useCallback(() => {
+    const promesa = completoInicial
+      ? listarRequisiciones().then((data) => {
+          setRequisiciones(data)
+          setCursor(null)
+          setHayMas(false)
+          setTotalRequisiciones(data.length)
+          setColeccionCompleta(true)
+          setError(null)
+          setLoading(false)
+        })
+      : Promise.all([
+          obtenerPaginaRequisiciones(TAMANO_PAGINA),
+          contarRequisiciones(),
+        ]).then(([pagina, total]) => {
+          setRequisiciones(pagina.items)
+          setCursor(pagina.siguienteCursor)
+          setHayMas(pagina.hayMas)
+          setTotalRequisiciones(total)
+          setError(null)
+          setColeccionCompleta(false)
+          setLoading(false)
+        })
 
-      const [pagina, total] = await Promise.all([
-        obtenerPaginaRequisiciones(TAMANO_PAGINA),
-        contarRequisiciones(),
-      ])
-      setRequisiciones(pagina.items)
-      setCursor(pagina.siguienteCursor)
-      setHayMas(pagina.hayMas)
-      setTotalRequisiciones(total)
-    } catch (err) {
+    return promesa.catch((err) => {
       console.error('Error cargando requisiciones:', err)
       setError('No se pudieron cargar las requisiciones. Intenta de nuevo.')
-    } finally {
       setLoading(false)
-    }
+    })
   }, [completoInicial])
 
   useEffect(() => {
-    // La consulta externa actualiza el estado cuando Firestore responde.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchRequisiciones()
   }, [fetchRequisiciones])
 

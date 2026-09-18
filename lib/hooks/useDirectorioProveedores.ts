@@ -48,61 +48,62 @@ export function useDirectorioProveedores({
   const [orden, setOrden] = useState<OrdenamientoProveedor>(
     mercado === "mexico" ? "habitual" : "nombre",
   )
+  const [mercadoPrev, setMercadoPrev] = useState(mercado)
+  if (mercado !== mercadoPrev) {
+    setMercadoPrev(mercado)
+    setOrden(mercado === "mexico" ? "habitual" : "nombre")
+  }
+
   const solicitudActual = useRef(0)
   const promesaCatalogo = useRef<Promise<Proveedor[]> | null>(null)
 
-  const refrescarResumen = useCallback(async () => {
-    try {
-      setResumen(await obtenerResumenProveedores())
-    } catch (err) {
-      console.error("No se pudo cargar el resumen de proveedores:", err)
-    }
+  const refrescarResumen = useCallback(() => {
+    return obtenerResumenProveedores()
+      .then((data) => setResumen(data))
+      .catch((err) => {
+        console.error("No se pudo cargar el resumen de proveedores:", err)
+      })
   }, [])
 
-  const cargarPrimeraPagina = useCallback(async () => {
+  const cargarPrimeraPagina = useCallback(() => {
     const solicitud = ++solicitudActual.current
-    setCargando(true)
-    setError(null)
-    setRegionCompleta(false)
-    try {
-      if (mercado === "mexico") {
-        const lista = await obtenerTodosProveedoresMercado(mercado)
+    const promesa = (mercado === "mexico"
+      ? obtenerTodosProveedoresMercado(mercado).then((lista) => {
+          if (solicitud !== solicitudActual.current) return
+          setProveedoresBase(lista)
+          setCursor(null)
+          setHayMas(false)
+          setRegionCompleta(true)
+          setError(null)
+        })
+      : obtenerPaginaProveedores({ mercado, tamano: tamanoPagina }).then((pagina) => {
+          if (solicitud !== solicitudActual.current) return
+          setProveedoresBase(pagina.items)
+          setCursor(pagina.siguienteCursor)
+          setHayMas(pagina.hayMas)
+          setError(null)
+          setRegionCompleta(false)
+        })
+    )
+
+    return promesa
+      .catch((err) => {
         if (solicitud !== solicitudActual.current) return
-        setProveedoresBase(lista)
+        console.error("Error al cargar el directorio de proveedores:", err)
+        setError("No se pudieron cargar los proveedores.")
+        setProveedoresBase([])
         setCursor(null)
         setHayMas(false)
-        setRegionCompleta(true)
-        return
-      }
-      const pagina = await obtenerPaginaProveedores({ mercado, tamano: tamanoPagina })
-      if (solicitud !== solicitudActual.current) return
-      setProveedoresBase(pagina.items)
-      setCursor(pagina.siguienteCursor)
-      setHayMas(pagina.hayMas)
-    } catch (err) {
-      if (solicitud !== solicitudActual.current) return
-      console.error("Error al cargar el directorio de proveedores:", err)
-      setError("No se pudieron cargar los proveedores.")
-      setProveedoresBase([])
-      setCursor(null)
-      setHayMas(false)
-    } finally {
-      if (solicitud === solicitudActual.current) setCargando(false)
-    }
+      })
+      .finally(() => {
+        if (solicitud === solicitudActual.current) setCargando(false)
+      })
   }, [mercado, tamanoPagina])
 
   useEffect(() => {
-    // Las funciones actualizan estado después de resolver consultas externas de Firestore.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void cargarPrimeraPagina()
     void refrescarResumen()
   }, [cargarPrimeraPagina, refrescarResumen])
-
-  useEffect(() => {
-    // Al cambiar USA/MX el orden default es distinto; no conservar sort del otro mercado.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setOrden(mercado === "mexico" ? "habitual" : "nombre")
-  }, [mercado])
 
   const cargarMas = useCallback(async () => {
     if (!cursor || !hayMas || cargandoMas || cargando) return

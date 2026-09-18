@@ -1353,6 +1353,26 @@ service cloud.firestore {
       }
     }
 
+    // ── Memoria Operativa: registro de correcciones y retroalimentación ──────
+
+    match /memoria_correcciones/{correccionId} {
+      allow read: if esUsuarioAutorizado() && (
+        esCorreoBreakGlass() ||
+        esSuperAdminDoc() ||
+        tieneAlgunModulo(['ordenes', 'cotizaciones', 'nueva-compra'])
+      );
+
+      allow create: if esUsuarioAutorizado()
+                    && request.resource.data.usuario == request.auth.token.email
+                    && request.resource.data.tipo in ['campo_sugerido', 'alerta_precio', 'proveedor_sugerido']
+                    && request.resource.data.aceptado is bool;
+
+      allow update, delete: if esUsuarioAutorizado() && (
+        esCorreoBreakGlass() ||
+        esSuperAdminDoc()
+      );
+    }
+
     // ── Todo lo demás: denegado por defecto ──────────────────────────────────
 
     match /{document=**} {

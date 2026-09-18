@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
           mimeType.includes("csv")
         ) {
           try {
-            const resExcel = parsearArchivoExcelEndmills(buffer, catalogo)
+            const resExcel = await parsearArchivoExcelEndmills(buffer, catalogo)
             if (resExcel.items.length > 0) {
               return Response.json(resExcel)
             }

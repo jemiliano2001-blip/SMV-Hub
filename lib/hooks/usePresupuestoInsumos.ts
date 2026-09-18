@@ -29,20 +29,21 @@ export function usePresupuestoInsumos(usdToMxn: number = TIPO_CAMBIO_DEFAULT_USD
 
   // Cargar estado inicial desde localStorage
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) {
-        const parsed = JSON.parse(raw) as PartidaPresupuesto[]
-        if (Array.isArray(parsed)) {
-          // eslint-disable-next-line react-hooks/set-state-in-effect
-          setPartidas(parsed)
+    queueMicrotask(() => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY)
+        if (raw) {
+          const parsed = JSON.parse(raw) as PartidaPresupuesto[]
+          if (Array.isArray(parsed)) {
+            setPartidas(parsed)
+          }
         }
+      } catch {
+        // Ignorar error de parsing
+      } finally {
+        setCargado(true)
       }
-    } catch {
-      // Ignorar error de parsing
-    } finally {
-      setCargado(true)
-    }
+    })
   }, [])
 
   // Persistir cambios en localStorage

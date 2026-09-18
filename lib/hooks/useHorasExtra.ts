@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect, useCallback } from "react"
 import {
   suscribirHorasExtra,
@@ -51,24 +50,20 @@ function payloadVacio(
 
 export function useHorasExtra(semanaInicioFiltro?: string, departamentoFiltro?: Departamento) {
   const [registros, setRegistros] = useState<HorasExtra[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(Boolean(semanaInicioFiltro && departamentoFiltro))
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!semanaInicioFiltro || !departamentoFiltro) {
-      setRegistros([])
-      setLoading(false)
       return
     }
-
-    setLoading(true)
-    setError(null)
 
     const unsubscribe = suscribirHorasExtra(
       semanaInicioFiltro,
       departamentoFiltro,
       (data) => {
         setRegistros(data)
+        setError(null)
         setLoading(false)
       },
       (err) => {
@@ -194,15 +189,23 @@ export function useHorasExtraMensual(mes: string, departamento: Departamento) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    setLoading(true)
-    setError(null)
+    let cancelado = false
     listarHorasExtraRango(mes, departamento)
-      .then(setRegistros)
+      .then((data) => {
+        if (cancelado) return
+        setRegistros(data)
+        setError(null)
+        setLoading(false)
+      })
       .catch((err) => {
+        if (cancelado) return
         console.error("Error cargando resumen mensual:", err)
         setError("No se pudo cargar el resumen del mes.")
+        setLoading(false)
       })
-      .finally(() => setLoading(false))
+    return () => {
+      cancelado = true
+    }
   }, [mes, departamento])
 
   return { registros, loading, error }

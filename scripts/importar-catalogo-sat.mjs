@@ -1,7 +1,7 @@
 import fs from "node:fs/promises"
 import path from "node:path"
 import process from "node:process"
-import * as XLSX from "xlsx"
+import ExcelJS from "exceljs"
 
 const ROOT = process.cwd()
 const OUTPUT_PATH = path.join(ROOT, "data", "sat", "catalogo.json")
@@ -28,17 +28,30 @@ function ensureEightDigits(value) {
   return /^\d{8}$/.test(digits) ? digits : null
 }
 
-function readWorkbookRows(inputPath) {
-  const workbook = XLSX.readFile(inputPath, { cellDates: false })
-  const [firstSheetName] = workbook.SheetNames
-  if (!firstSheetName) {
+async function readWorkbookRows(inputPath) {
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.readFile(inputPath)
+  const worksheet = workbook.worksheets[0]
+  if (!worksheet) {
     throw new Error("El archivo no contiene hojas para leer")
   }
 
-  return XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], {
-    defval: "",
-    raw: false,
+  const rows = []
+  const headers = []
+  worksheet.eachRow((row, rowNumber) => {
+    const values = Array.isArray(row.values) ? row.values.slice(1) : []
+    if (rowNumber === 1) {
+      values.forEach((v) => headers.push(String(v ?? "").trim()))
+    } else {
+      const obj = {}
+      headers.forEach((h, idx) => {
+        const val = values[idx]
+        obj[h] = val !== undefined && val !== null ? String(val).trim() : ""
+      })
+      rows.push(obj)
+    }
   })
+  return rows
 }
 
 function detectField(row, candidates) {
@@ -84,7 +97,7 @@ async function main() {
   }
 
   const absoluteInput = path.resolve(ROOT, inputPath)
-  const rows = readWorkbookRows(absoluteInput)
+  const rows = await readWorkbookRows(absoluteInput)
   const entries = rows.map(mapRow).filter(Boolean)
 
   await fs.mkdir(path.dirname(OUTPUT_PATH), { recursive: true })
